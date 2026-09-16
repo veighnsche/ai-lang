@@ -48,7 +48,9 @@ git pull && make install
 revision; plain `go install` reports `dev`). No tags or releases yet,
 so "latest" means latest `main` — check the
 [commits](https://github.com/veighnsche/ai-lang/commits/main) to see
-what changed.
+what changed. Note: right after a push, `@latest` can lag the Go module
+proxy by a few minutes; to upgrade immediately, pin the commit instead:
+`go install github.com/veighnsche/ai-lang/compiler@<sha>`.
 
 ## Quickstart
 
