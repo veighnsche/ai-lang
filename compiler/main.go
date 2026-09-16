@@ -22,7 +22,16 @@ func main() {
 	os.Exit(run(os.Args[1:]))
 }
 
+// version is stamped at build time via:
+//   go build -ldflags "-X main.version=<v>" ./compiler
+// Unstamped builds (e.g. plain `go install ...@latest`) report "dev".
+var version = "dev"
+
 func run(argv []string) int {
+	if len(argv) > 0 && (argv[0] == "--version" || argv[0] == "-version" || argv[0] == "version") {
+		fmt.Printf("ailc %s\n", version)
+		return 0
+	}
 	if len(argv) > 0 && argv[0] == "lsp" {
 		return runLSP()
 	}

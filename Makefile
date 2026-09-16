@@ -1,11 +1,13 @@
 BINDIR ?= ./bin
 PREFIX ?= $(HOME)/.local/bin
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+LDFLAGS = -X main.version=$(VERSION)
 
 .PHONY: build test install uninstall
 
 build:
 	mkdir -p $(BINDIR)
-	go build -o $(BINDIR)/ailc ./compiler
+	go build -ldflags "$(LDFLAGS)" -o $(BINDIR)/ailc ./compiler
 
 test:
 	go test ./...

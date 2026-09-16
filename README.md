@@ -32,6 +32,24 @@ Or from a clone:
 make install   # builds ./bin/ailc and copies it to ~/.local/bin/ailc
 ```
 
+## Upgrade
+
+Re-run whichever install you used — both resolve to the newest commit:
+
+```
+go install github.com/veighnsche/ai-lang/compiler@latest   # then re-mv to ailc
+```
+
+```
+git pull && make install
+```
+
+`ailc --version` prints the build stamp (`make install` stamps the git
+revision; plain `go install` reports `dev`). No tags or releases yet,
+so "latest" means latest `main` — check the
+[commits](https://github.com/veighnsche/ai-lang/commits/main) to see
+what changed.
+
 ## Quickstart
 
 ```
