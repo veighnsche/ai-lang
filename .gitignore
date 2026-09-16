@@ -1,0 +1,14 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# vendored deps
+node_modules/
+
+# build outputs
+dist/
+build/
+out/
+*.test

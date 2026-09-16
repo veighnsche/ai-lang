@@ -1,0 +1,36 @@
+[
+  {
+    "kind": "net.down",
+    "fields": [],
+    "raised_by": [
+      "retry.net__fetch"
+    ],
+    "handled_by": [
+      {
+        "fn": "retry.retry__fetch",
+        "arm": "on net.down _ =\u003e match call retry__fetch(fuel - 1)"
+      }
+    ],
+    "hit_by_tests": [
+      "retry.retry__fetch/later",
+      "retry.retry__fetch/never"
+    ]
+  },
+  {
+    "kind": "retry.exhausted",
+    "fields": [],
+    "raised_by": [
+      "retry.retry__fetch"
+    ],
+    "handled_by": [
+      {
+        "fn": "retry.retry__fetch",
+        "arm": "on retry.exhausted _ =\u003e retry.exhausted()"
+      }
+    ],
+    "hit_by_tests": [
+      "retry.retry__fetch/empty",
+      "retry.retry__fetch/never"
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+# docs — ai-lang design records (reviewer index)
+
+Start here. This folder is the language's memory: plans, per-feature
+specs, and the rules each feature had to satisfy before it landed.
+
+## Status map
+
+| Doc | Status | One line |
+|---|---|---|
+| `REQUIREMENTS.md` (repo root) | Living: v0.1 freeze + ratified amendments tagged v04–v12 | The rules; see freeze note below |
+| `v02-machine-artifacts.md` | Shipped | Codes, `--format=json`, `normalize`, catalog |
+| `v03-branch-coverage.md` | Shipped | Test-per-arm law over green tables |
+| `v04-type-discipline.md` | Shipped | Brands, `seal`, exact `dec`, no floats |
+| `v05-expressiveness.md` | Landed (plan) | The gap + build order; items 1–6, 8 shipped, 7 declined |
+| `v06-arithmetic.md` | Shipped | `+`, `-`, `*` exact-or-loud; division deferred with reason |
+| `v07-helpers.md` | Shipped | Same-file calls, no pin, no call-site `given` |
+| `v08-termination.md` | Shipped | Proven self-recursion via `decreases`; cycles refused |
+| `v09-effects.md` | Shipped | Private cells, declared capabilities, per-test stores |
+| `v10-numerics.md` | Shipped | One numeric semantics: unbounded ints, exact decs, exact TS emit |
+| `v11-recursion.md` | Shipped | Program-wide recursion ban, guarded unit steps, returned-outcome theorem |
+| `v12-contracts.md` | Shipped | Producer-owned emits, complete error expectations, exchange script rows |
+
+## Reading order for a reviewer
+
+1. `REQUIREMENTS.md` Goal + R1–R9 (the thesis and the shape).
+2. `v05-expressiveness.md` (what was missing and in what order).
+3. `v06` → `v09` in order (each spec pairs a power with its proof).
+4. `sketches/` live shape: `auth-login/`, `retry-loop/`, `counter/`.
+5. `CLEAN_ROOM_REVIEW.md` (design input; historical record, see note).
+
+## Rules for reading (and editing)
+
+- The v0.1 freeze means: no silent drift. Amendments land tagged with
+  their version (`(v07)`), never by rewriting a ratified rule.
+- Every expressive power names its proof cost; a feature whose proof
+  is "future work" is a bug with a roadmap.
+- One rule, one `AILnnnn` code (`compiler/code.go` is the registry).
+- Verify claims mechanically: `go test ./...`,
+  `go run ./tools/modcheck`, `go run ./tools/gramcheck`.
+  Goldens live beside their sketches; `broken-login/` titles are
+  enforced by the suite, not by inspection.

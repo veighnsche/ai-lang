@@ -1,0 +1,1336 @@
+// check.go: static cross-checks behind editor squiggles.
+//
+// diagnose already runs the compile-time proofs (parse, naming, rev pins,
+// exhaustiveness, decision-table tests). The checks here catch what those
+// proofs only trip over at test-execution time with confusing messages, or
+// never catch at all: calls that resolve nowhere, given/test script
+// mismatches, raises outside emits, and a mod header that disagrees with
+// the file it heads. Every check returns []Diag with its own line so one
+// broken file yields many precise squiggles instead of one vague one.
+package main
+
+import (
+	"fmt"
+	"math/big"
+	"sort"
+	"strings"
+)
+
+// buildWorld is buildProgram for the editor: best-effort Program plus one
+// diagnostic per broken world item, each on its own line. Double
+// definitions point at the second declaration; bad uses entries point at
+// the entry. Callers skip execution-dependent checks (exhaustiveness proof,
+// test runs, call/given/emits checks) when the world is broken so one bad
+// uses line does not cascade into false positives elsewhere.
+func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program, []Diag) {
+	var out []Diag
+	prog := &Program{
+		Fns: map[string]*FnDecl{}, Externs: map[string]*ExternDecl{},
+		Brands:  map[string]string{},
+		Errors:  map[string][]string{},
+		EmitsOf: map[string][]string{}, Uses: map[string]bool{},
+		Modules: mods, FnFile: map[string]string{},
+	}
+	provides := map[string]*Module{}
+	emit := func(m *Module, d Diag) {
+		d.File = m.File
+		out = append(out, d)
+	}
+	seenFn := map[string]*Module{}
+	seenOther := map[string]bool{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			name, line := declNameLine(d)
+			if name == "" {
+				continue
+			}
+			// Only functions collide loudly: the CLI errors on double
+			// function definitions and silently overwrites shadowed
+			// types and errors. The LSP mirrors that, so a gallery of
+			// independent demos sharing one directory (and one error
+			// name) still diagnoses per file instead of drowning in
+			// cross-file noise. First declaration wins, deterministically.
+			// A clash inside the open file points at its declaration; a
+			// clash purely between siblings points at line 1 and names
+			// the file, since the editor can only squiggle the open doc.
+			// Externs share the function namespace: a foreign import
+			// shadowing an ail function (or vice versa) is the same
+			// double definition, or calls could not resolve.
+			_, isFn := d.(*FnDecl)
+			_, isEx := d.(*ExternDecl)
+			if isFn || isEx {
+				if _, dup := seenFn[name]; dup {
+					if m == open {
+						emit(m, spanDiag(texts[m.File], line, "error",
+							fmt.Sprintf("double definition: %s", name), name, CodeDupFn))
+					} else {
+						emit(m, spanDiag(texts[open.File], 1, "error",
+							fmt.Sprintf("sibling %s also defines %s (double definition)", m.File, name), m.File, CodeDupSibling))
+					}
+					continue
+				}
+				seenFn[name] = m
+			} else if seenOther[name] {
+				continue
+			} else {
+				seenOther[name] = true
+			}
+			switch d := d.(type) {
+			case *FnDecl:
+				prog.Fns[d.Name] = d
+				prog.EmitsOf[d.Name] = d.Emits
+				prog.FnFile[d.Name] = m.File
+				provides[d.Name] = m
+			case *ExternDecl:
+				prog.Externs[d.Name] = d
+				prog.EmitsOf[d.Name] = d.Emits
+				prog.FnFile[d.Name] = m.File
+				provides[d.Name] = m
+			case *TypeDecl:
+				provides[d.Name] = m
+			case *BrandDecl:
+				provides[d.Name] = m
+				if _, ok := prog.Brands[d.Name]; !ok {
+					prog.Brands[d.Name] = d.Under
+				}
+			case *ErrorDecl:
+				var fs []string
+				for _, f := range d.Fields {
+					fs = append(fs, f[0])
+				}
+				prog.Errors[d.Name] = fs
+			}
+		}
+	}
+	for _, m := range mods {
+		for _, u := range m.Hdr["uses"] {
+			line := locateLine(texts[m.File], u, 1)
+			spanText := texts[m.File]
+			if m != open {
+				// Another file's problem shows on the open doc only
+				// as a line-1 pointer; the message names the file.
+				line = 1
+				spanText = texts[open.File]
+			}
+			if !strings.Contains(u, "@") {
+				emit(m, spanDiag(spanText, line, "error",
+					fmt.Sprintf("%s: uses %s must pin a rev (name@N)", m.File, u), u, CodeUsesPin))
+				continue
+			}
+			base := pinRe.ReplaceAllString(u, "")
+			owner, ok := provides[base]
+			if !ok || owner == m {
+				emit(m, spanDiag(spanText, line, "error",
+					fmt.Sprintf("%s: uses %s resolves nowhere", m.File, u), base, CodeUsesResolve))
+				continue
+			}
+			prog.Uses[base] = true
+		}
+	}
+	return prog, out
+}
+
+func declNameLine(d Decl) (string, int) {
+	switch d := d.(type) {
+	case *FnDecl:
+		return d.Name, d.Line
+	case *ExternDecl:
+		return d.Name, d.Line
+	case *TypeDecl:
+		return d.Name, d.Line
+	case *BrandDecl:
+		return d.Name, d.Line
+	case *ErrorDecl:
+		return d.Name, d.Line
+	}
+	return "", 0
+}
+
+// headerLine finds the mod-header keyword line (provides/uses/emits/mod).
+func headerLine(text, kw string, fallback int) int {
+	for n, line := range strings.Split(text, "\n") {
+		if t := strings.TrimSpace(line); strings.HasPrefix(t, kw+" ") || strings.HasPrefix(t, kw+"[") {
+			return n + 1
+		}
+	}
+	return fallback
+}
+
+// locateUseLine finds a code occurrence of sub, skipping header, comment,
+// and declaration lines so call/error sites point at use, not declaration.
+func locateUseLine(text, sub string, fallback int) int {
+	for n, line := range strings.Split(text, "\n") {
+		t := strings.TrimSpace(line)
+		if !strings.Contains(line, sub) {
+			continue
+		}
+		if strings.HasPrefix(t, "mod ") || strings.HasPrefix(t, "provides") ||
+			strings.HasPrefix(t, "uses") || strings.HasPrefix(t, "emits") ||
+			strings.HasPrefix(t, "error ") || strings.HasPrefix(t, "type ") ||
+			strings.HasPrefix(t, "fn ") || strings.HasPrefix(t, "tests") ||
+			strings.HasPrefix(t, "//") {
+			continue
+		}
+		return n + 1
+	}
+	return locateLine(text, sub, fallback)
+}
+
+// matchNodes collects every match node in a body, innermost included.
+func matchNodes(n *Node) []*Node {
+	var out []*Node
+	var walk func(x *Node)
+	walk = func(x *Node) {
+		if x == nil {
+			return
+		}
+		if x.IsMatch {
+			out = append(out, x)
+			for _, a := range x.Arms {
+				walk(a.Rhs)
+			}
+		}
+	}
+	walk(n)
+	return out
+}
+
+// walkSmallTrees visits a Small and every nested Small (args, binop sides,
+// list items, exchange outcomes).
+func walkSmallTrees(s *Small, f func(*Small)) {
+	if s == nil {
+		return
+	}
+	f(s)
+	for _, a := range s.Args {
+		walkSmallTrees(a.V, f)
+	}
+	if s.Kind == "binop" {
+		walkSmallTrees(s.L, f)
+		walkSmallTrees(s.R, f)
+	}
+	for _, it := range s.Items {
+		walkSmallTrees(it, f)
+	}
+	if s.Kind == "exchange" {
+		walkSmallTrees(s.Outcome, f)
+	}
+}
+
+// bodySmalls visits every Small in executable positions exactly once:
+// arm right-hand sides (at the arm's line) and plain expression bodies.
+// Match scrutinees are excluded (callers handle them separately). Given
+// stubs and test tables are mocks and expectations, not executed code, so
+// they are excluded too.
+func bodySmalls(n *Node, f func(s *Small, line int)) {
+	var walk func(x *Node)
+	walk = func(x *Node) {
+		if x == nil {
+			return
+		}
+		if x.IsMatch {
+			for _, a := range x.Arms {
+				walk(a.Rhs)
+			}
+			return
+		}
+		line := x.Line
+		walkSmallTrees(x.Small, func(s *Small) { f(s, line) })
+	}
+	walk(n)
+}
+
+// checkModIntegrity enforces R2 from the inside: provides must name exactly
+// what the file defines. Error declarations are module-scoped values, not
+// provided items, so they are exempt on both sides.
+func checkModIntegrity(m *Module, text string) []Diag {
+	var out []Diag
+	defined := map[string]bool{}
+	for _, d := range m.Decls {
+		switch d := d.(type) {
+		case *FnDecl:
+			defined[d.Name] = true
+			if !hasHdr(m.Hdr["provides"], d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
+			}
+		case *TypeDecl:
+			defined[d.Name] = true
+			if !hasHdr(m.Hdr["provides"], d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
+			}
+		case *BrandDecl:
+			defined[d.Name] = true
+			if !hasHdr(m.Hdr["provides"], d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
+			}
+		case *ExternDecl:
+			defined[d.Name] = true
+			if !hasHdr(m.Hdr["provides"], d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
+			}
+		}
+	}
+	for _, p := range m.Hdr["provides"] {
+		if !defined[p] {
+			out = append(out, spanDiag(text, headerLine(text, "provides", 1), "error",
+				fmt.Sprintf("provides %s but the file never defines it", p), p, CodeProvidesGhost))
+		}
+	}
+	return out
+}
+
+func hasHdr(list []string, name string) bool {
+	for _, e := range list {
+		if e == name {
+			return true
+		}
+	}
+	return false
+}
+
+// checkTestShapes catches decision-table mistakes without running anything:
+// duplicate test names, args that match no parameter, and parameters the
+// test never supplies (all three are runtime failures today).
+func checkTestShapes(fn *FnDecl, text string) []Diag {
+	var out []Diag
+	seen := map[string]bool{}
+	params := map[string]bool{}
+	for _, p := range fn.Params {
+		params[p[0]] = true
+	}
+	for _, t := range fn.Tests {
+		if seen[t.Name] {
+			out = append(out, spanDiag(text, t.Line, "error",
+				fmt.Sprintf("duplicate test %s in %s", t.Name, fn.Name), t.Name, CodeDupTest))
+		}
+		seen[t.Name] = true
+		got := map[string]bool{}
+		for _, a := range t.Args {
+			got[a.Name] = true
+			if !params[a.Name] {
+				out = append(out, spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s passes unknown arg %s", t.Name, a.Name), a.Name, CodeUnknownArg))
+			}
+		}
+		for _, p := range fn.Params {
+			if !got[p[0]] {
+				out = append(out, spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s is missing arg %s", t.Name, p[0]), t.Name, CodeMissingArg))
+			}
+		}
+	}
+	return out
+}
+
+// checkCalls mirrors the evaluator's call rules statically. Foreign
+// scrutinees must name a known function in uses; same-file helpers
+// need no pin (locality is visible, and a same-file uses entry
+// resolves nowhere). Module-local externs are the exception: a
+// foreign import is declared where it is called and needs no uses
+// pin, but an extern from another module is unknown here (declare
+// your own). Calls outside a match scrutinee are outside the v0
+// subset entirely.
+func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text string) []Diag {
+	var out []Diag
+	scrut := map[*Small]bool{}
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut != nil && m.Scrut.Kind == "call" {
+			scrut[m.Scrut] = true
+			fname := m.Scrut.Fname
+			if isStoreOp(fname) {
+				continue // cells resolve in checkEffects; uses never applies
+			}
+			if _, ok := prog.Fns[fname]; !ok {
+				if localExtern[fname] {
+					continue
+				}
+				if prog.Externs[fname] != nil {
+					out = append(out, spanDiag(text, m.Line, "error",
+						fmt.Sprintf("%s calls extern %s from another module: declare your own extern", fn.Name, fname), fname, CodeUnknownCall))
+					continue
+				}
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("%s calls unknown function %s", fn.Name, fname), fname, CodeUnknownCall))
+				continue
+			}
+			if localCallee(prog, fn.Name, fname) != nil {
+				continue
+			}
+			if !prog.Uses[fname] {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("%s calls %s which is not in uses: add name@rev to uses", fn.Name, fname), fname, CodeCallNotInUses))
+			}
+		}
+	}
+	bodySmalls(fn.Body, func(s *Small, line int) {
+		_ = line
+		if s.Kind == "call" && !scrut[s] {
+			out = append(out, spanDiag(text, locateUseLine(text, s.Fname+"(", 1), "error",
+				fmt.Sprintf("call to %s outside a match scrutinee is outside the v0 subset", s.Fname), s.Fname, CodeCallOutside))
+		}
+	})
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut == nil || m.Scrut.Kind == "call" {
+			continue
+		}
+		walkSmallTrees(m.Scrut, func(s *Small) {
+			if s.Kind == "call" {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("call to %s outside a match scrutinee is outside the v0 subset", s.Fname), s.Fname, CodeCallOutside))
+			}
+		})
+	}
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut == nil || m.Scrut.Kind != "call" {
+			continue
+		}
+		walkSmallTrees(m.Scrut, func(s *Small) {
+			if s.Kind == "call" && s != m.Scrut {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("nested call to %s inside a scrutinee is outside the v0 subset", s.Fname), s.Fname, CodeCallNested))
+			}
+		})
+	}
+	return out
+}
+
+// reachingTests returns every test that can execute fname's body: its
+// own tests plus every transitive local caller's tests. Helper bodies
+// run under the caller's test name, so an inner given table must
+// script the union, with `-` for tests that cannot reach it.
+func reachingTests(prog *Program, fname string) (own, extra []Test) {
+	callers := map[string][]string{}
+	testsOf := map[string][]Test{}
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			testsOf[fn.Name] = fn.Tests
+			seen := map[string]bool{}
+			for _, c := range walkCalls(fn.Body) {
+				if localCallee(prog, fn.Name, c.Fname) == nil {
+					continue
+				}
+				if !seen[c.Fname] {
+					seen[c.Fname] = true
+					callers[c.Fname] = append(callers[c.Fname], fn.Name)
+				}
+			}
+		}
+	}
+	own = testsOf[fname]
+	seen := map[string]bool{fname: true}
+	queue := []string{fname}
+	for len(queue) > 0 {
+		u := queue[0]
+		queue = queue[1:]
+		for _, caller := range callers[u] {
+			if seen[caller] {
+				continue
+			}
+			seen[caller] = true
+			queue = append(queue, caller)
+			extra = append(extra, testsOf[caller]...)
+		}
+	}
+	return own, extra
+}
+
+// fileTests names every decision-table test in fname's file. Given
+// keys are valid when they name a test in the file (a helper's inner
+// table scripts caller tests); missing rows for reaching tests are
+// the error, unknown names the warning.
+func fileTests(prog *Program, fname string) map[string]bool {
+	out := map[string]bool{}
+	file, ok := prog.FnFile[fname]
+	if !ok {
+		return out
+	}
+	for _, m := range prog.Modules {
+		if m.File != file {
+			continue
+		}
+		for _, d := range m.Decls {
+			if fn, ok := d.(*FnDecl); ok {
+				for _, t := range fn.Tests {
+					out[t.Name] = true
+				}
+			}
+		}
+	}
+	return out
+}
+
+// checkGiven cross-checks call-site evidence against the decision table:
+// every foreign call needs a given table, every stub must be Ok or an
+// error the callee can actually produce, every reaching test needs a
+// script at every foreign call, and scripts no test selects are dead.
+// Local helper calls are deterministic: a given table on one is an
+// error, and none is required.
+func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
+	var out []Diag
+	valid := fileTests(prog, fn.Name)
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut == nil || m.Scrut.Kind != "call" {
+			continue
+		}
+		fname := m.Scrut.Fname
+		if isStoreOp(fname) {
+			if m.Given != nil {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
+			}
+			continue
+		}
+		if localCallee(prog, fn.Name, fname) != nil {
+			if m.Given != nil {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("call to local helper %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
+			}
+			continue
+		}
+		allowed := map[string]bool{"ok": true}
+		for _, e := range prog.EmitsOf[fname] {
+			allowed[e] = true
+		}
+		if m.Given == nil {
+			out = append(out, spanDiag(text, m.Line, "error",
+				fmt.Sprintf("call to %s has no given table: no test can script it", fname), fname, CodeNoGiven))
+			continue
+		}
+		for key, sm := range m.Given {
+			// The entry lives on its own `key => ...` row, below the
+			// match: point there, not at the match line.
+			entryLine := locateLineFrom(text, key+" =>", m.Line, m.Line)
+			if sm != nil {
+				checkStub(sm, fname, allowed, text, entryLine, key, fn.Name, &out)
+			}
+			if !valid[key] {
+				out = append(out, spanDiag(text, entryLine, "warning",
+					fmt.Sprintf("script %s never runs: no test named %s in %s", key, key, fn.Name), key, CodeDeadScript))
+			}
+		}
+		own, extra := reachingTests(prog, fn.Name)
+		for _, t := range append(append([]Test{}, own...), extra...) {
+			if _, ok := m.Given[t.Name]; !ok {
+				out = append(out, spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s has no script at the call to %s (line %d)", t.Name, fname, m.Line), t.Name, CodeDanglingTest))
+			}
+		}
+	}
+	return out
+}
+
+// checkLocalCycles bans recursive helpers: compile-time tests run
+// helper bodies inline, so a local call cycle would hang the build
+// before any proof runs. Edges cover every same-file call,
+// scrutinee or not; illegal positions are reported elsewhere,
+// termination here.
+func checkLocalCycles(m *Module, prog *Program, text string) []Diag {
+	var out []Diag
+	type edge struct {
+		to    string
+		token string
+		line  int
+	}
+	edges := map[string][]edge{}
+	add := func(from, to, token string, line int) {
+		for _, e := range edges[from] {
+			if e.to == to {
+				return
+			}
+		}
+		edges[from] = append(edges[from], edge{to, token, line})
+	}
+	for _, d := range m.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		for _, n := range matchNodes(fn.Body) {
+			if n.Scrut == nil || n.Scrut.Kind != "call" {
+				continue
+			}
+			if localCallee(prog, fn.Name, n.Scrut.Fname) == nil {
+				continue
+			}
+			if n.Scrut.Fname == fn.Name && fn.Decreases != "" {
+				continue // proven self-recursion: checkDecreases owns it
+			}
+			add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line)
+		}
+		bodySmalls(fn.Body, func(s *Small, line int) {
+			if s.Kind == "call" && localCallee(prog, fn.Name, s.Fname) != nil {
+				if s.Fname == fn.Name && fn.Decreases != "" {
+					return // proven self-recursion: checkDecreases owns it
+				}
+				add(fn.Name, s.Fname, s.Fname, locateUseLine(text, s.Fname+"(", 1))
+			}
+		})
+	}
+	const (
+		white = 0
+		gray  = 1
+		black = 2
+	)
+	color := map[string]int{}
+	var stack []string
+	var visit func(u string)
+	visit = func(u string) {
+		color[u] = gray
+		stack = append(stack, u)
+		for _, e := range edges[u] {
+			switch color[e.to] {
+			case gray:
+				start := 0
+				for i, n := range stack {
+					if n == e.to {
+						start = i
+						break
+					}
+				}
+				path := append(append([]string{}, stack[start:]...), e.to)
+				out = append(out, spanDiag(text, e.line, "error",
+					fmt.Sprintf("local call cycle %s: helpers must be acyclic", strings.Join(path, " -> ")), e.token, CodeLocalCycle))
+			case white:
+				visit(e.to)
+			}
+		}
+		stack = stack[:len(stack)-1]
+		color[u] = black
+	}
+	for _, d := range m.Decls {
+		if fn, ok := d.(*FnDecl); ok && color[fn.Name] == white {
+			visit(fn.Name)
+		}
+	}
+	return out
+}
+
+// checkGlobalCycles bans recursion across files (v11): the sandbox
+// stubs foreign calls, so a cross-file cycle passes every per-file
+// check and every test, then links into an unproved recursive cycle
+// in production. Every ail-to-ail edge counts — same-file and
+// cross-file — but cycles lying entirely in one file belong to the
+// local check (one mistake, one diagnostic), so only cycles touching
+// two or more files report here. Externs are host code outside the
+// proof and never form edges; unknown callees belong to other codes.
+// A cycle is reported once, at the call site that closes it, in the
+// caller's file.
+func checkGlobalCycles(mods []*Module, texts map[string]string, prog *Program) []Diag {
+	var out []Diag
+	type edge struct {
+		to    string
+		token string
+		line  int
+		file  string
+	}
+	edges := map[string][]edge{}
+	add := func(from, to, token string, line int, file string) {
+		for _, e := range edges[from] {
+			if e.to == to {
+				return
+			}
+		}
+		edges[from] = append(edges[from], edge{to, token, line, file})
+	}
+	ordered := append([]*Module{}, mods...)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].File < ordered[j].File })
+	for _, m := range ordered {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			for _, n := range matchNodes(fn.Body) {
+				if n.Scrut == nil || n.Scrut.Kind != "call" {
+					continue
+				}
+				if _, isEx := prog.Externs[n.Scrut.Fname]; isEx {
+					continue
+				}
+				if _, ok := prog.Fns[n.Scrut.Fname]; !ok {
+					continue
+				}
+				add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line, m.File)
+			}
+			bodySmalls(fn.Body, func(s *Small, line int) {
+				if s.Kind != "call" {
+					return
+				}
+				if _, isEx := prog.Externs[s.Fname]; isEx {
+					return
+				}
+				if _, ok := prog.Fns[s.Fname]; !ok {
+					return
+				}
+				add(fn.Name, s.Fname, s.Fname, locateUseLine(texts[m.File], s.Fname+"(", 1), m.File)
+			})
+		}
+	}
+	const (
+		white = 0
+		gray  = 1
+		black = 2
+	)
+	color := map[string]int{}
+	filesOf := func(path []string) map[string]bool {
+		seen := map[string]bool{}
+		for _, f := range path {
+			seen[prog.FnFile[f]] = true
+		}
+		return seen
+	}
+	var stack []string
+	var visit func(u string)
+	visit = func(u string) {
+		color[u] = gray
+		stack = append(stack, u)
+		for _, e := range edges[u] {
+			switch color[e.to] {
+			case gray:
+				start := 0
+				for i, n := range stack {
+					if n == e.to {
+						start = i
+						break
+					}
+				}
+				path := append(append([]string{}, stack[start:]...), e.to)
+				if len(filesOf(path)) < 2 {
+					continue // same-file cycle: the local check owns it
+				}
+				d := spanDiag(texts[e.file], e.line, "error",
+					fmt.Sprintf("call cycle %s: only direct self-recursion with decreases is admitted", strings.Join(path, " -> ")), e.token, CodeLocalCycle)
+				d.File = e.file
+				out = append(out, d)
+			case white:
+				visit(e.to)
+			}
+		}
+		stack = stack[:len(stack)-1]
+		color[u] = black
+	}
+	var seeds []string
+	for _, m := range ordered {
+		for _, d := range m.Decls {
+			if fn, ok := d.(*FnDecl); ok {
+				seeds = append(seeds, fn.Name)
+			}
+		}
+	}
+	for _, s := range seeds {
+		if color[s] == white {
+			visit(s)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].File != out[j].File {
+			return out[i].File < out[j].File
+		}
+		return out[i].Line < out[j].Line
+	})
+	return out
+}
+
+// isDecrease reports whether a full-arity call site passes p - 1 for
+// the decreases param: a named arg wins by name, else the positional
+// arg at the param's index. The unit step is syntactic on purpose
+// (v11: larger steps are refused even though they terminate — one
+// spelling for the loop step): the compiler sees the decrease, it
+// never infers one.
+func isDecrease(scrut *Small, pidx int, p string) bool {
+	var v *Small
+	for i, a := range scrut.Args {
+		if a.HasName && a.Name == p {
+			v = a.V
+			break
+		}
+		if !a.HasName && i == pidx && v == nil {
+			v = a.V
+		}
+	}
+	if v == nil {
+		return false
+	}
+	if v.Kind != "binop" || v.Op != "-" {
+		return false
+	}
+	if v.L.Kind != "ref" || len(v.L.Ref) != 1 || v.L.Ref[0] != p {
+		return false
+	}
+	return v.R.Kind == "int" && v.R.Num.Cmp(big.NewInt(1)) == 0
+}
+
+// checkDecreases proves termination for self-recursion before anything
+// runs: decreases must name an int param, must guard a real self-call,
+// every self-call site must pass p - 1 (v11: unit step only), and every
+// self-call site must sit under the positive branch of the p <= 0 guard
+// (v11: negative entries then take the base arm, so the proof promises
+// a returned outcome, not a loud fault). Sites with the wrong arity
+// belong to the arity rule and are skipped here, so one mistake yields
+// one error family.
+func checkDecreases(fn *FnDecl, prog *Program, text string) []Diag {
+	if fn.Decreases == "" {
+		return nil
+	}
+	p := fn.Decreases
+	pidx, ptype := -1, ""
+	for i, pr := range fn.Params {
+		if pr[0] == p {
+			pidx, ptype = i, pr[1]
+		}
+	}
+	if pidx < 0 {
+		return []Diag{spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s decreases %s: no such param", fn.Name, p), p, CodeBadDecreases)}
+	}
+	if ptype != "int" {
+		return []Diag{spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s decreases %s: must be an int param, got %s", fn.Name, p, ptype), p, CodeBadDecreases)}
+	}
+	selfAny := false
+	for _, c := range walkCalls(fn.Body) {
+		if c.Fname == fn.Name && localCallee(prog, fn.Name, c.Fname) != nil {
+			selfAny = true
+			break
+		}
+	}
+	if !selfAny {
+		return []Diag{spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s decreases %s but never calls itself", fn.Name, p), p, CodeStaleDecreases)}
+	}
+	var out []Diag
+	// Guarded walk: a self-call site is admitted only under the
+	// positive branch — the false arm of the canonical p <= 0 guard.
+	// The param never rebinds (no statements, no rebinding), so a site
+	// reached under a false guard entered with p >= 1, stepped to
+	// p - 1 >= 0, and every chain lands on the base arm. Sites in the
+	// true arm would diverge (each entry steps further negative), so
+	// the guard is load-bearing, not stylistic.
+	var walk func(n *Node, guarded bool)
+	walk = func(n *Node, guarded bool) {
+		if n == nil || !n.IsMatch {
+			return
+		}
+		if m := n.Scrut; m != nil && m.Kind == "call" && m.Fname == fn.Name {
+			if localCallee(prog, fn.Name, m.Fname) != nil && len(m.Args) == len(fn.Params) {
+				if !isDecrease(m, pidx, p) {
+					out = append(out, spanDiag(text, n.Line, "error",
+						fmt.Sprintf("%s calls itself without decreasing %s by one: pass %s - 1", fn.Name, p, p), fn.Name, CodeNoDecrease))
+				} else if !guarded {
+					out = append(out, spanDiag(text, n.Line, "error",
+						fmt.Sprintf("%s recurses outside the positive branch: self-calls must sit under the false arm of %s <= 0", fn.Name, p), fn.Name, CodeNoGuard))
+				}
+			}
+		}
+		g := isGuardScrut(n.Scrut, p)
+		for _, a := range n.Arms {
+			ag := guarded
+			if g {
+				ag = a.Pat.Kind == "bool" && !a.Pat.B
+			}
+			walk(a.Rhs, ag)
+		}
+	}
+	walk(fn.Body, false)
+	return out
+}
+
+// isGuardScrut recognizes the one canonical bound guard: p <= 0. One
+// spelling per meaning extends to the proof — p >= 1, p > 0, and p == 0
+// spell the same bound but only this shape admits recursion.
+func isGuardScrut(s *Small, p string) bool {
+	if s == nil || s.Kind != "binop" || s.Op != "<=" {
+		return false
+	}
+	if s.L.Kind != "ref" || len(s.L.Ref) != 1 || s.L.Ref[0] != p {
+		return false
+	}
+	return s.R.Kind == "int" && s.R.Num.Sign() == 0
+}
+
+// isStoreOp reports the two blessed store builtins: neither foreign
+// (stubbed) nor local (executed), but deterministic per test.
+func isStoreOp(fname string) bool {
+	return fname == "state__get" || fname == "state__put"
+}
+
+// storeCellName extracts the cell a store-op scrutinee names: the
+// first argument must be a bare cell name, positionally. Cells are
+// authority, not data, so no other shape is accepted here.
+func storeCellName(scrut *Small) (string, bool) {
+	if len(scrut.Args) == 0 {
+		return "", false
+	}
+	a := scrut.Args[0]
+	if a.HasName || a.V.Kind != "ref" || len(a.V.Ref) != 1 {
+		return "", false
+	}
+	return a.V.Ref[0], true
+}
+
+// cellAnywhere resolves a cell program-wide for declarations: a
+// consumer declares foreign capabilities it cannot use directly,
+// so existence is global while use stays file-local.
+func cellAnywhere(prog *Program, name string) *StateDecl {
+	for _, m := range prog.Modules {
+		if s := cellInFile(prog, m.File, name); s != nil {
+			return s
+		}
+	}
+	return nil
+}
+
+// cellInFile resolves a cell in the caller's file: cells are
+// module-private, so the declaration must sit beside the use.
+func cellInFile(prog *Program, file, name string) *StateDecl {
+	for _, m := range prog.Modules {
+		if m.File != file {
+			continue
+		}
+		for _, d := range m.Decls {
+			if s, ok := d.(*StateDecl); ok && s.Name == name {
+				return s
+			}
+		}
+	}
+	return nil
+}
+
+// callSite is one executable call position: match scrutinees only.
+// Non-scrutinee calls never execute (they error), so they carry no
+// effects and need no attribution.
+type callSite struct {
+	fname string
+	line  int
+}
+
+func callSites(body *Node) []callSite {
+	var out []callSite
+	for _, m := range matchNodes(body) {
+		if m.Scrut != nil && m.Scrut.Kind == "call" {
+			out = append(out, callSite{m.Scrut.Fname, m.Line})
+		}
+	}
+	return out
+}
+
+// effectNeed is one required capability with its attributing line
+// (always in the requiring function's own text) and the level-1
+// callee it arrives through ("" when used directly). Foreign
+// callees ride uses pins, not helper calls, and the message says so.
+type effectNeed struct {
+	line    int
+	via     string
+	foreign bool
+}
+
+// storeCellLenient resolves the cell for capability counting even
+// when the site is otherwise malformed (e.g. named args): the
+// authority is exercised, so staleness must not also fire. Shape
+// errors stay with the type rule.
+func storeCellLenient(scrut *Small) (string, bool) {
+	if len(scrut.Args) == 0 {
+		return "", false
+	}
+	a := scrut.Args[0]
+	if a.V.Kind != "ref" || len(a.V.Ref) != 1 {
+		return "", false
+	}
+	return a.V.Ref[0], true
+}
+
+// splitCap splits a declared capability into cell and kind.
+func splitCap(e string) (cell, kind string, ok bool) {
+	i := strings.LastIndex(e, ".")
+	if i < 0 {
+		return "", "", false
+	}
+	return e[:i], e[i+1:], true
+}
+
+// requiredEffects unions every capability fn needs: direct store ops
+// plus transitive local callees' needs plus foreign callees' declared
+// effects. First use wins, so one missing capability yields one error,
+// always anchored in fn's own text.
+func requiredEffects(fn *FnDecl, prog *Program) map[string]effectNeed {
+	out := map[string]effectNeed{}
+	add := func(cap string, need effectNeed) {
+		if _, ok := out[cap]; !ok {
+			out[cap] = need
+		}
+	}
+	addDirect := func(target *FnDecl, line int, via string) {
+		file := prog.FnFile[target.Name]
+		for _, m := range matchNodes(target.Body) {
+			if m.Scrut == nil || m.Scrut.Kind != "call" || !isStoreOp(m.Scrut.Fname) {
+				continue
+			}
+			cell, ok := storeCellLenient(m.Scrut)
+			if !ok || cellInFile(prog, file, cell) == nil {
+				continue
+			}
+			cap := cell + ".read"
+			if m.Scrut.Fname == "state__put" {
+				cap = cell + ".write"
+			}
+			ln := m.Line
+			if via != "" {
+				ln = line
+			}
+			add(cap, effectNeed{ln, via, false})
+		}
+	}
+	addDirect(fn, 0, "")
+	visited := map[string]bool{fn.Name: true}
+	var merge func(name string, line int, via string)
+	merge = func(name string, line int, via string) {
+		if visited[name] {
+			return
+		}
+		visited[name] = true
+		cf, ok := prog.Fns[name]
+		if !ok {
+			return
+		}
+		addDirect(cf, line, via)
+		for _, s := range callSites(cf.Body) {
+			if localCallee(prog, name, s.fname) == nil {
+				continue
+			}
+			merge(s.fname, line, via)
+		}
+	}
+	for _, s := range callSites(fn.Body) {
+		callee, ok := prog.Fns[s.fname]
+		if !ok {
+			continue
+		}
+		if localCallee(prog, fn.Name, s.fname) != nil {
+			merge(s.fname, s.line, s.fname)
+		} else if prog.Uses[s.fname] {
+			for _, e := range callee.Effects {
+				add(e, effectNeed{s.line, s.fname, true})
+			}
+		}
+	}
+	return out
+}
+
+// effectsEntryLine finds the function-level `effects [...]` row naming
+// cap, searching down from the fn declaration like emitsEntryLine.
+func effectsEntryLine(text string, fnLine int, cap string) int {
+	lines := strings.Split(text, "\n")
+	if fnLine < 1 {
+		fnLine = 1
+	}
+	for n := fnLine - 1; n < len(lines); n++ {
+		t := strings.TrimSpace(lines[n])
+		if strings.HasPrefix(t, "effects") && strings.Contains(lines[n], cap) {
+			return n + 1
+		}
+	}
+	return fnLine
+}
+
+// checkEffects proves authority before anything runs: every capability
+// fn needs (directly or through callees) must be declared, every
+// declared capability must be exercised, and declarations must name
+// real Cell.read|write capabilities. Undeclared cells belong to the
+// unknown-callee rule and are skipped here.
+func checkEffects(fn *FnDecl, prog *Program, text string) []Diag {
+	var out []Diag
+	file := prog.FnFile[fn.Name]
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut == nil || m.Scrut.Kind != "call" || !isStoreOp(m.Scrut.Fname) {
+			continue
+		}
+		cell, ok := storeCellName(m.Scrut)
+		if !ok {
+			continue // cell shape belongs to the type rule
+		}
+		if cellInFile(prog, file, cell) == nil {
+			out = append(out, spanDiag(text, m.Line, "error",
+				fmt.Sprintf("%s names unknown cell %s", m.Scrut.Fname, cell), cell, CodeUnknownCall))
+		}
+	}
+	declared := map[string]bool{}
+	for _, e := range fn.Effects {
+		cell, kind, ok := splitCap(e)
+		if !ok || (kind != "read" && kind != "write") || cellAnywhere(prog, cell) == nil {
+			out = append(out, spanDiag(text, effectsEntryLine(text, fn.Line, e), "error",
+				fmt.Sprintf("%s declares unknown effect %s: want Cell.read or Cell.write", fn.Name, e), e, CodeUndeclaredEffect))
+			continue
+		}
+		declared[e] = true
+	}
+	req := requiredEffects(fn, prog)
+	for cap, need := range req {
+		if declared[cap] {
+			continue
+		}
+		token := "state__get"
+		if strings.HasSuffix(cap, ".write") {
+			token = "state__put"
+		}
+		msg := fmt.Sprintf("%s uses %s without declaring it: add it to effects", fn.Name, cap)
+		if need.via != "" {
+			via := "helper " + need.via
+			if need.foreign {
+				via = "uses-pin " + need.via
+			}
+			msg = fmt.Sprintf("%s needs %s via %s without declaring it: add it to effects", fn.Name, cap, via)
+		}
+		out = append(out, spanDiag(text, need.line, "error", msg, token, CodeUndeclaredEffect))
+	}
+	for e := range declared {
+		if _, ok := req[e]; !ok {
+			out = append(out, spanDiag(text, effectsEntryLine(text, fn.Line, e), "error",
+				fmt.Sprintf("%s declares effects %s but nothing uses it", fn.Name, e), e, CodeStaleEffect))
+		}
+	}
+	return out
+}
+
+// checkStateDecl validates a cell declaration: the type names a base
+// type (cells hold values, not records or brands) and the init is a
+// literal of exactly that type.
+func checkStateDecl(s *StateDecl, text string) []Diag {
+	var out []Diag
+	switch s.Type {
+	case "str", "int", "bool", "dec":
+	default:
+		out = append(out, spanDiag(text, s.Line, "error",
+			fmt.Sprintf("state %s holds %s: cells hold str, int, bool, or dec", s.Name, s.Type), s.Type, CodeUnknownType))
+		return out
+	}
+	var got string
+	switch s.Init.Kind {
+	case "str":
+		got = "str"
+	case "int":
+		got = "int"
+	case "bool":
+		got = "bool"
+	case "dec":
+		got = "dec"
+	default:
+		out = append(out, spanDiag(text, s.Line, "error",
+			fmt.Sprintf("state %s init must be a literal", s.Name), s.Name, CodeTypeMismatch))
+		return out
+	}
+	if got != s.Type {
+		out = append(out, spanDiag(text, s.Line, "error",
+			fmt.Sprintf("state %s holds %s but init is %s: no implicit conversions", s.Name, s.Type, got), s.Name, CodeTypeMismatch))
+	}
+	return out
+}
+
+// checkStub validates one scripted row for a foreign call (v12): every
+// row is an exchange binding expected call args to one permitted
+// outcome, so the table proves "this request received this permitted
+// response", not merely the next response. Outcome-only rows are
+// refused; the outcome itself keeps the existing Ok/error rules.
+func checkStub(sm *Small, fname string, allowed map[string]bool, text string, entryLine int, key, owner string, out *[]Diag) {
+	if sm.Kind == "list" {
+		for _, it := range sm.Items {
+			checkStub(it, fname, allowed, text, entryLine, key, owner, out)
+		}
+		return
+	}
+	if sm.Kind != "exchange" {
+		*out = append(*out, spanDiag(text, entryLine, "error",
+			fmt.Sprintf("%s: script row must be an exchange with args and outcome", owner), key, CodeNoExchange))
+		return
+	}
+	checkOutcome(sm.Outcome, fname, allowed, text, entryLine, key, owner, out)
+}
+
+func checkOutcome(sm *Small, fname string, allowed map[string]bool, text string, entryLine int, key, owner string, out *[]Diag) {
+	switch sm.Kind {
+	case "ctor":
+		kind := sm.Ctor
+		if kind == "Ok" {
+			kind = "ok"
+		}
+		if kind != "ok" && !strings.Contains(kind, ".") {
+			*out = append(*out, spanDiag(text, entryLine, "error",
+				fmt.Sprintf("%s: stub %s is neither Ok nor an error", owner, kind), kind, CodeBadStub))
+			return
+		}
+		if !allowed[kind] {
+			*out = append(*out, spanDiag(text, entryLine, "error",
+				fmt.Sprintf("%s: stub %s not in %s emits", owner, kind, fname), kind, CodeStubNotInEmit))
+		}
+	default:
+		*out = append(*out, spanDiag(text, entryLine, "error",
+			fmt.Sprintf("%s: stub must be Ok(..) or an error", owner), key, CodeBadStub))
+	}
+}
+
+// checkEmits enforces R5 at the function boundary: every error value the
+// body can produce must be declared in emits, and every constructed kind
+// must be a declared error somewhere. Declared entries are a conservative
+// upper bound (v12): unrealized entries are allowed, so no consumer stub
+// can manufacture provider honesty. Every entry must still name a
+// declared error. Caught values forwarded whole (on e.kind var => var)
+// count as produced for their kind.
+// emitsEntryLine finds the function-level `emits [...]` row naming kind,
+// searching down from the fn declaration so the module header (which
+// comes first and may name the same kinds) never steals the hit.
+func emitsEntryLine(text string, fnLine int, kind string) int {
+	lines := strings.Split(text, "\n")
+	if fnLine < 1 {
+		fnLine = 1
+	}
+	for n := fnLine - 1; n < len(lines); n++ {
+		t := strings.TrimSpace(lines[n])
+		if strings.HasPrefix(t, "emits") && strings.Contains(lines[n], kind) {
+			return n + 1
+		}
+	}
+	return fnLine
+}
+
+// eachRaise visits every dotted error constructor a body can produce, at
+// the line that produces it: arm right-hand sides (a caught variable
+// returned whole counts for its kind) plus non-call match scrutinees.
+// Shared by checkEmits diagnostics and the error catalog so the two can
+// never disagree on what a function raises.
+func eachRaise(fn *FnDecl, f func(kind string, line int)) {
+	var walk func(x *Node, line int, bound map[string]string)
+	walk = func(x *Node, line int, bound map[string]string) {
+		if x == nil {
+			return
+		}
+		if x.IsMatch {
+			for _, a := range x.Arms {
+				inner := bound
+				if a.Pat.Kind == "variant" && a.Pat.Var != "" && strings.Contains(a.Pat.Name, ".") {
+					inner = map[string]string{}
+					for k, v := range bound {
+						inner[k] = v
+					}
+					inner[a.Pat.Var] = a.Pat.Name
+				}
+				walk(a.Rhs, a.Line, inner)
+			}
+			return
+		}
+		walkSmallTrees(x.Small, func(s *Small) {
+			if s.Kind == "ctor" && strings.Contains(s.Ctor, ".") {
+				f(s.Ctor, line)
+			}
+			if s.Kind == "ref" && len(s.Ref) > 0 {
+				if kind, ok := bound[s.Ref[0]]; ok {
+					f(kind, line)
+				}
+			}
+		})
+	}
+	walk(fn.Body, fn.Line, map[string]string{})
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut != nil && m.Scrut.Kind != "call" {
+			walkSmallTrees(m.Scrut, func(s *Small) {
+				if s.Kind == "ctor" && strings.Contains(s.Ctor, ".") {
+					f(s.Ctor, m.Line)
+				}
+			})
+		}
+	}
+}
+
+func checkEmits(fn *FnDecl, prog *Program, text string) []Diag {
+	var out []Diag
+	declared := map[string]bool{}
+	for _, e := range fn.Emits {
+		declared[e] = true
+	}
+	raise := func(kind string, line int) {
+		if _, ok := prog.Errors[kind]; !ok {
+			out = append(out, spanDiag(text, line, "error",
+				fmt.Sprintf("%s raises unknown error kind %s", fn.Name, kind), kind, CodeUnknownKind))
+		} else if !declared[kind] {
+			out = append(out, spanDiag(text, line, "error",
+				fmt.Sprintf("%s raises %s which is not in its emits", fn.Name, kind), kind, CodeForeignRaise))
+		}
+	}
+	eachRaise(fn, raise)
+	for _, e := range fn.Emits {
+		if _, ok := prog.Errors[e]; !ok {
+			out = append(out, spanDiag(text, emitsEntryLine(text, fn.Line, e), "error",
+				fmt.Sprintf("%s declares unknown error kind %s in emits", fn.Name, e), e, CodeUnknownKind))
+		}
+	}
+	return out
+}
+
+// calledFns is every statically visible call target, scrutinee or not.
+func calledFns(fn *FnDecl) map[string]bool {
+	out := map[string]bool{}
+	bodySmalls(fn.Body, func(s *Small, line int) {
+		if s.Kind == "call" {
+			out[s.Fname] = true
+		}
+	})
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut != nil && m.Scrut.Kind == "call" {
+			out[m.Scrut.Fname] = true
+		}
+	}
+	return out
+}
+
+// checkUnusedUses warns on uses entries no call ever reaches. Type pins
+// (Uppercase names) are exempt: types are referenced in signatures, never
+// called.
+func checkUnusedUses(m *Module, text string, called map[string]bool) []Diag {
+	var out []Diag
+	for _, u := range m.Hdr["uses"] {
+		base := pinRe.ReplaceAllString(u, "")
+		if base == "" || base[0] >= 'A' && base[0] <= 'Z' {
+			continue
+		}
+		if !called[base] {
+			out = append(out, spanDiag(text, locateLine(text, u, 1), "warning",
+				fmt.Sprintf("uses %s but %s never calls it", u, m.Mod), u, CodeUnusedUses))
+		}
+	}
+	return out
+}
+
+// checkUnusedParams warns on parameters the body and its scripts ignore.
+func checkUnusedParams(fn *FnDecl, text string) []Diag {
+	var out []Diag
+	used := map[string]bool{}
+	mark := func(s *Small) {
+		walkSmallTrees(s, func(x *Small) {
+			if x.Kind == "ref" && len(x.Ref) > 0 {
+				used[x.Ref[0]] = true
+			}
+		})
+	}
+	bodySmalls(fn.Body, func(s *Small, line int) { mark(s) })
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut != nil {
+			mark(m.Scrut)
+		}
+		for _, sm := range m.Given {
+			mark(sm)
+		}
+	}
+	for _, p := range fn.Params {
+		if !used[p[0]] {
+			out = append(out, spanDiag(text, fn.Line, "warning",
+				fmt.Sprintf("%s ignores param %s", fn.Name, p[0]), p[0], CodeUnusedParam))
+		}
+	}
+	return out
+}

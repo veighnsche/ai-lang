@@ -1,0 +1,835 @@
+package main
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// v10: ints emit as bigint (unbounded, exact) and decs as strings
+// carrying canonical digits (exact via the $ailDec helpers below).
+// The old number mapping was lossy (0.1+0.2) and is gone.
+var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string"}
+
+func tsType(t string) (string, error) {
+	return tsTypeB(t, nil)
+}
+
+// tsTypeB maps an ail annotation to TS, erasing brands to their
+// underlying type. Branding is proof, not runtime: the emit forgets it.
+func tsTypeB(t string, brands map[string]string) (string, error) {
+	if out, ok := tsBase[t]; ok {
+		return out, nil
+	}
+	if u, ok := brands[t]; ok {
+		if out, ok := tsBase[u]; ok {
+			return out, nil
+		}
+	}
+	return "", fmt.Errorf("cannot map ail type to TS: %s", t)
+}
+
+// tsErrMember renders one error kind as a TS union member.
+func tsErrMember(ed *ErrorDecl, brands map[string]string) (string, error) {
+	fs := ""
+	for _, f := range ed.Fields {
+		t, err := tsTypeB(f[1], brands)
+		if err != nil {
+			return "", err
+		}
+		fs += "; " + f[0] + ": " + t
+	}
+	return fmt.Sprintf("{ kind: \"%s\"%s }", ed.Name, fs), nil
+}
+
+// externUnion is the TS Result type of a foreign call: ok carrying the
+// Ret record plus one member per declared emits kind. The host owns the
+// implementation; this is the contract ailc proves against.
+func externUnion(ex *ExternDecl, prog *Program) (string, error) {
+	var td *TypeDecl
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			if t, ok := d.(*TypeDecl); ok && t.Name == ex.Ret {
+				td = t
+			}
+		}
+	}
+	if td == nil {
+		return "", fmt.Errorf("extern %s returns unknown type %s", ex.Name, ex.Ret)
+	}
+	fs := ""
+	for _, f := range td.Fields {
+		t, err := tsTypeB(f[1], prog.Brands)
+		if err != nil {
+			return "", err
+		}
+		fs += "; " + f[0] + ": " + t
+	}
+	union := fmt.Sprintf("{ kind: \"ok\"%s }", fs)
+	for _, e := range ex.Emits {
+		var ed *ErrorDecl
+		for _, m := range prog.Modules {
+			for _, d := range m.Decls {
+				if er, ok := d.(*ErrorDecl); ok && er.Name == e {
+					ed = er
+				}
+			}
+		}
+		if ed == nil {
+			return "", fmt.Errorf("extern %s emits unknown error %s", ex.Name, e)
+		}
+		mem, err := tsErrMember(ed, prog.Brands)
+		if err != nil {
+			return "", err
+		}
+		union += " | " + mem
+	}
+	return union, nil
+}
+
+// collectOkShapes requires every Ok(...) payload in a fn to agree on fields.
+// Field types come from literal occurrences (subset limitation, honest).
+func collectOkShapes(fn *FnDecl) (map[string]string, error) {
+	var shapes [][]Arg
+	var walk func(n *Node)
+	var walkSmall func(s *Small)
+	walkSmall = func(s *Small) {
+		if s == nil {
+			return
+		}
+		if s.Kind == "ctor" && s.Ctor == "Ok" {
+			shapes = append(shapes, s.Args)
+		}
+		for _, a := range s.Args {
+			walkSmall(a.V)
+		}
+		if s.Kind == "binop" {
+			walkSmall(s.L)
+			walkSmall(s.R)
+		}
+		for _, it := range s.Items {
+			walkSmall(it)
+		}
+	}
+	walk = func(n *Node) {
+		if n == nil {
+			return
+		}
+		if n.IsMatch {
+			walkSmall(n.Scrut)
+			for _, a := range n.Arms {
+				walk(a.Rhs)
+			}
+			return
+		}
+		walkSmall(n.Small)
+	}
+	walk(fn.Body)
+	for _, t := range fn.Tests {
+		walkSmall(t.Expected)
+		for _, a := range t.Args {
+			walkSmall(a.V)
+		}
+	}
+	seen := map[string]bool{}
+	for _, args := range shapes {
+		var names []string
+		for _, a := range args {
+			names = append(names, a.Name)
+		}
+		sort.Strings(names)
+		seen[strings.Join(names, ",")] = true
+	}
+	if len(seen) > 1 {
+		keys := make([]string, 0, len(seen))
+		for k := range seen {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		return nil, fmt.Errorf("%s: inconsistent Ok shape %v", fn.Name, keys)
+	}
+	merged := map[string]string{}
+	for _, args := range shapes {
+		for _, a := range args {
+			var vt string
+			switch a.V.Kind {
+			case "str":
+				vt = "string"
+			case "seal":
+				vt = "string"
+			case "int":
+				vt = "bigint"
+			case "dec":
+				vt = "string"
+			case "bool":
+				vt = "boolean"
+			default:
+				continue // refs: field must also occur as a literal somewhere
+			}
+			if prev, ok := merged[a.Name]; ok && prev != vt {
+				return nil, fmt.Errorf("%s: inconsistent Ok shape", fn.Name)
+			}
+			merged[a.Name] = vt
+		}
+	}
+	need := map[string]bool{}
+	for k := range seen {
+		for _, n := range strings.Split(k, ",") {
+			if n != "" {
+				need[n] = true
+			}
+		}
+	}
+	for n := range need {
+		if _, ok := merged[n]; !ok {
+			return nil, fmt.Errorf("%s: Ok field never occurs as a literal", fn.Name)
+		}
+	}
+	for n := range merged {
+		if !need[n] {
+			return nil, fmt.Errorf("%s: Ok field never occurs as a literal", fn.Name)
+		}
+	}
+	return merged, nil
+}
+
+// leafType reports the static type of a literal operand: kinds carry
+// their own types, so emit can dispatch exactly even where the checker
+// never annotated (direct unit calls). Refs need checker annotations.
+func leafType(s *Small) string {
+	switch s.Kind {
+	case "int":
+		return "int"
+	case "dec":
+		return "dec"
+	case "str":
+		return "str"
+	case "bool":
+		return "bool"
+	}
+	return ""
+}
+
+// binopOperandType reports the static ail type of a binop's operands
+// for dispatch. Same-type operands are enforced by the checker, so one
+// type describes both sides. Checker annotations win; literal kinds
+// are the fallback. Empty means unknown: the caller fails loud.
+func binopOperandType(node *Small) string {
+	if node.T != "" {
+		return node.T
+	}
+	if t := leafType(node.L); t != "" {
+		return t
+	}
+	return leafType(node.R)
+}
+
+func (e *emitter) emitValue(node *Small) (string, error) {
+	switch node.Kind {
+	case "str":
+		return `"` + strings.ReplaceAll(strings.ReplaceAll(node.Str, `\`, `\\`), `"`, `\"`) + `"`, nil
+	case "int":
+		return node.Num.String() + "n", nil
+	case "dec":
+		return strconv.Quote(node.Dec), nil
+	case "seal":
+		// Sealed values emit as their string: brands erase.
+		if len(node.Args) != 1 || node.Args[0].V.Kind != "str" {
+			return "", fmt.Errorf("cannot emit non-literal seal")
+		}
+		return e.emitValue(node.Args[0].V)
+	case "bool":
+		if node.B {
+			return "true", nil
+		}
+		return "false", nil
+	case "ref":
+		return strings.Join(node.Ref, "."), nil
+	case "binop":
+		l, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		r, err := e.emitValue(node.R)
+		if err != nil {
+			return "", err
+		}
+		// Equality is exact natively for both representations:
+		// bigint compares by value, dec strings are canonical.
+		switch node.Op {
+		case "==":
+			return fmt.Sprintf("(%s === %s)", l, r), nil
+		case "!=":
+			return fmt.Sprintf("(%s !== %s)", l, r), nil
+		}
+		ot := binopOperandType(node)
+		if ot == "" {
+			return "", fmt.Errorf("cannot emit %s: operand type unknown (run checkSem first)", node.Op)
+		}
+		if ot == "dec" {
+			// Decs are canonical-digit strings: route through the
+			// exact $ailDec helpers, never native operators.
+			switch node.Op {
+			case "+":
+				e.decOps["add"] = true
+				return fmt.Sprintf("$ailDecAdd(%s, %s)", l, r), nil
+			case "-":
+				e.decOps["sub"] = true
+				return fmt.Sprintf("$ailDecSub(%s, %s)", l, r), nil
+			case "*":
+				e.decOps["mul"] = true
+				return fmt.Sprintf("$ailDecMul(%s, %s)", l, r), nil
+			case ">=":
+				e.decOps["ge"] = true
+				return fmt.Sprintf("$ailDecGe(%s, %s)", l, r), nil
+			case "<=":
+				e.decOps["le"] = true
+				return fmt.Sprintf("$ailDecLe(%s, %s)", l, r), nil
+			}
+			return "", fmt.Errorf("cannot emit op %s", node.Op)
+		}
+		// Ints are bigints (native ops exact); strings and brands
+		// compare lexicographically, matching the evaluator.
+		ops := map[string]string{">=": ">=", "<=": "<=", "+": "+", "-": "-", "*": "*"}
+		op, ok := ops[node.Op]
+		if !ok {
+			return "", fmt.Errorf("cannot emit op %s", node.Op)
+		}
+		return fmt.Sprintf("(%s %s %s)", l, op, r), nil
+	case "ctor":
+		var parts []string
+		for _, a := range node.Args {
+			v, err := e.emitValue(a.V)
+			if err != nil {
+				return "", err
+			}
+			parts = append(parts, a.Name+": "+v)
+		}
+		inner := strings.Join(parts, ", ")
+		if node.Ctor == "Ok" {
+			if inner == "" {
+				return `{ kind: "ok" }`, nil
+			}
+			return `{ kind: "ok", ` + inner + ` }`, nil
+		}
+		if inner == "" {
+			return `{ kind: "` + node.Ctor + `" }`, nil
+		}
+		return `{ kind: "` + node.Ctor + `", ` + inner + ` }`, nil
+	case "call":
+		var parts []string
+		for _, a := range node.Args {
+			v, err := e.emitValue(a.V)
+			if err != nil {
+				return "", err
+			}
+			parts = append(parts, v)
+		}
+		return fmt.Sprintf("%s(%s)", node.Fname, strings.Join(parts, ", ")), nil
+	}
+	return "", fmt.Errorf("cannot emit: %s", node.Kind)
+}
+
+// decRuntimeShared implements the representation plumbing every dec
+// operation needs: split canonical digits, renormalize, and convert
+// between canonical strings and scaled BigInt mantissas. It mirrors
+// parseDecParts/decArith/canonDec in eval.go exactly: add/sub align to
+// the wider scale, mul sums scales, results renormalize (no trailing
+// fractional zeros, -0 folds to 0.0).
+var decRuntimeShared = []string{
+	"function $ailDecSplit(d: string): { neg: boolean; ip: string; fp: string } {",
+	"  let neg = false;",
+	"  if (d.startsWith(\"-\")) {",
+	"    neg = true;",
+	"    d = d.slice(1);",
+	"  }",
+	"  const dot = d.indexOf(\".\");",
+	"  return { neg, ip: d.slice(0, dot), fp: d.slice(dot + 1) };",
+	"}",
+	"function $ailDecNorm(ip: string, fp: string, neg: boolean): string {",
+	"  ip = ip.replace(/^0+(?=\\d)/, \"\");",
+	"  fp = fp.replace(/0+$/, \"\");",
+	"  if (fp === \"\") {",
+	"    fp = \"0\";",
+	"  }",
+	"  if (ip === \"0\" && fp === \"0\") {",
+	"    return \"0.0\";",
+	"  }",
+	"  return (neg ? \"-\" : \"\") + ip + \".\" + fp;",
+	"}",
+	"function $ailDecMant(p: { neg: boolean; ip: string; fp: string }, scale: number): bigint {",
+	"  let f = p.fp;",
+	"  while (f.length < scale) {",
+	"    f += \"0\";",
+	"  }",
+	"  const m = BigInt(p.ip + f);",
+	"  return p.neg ? -m : m;",
+	"}",
+	"function $ailDecFromMant(m: bigint, scale: number): string {",
+	"  let neg = false;",
+	"  if (m < 0n) {",
+	"    neg = true;",
+	"    m = -m;",
+	"  }",
+	"  let digits = m.toString();",
+	"  while (digits.length < scale + 1) {",
+	"    digits = \"0\" + digits;",
+	"  }",
+	"  return $ailDecNorm(digits.slice(0, digits.length - scale), digits.slice(digits.length - scale), neg);",
+	"}",
+}
+
+// decRuntimeOps holds one exact operation per ail operator, in fixed
+// order for byte-stable output. Only used entries are emitted.
+var decRuntimeOps = []struct {
+	key  string
+	code []string
+}{
+	{"add", []string{
+		"function $ailDecAdd(a: string, b: string): string {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  const s = Math.max(A.fp.length, B.fp.length);",
+		"  return $ailDecFromMant($ailDecMant(A, s) + $ailDecMant(B, s), s);",
+		"}",
+	}},
+	{"sub", []string{
+		"function $ailDecSub(a: string, b: string): string {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  const s = Math.max(A.fp.length, B.fp.length);",
+		"  return $ailDecFromMant($ailDecMant(A, s) - $ailDecMant(B, s), s);",
+		"}",
+	}},
+	{"mul", []string{
+		"function $ailDecMul(a: string, b: string): string {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  return $ailDecFromMant($ailDecMant(A, A.fp.length) * $ailDecMant(B, B.fp.length), A.fp.length + B.fp.length);",
+		"}",
+	}},
+	{"ge", []string{
+		"function $ailDecGe(a: string, b: string): boolean {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  const s = Math.max(A.fp.length, B.fp.length);",
+		"  return $ailDecMant(A, s) >= $ailDecMant(B, s);",
+		"}",
+	}},
+	{"le", []string{
+		"function $ailDecLe(a: string, b: string): boolean {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  const s = Math.max(A.fp.length, B.fp.length);",
+		"  return $ailDecMant(A, s) <= $ailDecMant(B, s);",
+		"}",
+	}},
+}
+
+// decHelpers renders the exact-decimal runtime for exactly the used
+// operations, shared plumbing first, then ops in fixed order.
+func decHelpers(used map[string]bool) []string {
+	var out []string
+	out = append(out, "// Exact-decimal runtime (v10): canonical-digit strings, BigInt math.")
+	out = append(out, decRuntimeShared...)
+	for _, op := range decRuntimeOps {
+		if used[op.key] {
+			out = append(out, op.code...)
+		}
+	}
+	return out
+}
+
+type emitter struct {
+	tmp       int
+	fnUnions  map[string]string // callee fn -> its TS Result type
+	brands    map[string]string // brand -> underlying, for erasure
+	cellTypes map[string]string // cell -> TS type, this module only
+	tailUnion string
+	decOps    map[string]bool // exact-decimal helpers used by this module
+}
+
+func (e *emitter) fresh() string {
+	e.tmp++
+	return fmt.Sprintf("_m%d", e.tmp)
+}
+
+func (e *emitter) retLines(rhs *Node, env map[string]string) ([]string, error) {
+	if rhs.IsMatch {
+		var nested []string
+		if err := e.stmtMatch(rhs, &nested); err != nil {
+			return nil, err
+		}
+		return nested, nil
+	}
+	v, err := e.emitValue(rhs.Small)
+	if err != nil {
+		return nil, err
+	}
+	return []string{"return " + v + ";"}, nil
+}
+
+func indent(lines []string) []string {
+	out := make([]string, 0, len(lines))
+	for _, ln := range lines {
+		out = append(out, "  "+ln)
+	}
+	return out
+}
+
+func (e *emitter) stmtMatch(node *Node, out *[]string) error {
+	scrut := node.Scrut
+	if scrut.Kind == "call" && isStoreOp(scrut.Fname) {
+		return e.stmtStoreOp(node, scrut, out)
+	}
+	if scrut.Kind == "call" {
+		union, ok := e.fnUnions[scrut.Fname]
+		if !ok {
+			return fmt.Errorf("no Result type for callee %s", scrut.Fname)
+		}
+		tmp := e.fresh()
+		call, err := e.emitValue(scrut)
+		if err != nil {
+			return err
+		}
+		*out = append(*out, fmt.Sprintf("const %s: %s = %s;", tmp, union, call))
+		*out = append(*out, fmt.Sprintf("switch (%s.kind) {", tmp))
+		for _, arm := range node.Arms {
+			pat := arm.Pat
+			switch {
+			case pat.Kind == "variantWild":
+				*out = append(*out, fmt.Sprintf("case \"%s\":", pat.Name))
+				lines, err := e.retLines(arm.Rhs, nil)
+				if err != nil {
+					return err
+				}
+				*out = append(*out, indent(lines)...)
+			case pat.Kind == "variant" && pat.Name != "Ok":
+				*out = append(*out, fmt.Sprintf("case \"%s\":", pat.Name))
+				lines, err := e.retLines(arm.Rhs, nil)
+				if err != nil {
+					return err
+				}
+				*out = append(*out, indent(lines)...)
+			case pat.Kind == "variant" && pat.Name == "Ok":
+				*out = append(*out, `case "ok":`)
+				*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+				lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+				if err != nil {
+					return err
+				}
+				*out = append(*out, indent(lines)...)
+			default:
+				return fmt.Errorf("call-match arm must be an error kind or Ok")
+			}
+		}
+		*out = append(*out, "}")
+		return nil
+	}
+	sv, err := e.emitValue(scrut)
+	if err != nil {
+		return err
+	}
+	for _, arm := range node.Arms {
+		k := arm.Pat.Kind
+		if k != "bool" && k != "str" && k != "wild" {
+			return fmt.Errorf("variant pattern on a non-call match")
+		}
+	}
+	hasStr, hasWild := false, false
+	var bools []bool
+	for _, arm := range node.Arms {
+		switch arm.Pat.Kind {
+		case "str":
+			hasStr = true
+		case "wild":
+			hasWild = true
+		case "bool":
+			bools = append(bools, arm.Pat.B)
+		}
+	}
+	// Exhaustiveness already proven by verifyExhaustive; emit assumes it.
+	boolTotal := !hasStr && !hasWild && len(bools) == 2 &&
+		((bools[0] && !bools[1]) || (!bools[0] && bools[1]))
+	for n, arm := range node.Arms {
+		pat := arm.Pat
+		kw := "if"
+		if n > 0 {
+			kw = "else if"
+		}
+		last := n == len(node.Arms)-1
+		if boolTotal && last {
+			*out = append(*out, "else {")
+		} else {
+			switch pat.Kind {
+			case "wild":
+				lines, err := e.retLines(arm.Rhs, nil)
+				if err != nil {
+					return err
+				}
+				*out = append(*out, lines...)
+				return nil
+			case "bool":
+				cond := sv
+				if !pat.B {
+					cond = "!(" + sv + ")"
+				}
+				*out = append(*out, fmt.Sprintf("%s (%s) {", kw, cond))
+			case "str":
+				*out = append(*out, fmt.Sprintf("%s (%s === \"%s\") {", kw, sv, pat.Str))
+			}
+		}
+		lines, err := e.retLines(arm.Rhs, nil)
+		if err != nil {
+			return err
+		}
+		*out = append(*out, indent(lines)...)
+		*out = append(*out, "}")
+	}
+	return nil
+}
+
+// stmtStoreOp emits a cell operation as plain module state access: a
+// get reads the cell into an ok+value union, a put assigns then
+// proceeds. No imports: shared numeric code is emitted inline (v10).
+// Only Ok-variant arms are legal past the exhaustiveness gate.
+func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
+	cell, ok := storeCellName(scrut)
+	t, known := e.cellTypes[cell]
+	if !ok || !known {
+		return fmt.Errorf("unknown cell in %s", scrut.Fname)
+	}
+	tmp := e.fresh()
+	if scrut.Fname == "state__get" {
+		*out = append(*out, fmt.Sprintf("const %s: { kind: \"ok\", value: %s } = { kind: \"ok\", value: %s };", tmp, t, cell))
+	} else {
+		if len(scrut.Args) != 2 {
+			return fmt.Errorf("cannot emit %s: want cell and value", scrut.Fname)
+		}
+		v, err := e.emitValue(scrut.Args[1].V)
+		if err != nil {
+			return err
+		}
+		*out = append(*out, fmt.Sprintf("%s = %s;", cell, v))
+		*out = append(*out, fmt.Sprintf("const %s: { kind: \"ok\" } = { kind: \"ok\" };", tmp))
+	}
+	*out = append(*out, fmt.Sprintf("switch (%s.kind) {", tmp))
+	for _, arm := range node.Arms {
+		pat := arm.Pat
+		if pat.Kind != "variant" || pat.Name != "Ok" {
+			return fmt.Errorf("store match arm must be Ok")
+		}
+		*out = append(*out, `case "ok":`)
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+		if err != nil {
+			return err
+		}
+		*out = append(*out, indent(lines)...)
+	}
+	*out = append(*out, "}")
+	return nil
+}
+
+func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
+	var params []string
+	for _, p := range fn.Params {
+		t, err := tsTypeB(p[1], e.brands)
+		if err != nil {
+			return nil, err
+		}
+		params = append(params, p[0]+": "+t)
+	}
+	lines := []string{fmt.Sprintf("export function %s(%s): %s {", fn.Name, strings.Join(params, ", "), union)}
+	var body []string
+	if fn.Body.IsMatch {
+		if err := e.stmtMatch(fn.Body, &body); err != nil {
+			return nil, err
+		}
+	} else {
+		v, err := e.emitValue(fn.Body.Small)
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, "return "+v+";")
+	}
+	lines = append(lines, indent(body)...)
+	lines = append(lines, "}")
+	return lines, nil
+}
+
+func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]string, fnUnions map[string]string) (string, error) {
+	var L []string
+	L = append(L, fmt.Sprintf("// GENERATED from %s by ailc v0.0.0. DO NOT EDIT.", mod.File))
+	L = append(L, "// Prod emit: tests + given stripped.")
+	need := map[string]map[string]bool{}
+	for _, d := range mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		for _, c := range walkCalls(fn.Body) {
+			if prog.Uses[c.Fname] {
+				if need[stemOf[c.Fname]] == nil {
+					need[stemOf[c.Fname]] = map[string]bool{}
+				}
+				need[stemOf[c.Fname]][c.Fname] = true
+			}
+		}
+	}
+	var stems []string
+	for s := range need {
+		stems = append(stems, s)
+	}
+	sort.Strings(stems)
+	for _, stem := range stems {
+		if stem == mod.Stem {
+			continue
+		}
+		var names []string
+		for n := range need[stem] {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		names = append(names, "type "+resultOfStem[stem])
+		L = append(L, fmt.Sprintf("import { %s } from \"./%s\";", strings.Join(names, ", "), stem))
+	}
+	// Foreign imports: every extern this module calls is a typed TS
+	// import from its host-provided stub file. Sorted for stability.
+	exCalled := map[string]bool{}
+	for _, d := range mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		for _, c := range walkCalls(fn.Body) {
+			if prog.Externs[c.Fname] != nil {
+				exCalled[c.Fname] = true
+			}
+		}
+	}
+	var exNames []string
+	for n := range exCalled {
+		exNames = append(exNames, n)
+	}
+	sort.Strings(exNames)
+	if len(exNames) > 0 {
+		L = append(L, fmt.Sprintf("import { %s } from \"./%s.externs\";", strings.Join(exNames, ", "), mod.Stem))
+	}
+	cap_ := capitalize(mod.Mod) + "Result"
+	var members []string
+	for _, d := range mod.Decls {
+		ed, ok := d.(*ErrorDecl)
+		if !ok {
+			continue
+		}
+		mem, err := tsErrMember(ed, prog.Brands)
+		if err != nil {
+			return "", err
+		}
+		members = append(members, mem)
+	}
+	shapes := map[string]bool{}
+	shapeOf := map[string]map[string]string{}
+	for _, d := range mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		shape, err := collectOkShapes(fn)
+		if err != nil {
+			return "", err
+		}
+		var keys []string
+		for k := range shape {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		shapes[strings.Join(keys, ",")] = true
+		shapeOf[fn.Name] = shape
+	}
+	if len(shapes) > 1 {
+		return "", fmt.Errorf("%s: fns disagree on Ok shape", mod.File)
+	}
+	var shape map[string]string
+	for _, s := range shapeOf {
+		shape = s
+		break
+	}
+	var names []string
+	for n := range shape {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	okFs := ""
+	for _, n := range names {
+		okFs += "; " + n + ": " + shape[n]
+	}
+	union := fmt.Sprintf("{ kind: \"ok\"%s }", okFs)
+	for _, m := range members {
+		union += " | " + m
+	}
+	L = append(L, fmt.Sprintf("export type %s = %s;", cap_, union))
+	for _, d := range mod.Decls {
+		td, ok := d.(*TypeDecl)
+		if !ok {
+			continue
+		}
+		var fs []string
+		for _, f := range td.Fields {
+			t, err := tsTypeB(f[1], prog.Brands)
+			if err != nil {
+				return "", err
+			}
+			fs = append(fs, f[0]+": "+t)
+		}
+		if len(fs) == 0 {
+			L = append(L, fmt.Sprintf("export type %s = {};", td.Name))
+		} else {
+			L = append(L, fmt.Sprintf("export type %s = { %s };", td.Name, strings.Join(fs, "; ")))
+		}
+	}
+	// Module state: one mutable let per cell, initialized from the
+	// decl literal. Tests prove per-scenario behavior from init;
+	// prod shares the cell across calls (documented boundary).
+	cellTypes := map[string]string{}
+	em := &emitter{fnUnions: fnUnions, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}}
+	for _, d := range mod.Decls {
+		sd, ok := d.(*StateDecl)
+		if !ok {
+			continue
+		}
+		t, err := tsTypeB(sd.Type, prog.Brands)
+		if err != nil {
+			return "", err
+		}
+		cellTypes[sd.Name] = t
+		init, err := em.emitValue(sd.Init)
+		if err != nil {
+			return "", err
+		}
+		L = append(L, fmt.Sprintf("let %s: %s = %s;", sd.Name, t, init))
+	}
+	var fnLines []string
+	for _, d := range mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		lines, err := em.fn(fn, cap_)
+		if err != nil {
+			return "", err
+		}
+		fnLines = append(fnLines, lines...)
+	}
+	// Exact-decimal runtime: emitted inline only when a dec operation
+	// or ordering is used, so files without dec arithmetic gain no code.
+	// Helpers carry $ prefixes, which ail naming (domain__verb) cannot
+	// spell, so user code can never collide with them.
+	if len(em.decOps) > 0 {
+		L = append(L, decHelpers(em.decOps)...)
+	}
+	L = append(L, fnLines...)
+	return strings.Join(L, "\n") + "\n", nil
+}
