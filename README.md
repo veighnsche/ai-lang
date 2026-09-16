@@ -14,15 +14,34 @@ emits typed TS plus machine-readable artifacts.
 - [`editors/vscode/`](editors/vscode/README.md) — syntax highlighting + LSP client
 - [`tools/`](tools/) — grammar and module checkers
 
+## Install
+
+Requires Go 1.21+. Easiest, no clone needed:
+
+```
+go install github.com/veighnsche/ai-lang/compiler@latest
+mv "$(go env GOPATH)/bin/compiler" ~/.local/bin/ailc
+```
+
+(`go install` names the binary after the package directory; the `mv`
+gives it its real name. Make sure `~/.local/bin` is on your `PATH`.)
+
+Or from a clone:
+
+```
+make install   # builds ./bin/ailc and copies it to ~/.local/bin/ailc
+```
+
 ## Quickstart
 
-From the repo root:
+```
+ailc --out /tmp/ail-out sketches/auth-login/db.ail sketches/auth-login/auth.ail
+```
 
-```
-go build -o /tmp/ailc ./compiler
-/tmp/ailc --out /tmp/ail-out sketches/auth-login/db.ail sketches/auth-login/auth.ail
-go test ./...
-```
+From the repo root, `go test ./...` runs the golden gates
+(byte-identical emit for the gallery sketches) plus the diagnosis
+suites: any parse, proof, evaluation, or emit change that alters output
+or diagnostics fails the build.
 
 `go test` runs the golden gates (byte-identical emit for the gallery
 sketches) plus the diagnosis suites: any parse, proof, evaluation, or
