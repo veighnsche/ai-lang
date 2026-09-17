@@ -273,7 +273,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 		case *ExternDecl:
 			out = append(out, checkExternSig(d, prog, text)...)
 		case *BrandDecl:
-			out = append(out, checkBrandDecl(d, text)...)
+			out = append(out, checkBrandDecl(d, prog, text)...)
 		case *StateDecl:
 			out = append(out, checkStateDecl(d, text)...)
 		case *TypeDecl:

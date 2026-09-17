@@ -1,16 +1,24 @@
-// html/text: the first constructor-controlled brand. Raw strings
-// enter Html__Text only through html__text__escape, one explicit
-// gate; the brand erases to string at runtime and flows opaquely
-// (never inspected, only passed to brand-typed params). The worker
+// html/text: constructor-controlled brands. Raw strings enter
+// Html__Text only through html__text__escape, one explicit gate;
+// the brand erases to string at runtime and flows opaquely (never
+// inspected, only passed to brand-typed params). The escape worker
 // consumes from the front (upper_ascii precedent): no index
 // arithmetic, no out-of-range shape past the n bound.
+//
+// Html__Safe is a serialized fragment admissible at the library's
+// supported ordinary HTML child-fragment boundaries. It grants no
+// authority for script, style, attribute, or URL contexts: text such
+// as alert(1) never becomes suitable script content by promotion.
+// Promotion is relabeling, not re-encoding: erase(node(t)) = erase(t).
 
 mod html
-  provides [html__text__escape_from, html__text__escape, Html__Text, Html__Escaped, Html__TextResult]
+  provides [html__text__escape_from, html__text__escape, html__text__node, Html__Text, Html__Escaped, Html__TextResult, Html__Safe, Html__SafeResult]
   uses []
   emits []
 
 brand Html__Text is str rev 1
+
+brand Html__Safe is str rev 1 seals_from [Html__Text]
 
 type Html__Escaped rev 1 (
   value: str
@@ -18,6 +26,10 @@ type Html__Escaped rev 1 (
 
 type Html__TextResult rev 1 (
   text: Html__Text
+)
+
+type Html__SafeResult rev 1 (
+  safe: Html__Safe
 )
 
 fn html__text__escape_from(s: str, acc: str, n: int) -> Html__Escaped rev 1
@@ -57,3 +69,15 @@ fn html__text__escape(raw: str) -> Html__TextResult rev 1
 =
   match call html__text__escape_from(raw, "", #raw)
     on Ok r => Ok(text = seal Html__Text(r.value))
+
+fn html__text__node(text: Html__Text) -> Html__SafeResult rev 1
+  emits []
+  tests
+    node_empty(text = seal Html__Text("")) => Ok(safe = seal Html__Safe(""))
+    node_plain(text = seal Html__Text("hi")) => Ok(safe = seal Html__Safe("hi"))
+    node_escaped(text = seal Html__Text("a&amp;b")) => Ok(safe = seal Html__Safe("a&amp;b"))
+    node_tags(text = seal Html__Text("&lt;p&gt;")) => Ok(safe = seal Html__Safe("&lt;p&gt;"))
+    node_entities(text = seal Html__Text("&amp;lt;")) => Ok(safe = seal Html__Safe("&amp;lt;"))
+    node_astral(text = seal Html__Text("𝌆")) => Ok(safe = seal Html__Safe("𝌆"))
+=
+  Ok(safe = seal Html__Safe(text))

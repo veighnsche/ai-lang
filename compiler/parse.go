@@ -123,12 +123,16 @@ type FnDecl struct {
 func (d *FnDecl) declKind() string { return "fn" }
 
 // BrandDecl is a nominal string wrapper: brand Name is str rev N.
-// Branding is proof, not runtime; the emitter forgets every brand.
+// An optional seals_from [B, ...] clause authorizes explicit one-way
+// promotion seals from those same-module brands (v26); without it the
+// brand mints from str only. Branding is proof, not runtime; the
+// emitter forgets every brand.
 type BrandDecl struct {
-	Name  string
-	Under string
-	Rev   int
-	Line  int
+	Name      string
+	Under     string
+	Rev       int
+	SealsFrom []string
+	Line      int
 }
 
 func (d *BrandDecl) declKind() string { return "brand" }
@@ -795,7 +799,7 @@ var (
 	reHdrLine   = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
 	reError     = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
 	reType      = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
-	reBrand     = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)$`)
+	reBrand     = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
 	reExtern    = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+)\s+rev\s+(\d+)$`)
 	reFn        = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+)\s+rev\s+(\d+)$`)
 	reField     = regexp.MustCompile(`^(\w+)\s*:\s*(\w+)$`)
@@ -944,7 +948,15 @@ func parseModuleText(name, text string) (*Module, error) {
 				return nil, at(declLine, fmt.Errorf("bad brand decl: %s", code))
 			}
 			rev, _ := strconv.Atoi(m[3])
-			mod.Decls = append(mod.Decls, &BrandDecl{Name: m[1], Under: m[2], Rev: rev, Line: declLine})
+			var from []string
+			if m[4] != "" {
+				for _, name := range strings.Split(m[5], ",") {
+					if name = strings.TrimSpace(name); name != "" {
+						from = append(from, name)
+					}
+				}
+			}
+			mod.Decls = append(mod.Decls, &BrandDecl{Name: m[1], Under: m[2], Rev: rev, SealsFrom: from, Line: declLine})
 			i++
 		case strings.HasPrefix(code, "state "):
 			m := reState.FindStringSubmatch(code)

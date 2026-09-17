@@ -1,8 +1,9 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
+export type Html__SafeResult = { safe: string };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -80,4 +81,7 @@ export function html__text__escape(raw: string): HtmlResult {
     return { $ail_kind: "ok", text: r.value };
   }
   }
+}
+export function html__text__node(text: string): HtmlResult {
+  return { $ail_kind: "ok", safe: text };
 }

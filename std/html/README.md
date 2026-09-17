@@ -13,10 +13,17 @@
   preservation domain is all valid strings, by mechanical
   necessity, not by policy taste. Quote handling belongs to the
   attribute contracts, not here.
+- `html__text__node` promotes `Html__Text` to the second brand,
+  `Html__Safe is str rev 1 seals_from [Html__Text]` — a serialized
+  fragment for ordinary child-fragment boundaries, with no authority
+  for script, style, attribute, or URL contexts. Promotion is
+  relabeling (`erase(node(t)) = erase(t)`): no double escape, no
+  normalization. One-way, exact, same-module, non-transitive; see
+  `docs/v26-html-node.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html
   std/html/html.ail`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
-brand scope: `docs/v15-brands.md`.
+`docs/v26-html-node.md`, brand scope: `docs/v15-brands.md`.

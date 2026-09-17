@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -30,6 +31,9 @@ type tycker struct {
 	brands map[string]bool
 	// brandFiles maps brand name to declaring file (first wins).
 	brandFiles map[string]string
+	// brandSeals maps brand name to its declared promotion sources
+	// (v26 seals_from; first wins). Empty means str-only minting.
+	brandSeals map[string][]string
 	// exec is true inside function bodies (executable positions)
 	// and false in tests and given rows (checked data positions).
 	exec bool
@@ -44,6 +48,7 @@ func newTycker(prog *Program, text, fn string) *tycker {
 		errs:       map[string][][2]string{},
 		brands:     map[string]bool{},
 		brandFiles: map[string]string{},
+		brandSeals: map[string][]string{},
 		cells:      map[string]string{}}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
@@ -62,6 +67,9 @@ func newTycker(prog *Program, text, fn string) *tycker {
 					if f, ok := prog.BrandFile[d.Name]; ok {
 						c.brandFiles[d.Name] = f
 					}
+				}
+				if _, ok := c.brandSeals[d.Name]; !ok {
+					c.brandSeals[d.Name] = d.SealsFrom
 				}
 			case *StateDecl:
 				// Cells resolve in the checking function's own file;
@@ -334,9 +342,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		s.T = s.Seal
 		// v25: seals take string literals or string-typed refs and
 		// fields, so decision-tabled constructors can mint computed
-		// brands. The file-ownership rule above stays the audit;
-		// anything else is still AIL6003, and brands never seal
-		// brands (fail closed: only "str" passes).
+		// brands. The file-ownership rule above stays the audit.
 		if len(s.Args) != 1 {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("seal %s takes one value", s.Seal), s.Seal, CodeTypeMismatch))
@@ -344,7 +350,24 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 		slabel := fmt.Sprintf("seal %s value", s.Seal)
 		c.value(s.Args[0].V, "", line, env, slabel)
-		if got, ok := c.typeOf(s.Args[0].V, env); !ok || got != "str" {
+		if got, ok := c.typeOf(s.Args[0].V, env); ok && c.brands[got] {
+			// v26: explicitly authorized one-way promotion. The
+			// destination's seals_from names the admitted source
+			// brands; unlisted sources stay AIL6003, and there is
+			// no reverse, transitive, or inferred promotion.
+			if !slices.Contains(c.brandSeals[s.Seal], got) {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("seal %s cannot promote %s: add %s to seals_from on %s", s.Seal, got, got, s.Seal), s.Seal, CodeTypeMismatch))
+				return
+			}
+			if srcFile, ok := c.brandFiles[got]; ok {
+				if dstFile, ok := c.brandFiles[s.Seal]; ok && srcFile != dstFile {
+					c.out = append(c.out, spanDiag(c.text, line, "error",
+						fmt.Sprintf("seal %s promotes %s from %s: promotions stay inside one module", s.Seal, got, srcFile), s.Seal, CodeSealForeign))
+					return
+				}
+			}
+		} else if !ok || got != "str" {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("seal %s takes a string", s.Seal), s.Seal, CodeTypeMismatch))
 			return
@@ -851,6 +874,14 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("unknown type %s in returns", fn.Ret), fn.Ret, CodeUnknownType))
 	}
+	// v26: bare-brand returns are unsupported. checkCtor skips Ok
+	// payloads when the return is not a record, so a brand return
+	// would sail through static checking and die only at emit.
+	// Reject at the source instead; entries return wrapper records.
+	if c.brands[fn.Ret] {
+		c.out = append(c.out, spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s returns brand %s: bare-brand returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
+	}
 	env := map[string]string{}
 	for _, p := range fn.Params {
 		env[p[0]] = p[1]
@@ -961,11 +992,26 @@ func checkDeclFields(name string, fields [][2]string, line int, prog *Program, t
 
 // checkBrandDecl enforces the v0 brand boundary: string-backed only.
 // int-backed brands wait for a second underlying type with something
-// to prove about it.
-func checkBrandDecl(b *BrandDecl, text string) []Diag {
+// to prove about it. A seals_from source must name a declared brand
+// from the same module (v26): promotion authority is explicit and
+// owner-local, never inferred across files.
+func checkBrandDecl(b *BrandDecl, prog *Program, text string) []Diag {
 	if b.Under != "str" {
 		return []Diag{spanDiag(text, b.Line, "error",
 			fmt.Sprintf("brand %s wraps %s: v0 brands wrap str only", b.Name, b.Under), b.Under, CodeTypeMismatch)}
 	}
-	return nil
+	var out []Diag
+	for _, src := range b.SealsFrom {
+		srcFile, ok := prog.BrandFile[src]
+		if !ok {
+			out = append(out, spanDiag(text, b.Line, "error",
+				fmt.Sprintf("brand %s seals_from unknown brand %s", b.Name, src), src, CodeUnknownType))
+			continue
+		}
+		if dstFile, ok := prog.BrandFile[b.Name]; ok && srcFile != dstFile {
+			out = append(out, spanDiag(text, b.Line, "error",
+				fmt.Sprintf("brand %s seals_from %s from %s: promotions stay inside one module", b.Name, src, srcFile), src, CodeSealForeign))
+		}
+	}
+	return out
 }
