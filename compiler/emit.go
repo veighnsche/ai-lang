@@ -13,12 +13,29 @@ import (
 var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string"}
 
 func tsType(t string) (string, error) {
-	return tsTypeB(t, nil)
+	return tsTypeB(t, nil, nil)
+}
+
+// recordShapes indexes declared record fields by type name, first
+// wins across modules, matching the checker and the evaluator.
+func recordShapes(mods []*Module) map[string][][2]string {
+	recs := map[string][][2]string{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if td, ok := d.(*TypeDecl); ok {
+				if _, seen := recs[td.Name]; !seen {
+					recs[td.Name] = td.Fields
+				}
+			}
+		}
+	}
+	return recs
 }
 
 // tsTypeB maps an ail annotation to TS, erasing brands to their
 // underlying type. Branding is proof, not runtime: the emit forgets it.
-func tsTypeB(t string, brands map[string]string) (string, error) {
+// Declared record names map to their emitted TS type of the same name.
+func tsTypeB(t string, brands map[string]string, recs map[string][][2]string) (string, error) {
 	if out, ok := tsBase[t]; ok {
 		return out, nil
 	}
@@ -26,6 +43,9 @@ func tsTypeB(t string, brands map[string]string) (string, error) {
 		if out, ok := tsBase[u]; ok {
 			return out, nil
 		}
+	}
+	if _, ok := recs[t]; ok {
+		return t, nil
 	}
 	return "", fmt.Errorf("cannot map ail type to TS: %s", t)
 }
@@ -49,10 +69,10 @@ func tsField(name, value string) string {
 }
 
 // tsErrMember renders one error kind as a TS union member.
-func tsErrMember(ed *ErrorDecl, brands map[string]string) (string, error) {
+func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]string) (string, error) {
 	fs := ""
 	for _, f := range ed.Fields {
-		t, err := tsTypeB(f[1], brands)
+		t, err := tsTypeB(f[1], brands, recs)
 		if err != nil {
 			return "", err
 		}
@@ -77,8 +97,9 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 		return "", fmt.Errorf("extern %s returns unknown type %s", ex.Name, ex.Ret)
 	}
 	fs := ""
+	recs := recordShapes(prog.Modules)
 	for _, f := range td.Fields {
-		t, err := tsTypeB(f[1], prog.Brands)
+		t, err := tsTypeB(f[1], prog.Brands, recs)
 		if err != nil {
 			return "", err
 		}
@@ -97,7 +118,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 		if ed == nil {
 			return "", fmt.Errorf("extern %s emits unknown error %s", ex.Name, e)
 		}
-		mem, err := tsErrMember(ed, prog.Brands)
+		mem, err := tsErrMember(ed, prog.Brands, recs)
 		if err != nil {
 			return "", err
 		}
@@ -114,24 +135,14 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 // signature or body cannot change the emitted type, and computed or
 // referenced payloads need no literal witness.
 func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
-	var td *TypeDecl
-	for _, m := range prog.Modules {
-		for _, d := range m.Decls {
-			if t, ok := d.(*TypeDecl); ok && t.Name == fn.Ret {
-				td = t
-				break
-			}
-		}
-		if td != nil {
-			break
-		}
-	}
-	if td == nil {
+	recs := recordShapes(prog.Modules)
+	fields, ok := recs[fn.Ret]
+	if !ok {
 		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
 	shape := map[string]string{}
-	for _, f := range td.Fields {
-		t, err := tsTypeB(f[1], prog.Brands)
+	for _, f := range fields {
+		t, err := tsTypeB(f[1], prog.Brands, recs)
 		if err != nil {
 			return nil, err
 		}
@@ -367,10 +378,20 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return `{ ` + tsTag + `: "ok", ` + inner + ` }`, nil
 		}
-		if inner == "" {
-			return `{ ` + tsTag + `: "` + node.Ctor + `" }`, nil
+		if strings.Contains(node.Ctor, ".") {
+			if inner == "" {
+				return `{ ` + tsTag + `: "` + node.Ctor + `" }`, nil
+			}
+			return `{ ` + tsTag + `: "` + node.Ctor + `", ` + inner + ` }`, nil
 		}
-		return `{ ` + tsTag + `: "` + node.Ctor + `", ` + inner + ` }`, nil
+		// Declared records in value positions are plain data objects
+		// with the checked field set: no outcome tag, since these
+		// values never enter the match protocol. Unknown constructors
+		// fail loud instead of mistagging as an error kind.
+		if _, ok := e.recs[node.Ctor]; !ok {
+			return "", fmt.Errorf("cannot emit unknown constructor %s", node.Ctor)
+		}
+		return `{ ` + inner + ` }`, nil
 	case "call":
 		// One binding rule (bindSlots): the call is invoked in the
 		// resolved parameter order, not source order, so a reordered
@@ -840,7 +861,7 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	var params []string
 	for _, p := range fn.Params {
-		t, err := tsTypeB(p[1], e.brands)
+		t, err := tsTypeB(p[1], e.brands, e.recs)
 		if err != nil {
 			return nil, err
 		}
@@ -868,6 +889,9 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	var L []string
 	L = append(L, fmt.Sprintf("// GENERATED from %s by ailc v0.0.0. DO NOT EDIT.", mod.File))
 	L = append(L, "// Prod emit: tests + given stripped.")
+	// Declared records resolve to their emitted TS type of the same
+	// name throughout this module.
+	recs := recordShapes(prog.Modules)
 	need := map[string]map[string]bool{}
 	for _, d := range mod.Decls {
 		fn, ok := d.(*FnDecl)
@@ -929,7 +953,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !ok {
 			continue
 		}
-		mem, err := tsErrMember(ed, prog.Brands)
+		mem, err := tsErrMember(ed, prog.Brands, recs)
 		if err != nil {
 			return "", err
 		}
@@ -995,7 +1019,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		var fs []string
 		for _, f := range td.Fields {
-			t, err := tsTypeB(f[1], prog.Brands)
+			t, err := tsTypeB(f[1], prog.Brands, recs)
 			if err != nil {
 				return "", err
 			}
@@ -1018,23 +1042,13 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	recs := map[string][][2]string{}
-	for _, m := range prog.Modules {
-		for _, d := range m.Decls {
-			if td, ok := d.(*TypeDecl); ok {
-				if _, seen := recs[td.Name]; !seen {
-					recs[td.Name] = td.Fields
-				}
-			}
-		}
-	}
 	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, recs: recs, errFields: prog.Errors, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
 			continue
 		}
-		t, err := tsTypeB(sd.Type, prog.Brands)
+		t, err := tsTypeB(sd.Type, prog.Brands, recs)
 		if err != nil {
 			return "", err
 		}
