@@ -71,13 +71,13 @@ const (
 	CodeTestFailed         = "AIL4200"
 	CodeSiblingParse       = "AIL5001"
 	CodeBadCompare         = "AIL5005"
-	CodeRecordCycle        = "AIL6006"
 	CodeModuleCollision    = "AIL5007"
 	CodeFloatLiteral       = "AIL6001"
 	CodeUnknownType        = "AIL6002"
 	CodeTypeMismatch       = "AIL6003"
 	CodeSealForeign        = "AIL6004"
 	CodeInexactDivision    = "AIL6005"
+	CodeRecordCycle        = "AIL6006"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -98,6 +98,6 @@ var allCodes = []string{
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken,
 	CodeTestFailed,
-	CodeSiblingParse, CodeBadCompare, CodeRecordCycle,
-	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision,
+	CodeSiblingParse, CodeBadCompare,
+	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle,
 }
