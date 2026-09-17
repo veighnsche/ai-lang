@@ -106,110 +106,38 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	return union, nil
 }
 
-// collectOkShapes requires every Ok(...) payload in a fn to agree on fields.
-// Field types come from literal occurrences (subset limitation, honest).
-func collectOkShapes(fn *FnDecl) (map[string]string, error) {
-	var shapes [][]Arg
-	var walk func(n *Node)
-	var walkSmall func(s *Small)
-	walkSmall = func(s *Small) {
-		if s == nil {
-			return
-		}
-		if s.Kind == "ctor" && s.Ctor == "Ok" {
-			shapes = append(shapes, s.Args)
-		}
-		for _, a := range s.Args {
-			walkSmall(a.V)
-		}
-		if s.Kind == "binop" {
-			walkSmall(s.L)
-			walkSmall(s.R)
-		}
-		for _, it := range s.Items {
-			walkSmall(it)
-		}
-	}
-	walk = func(n *Node) {
-		if n == nil {
-			return
-		}
-		if n.IsMatch {
-			walkSmall(n.Scrut)
-			for _, a := range n.Arms {
-				walk(a.Rhs)
-			}
-			return
-		}
-		walkSmall(n.Small)
-	}
-	walk(fn.Body)
-	for _, t := range fn.Tests {
-		walkSmall(t.Expected)
-		for _, a := range t.Args {
-			walkSmall(a.V)
-		}
-	}
-	seen := map[string]bool{}
-	for _, args := range shapes {
-		var names []string
-		for _, a := range args {
-			names = append(names, a.Name)
-		}
-		sort.Strings(names)
-		seen[strings.Join(names, ",")] = true
-	}
-	if len(seen) > 1 {
-		keys := make([]string, 0, len(seen))
-		for k := range seen {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		return nil, fmt.Errorf("%s: inconsistent Ok shape %v", fn.Name, keys)
-	}
-	merged := map[string]string{}
-	for _, args := range shapes {
-		for _, a := range args {
-			var vt string
-			switch a.V.Kind {
-			case "str":
-				vt = "string"
-			case "seal":
-				vt = "string"
-			case "int":
-				vt = "bigint"
-			case "dec":
-				vt = "string"
-			case "bool":
-				vt = "boolean"
-			default:
-				continue // refs: field must also occur as a literal somewhere
-			}
-			if prev, ok := merged[a.Name]; ok && prev != vt {
-				return nil, fmt.Errorf("%s: inconsistent Ok shape", fn.Name)
-			}
-			merged[a.Name] = vt
-		}
-	}
-	need := map[string]bool{}
-	for k := range seen {
-		for _, n := range strings.Split(k, ",") {
-			if n != "" {
-				need[n] = true
+// declaredOkShape builds a function's Ok payload shape from its declared
+// return record, never from literals in the body or tests. The checker
+// already proves every Ok construction against that record (unknown,
+// missing, and mistyped fields fail before emission), so the declaration
+// is the single source of types: changing evidence without changing the
+// signature or body cannot change the emitted type, and computed or
+// referenced payloads need no literal witness.
+func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
+	var td *TypeDecl
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			if t, ok := d.(*TypeDecl); ok && t.Name == fn.Ret {
+				td = t
+				break
 			}
 		}
-	}
-	for n := range need {
-		if _, ok := merged[n]; !ok {
-			return nil, fmt.Errorf("%s: Ok field never occurs as a literal", fn.Name)
+		if td != nil {
+			break
 		}
 	}
-	for n := range merged {
-		if !need[n] {
-			return nil, fmt.Errorf("%s: Ok field never occurs as a literal", fn.Name)
-		}
+	if td == nil {
+		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
-	return merged, nil
+	shape := map[string]string{}
+	for _, f := range td.Fields {
+		t, err := tsTypeB(f[1], prog.Brands)
+		if err != nil {
+			return nil, err
+		}
+		shape[f[0]] = t
+	}
+	return shape, nil
 }
 
 // leafType reports the static type of a literal operand: kinds carry
@@ -1007,24 +935,25 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		members = append(members, mem)
 	}
-	// One ok member per distinct Ok shape, sorted for stability. A
-	// single-shape module emits exactly the old union; a file that
-	// mixes shapes (validators beside their consumers) emits an ok
-	// union instead of failing the build. No language rule limits a
-	// file to one shape; per-fn coherence stays in collectOkShapes.
+	// One ok member per distinct declared Ok shape, sorted for
+	// stability. A single-shape module emits exactly the old union; a
+	// file that mixes shapes (validators beside their consumers)
+	// emits an ok union instead of failing the build. Shapes key on
+	// names and types together, so value: bool and value: int stay
+	// distinct members instead of collapsing by name.
 	shapes := map[string]map[string]string{}
 	for _, d := range mod.Decls {
 		fn, ok := d.(*FnDecl)
 		if !ok {
 			continue
 		}
-		shape, err := collectOkShapes(fn)
+		shape, err := declaredOkShape(fn, prog)
 		if err != nil {
 			return "", err
 		}
 		var keys []string
 		for k := range shape {
-			keys = append(keys, k)
+			keys = append(keys, k+":"+shape[k])
 		}
 		sort.Strings(keys)
 		key := strings.Join(keys, ",")

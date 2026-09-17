@@ -1,6 +1,6 @@
 // GENERATED from division.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type DivisionResult = { $ail_kind: "ok"; quotient: bigint; remainder: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "math.zero_divisor"; divisor: bigint };
+export type DivisionResult = { $ail_kind: "ok"; quotient: bigint; remainder: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "math.zero_divisor"; divisor: bigint };
 export type Int__DivMod = { quotient: bigint; remainder: bigint };
 export type Int__Value = { value: bigint };
 export type Bool__Value = { value: boolean };
