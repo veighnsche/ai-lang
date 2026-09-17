@@ -1059,6 +1059,104 @@ func evBytesB64EncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner str
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: base64.StdEncoding.EncodeToString(v.Bytes)}}}, nil
 }
 
+// evBytesB64DecodeOp evaluates base64 decoding (v59 B14): a strict
+// standard-base64 string as Bytes, else the encoding.invalid_base64
+// language error carrying the ORIGINAL string unchanged — with a
+// nil Go error. Strict decoding owns unused-bit rejection, but the
+// complete grammar prevalidator owns admission (notably CR/LF,
+// which the host skips); any host error discards the partial
+// prefix and becomes the same language error.
+func evBytesB64DecodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	slots, berr := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if berr != nil {
+		return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := evSmall(argv, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "str" {
+		return nil, fmt.Errorf("%s: call to %s takes str", owner, scrut.Fname)
+	}
+	bad := func() (*Value, error) {
+		return &Value{Kind: "err", ErrKind: encodingInvalidB64, Dict: map[string]*Value{"value": {Kind: "str", S: v.S}}}, nil
+	}
+	if !isB64Str(v.S) {
+		return bad()
+	}
+	out, herr := base64.StdEncoding.Strict().DecodeString(v.S)
+	if herr != nil {
+		return bad()
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
+}
+
+// isB64Str reports the strict base64 grammar: length multiple of
+// four; every data position a standard-alphabet character;
+// padding only as a final DDD=/DD== shape; unused trailing bits
+// zero (four for DD==, two for DDD=). Byte-indexed: any non-ASCII
+// byte fails the alphabet predicate regardless of position.
+func isB64Str(s string) bool {
+	if len(s)%4 != 0 {
+		return false
+	}
+	nq := len(s) / 4
+	for q := 0; q < nq; q++ {
+		quad := s[q*4 : q*4+4]
+		last := q == nq-1
+		pad := 0
+		for i := 0; i < 4; i++ {
+			if quad[i] == '=' {
+				pad++
+			} else if pad > 0 || !isB64Data(quad[i]) {
+				return false
+			}
+		}
+		if pad > 0 && !last {
+			return false
+		}
+		if pad > 2 {
+			return false
+		}
+		if last && pad == 2 && b64val(quad[1])&15 != 0 {
+			return false
+		}
+		if last && pad == 1 && b64val(quad[2])&3 != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// isB64Data reports a standard-alphabet data character (padding
+// handled separately by position).
+func isB64Data(c byte) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '+' || c == '/'
+}
+
+// b64val maps a data character to its sextet value. Callers must
+// establish membership first; the zero fallback never decides.
+func b64val(c byte) int {
+	switch {
+	case c >= 'A' && c <= 'Z':
+		return int(c - 'A')
+	case c >= 'a' && c <= 'z':
+		return int(c-'a') + 26
+	case c >= '0' && c <= '9':
+		return int(c-'0') + 52
+	case c == '+':
+		return 62
+	default:
+		return 63
+	}
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -1092,6 +1190,8 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				val, err = evBytesDecodeOp(scrut, env, ctx, owner)
 			} else if isBytesHexDecode(fname) {
 				val, err = evBytesHexDecodeOp(scrut, env, ctx, owner)
+			} else if isBytesB64Decode(fname) {
+				val, err = evBytesB64DecodeOp(scrut, env, ctx, owner)
 			} else if isBytesHexEncode(fname) {
 				val, err = evBytesHexEncodeOp(scrut, env, ctx, owner)
 			} else if isBytesB64Encode(fname) {

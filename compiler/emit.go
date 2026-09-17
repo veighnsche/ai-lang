@@ -1019,6 +1019,7 @@ type emitter struct {
 	hexenc    bool                   // hex encode helper used by this module (v52 B8)
 	hexdec    bool                   // strict hex decode helper used by this module (v55 B10)
 	b64enc    bool                   // base64 encode helper used by this module (v58 B12)
+	b64dec    bool                   // strict base64 decode helper used by this module (v59 B14)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1191,6 +1192,57 @@ var b64EncodeHelper = []string{
 	"    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + alpha[(n >> 6) & 63] + \"=\";",
 	"  }",
 	"  return out;",
+	"}",
+}
+
+// b64DecodeHelper renders the strict base64 decode runtime (v59
+// B14): validate-then-decode over UTF-16 code units. Length mod 4,
+// per-position alphabet membership, final-quartet padding shape,
+// and the exact unused-bit masks (four for DD==, two for DDD=)
+// are all established before any sextet lookup; the explicit -1
+// sentinel makes an unchecked unit indistinguishable from nothing.
+// Fresh output buffer per call; malformed input returns the error
+// value with the original string. No atob (forgiving), no catch.
+var b64DecodeHelper = []string{
+	"function $ailB64Val(c: number): number {",
+	"  if (c >= 65 && c <= 90) return c - 65;",
+	"  if (c >= 97 && c <= 122) return c - 71;",
+	"  if (c >= 48 && c <= 57) return c + 4;",
+	"  if (c === 43) return 62;",
+	"  if (c === 47) return 63;",
+	"  return -1;",
+	"}",
+	"function $ailB64Decode(value: string): { $ail_kind: \"ok\"; value: Uint8Array } | { $ail_kind: \"encoding.invalid_base64\"; value: string } {",
+	"  if (value.length % 4 !== 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"  const nq = value.length / 4;",
+	"  let pad = 0;",
+	"  const vals: number[] = new Array(value.length);",
+	"  for (let i = 0; i < value.length; i++) {",
+	"    const q = (i / 4) | 0;",
+	"    const pos = i % 4;",
+	"    const c = value.charCodeAt(i);",
+	"    if (c === 61) {",
+	"      if (q !== nq - 1 || pos < 2) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"      pad++;",
+	"      vals[i] = 0;",
+	"    } else {",
+	"      const v = $ailB64Val(c);",
+	"      if (v < 0 || pad > 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"      vals[i] = v;",
+	"    }",
+	"  }",
+	"  if (pad > 2) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"  if (pad === 2 && (vals[value.length - 3] & 15) !== 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"  if (pad === 1 && (vals[value.length - 2] & 3) !== 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"  const out = new Uint8Array((value.length / 4) * 3 - pad);",
+	"  for (let q = 0; q < nq; q++) {",
+	"    const n = (vals[q * 4] << 18) | (vals[q * 4 + 1] << 12) | (vals[q * 4 + 2] << 6) | vals[q * 4 + 3];",
+	"    const base = q * 3;",
+	"    if (base < out.length) out[base] = (n >> 16) & 255;",
+	"    if (base + 1 < out.length) out[base + 1] = (n >> 8) & 255;",
+	"    if (base + 2 < out.length) out[base + 2] = n & 255;",
+	"  }",
+	"  return { $ail_kind: \"ok\", value: out };",
 	"}",
 }
 
@@ -1654,6 +1706,9 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 	case isBytesHexDecode(scrut.Fname):
 		helper = "$ailHexDecode"
 		e.hexdec = true
+	case isBytesB64Decode(scrut.Fname):
+		helper = "$ailB64Decode"
+		e.b64dec = true
 	default:
 		return fmt.Errorf("no fallible lowering for %s", scrut.Fname)
 	}
@@ -2052,6 +2107,12 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// encode kernel is called, so files without one gain no code.
 	if em.b64enc {
 		L = append(L, b64EncodeHelper...)
+	}
+	// Strict base64 decode runtime: emitted inline only when the
+	// base64 decode kernel is called, so files without one gain
+	// no code.
+	if em.b64dec {
+		L = append(L, b64DecodeHelper...)
 	}
 	L = append(L, fnLines...)
 	// v46 S2: compiler-owned record definitions, emitted exactly when

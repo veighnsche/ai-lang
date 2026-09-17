@@ -115,6 +115,17 @@
     ]
   },
   {
+    "kind": "encoding.invalid_base64",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "kernel.bytes__base64__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": []
+  },
+  {
     "kind": "encoding.invalid_hex",
     "fields": [
       "value"

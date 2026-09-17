@@ -70,6 +70,17 @@ const encodingInvalidHex = "encoding.invalid_hex"
 // Standard padded alphabet, byte-ordered, no text interpretation.
 const bytesB64EncodeKernel = "bytes__base64__encode"
 
+// bytesB64DecodeKernel is the public base64 decode intrinsic (v59
+// B14): the third fallible kernel. Strict standard base64 in,
+// Bytes on success, encoding.invalid_base64 (original string,
+// unchanged) on malformed input. Deterministic,
+// certificate-free.
+const bytesB64DecodeKernel = "bytes__base64__decode"
+
+// encodingInvalidB64 is the compiler-owned malformed-base64 error,
+// carrying the original str payload unchanged.
+const encodingInvalidB64 = "encoding.invalid_base64"
+
 // bytesKernel describes one compiler kernel: its static signature,
 // result record, declared emits, and whether calls need a grant
 // certificate. Only the export kernel is restricted; public kernels
@@ -92,6 +103,7 @@ var bytesKernels = map[string]bytesKernel{
 	bytesHexEncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
 	bytesHexDecodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{encodingInvalidHex}},
 	bytesB64EncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
+	bytesB64DecodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{encodingInvalidB64}},
 }
 
 // isBytesKernel reports any registered Bytes kernel.
@@ -119,6 +131,7 @@ func builtinErrorDecls() []*ErrorDecl {
 	return []*ErrorDecl{
 		{Name: encodingInvalidUtf8, Fields: [][2]string{{"value", "Bytes"}}},
 		{Name: encodingInvalidHex, Fields: [][2]string{{"value", "str"}}},
+		{Name: encodingInvalidB64, Fields: [][2]string{{"value", "str"}}},
 	}
 }
 
@@ -170,7 +183,14 @@ func isBytesB64Encode(fname string) bool {
 // isFallibleDecode reports a kernel lowered through the shared
 // fallible path (descriptor-resolved union, per-kernel helper).
 func isFallibleDecode(fname string) bool {
-	return isBytesDecode(fname) || isBytesHexDecode(fname)
+	return isBytesDecode(fname) || isBytesHexDecode(fname) || isBytesB64Decode(fname)
+}
+
+// isBytesB64Decode reports the fallible base64 decode intrinsic.
+// It shares the generalized fallible lowering with the other
+// decoders, with its own codec helper, union, and error contract.
+func isBytesB64Decode(fname string) bool {
+	return fname == bytesB64DecodeKernel
 }
 
 // exportGrantSite retains a grant with its owning module: ownership is
