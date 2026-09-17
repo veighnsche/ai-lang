@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
@@ -10,7 +11,7 @@ import (
 // v10: ints emit as bigint (unbounded, exact) and decs as strings
 // carrying canonical digits (exact via the $ailDec helpers below).
 // The old number mapping was lossy (0.1+0.2) and is gone.
-var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string"}
+var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string", "Bytes": "Uint8Array"}
 
 func tsType(t string) (string, error) {
 	return tsTypeB(t, nil, nil)
@@ -30,6 +31,22 @@ func recordShapes(mods []*Module) map[string][][2]string {
 		}
 	}
 	return recs
+}
+
+// errorShapes indexes declared error fields by kind name, first wins
+// across modules, matching the checker and the evaluator.
+func errorShapes(mods []*Module) map[string][][2]string {
+	errs := map[string][][2]string{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if ed, ok := d.(*ErrorDecl); ok {
+				if _, seen := errs[ed.Name]; !seen {
+					errs[ed.Name] = ed.Fields
+				}
+			}
+		}
+	}
+	return errs
 }
 
 // tsTypeB maps an ail annotation to TS, erasing brands to their
@@ -224,6 +241,12 @@ func leafType(s *Small) string {
 		// checker annotations, like every other literal kind.
 		// Emit runs only after checkSem, so Elem is valid here.
 		return "Seq<" + s.Elem + ">"
+	case "ctor":
+		// The validated Bytes constructor carries its type without
+		// checker annotations, like every other literal kind.
+		if s.Ctor == "Bytes" {
+			return "Bytes"
+		}
 	}
 	return ""
 }
@@ -246,7 +269,9 @@ func childType(s *Small) string {
 // strings, strings, booleans) and str-backed brands.
 func (e *emitter) isScalar(ot string) bool {
 	if _, ok := tsBase[ot]; ok {
-		return true
+		// v45 S1: Bytes lowers through tsBase but never compares
+		// natively; membership here must not imply ===.
+		return ot != "Bytes"
 	}
 	return e.brands[ot] == "str"
 }
@@ -266,6 +291,12 @@ func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 		rr += ".value"
 		shape = strings.TrimPrefix(shape, "cell:")
 	}
+	if shape == "Bytes" {
+		// v45 S1: direct byte operators are deferred. Nested byte
+		// comparison routes through the structural runtime below;
+		// never emit === for Bytes here.
+		return "", fmt.Errorf("cannot emit comparison over Bytes: byte equality is deferred (%s)", CodeBadCompare)
+	}
 	native := e.isScalar(shape)
 	var expr string
 	if native {
@@ -275,6 +306,9 @@ func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 			expr = fmt.Sprintf("(%s !== %s)", ll, rr)
 		}
 		return expr, nil
+	}
+	if e.shapeContainsBytes(shape) {
+		e.bytesEq = true
 	}
 	fields, err := e.equalityFields(shape)
 	if err != nil {
@@ -521,6 +555,27 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		e.strOps["slice"] = true
 		return fmt.Sprintf("$ailStrSlice(%s, %s, %s)", b, lo, hi), nil
 	case "ctor":
+		if node.Ctor == "Bytes" {
+			// v45 S1: validated byte lowering. Emit checked members
+			// as number literals, never through the Seq bigint path:
+			// wrapping it would throw on 0n and silently remap -1
+			// and 256. Re-validate for direct emitter callers.
+			if len(node.Args) != 1 || node.Args[0].HasName {
+				return "", fmt.Errorf("cannot emit Bytes: want one Seq<int> literal")
+			}
+			arg := node.Args[0].V
+			if arg.Kind != "seqlit" || arg.Elem != "int" {
+				return "", fmt.Errorf("cannot emit Bytes: want one Seq<int> literal")
+			}
+			nums := make([]string, 0, len(arg.Items))
+			for _, it := range arg.Items {
+				if it.Kind != "int" || it.Num == nil || it.Num.Sign() < 0 || it.Num.Cmp(big.NewInt(256)) >= 0 {
+					return "", fmt.Errorf("cannot emit Bytes: member out of range 0..255")
+				}
+				nums = append(nums, it.Num.String())
+			}
+			return "Uint8Array.from([" + strings.Join(nums, ", ") + "])", nil
+		}
 		var parts []string
 		for _, a := range node.Args {
 			v, err := e.emitValue(a.V)
@@ -811,6 +866,64 @@ var eqHelpers = []string{
 	"}",
 }
 
+// bytesEqHelpers renders the structural equality runtime for shapes
+// that can contain Bytes (v45 S1): the same $ailEqRec shape, a
+// $ailEqVal with a typed-array branch before generic object-key
+// traversal, and the $ailEqBytes byte comparison. A typed array never
+// compares equal to an ordinary array merely because enumerable keys
+// match; exactly one side being bytes is false.
+var bytesEqHelpers = []string{
+	"function $ailEqVal(x: any, y: any): boolean {",
+	"  if (x instanceof Uint8Array || y instanceof Uint8Array) {",
+	"    return $ailEqBytes(x, y);",
+	"  }",
+	"  if (typeof x === \"object\" && x !== null && typeof y === \"object\" && y !== null) {",
+	"    const kx = Object.keys(x);",
+	"    if (kx.length !== Object.keys(y).length) {",
+	"      return false;",
+	"    }",
+	"    for (const k of kx) {",
+	"      if (!Object.prototype.hasOwnProperty.call(y, k)) {",
+	"        return false;",
+	"      }",
+	"      if (!$ailEqVal((x as any)[k], (y as any)[k])) {",
+	"        return false;",
+	"      }",
+	"    }",
+	"    return true;",
+	"  }",
+	"  return x === y;",
+	"}",
+	"function $ailEqBytes(x: any, y: any): boolean {",
+	"  if (!(x instanceof Uint8Array) || !(y instanceof Uint8Array)) {",
+	"    return false;",
+	"  }",
+	"  if (x.length !== y.length) {",
+	"    return false;",
+	"  }",
+	"  for (let i = 0; i < x.length; i++) {",
+	"    if (x[i] !== y[i]) {",
+	"      return false;",
+	"    }",
+	"  }",
+	"  return true;",
+	"}",
+	"function $ailEqRec(a: any, b: any, fields: string[]): boolean {",
+	"  for (const f of fields) {",
+	"    if (!Object.prototype.hasOwnProperty.call(a, f)) {",
+	"      return false;",
+	"    }",
+	"    if (!Object.prototype.hasOwnProperty.call(b, f)) {",
+	"      return false;",
+	"    }",
+	"    if (!$ailEqVal((a as any)[f], (b as any)[f])) {",
+	"      return false;",
+	"    }",
+	"  }",
+	"  return true;",
+	"}",
+}
+
 // strHelpers renders the byte-order string runtime for exactly the used
 // comparisons, shared plumbing first, then ops in fixed order.
 func strHelpers(used map[string]bool) []string {
@@ -878,9 +991,54 @@ type emitter struct {
 	strOps    map[string]bool        // byte-order string helpers used by this module
 	seqOps    map[string]bool        // sequence helpers used by this module (v38 S3)
 	recEq     bool                   // structural record comparison used by this module
+	bytesEq   bool                   // compared shapes can contain Bytes (v45 S1)
 	recs      map[string][][2]string // record name -> declared fields
 	errFields map[string][]string    // error kind -> declared field names
+	errTypes  map[string][][2]string // error kind -> declared typed fields
 	divmod    bool                   // Euclidean division helper used by this module
+}
+
+// shapeContainsBytes reports whether a comparison operand's declared
+// shape can carry Bytes: directly, through Seq<Bytes>, or nested in
+// records and error payloads. Recursion is bounded by visited names.
+func (e *emitter) shapeContainsBytes(ot string) bool {
+	seen := map[string]bool{}
+	var rec func(t string) bool
+	rec = func(t string) bool {
+		if t == "Bytes" {
+			return true
+		}
+		if elem, ok := seqElemName(t); ok {
+			return rec(elem)
+		}
+		if strings.HasPrefix(t, "err:") {
+			fs, ok := e.errTypes[strings.TrimPrefix(t, "err:")]
+			if !ok {
+				return false
+			}
+			for _, f := range fs {
+				if rec(f[1]) {
+					return true
+				}
+			}
+			return false
+		}
+		if seen[t] {
+			return false
+		}
+		seen[t] = true
+		fs, ok := e.recs[t]
+		if !ok {
+			return false
+		}
+		for _, f := range fs {
+			if rec(f[1]) {
+				return true
+			}
+		}
+		return false
+	}
+	return rec(strings.TrimPrefix(ot, "cell:"))
 }
 
 // divModHelper renders the Euclidean integer-division runtime: BigInt
@@ -1412,7 +1570,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, divmod: false}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
@@ -1466,9 +1624,14 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		L = append(L, seqHelpers(em.seqOps)...)
 	}
 	// Structural equality runtime: emitted inline only when a record,
-	// error-payload, or cell comparison is used.
+	// error-payload, or cell comparison is used. Shapes that can
+	// contain Bytes get the typed-array branch exactly once.
 	if em.recEq {
-		L = append(L, eqHelpers...)
+		if em.bytesEq {
+			L = append(L, bytesEqHelpers...)
+		} else {
+			L = append(L, eqHelpers...)
+		}
 	}
 	if em.divmod {
 		L = append(L, divModHelper...)

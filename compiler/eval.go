@@ -8,10 +8,11 @@ import (
 	"strings"
 )
 
-// Values: Kind str,int,bool,dec,rec,ok,err. Field access works on
-// rec/ok/err. Dec holds canonical digits; proofs compare exactly via
-// big.Rat, so canonical strings compare equal exactly when numeric.
-// Int holds an arbitrary-precision value (v10: unbounded, never wraps).
+// Values: Kind str,int,bool,dec,rec,ok,err,seq,bytes. Field access
+// works on rec/ok/err. Dec holds canonical digits; proofs compare
+// exactly via big.Rat, so canonical strings compare equal exactly
+// when numeric. Int holds an arbitrary-precision value (v10:
+// unbounded, never wraps).
 type Value struct {
 	Kind    string
 	S       string
@@ -20,6 +21,9 @@ type Value struct {
 	D       string
 	Dict    map[string]*Value
 	ErrKind string
+	// Bytes holds the owned octets of a bytes value (v45 S1):
+	// exactly the validated literal contents, never shared.
+	Bytes []byte
 	// Rec names the record constructor for rec values built in value
 	// positions; empty for Ok payloads (which render as Ok).
 	Rec string
@@ -331,6 +335,20 @@ func vEq(a, b *Value) (bool, error) {
 			}
 		}
 		return true, nil
+	case "bytes":
+		// Structural byte comparison for the test evaluator only
+		// (v45 S1): same length, ordered contents. This is not a
+		// language equality operator; == over bytes stays a
+		// compile error.
+		if len(a.Bytes) != len(b.Bytes) {
+			return false, nil
+		}
+		for i := range a.Bytes {
+			if a.Bytes[i] != b.Bytes[i] {
+				return false, nil
+			}
+		}
+		return true, nil
 	}
 	return false, fmt.Errorf("cannot compare %s", a.Kind)
 }
@@ -506,6 +524,31 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 	case "exchange":
 		return nil, fmt.Errorf("exchange outside a script row is outside the v0 subset")
 	case "ctor":
+		if node.Ctor == "Bytes" {
+			// v45 S1: literal-only construction, validated before
+			// creating the value. The checker admits only Seq<int>
+			// literals of in-range integer members; re-check here
+			// so execution (direct callers included) never invents
+			// an unchecked shape. No operation mutates the result.
+			if len(node.Args) != 1 || node.Args[0].HasName {
+				return nil, fmt.Errorf("Bytes takes one Seq<int> literal")
+			}
+			seq, err := evSmall(node.Args[0].V, env, ctx, owner)
+			if err != nil {
+				return nil, err
+			}
+			if seq.Kind != "seq" || seq.Elem != "int" {
+				return nil, fmt.Errorf("Bytes takes one Seq<int> literal")
+			}
+			out := make([]byte, 0, len(seq.Arr))
+			for _, m := range seq.Arr {
+				if m.Kind != "int" || m.N == nil || m.N.Sign() < 0 || m.N.Cmp(big.NewInt(256)) >= 0 {
+					return nil, fmt.Errorf("Bytes member out of range 0..255")
+				}
+				out = append(out, byte(m.N.Int64()))
+			}
+			return &Value{Kind: "bytes", Bytes: out}, nil
+		}
 		if !isKwargList(node.Args) {
 			return nil, fmt.Errorf("positional construction is outside the v0 subset: %s", node.Ctor)
 		}
@@ -1042,6 +1085,12 @@ func normalizeValue(v *Value) string {
 			parts = append(parts, normalizeValue(m))
 		}
 		return "Seq<" + v.Elem + ">[" + strings.Join(parts, ", ") + "]"
+	case "bytes":
+		octets := make([]string, 0, len(v.Bytes))
+		for _, b := range v.Bytes {
+			octets = append(octets, fmt.Sprintf("%d", b))
+		}
+		return "Bytes(Seq<int>[" + strings.Join(octets, ", ") + "])"
 	case "err":
 		if len(v.Dict) == 0 {
 			return "err(" + v.ErrKind + ")"

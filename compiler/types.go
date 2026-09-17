@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"slices"
 	"strings"
 )
@@ -104,11 +105,11 @@ func seqElemName(t string) (string, bool) {
 }
 
 // knownType reports whether a name is a legal annotation: a base type,
-// a declared record, a declared brand, or a sequence over a plain
-// element type. Error kinds are not values.
+// the Bytes primitive, a declared record, a declared brand, or a
+// sequence over a plain element type. Error kinds are not values.
 func (c *tycker) knownType(t string) bool {
 	switch t {
-	case "str", "int", "bool", "dec":
+	case "str", "int", "bool", "dec", "Bytes":
 		return true
 	}
 	if elem, ok := seqElemName(t); ok {
@@ -250,6 +251,12 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		// their own rules; unknown records stay silent here because
 		// checkCtor owns the unknown-record diagnostic.
 		if s.Ctor != "Ok" && !strings.Contains(s.Ctor, ".") {
+			// v45 S1: the primitive Bytes constructor carries its
+			// type outward like a record constructor. checkCtor
+			// owns shape and range validation.
+			if s.Ctor == "Bytes" {
+				return "Bytes", true
+			}
 			if _, ok := c.recs[s.Ctor]; ok {
 				return s.Ctor, true
 			}
@@ -552,6 +559,12 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if l != r {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: no implicit conversions", l, r), s.Op, CodeTypeMismatch))
+		} else if l == "Bytes" || r == "Bytes" {
+			// v45 S1: no direct byte operators. Structural comparison
+			// lives in the test evaluator (vEq) only, so record and
+			// payload expectations still verify.
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot compare %s with %s: Bytes comparison is not in v1", l, r), s.Op, CodeTypeMismatch))
 		} else if _, ok := seqElemName(l); ok {
 			// v36 S1 promises no sequence equality surface: ==
 			// over two sequences is a compile error, not a silent
@@ -849,6 +862,50 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 			return
 		}
 		fields, label = ed, name
+	} else if name == "Bytes" {
+		// v45 S1: literal-only construction. Exactly one positional
+		// argument holding an explicit Seq<int> literal whose members
+		// are integer-literal AST nodes in 0..255 (big.Int
+		// comparison, no narrowing). No conversion, no inference.
+		// These are compile diagnostics, not error outcomes.
+		if len(s.Args) != 1 || s.Args[0].HasName {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				"Bytes takes one Seq<int> literal with integer members 0..255", name, CodeBytesLiteral))
+			for _, a := range s.Args {
+				c.value(a.V, "", line, env, where)
+			}
+			return
+		}
+		arg := s.Args[0].V
+		before := len(c.out)
+		c.value(arg, "", line, env, where)
+		if len(c.out) != before {
+			// The child's own rule (bare list, unbound name,
+			// element type, member shape) already explains the
+			// failure; no derivative diagnostic.
+			return
+		}
+		if arg.Kind != "seqlit" || arg.Elem != "int" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				"Bytes takes one Seq<int> literal with integer members 0..255", name, CodeBytesLiteral))
+			return
+		}
+		s.T = "Bytes"
+		for i, m := range arg.Items {
+			if m.Kind != "int" || m.Num == nil {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("Bytes member %d is not an integer literal: Bytes takes literal members 0..255", i), name, CodeBytesLiteral))
+				continue
+			}
+			if m.Num.Sign() < 0 || m.Num.Cmp(big.NewInt(256)) >= 0 {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("Bytes member %d is %s: byte members are 0..255", i, m.Num.String()), name, CodeBytesElementRange))
+			}
+		}
+		if want != "" && want != "Bytes" {
+			c.mismatch(line, where, "Bytes", want, name)
+		}
+		return
 	} else {
 		rec, ok := c.recs[name]
 		if !ok {
@@ -1053,6 +1110,13 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 	if _, ok := seqElemName(fn.Ret); ok {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns %s: bare-Seq returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
+	}
+	// v45 S1: bare-Bytes returns are unsupported, like bare-brand and
+	// bare-Seq returns. Entries return wrapper records; codecs and
+	// Render name theirs explicitly (B2+).
+	if fn.Ret == "Bytes" {
+		c.out = append(c.out, spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s returns Bytes: bare-Bytes returns are unsupported, return a record", fn.Name), fn.Ret, CodeTypeMismatch))
 	}
 	env := map[string]string{}
 	for _, p := range fn.Params {

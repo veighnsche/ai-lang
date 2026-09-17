@@ -33,6 +33,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v41-str-split.md` | Shipped (customer 2) | `std__str__split` retains empties, leftmost policy; wrapper return; mints `text.empty_separator` |
 | `v42-fragment-join.md` | Shipped (customer 3) | `html__fragment__join` over explicit children; same-brand `+`; attributes fork posed |
 | `v43-named-attributes.md` | Shipped (fork verdict B) | Name-carrying wrappers; pairs minted, never parsed; `make` next |
+| `v45-bytes-values.md` | Shipped (Bytes B1) | `Bytes` value admission; `Bytes(Seq<int>[...])` literals `0..255`; `Uint8Array` emit; export/codecs next |
 
 ## Reading order for a reviewer
 

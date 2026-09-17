@@ -159,8 +159,16 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				prog.FnFile[d.Name] = m.ID
 				provides[d.Name] = m
 			case *TypeDecl:
+				if d.Name == "Bytes" {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						"type Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
+				}
 				provides[d.Name] = m
 			case *BrandDecl:
+				if d.Name == "Bytes" {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						"brand Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
+				}
 				provides[d.Name] = m
 				if _, ok := prog.Brands[d.Name]; !ok {
 					prog.Brands[d.Name] = d.Under
