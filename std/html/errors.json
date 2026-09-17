@@ -5,10 +5,18 @@
       "value"
     ],
     "raised_by": [
+      "html.html__attribute__boolean_name",
       "html.html__attribute__name"
     ],
     "handled_by": [],
     "hit_by_tests": [
+      "html.html__attribute__boolean_name/boolean_name_checked",
+      "html.html__attribute__boolean_name/boolean_name_compound",
+      "html.html__attribute__boolean_name/boolean_name_empty",
+      "html.html__attribute__boolean_name/boolean_name_padded",
+      "html.html__attribute__boolean_name/boolean_name_readonly",
+      "html.html__attribute__boolean_name/boolean_name_required",
+      "html.html__attribute__boolean_name/boolean_name_upper",
       "html.html__attribute__name/name_class",
       "html.html__attribute__name/name_compound",
       "html.html__attribute__name/name_empty",

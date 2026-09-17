@@ -8,6 +8,8 @@ export type Html__NameResult = { name: string };
 export type Html__ValueEscaped = { value: string };
 export type Html__NamedSpelling = { name: string; spelling: string };
 export type Html__AttributeResult = { attribute: string };
+export type Html__BooleanNameResult = { name: string };
+export type Html__BooleanSpelling = { name: string; spelling: string };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -263,6 +265,32 @@ export function html__attribute__text(name: string, raw: string): { $ail_kind: "
     default: {
       throw new Error("unreachable");
     }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__boolean_name(value: string): { $ail_kind: "ok"; name: string } | { $ail_kind: "html.invalid_attribute_name"; value: string } {
+  if (value === "disabled") {
+    return { $ail_kind: "ok", name: "disabled" };
+  }
+  return { $ail_kind: "html.invalid_attribute_name", value: value };
+}
+export function html__attribute__boolean_spelling(name: string): { $ail_kind: "ok"; name: string; spelling: string } {
+  return { $ail_kind: "ok", name: name, spelling: "disabled" };
+}
+export function html__attribute__boolean(name: string, present: boolean): { $ail_kind: "ok"; attribute: string } {
+  const $ail_m1: { $ail_kind: "ok"; name: string; spelling: string } = html__attribute__boolean_spelling(name);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const w = $ail_m1;
+    if (present) {
+      return { $ail_kind: "ok", attribute: w.spelling };
+    }
+    else {
+      return { $ail_kind: "ok", attribute: "" };
     }
   }
   default: {
