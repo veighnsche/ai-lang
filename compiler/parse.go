@@ -19,7 +19,7 @@ type Arg struct {
 }
 
 type Small struct {
-	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange
+	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
 	// "this request received this permitted response" (v12).
@@ -39,6 +39,8 @@ type Small struct {
 	Seal  string
 	Op    string
 	L, R  *Small
+	// Hi holds the slice end for Kind strslice (base L, start R).
+	Hi *Small
 	Fname string
 	Args  []Arg
 	Ctor  string
@@ -242,6 +244,89 @@ func splitTop(s string, sep rune) []string {
 }
 
 // findTop returns the index and matched op of the first top-level occurrence.
+// topBracket finds the first [ outside strings and any paren or
+// bracket depth: the start of a postfix index/slice group. Index 0
+// is never reported, so list literals keep their own branch.
+func topBracket(s string) (int, bool) {
+	pdepth, bdepth := 0, 0
+	inStr, esc := false, false
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if inStr {
+			if esc {
+				esc = false
+			} else if ch == '\\' {
+				esc = true
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else if ch == '"' {
+			inStr = true
+		} else if ch == '(' {
+			pdepth++
+		} else if ch == ')' && pdepth > 0 {
+			pdepth--
+		} else if ch == '[' {
+			if pdepth == 0 && bdepth == 0 {
+				if i > 0 {
+					return i, true
+				}
+				return -1, false
+			}
+			bdepth++
+		} else if ch == ']' && bdepth > 0 {
+			bdepth--
+		}
+	}
+	return -1, false
+}
+
+// topColons lists every : outside strings and any paren or bracket
+// depth. Empty sides are significant (s[1:] keeps them); splitTop
+// drops empties, which would silently turn s[1:] into s[1].
+func topColons(s string) []int {
+	var out []int
+	pdepth, bdepth := 0, 0
+	inStr, esc := false, false
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if inStr {
+			if esc {
+				esc = false
+			} else if ch == '\\' {
+				esc = true
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else if ch == '"' {
+			inStr = true
+		} else if ch == '(' {
+			pdepth++
+		} else if ch == ')' && pdepth > 0 {
+			pdepth--
+		} else if ch == '[' {
+			bdepth++
+		} else if ch == ']' && bdepth > 0 {
+			bdepth--
+		} else if ch == ':' && pdepth == 0 && bdepth == 0 {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+// leadingBinOpLen reports the length of a binary operator opening s:
+// two-char comparisons first, then the arithmetic ops. Zero means s
+// does not start with one (= alone is binding syntax, not an op).
+func leadingBinOpLen(s string) int {
+	for _, op := range []string{"==", ">=", "<=", "!=", ">", "<", "+", "-", "*", "/", "%"} {
+		if strings.HasPrefix(s, op) {
+			return len(op)
+		}
+	}
+	return 0
+}
+
 func findTop(s string, ops []string) (int, string) {
 	var stack []byte
 	pairs := map[byte]byte{'(': ')', '[': ']'}
@@ -375,10 +460,46 @@ func parseSmall(s string) (*Small, error) {
 		return nil, fmt.Errorf("empty expression")
 	}
 	if strings.HasPrefix(s, `"`) {
-		if len(s) < 2 || !strings.HasSuffix(s, `"`) {
-			return nil, fmt.Errorf("bad string: %s", s)
+		// A trailing index/slice group belongs to the postfix branch
+		// below ("ABC"[0:1]), not to the literal: fall through when
+		// the closing quote is followed by [. A literal-left binary
+		// expression ("-" + tail) falls through too, unless the right
+		// operand is itself quoted ("a" + "b" stays one swallowed
+		// literal, as ever). Anything else keeps the old behavior.
+		j := -1
+		esc := false
+		for k := 1; k < len(s); k++ {
+			c := s[k]
+			if esc {
+				esc = false
+			} else if c == '\\' {
+				esc = true
+			} else if c == '"' {
+				j = k
+				break
+			}
 		}
-		return &Small{Kind: "str", Str: s[1 : len(s)-1]}, nil
+		if j == len(s)-1 {
+			return &Small{Kind: "str", Str: s[1:j]}, nil
+		}
+		oldPath := true
+		if j > 0 {
+			rest := strings.TrimSpace(s[j+1:])
+			if oplen := leadingBinOpLen(rest); oplen > 0 {
+				after := strings.TrimSpace(rest[oplen:])
+				if after != "" && !strings.HasPrefix(after, `"`) {
+					oldPath = false
+				}
+			} else if strings.HasPrefix(rest, "[") {
+				oldPath = false
+			}
+		}
+		if oldPath {
+			if len(s) < 2 || !strings.HasSuffix(s, `"`) {
+				return nil, fmt.Errorf("bad string: %s", s)
+			}
+			return &Small{Kind: "str", Str: s[1 : len(s)-1]}, nil
+		}
 	}
 	if reInt.MatchString(s) {
 		n, ok := new(big.Int).SetString(s, 10)
@@ -464,6 +585,57 @@ func parseSmall(s string) (*Small, error) {
 			return nil, err
 		}
 		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
+	}
+	// v20: scalar text operators. # binds tightest (this branch runs
+	// only when no looser split matched, so the operand is atomic);
+	// s[i] and s[a:b] are postfix at the same level, chaining left.
+	if strings.HasPrefix(s, "#") {
+		v, err := parseSmall(s[1:])
+		if err != nil {
+			return nil, err
+		}
+		return &Small{Kind: "strlen", L: v}, nil
+	}
+	if i, ok := topBracket(s); ok {
+		base, err := parseSmall(s[:i])
+		if err != nil {
+			return nil, err
+		}
+		rest := s[i:]
+		for len(rest) > 0 {
+			if rest[0] != '[' {
+				return nil, fmt.Errorf("unexpected %q after ]", rest)
+			}
+			end, err := balanced(rest, 0)
+			if err != nil {
+				return nil, err
+			}
+			inner := rest[1:end]
+			colons := topColons(inner)
+			if len(colons) > 1 {
+				return nil, fmt.Errorf("bad slice: %s", rest[:end+1])
+			}
+			if len(colons) == 0 {
+				ix, err := parseSmall(inner)
+				if err != nil {
+					return nil, err
+				}
+				base = &Small{Kind: "stridx", L: base, R: ix}
+				rest = strings.TrimSpace(rest[end+1:])
+				continue
+			}
+			lo, err := parseSmall(inner[:colons[0]])
+			if err != nil {
+				return nil, err
+			}
+			hi, err := parseSmall(inner[colons[0]+1:])
+			if err != nil {
+				return nil, err
+			}
+			base = &Small{Kind: "strslice", L: base, R: lo, Hi: hi}
+			rest = strings.TrimSpace(rest[end+1:])
+		}
+		return base, nil
 	}
 	if strings.HasPrefix(s, "call ") {
 		m := regexp.MustCompile(`^call\s+(\w+)\((.*)\)$`).FindStringSubmatch(s)

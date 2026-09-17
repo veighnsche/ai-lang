@@ -43,6 +43,12 @@ func stubKindsOf(sm *Small, kinds map[string]bool) {
 		stubKindsOf(sm.Outcome, kinds)
 		return
 	}
+	if sm.Kind == "strlen" || sm.Kind == "stridx" || sm.Kind == "strslice" {
+		stubKindsOf(sm.L, kinds)
+		stubKindsOf(sm.R, kinds)
+		stubKindsOf(sm.Hi, kinds)
+		return
+	}
 	if sm.Kind == "ctor" && sm.Ctor != "Ok" && strings.Contains(sm.Ctor, ".") {
 		kinds[sm.Ctor] = true
 	}

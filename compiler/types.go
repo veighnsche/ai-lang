@@ -205,6 +205,12 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			}
 		}
 		return "", false
+	case "strlen":
+		return "int", true
+	case "stridx":
+		return "int", true
+	case "strslice":
+		return "str", true
 	case "binop":
 		if !isArith(s.Op) {
 			return "bool", true
@@ -267,6 +273,12 @@ func tokenOf(s *Small) string {
 		}
 	case "binop":
 		return s.Op
+	case "strlen":
+		return "#"
+	case "stridx":
+		return "[]"
+	case "strslice":
+		return "[:]"
 	case "seal":
 		return s.Seal
 	case "ctor":
@@ -406,6 +418,45 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: no implicit conversions", l, r), s.Op, CodeTypeMismatch))
 		}
+	case "strlen":
+		c.value(s.L, "", line, env, "length")
+		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot count scalars of %s: length needs str", t), "#", CodeTypeMismatch))
+			return
+		}
+		s.T = "int"
+	case "stridx":
+		c.value(s.L, "", line, env, "index base")
+		c.value(s.R, "", line, env, "index")
+		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot index into %s: base must be str", t), "[]", CodeTypeMismatch))
+			return
+		}
+		if t, ok := c.typeOf(s.R, env); ok && t != "int" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot index with %s: index must be int", t), "[]", CodeTypeMismatch))
+			return
+		}
+		s.T = "int"
+	case "strslice":
+		c.value(s.L, "", line, env, "slice base")
+		c.value(s.R, "", line, env, "slice start")
+		c.value(s.Hi, "", line, env, "slice end")
+		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot slice %s: base must be str", t), "[:]", CodeTypeMismatch))
+			return
+		}
+		for _, b := range []*Small{s.R, s.Hi} {
+			if t, ok := c.typeOf(b, env); ok && t != "int" {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("cannot slice with %s: bounds must be int", t), "[:]", CodeTypeMismatch))
+				return
+			}
+		}
+		s.T = "str"
 	case "call":
 		if isStoreOp(s.Fname) {
 			c.checkStoreOp(s, line, env)

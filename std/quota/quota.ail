@@ -8,9 +8,9 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__exclusive_pair, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value]
   uses []
-  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.empty_value, validation.exclusive_choice]
+  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice]
 
 state Quota__used: int = 0
 
@@ -23,6 +23,7 @@ error validation.dec_invalid_bounds(lower: dec, upper: dec)
 error validation.dec_out_of_range(value: dec, lower: dec, upper: dec)
 error validation.dec_not_positive(value: dec)
 error validation.dec_negative_value(value: dec)
+error validation.invalid_length(value: str, minimum: int, maximum: int)
 error validation.empty_value(value: str)
 error validation.exclusive_choice()
 
@@ -135,6 +136,24 @@ fn std__validate__dec_nonnegative(value: dec) -> Dec__Value rev 1
   match value >= d"0.0"
     true => Ok(value = value)
     false => validation.dec_negative_value(value = value)
+
+fn std__validate__str_length(value: str, minimum: int, maximum: int) -> Str__Value rev 1
+  emits [validation.invalid_bounds, validation.invalid_length]
+  tests
+    length_ok(value = "abc", minimum = 1, maximum = 5) => Ok(value = "abc")
+    length_at_min(value = "a", minimum = 1, maximum = 5) => Ok(value = "a")
+    length_at_max(value = "abcde", minimum = 1, maximum = 5) => Ok(value = "abcde")
+    length_short(value = "ab", minimum = 3, maximum = 5) => validation.invalid_length(value = "ab", minimum = 3, maximum = 5)
+    length_long(value = "abcdef", minimum = 1, maximum = 5) => validation.invalid_length(value = "abcdef", minimum = 1, maximum = 5)
+    length_bad_bounds(value = "abc", minimum = 5, maximum = 1) => validation.invalid_bounds(lower = 5, upper = 1)
+=
+  match minimum <= maximum
+    true => match #value >= minimum
+      true => match #value <= maximum
+        true => Ok(value = value)
+        false => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
+      false => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
+    false => validation.invalid_bounds(lower = minimum, upper = maximum)
 
 fn std__validate__str_nonempty(value: str) -> Str__Value rev 1
   emits [validation.empty_value]

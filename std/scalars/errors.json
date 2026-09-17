@@ -39,6 +39,66 @@
     ]
   },
   {
+    "kind": "convert.invalid_decimal",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__str_to_dec",
+      "scalars.std__convert__str_to_dec_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "scalars.std__convert__str_to_dec",
+        "arm": "on convert.invalid_decimal e =\u003e convert.invalid_decimal(value = e.value)"
+      },
+      {
+        "fn": "scalars.std__convert__str_to_dec_from",
+        "arm": "on convert.invalid_decimal e =\u003e convert.invalid_decimal(value = e.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "scalars.std__convert__str_to_dec/s2d_bad",
+      "scalars.std__convert__str_to_dec/s2d_bare_minus",
+      "scalars.std__convert__str_to_dec/s2d_double_dot",
+      "scalars.std__convert__str_to_dec/s2d_empty",
+      "scalars.std__convert__str_to_dec/s2d_neg_bad",
+      "scalars.std__convert__str_to_dec/s2d_trailing_dot",
+      "scalars.std__convert__str_to_dec_from/std_bad_high",
+      "scalars.std__convert__str_to_dec_from/std_bad_low",
+      "scalars.std__convert__str_to_dec_from/std_double_dot",
+      "scalars.std__convert__str_to_dec_from/std_trailing_dot"
+    ]
+  },
+  {
+    "kind": "convert.invalid_integer",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__str_to_int",
+      "scalars.std__convert__str_to_int_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "scalars.std__convert__str_to_int",
+        "arm": "on convert.invalid_integer e =\u003e convert.invalid_integer(value = e.value)"
+      },
+      {
+        "fn": "scalars.std__convert__str_to_int_from",
+        "arm": "on convert.invalid_integer e =\u003e convert.invalid_integer(value = e.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "scalars.std__convert__str_to_int/s2i_bad",
+      "scalars.std__convert__str_to_int/s2i_bare_minus",
+      "scalars.std__convert__str_to_int/s2i_empty",
+      "scalars.std__convert__str_to_int/s2i_neg_bad",
+      "scalars.std__convert__str_to_int_from/sti_bad_high",
+      "scalars.std__convert__str_to_int_from/sti_bad_low"
+    ]
+  },
+  {
     "kind": "math.dec_invalid_bounds",
     "fields": [
       "lower",

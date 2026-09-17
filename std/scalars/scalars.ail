@@ -11,9 +11,9 @@
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root]
   uses []
-  emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding]
+  emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding, convert.invalid_integer, convert.invalid_decimal]
 
 error math.invalid_bounds(lower: int, upper: int)
 error math.out_of_range(value: int, lower: int, upper: int)
@@ -25,6 +25,8 @@ error math.negative_exponent(exponent: int)
 error math.invalid_count(n: int, k: int)
 error math.negative_scale(scale: int)
 error convert.invalid_boolean(value: str)
+error convert.invalid_integer(value: str)
+error convert.invalid_decimal(value: str)
 error convert.invalid_boolean_encoding(value: int)
 error convert.invalid_dec_encoding(value: dec)
 
@@ -1015,6 +1017,145 @@ fn std__convert__int_to_dec_from(m: int, acc: dec, step: dec) -> Dec__Value rev 
     true => Ok(value = acc)
     false => match call std__convert__int_to_dec_from(m - 1, acc + step, step)
       on Ok r => Ok(value = r.value)
+
+fn std__convert__int_to_str_from(n: int, acc: str, m: int) -> Str__Value rev 1
+  decreases m
+  emits []
+  tests
+    str_from_fuel_out(n = 5, acc = "x", m = 0) => Ok(value = "x")
+    str_from_digit(n = 5, acc = "", m = 6) => Ok(value = "5")
+    str_from_multi(n = 42, acc = "", m = 3) => Ok(value = "42")
+=
+  match m <= 0
+    true => Ok(value = acc)
+    false => match n <= 9
+      true => Ok(value = "0123456789"[n:n + 1] + acc)
+      false => match call std__convert__int_to_str_from(n / 10, "0123456789"[n % 10:n % 10 + 1] + acc, m - 1)
+        on Ok r => Ok(value = r.value)
+
+fn std__convert__int_to_str(value: int) -> Str__Value rev 1
+  emits []
+  tests
+    i2s_zero(value = 0) => Ok(value = "0")
+    i2s_pos(value = 42) => Ok(value = "42")
+    i2s_thousand(value = 1000) => Ok(value = "1000")
+    i2s_neg(value = -7) => Ok(value = "-7")
+=
+  match value < 0
+    true => match call std__convert__int_to_str_from(0 - value, "", 0 - value + 1)
+      on Ok r => Ok(value = "-" + r.value)
+    false => match call std__convert__int_to_str_from(value, "", value + 1)
+      on Ok r => Ok(value = r.value)
+
+fn std__convert__str_to_int_from(orig: str, value: str, pos: int, acc: int, n: int) -> Int__Value rev 1
+  decreases n
+  emits [convert.invalid_integer]
+  tests
+    sti_done(orig = "42", value = "42", pos = 2, acc = 42, n = 0) => Ok(value = 42)
+    sti_step(orig = "42", value = "42", pos = 0, acc = 0, n = 2) => Ok(value = 42)
+    sti_bad_high(orig = "1a", value = "1a", pos = 1, acc = 1, n = 1) => convert.invalid_integer(value = "1a")
+    sti_bad_low(orig = "1-2", value = "1-2", pos = 1, acc = 1, n = 2) => convert.invalid_integer(value = "1-2")
+=
+  match n <= 0
+    true => Ok(value = acc)
+    false => match value[pos] >= 48
+      true => match value[pos] <= 57
+        true => match call std__convert__str_to_int_from(orig, value, pos + 1, acc * 10 + (value[pos] - 48), n - 1)
+          on convert.invalid_integer e => convert.invalid_integer(value = e.value)
+          on Ok r => Ok(value = r.value)
+        false => convert.invalid_integer(value = orig)
+      false => convert.invalid_integer(value = orig)
+
+fn std__convert__str_to_int(value: str) -> Int__Value rev 1
+  emits [convert.invalid_integer]
+  tests
+    s2i_zero(value = "0") => Ok(value = 0)
+    s2i_pos(value = "42") => Ok(value = 42)
+    s2i_neg(value = "-7") => Ok(value = -7)
+    s2i_empty(value = "") => convert.invalid_integer(value = "")
+    s2i_bare_minus(value = "-") => convert.invalid_integer(value = "-")
+    s2i_bad(value = "12a") => convert.invalid_integer(value = "12a")
+    s2i_neg_bad(value = "-1a") => convert.invalid_integer(value = "-1a")
+=
+  match #value == 0
+    true => convert.invalid_integer(value = value)
+    false => match value[0:1] == "-"
+      true => match #value >= 2
+        true => match call std__convert__str_to_int_from(value, value, 1, 0, #value - 1)
+          on convert.invalid_integer e => convert.invalid_integer(value = e.value)
+          on Ok r => Ok(value = 0 - r.value)
+        false => convert.invalid_integer(value = value)
+      false => match call std__convert__str_to_int_from(value, value, 0, 0, #value)
+        on convert.invalid_integer e => convert.invalid_integer(value = e.value)
+        on Ok r => Ok(value = r.value)
+
+fn std__convert__str_to_dec_from(orig: str, value: str, pos: int, coeff: int, scale: int, dot: int, n: int) -> Dec__Value rev 1
+  decreases n
+  emits [convert.invalid_decimal]
+  tests
+    std_done_int(orig = "42", value = "42", pos = 2, coeff = 42, scale = 0, dot = 0, n = 0) => Ok(value = d"42.0")
+    std_done_frac(orig = "1.5", value = "1.5", pos = 3, coeff = 15, scale = 1, dot = 1, n = 0) => Ok(value = d"1.5")
+    std_trailing_dot(orig = "1.", value = "1.", pos = 2, coeff = 1, scale = 0, dot = 1, n = 0) => convert.invalid_decimal(value = "1.")
+    std_step_int(orig = "42", value = "42", pos = 0, coeff = 0, scale = 0, dot = 0, n = 2) => Ok(value = d"42.0")
+    std_step_frac(orig = "1.5", value = "1.5", pos = 2, coeff = 1, scale = 0, dot = 1, n = 1) => Ok(value = d"1.5")
+    std_step_dot(orig = "1.5", value = "1.5", pos = 1, coeff = 1, scale = 0, dot = 0, n = 2) => Ok(value = d"1.5")
+    std_double_dot(orig = "1.2.3", value = "1.2.3", pos = 3, coeff = 12, scale = 1, dot = 1, n = 2) => convert.invalid_decimal(value = "1.2.3")
+    std_bad_high(orig = "12a", value = "12a", pos = 2, coeff = 12, scale = 0, dot = 0, n = 1) => convert.invalid_decimal(value = "12a")
+    std_bad_low(orig = "1-2", value = "1-2", pos = 1, coeff = 1, scale = 0, dot = 0, n = 2) => convert.invalid_decimal(value = "1-2")
+=
+  match n <= 0
+    true => match dot == 0
+      true => match call std__convert__int_to_dec(coeff)
+        on Ok whole => Ok(value = whole.value)
+      false => match scale == 0
+        true => convert.invalid_decimal(value = orig)
+        false => match call std__convert__int_to_dec(coeff)
+          on Ok whole => match call std__dec__scale_by_power_of_ten(whole.value, 0 - scale)
+            on Ok moved => Ok(value = moved.value)
+    false => match value[pos:pos + 1] == "."
+      true => match dot == 0
+        true => match call std__convert__str_to_dec_from(orig, value, pos + 1, coeff, scale, 1, n - 1)
+          on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+          on Ok r => Ok(value = r.value)
+        false => convert.invalid_decimal(value = orig)
+      false => match value[pos] >= 48
+        true => match value[pos] <= 57
+          true => match dot == 0
+            true => match call std__convert__str_to_dec_from(orig, value, pos + 1, coeff * 10 + (value[pos] - 48), scale, dot, n - 1)
+              on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+              on Ok r => Ok(value = r.value)
+            false => match call std__convert__str_to_dec_from(orig, value, pos + 1, coeff * 10 + (value[pos] - 48), scale + 1, dot, n - 1)
+              on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+              on Ok r => Ok(value = r.value)
+          false => convert.invalid_decimal(value = orig)
+        false => convert.invalid_decimal(value = orig)
+
+fn std__convert__str_to_dec(value: str) -> Dec__Value rev 1
+  emits [convert.invalid_decimal]
+  tests
+    s2d_zero(value = "0") => Ok(value = d"0.0")
+    s2d_int(value = "42") => Ok(value = d"42.0")
+    s2d_neg(value = "-7") => Ok(value = d"-7.0")
+    s2d_frac(value = "1.5") => Ok(value = d"1.5")
+    s2d_neg_frac(value = "-0.5") => Ok(value = d"-0.5")
+    s2d_empty(value = "") => convert.invalid_decimal(value = "")
+    s2d_bare_minus(value = "-") => convert.invalid_decimal(value = "-")
+    s2d_double_dot(value = "1.2.3") => convert.invalid_decimal(value = "1.2.3")
+    s2d_bad(value = "12a") => convert.invalid_decimal(value = "12a")
+    s2d_neg_bad(value = "-12a") => convert.invalid_decimal(value = "-12a")
+    s2d_trailing_dot(value = "1.") => convert.invalid_decimal(value = "1.")
+=
+  match #value == 0
+    true => convert.invalid_decimal(value = value)
+    false => match value[0:1] == "-"
+      true => match #value >= 2
+        true => match call std__convert__str_to_dec_from(value, value, 1, 0, 0, 0, #value - 1)
+          on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+          on Ok r => Ok(value = d"0.0" - r.value)
+        false => convert.invalid_decimal(value = value)
+      false => match call std__convert__str_to_dec_from(value, value, 0, 0, 0, 0, #value)
+        on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+        on Ok r => Ok(value = r.value)
 
 fn std__convert__int_to_dec(value: int) -> Dec__Value rev 1
   emits []

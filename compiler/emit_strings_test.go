@@ -11,7 +11,7 @@ import (
 // target ordering (UTF-8 byte order via $ailStr helpers) matching Go.
 
 const strSemFixture = `mod str
-  provides [str__match, str__order, Str__Value, Int__Value]
+  provides [str__match, str__order, str__len, str__at, str__slice, Str__Value, Int__Value]
   uses []
   emits []
 
@@ -49,6 +49,34 @@ fn str__order(left: str, right: str) -> Int__Value rev 1
     false => match left >= right
       true => Ok(value = 1)
       false => Ok(value = -1)
+
+fn str__len(v: str) -> Int__Value rev 1
+  emits []
+  tests
+    ascii(v = "abc") => Ok(value = 3)
+    mixed(v = "héllo世界") => Ok(value = 7)
+    astral(v = "a𝄞b") => Ok(value = 3)
+    empty(v = "") => Ok(value = 0)
+=
+  Ok(value = #v)
+
+fn str__at(v: str, i: int) -> Int__Value rev 1
+  emits []
+  tests
+    ascii(v = "abc", i = 1) => Ok(value = 98)
+    mixed(v = "héllo世界", i = 5) => Ok(value = 19990)
+    astral(v = "a𝄞b", i = 1) => Ok(value = 119070)
+=
+  Ok(value = v[i])
+
+fn str__slice(v: str, a: int, b: int) -> Str__Value rev 1
+  emits []
+  tests
+    inner(v = "héllo", a = 1, b = 4) => Ok(value = "éll")
+    full(v = "abc", a = 0, b = 3) => Ok(value = "abc")
+    empty(v = "abc", a = 2, b = 2) => Ok(value = "")
+=
+  Ok(value = v[a:b])
 `
 
 func TestStrSemanticsEvaluate(t *testing.T) {
@@ -86,8 +114,13 @@ func TestStrSemanticsEmit(t *testing.T) {
 		`(v === "a\\nb")`,
 		`(v === "say \\\"hi\\\"")`,
 		"$ailStrGe(left, right)",
+		"(BigInt([...v].length))",
+		"$ailStrAt(v, i)",
+		"$ailStrSlice(v, a, b)",
 		"function $ailStrCmp",
 		"function $ailStrGe",
+		"function $ailStrAt",
+		"function $ailStrSlice",
 		"TextEncoder",
 	} {
 		if !strings.Contains(src, want) {

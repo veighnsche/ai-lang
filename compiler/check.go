@@ -284,7 +284,7 @@ func matchNodes(n *Node) []*Node {
 }
 
 // walkSmallTrees visits a Small and every nested Small (args, binop sides,
-// list items, exchange outcomes).
+// text-operator operands, list items, exchange outcomes).
 func walkSmallTrees(s *Small, f func(*Small)) {
 	if s == nil {
 		return
@@ -296,6 +296,11 @@ func walkSmallTrees(s *Small, f func(*Small)) {
 	if s.Kind == "binop" {
 		walkSmallTrees(s.L, f)
 		walkSmallTrees(s.R, f)
+	}
+	if s.Kind == "strlen" || s.Kind == "stridx" || s.Kind == "strslice" {
+		walkSmallTrees(s.L, f)
+		walkSmallTrees(s.R, f)
+		walkSmallTrees(s.Hi, f)
 	}
 	for _, it := range s.Items {
 		walkSmallTrees(it, f)
