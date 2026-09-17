@@ -138,3 +138,58 @@ func TestStrSemanticsEmit(t *testing.T) {
 		t.Errorf("emit contains unused $ailStrLe helper\n--- emit ---\n%s", src)
 	}
 }
+
+func TestStrFaultEmit(t *testing.T) {
+	// Row 2 (fault contracts): operator sites lower to helpers that
+	// throw on invalid domains. The tables exercise valid inputs so
+	// the module compiles; the pins assert the loud contract is
+	// emitted, not merely present in a frozen golden.
+	const faultFixture = `mod fault
+  provides [fault__at, fault__slice, Fault__Int, Fault__Str]
+  uses []
+  emits []
+
+type Fault__Int rev 1 (
+  value: int
+)
+
+type Fault__Str rev 1 (
+  value: str
+)
+
+fn fault__at(v: str, i: int) -> Fault__Int rev 1
+  emits []
+  tests
+    go(v = "abc", i = 1) => Ok(value = 98)
+=
+  Ok(value = v[i])
+
+fn fault__slice(v: str, a: int, b: int) -> Fault__Str rev 1
+  emits []
+  tests
+    go(v = "abc", a = 0, b = 2) => Ok(value = "ab")
+=
+  Ok(value = v[a:b])
+`
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "fault.ail"), []byte(faultFixture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	if err := compile(out, []string{filepath.Join(dir, "fault.ail")}); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "fault.ts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(got)
+	for _, want := range []string{
+		`throw new Error("str index out of range")`,
+		`throw new Error("str slice out of range")`,
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("emit missing loud contract %q\n--- emit ---\n%s", want, src)
+		}
+	}
+}

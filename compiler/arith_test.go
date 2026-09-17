@@ -196,7 +196,7 @@ func TestTextOpsEval(t *testing.T) {
 			t.Fatalf("%s = %v, want int %s", c.expr, got, c.intWant)
 		}
 	}
-	for _, expr := range []string{`s[7]`, `s[-1]`, `s[3:2]`, `s[0:8]`, `s[-1:2]`} {
+	for _, expr := range []string{`s[7]`, `s[-1]`, `s[3:2]`, `s[0:8]`, `s[-1:2]`, `s[99999999999999999999]`, `s[0:99999999999999999999]`} {
 		sm, err := parseSmall(expr)
 		if err != nil {
 			t.Fatalf("parseSmall(%q): %v", expr, err)
