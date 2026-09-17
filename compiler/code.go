@@ -68,6 +68,7 @@ const (
 	CodeBadArmKind         = "AIL4105"
 	CodeVariantOnVal       = "AIL4106"
 	CodeArmUntaken         = "AIL4107"
+	CodeInvalidRelay       = "AIL4108"
 	CodeTestFailed         = "AIL4200"
 	CodeSiblingParse       = "AIL5001"
 	CodeBadCompare         = "AIL5005"
@@ -96,7 +97,7 @@ var allCodes = []string{
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeForeignRaise, CodeUnknownKind,
-	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken,
+	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay,
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle,

@@ -587,6 +587,76 @@ func TestDiagnoseShadowedArm(t *testing.T) {
 	}
 }
 
+const relayMath = `mod math
+  provides [math__sum_to, Int__Value]
+  uses []
+  emits [math.negative_input]
+
+error math.negative_input(value: int)
+
+type Int__Value rev 1 (
+  value: int
+)
+
+fn math__sum_to(n: int) -> Int__Value rev 1
+  decreases n
+  emits [math.negative_input]
+  tests
+    neg(n = -3) => math.negative_input(value = -3)
+    zero(n = 0) => Ok(value = 0)
+    pos(n = 3) => Ok(value = 6)
+=
+  match n <= 0
+    true => match n == 0
+      true => Ok(value = 0)
+      false => math.negative_input(value = n)
+    false => match call math__sum_to(n = n - 1)
+      on math.negative_input err => math.negative_input(value = err.value)
+      on Ok r => Ok(value = n + r.value)
+`
+
+func TestDiagnoseIdentityRelayCertified(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"math.ail": relayMath})
+	diags := diagnose(dir, "math.ail", relayMath)
+	for _, d := range diags {
+		if d.Sev == "error" {
+			t.Fatalf("certified identity relay must be silent, got %v", diags)
+		}
+	}
+}
+
+func TestDiagnoseInvalidRelayValue(t *testing.T) {
+	bad := strings.Replace(relayMath,
+		"on math.negative_input err => math.negative_input(value = err.value)",
+		"on math.negative_input err => math.negative_input(value = 0)", 1)
+	dir := writeLSPDir(t, map[string]string{"math.ail": bad})
+	diags := diagnose(dir, "math.ail", bad)
+	if !hasCode(diags, "AIL4108") {
+		t.Fatalf("expected AIL4108 for a changed relay value, got %v", diags)
+	}
+	if findDiag(diags, "field value is not err.value") == nil {
+		t.Fatalf("expected the value reason, got %v", diags)
+	}
+}
+
+func TestDiagnoseInvalidRelayKind(t *testing.T) {
+	bad := strings.Replace(relayMath, "emits [math.negative_input]",
+		"emits [math.negative_input, math.other]", 1)
+	bad = strings.Replace(bad, "error math.negative_input(value: int)",
+		"error math.negative_input(value: int)\n\nerror math.other(value: int)", 1)
+	bad = strings.Replace(bad,
+		"on math.negative_input err => math.negative_input(value = err.value)",
+		"on math.negative_input err => math.other(value = err.value)", 1)
+	dir := writeLSPDir(t, map[string]string{"math.ail": bad})
+	diags := diagnose(dir, "math.ail", bad)
+	if !hasCode(diags, "AIL4108") {
+		t.Fatalf("expected AIL4108 for a kind-swapping relay, got %v", diags)
+	}
+	if findDiag(diags, "reconstructs math.other instead of math.negative_input") == nil {
+		t.Fatalf("expected the kind reason, got %v", diags)
+	}
+}
+
 func TestCoverageGreenOnly(t *testing.T) {
 	bad := strings.Replace(lspAuth, "    down(id = \"u\") => auth.bad()\n", "    down(id = \"u\") => auth.bad()\n    extra(id = \"u\") => auth.bad\n", 1)
 	bad = strings.Replace(bad, "    on db.down _ => auth.bad()\n", "", 1)
