@@ -17,5 +17,4 @@
   verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/v13-stdlib.md` (row 2).
-Name mapping (R3 allows one `__` separator): spec `std__int__abs`
-lands as `int__abs`; the full table is in the program doc.
+Names follow the brief verbatim (issue 5).

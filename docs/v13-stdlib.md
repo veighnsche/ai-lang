@@ -7,9 +7,9 @@ stays explicitly deferred with its blocker named below.
 ## What landed
 
 - `std/quota/quota.ail` — row 1. Monomorphic scalar
-  validators (`validate__require`, `validate__int_range`,
-  `validate__int_nonnegative`, `validate__str_nonempty`,
-  `validate__exclusive_pair`) plus a quota counter
+  validators (`std__validate__require`, `std__validate__int_range`,
+  `std__validate__int_nonnegative`, `std__validate__str_nonempty`,
+  `std__validate__exclusive_pair`) plus a quota counter
   (`quota__consume`, `quota__usage`) that reuses them. Gate met:
   every boundary and complete error payload is a decision-table
   row (24 tests), and the counter consumes through the validators,
@@ -41,18 +41,20 @@ an outcome its provider body can never produce) is the reason
 this cannot be a silent default: evaluated imports would forbid
 exactly the stub the flagship relies on.
 
-## Name mapping (R3 allows one `__` separator)
+## Name mapping (resolved by issue 5)
 
-Spec names with two separators land with one. The mapping is
-mechanical: `std__int__abs` is `int__abs`, `std__dec__abs` is
-`dec__abs`, `std__bool__not` is `bool__not`,
-`std__compare__int` is `compare__int`,
-`std__select__int` is `select__int`,
-`std__validate__int_range` is `validate__int_range`,
-`std__convert__bool_to_str` is `convert__bool_to_str`,
-and so on per domain. Two error kinds split by payload type,
-since one kind has one field list: `convert.invalid_boolean`
-for strings, `convert.invalid_boolean_encoding` for ints,
+The R3 single-separator reading was wrong: the grammar's verb
+class already admits hierarchical names, so spec names land
+verbatim — `std__int__abs`, `std__bool__not`,
+`std__compare__int`, `std__select__int`,
+`std__validate__int_range`, `std__convert__bool_to_str`, and so
+on per domain. Pinned by `TestMultiUnderscoreNameAccepted` and
+`TestMalformedNamesRejected` in `compiler/naming_test.go`, which
+also pin the remaining rejections (no separator,
+leading/trailing/doubled runs). Two error kinds split by payload
+type, since one kind has one field list:
+`convert.invalid_boolean` for strings,
+`convert.invalid_boolean_encoding` for ints,
 `convert.invalid_dec_encoding` for decs. Every function returns
 a named success record (`Int__Value`, `Dec__Value`,
 `Str__Value`, `Bool__Value`, `Quota__Usage`, `Validate__Pass`);
@@ -75,17 +77,17 @@ Pinned by `TestMultiShapeEmit` and
   with no emits under the canonical guard, and a checked entry
   that rejects negatives before delegating. No error arm is
   unreachable, so the test-per-arm law holds by construction.
-  `int__pow`, `int__factorial`, `int__sum_to`, and `dec__pow`
+  `std__int__pow`, `std__int__factorial`, `std__int__sum_to`, and `std__dec__pow`
   all follow it.
-- Termination and cost are separate claims. `int__pow_from`
+- Termination and cost are separate claims. `std__int__pow_from`
   terminates for every non-negative exponent by proof, while
-  `backoff__delay` caps attempts at 30 as a cost policy at the
+  `std__backoff__delay` caps attempts at 30 as a cost policy at the
   call site. The 2^30 bound is exact; the ceiling keeps builds
   cheap.
 - Bounds are inclusive and reversed bounds fail
   (`math.invalid_bounds`, `validation.invalid_bounds`); no
   silent swap anywhere.
-- `compare__str` is byte order on the wire encoding:
+- `std__compare__str` is byte order on the wire encoding:
   deterministic, not Unicode aware.
 
 ## Deferred with blockers (not silently dropped)
