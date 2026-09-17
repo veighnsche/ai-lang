@@ -97,6 +97,24 @@ function $ailHexDecode(value: string): { $ail_kind: "ok"; value: Uint8Array } | 
   }
   return { $ail_kind: "ok", value: out };
 }
+function $ailB64Encode(value: Uint8Array): string {
+  const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let out = "";
+  let i = 0;
+  for (; i + 3 <= value.length; i += 3) {
+    const n = (value[i] << 16) | (value[i + 1] << 8) | value[i + 2];
+    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + alpha[(n >> 6) & 63] + alpha[n & 63];
+  }
+  const rem = value.length - i;
+  if (rem === 1) {
+    const n = value[i] << 16;
+    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + "==";
+  } else if (rem === 2) {
+    const n = (value[i] << 16) | (value[i + 1] << 8);
+    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + alpha[(n >> 6) & 63] + "=";
+  }
+  return out;
+}
 export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
   return { $ail_kind: "ok", value: (left + right) };
 }
@@ -656,6 +674,15 @@ export function std__hex__decode(value: string): { $ail_kind: "ok"; value: Uint8
   }
   default: {
     throw new Error("unreachable");
+  }
+  }
+}
+export function std__base64__encode(value: Uint8Array): { $ail_kind: "ok"; value: string } {
+  const $ail_m1: { $ail_kind: "ok", value: string } = { $ail_kind: "ok", value: $ailB64Encode(value) };
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", value: r.value };
   }
   }
 }

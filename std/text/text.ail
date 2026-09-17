@@ -13,12 +13,12 @@
 // replace rejects it (text.empty_pattern); conversions live in
 // scalars.ail beside their kernels; join rides Seq (v40), split
 // is next, graphemes/casefold/normalize wait on pinned data,
-// base64 on Bytes (see #42); utf8 via std__utf8__encode and
-// std__utf8__decode, hex via std__hex__encode and
-// std__hex__decode below.
+// Bytes codecs all landed (see #42): utf8 via std__utf8__encode
+// and std__utf8__decode, hex via std__hex__encode and
+// std__hex__decode, base64 via std__base64__encode below.
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, std__hex__decode, Str__Value, Bool__Value, Int__Value, Split__Result]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, std__hex__decode, std__base64__encode, Str__Value, Bool__Value, Int__Value, Split__Result]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -481,3 +481,19 @@ fn std__hex__decode(value: str) -> Bytes__Value rev 1
   match call bytes__hex__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
+
+fn std__base64__encode(value: Bytes) -> Encoding__Text rev 1
+  emits []
+  tests
+    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
+    zero(value = Bytes(Seq<int>[0])) => Ok(value = "AA==")
+    ff(value = Bytes(Seq<int>[255])) => Ok(value = "/w==")
+    one(value = Bytes(Seq<int>[65])) => Ok(value = "QQ==")
+    two(value = Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
+    three(value = Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
+    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
+    notext(value = Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
+    sweep(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
+=
+  match call bytes__base64__encode(value)
+    on Ok r => Ok(value = r.value)

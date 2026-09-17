@@ -1018,6 +1018,7 @@ type emitter struct {
 	utf8dec   bool                   // strict UTF-8 decode helper used by this module (v50 B6)
 	hexenc    bool                   // hex encode helper used by this module (v52 B8)
 	hexdec    bool                   // strict hex decode helper used by this module (v55 B10)
+	b64enc    bool                   // base64 encode helper used by this module (v58 B12)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1167,6 +1168,32 @@ var hexDecodeHelper = []string{
 	"}",
 }
 
+// b64EncodeHelper renders the base64 encode runtime (v58 B12):
+// standard padded alphabet over the input VIEW, three octets to
+// four sextets, byte-ordered, empty to "". The alphabet table (not
+// host btoa, whose binary-string contract is a misuse trap) is what
+// makes the mapping structural; indices keep views exact.
+var b64EncodeHelper = []string{
+	"function $ailB64Encode(value: Uint8Array): string {",
+	"  const alpha = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\";",
+	"  let out = \"\";",
+	"  let i = 0;",
+	"  for (; i + 3 <= value.length; i += 3) {",
+	"    const n = (value[i] << 16) | (value[i + 1] << 8) | value[i + 2];",
+	"    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + alpha[(n >> 6) & 63] + alpha[n & 63];",
+	"  }",
+	"  const rem = value.length - i;",
+	"  if (rem === 1) {",
+	"    const n = value[i] << 16;",
+	"    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + \"==\";",
+	"  } else if (rem === 2) {",
+	"    const n = (value[i] << 16) | (value[i + 1] << 8);",
+	"    out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + alpha[(n >> 6) & 63] + \"=\";",
+	"  }",
+	"  return out;",
+	"}",
+}
+
 func (e *emitter) fresh() string {
 	e.tmp++
 	// Unspellable in ail (identifiers match \w+, so $ never appears in
@@ -1214,6 +1241,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	}
 	if isBytesHexEncode(scrut.Fname) {
 		return e.stmtBytesHexEncode(node, scrut, out)
+	}
+	if isBytesB64Encode(scrut.Fname) {
+		return e.stmtBytesB64Encode(node, scrut, out)
 	}
 	if isBytesKernel(scrut.Fname) {
 		return e.stmtBytesEncode(node, scrut, out)
@@ -1677,6 +1707,46 @@ func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) er
 	return nil
 }
 
+// stmtBytesB64Encode lowers base64 encoding (v58 B12): the input
+// Bytes through $ailB64Encode into an Ok record of padded base64.
+// Total kernel, so matches take the Ok arm only.
+func (e *emitter) stmtBytesB64Encode(node *Node, scrut *Small, out *[]string) error {
+	slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if err != nil {
+		return fmt.Errorf("cannot emit %s: %s", scrut.Fname, err.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := e.emitValue(argv)
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	e.b64enc = true
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: string } = { "+tsTag+": \"ok\", value: $ailB64Encode(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	for _, arm := range node.Arms {
+		pat := arm.Pats[0]
+		if pat.Kind != "variant" || pat.Name != "Ok" {
+			return fmt.Errorf("bytes__base64__encode match arm must be Ok")
+		}
+		*out = append(*out, `case "ok": {`)
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+		if err != nil {
+			return err
+		}
+		*out = append(*out, indent(lines)...)
+		*out = append(*out, "}")
+	}
+	*out = append(*out, "}")
+	return nil
+}
+
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	// Per-function temp scope: every fresh() temporary lands as a
 	// const inside this body, so numbering restarts at $ail_m1 per
@@ -1977,6 +2047,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// decode kernel is called, so files without one gain no code.
 	if em.hexdec {
 		L = append(L, hexDecodeHelper...)
+	}
+	// Base64 encode runtime: emitted inline only when the base64
+	// encode kernel is called, so files without one gain no code.
+	if em.b64enc {
+		L = append(L, b64EncodeHelper...)
 	}
 	L = append(L, fnLines...)
 	// v46 S2: compiler-owned record definitions, emitted exactly when

@@ -65,6 +65,11 @@ const bytesHexDecodeKernel = "bytes__hex__decode"
 // carrying the original str payload unchanged.
 const encodingInvalidHex = "encoding.invalid_hex"
 
+// bytesB64EncodeKernel is the public base64 encode intrinsic (v58
+// B12): total over Bytes, deterministic, certificate-free.
+// Standard padded alphabet, byte-ordered, no text interpretation.
+const bytesB64EncodeKernel = "bytes__base64__encode"
+
 // bytesKernel describes one compiler kernel: its static signature,
 // result record, declared emits, and whether calls need a grant
 // certificate. Only the export kernel is restricted; public kernels
@@ -86,6 +91,7 @@ var bytesKernels = map[string]bytesKernel{
 	bytesDecodeKernel:    {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{encodingInvalidUtf8}},
 	bytesHexEncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
 	bytesHexDecodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{encodingInvalidHex}},
+	bytesB64EncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
 }
 
 // isBytesKernel reports any registered Bytes kernel.
@@ -153,6 +159,12 @@ func isBytesHexEncode(fname string) bool {
 // its own codec helper, union, and error contract.
 func isBytesHexDecode(fname string) bool {
 	return fname == bytesHexDecodeKernel
+}
+
+// isBytesB64Encode reports the base64 encode intrinsic, which needs
+// its own evaluator and lowering (never the text/hex paths).
+func isBytesB64Encode(fname string) bool {
+	return fname == bytesB64EncodeKernel
 }
 
 // isFallibleDecode reports a kernel lowered through the shared

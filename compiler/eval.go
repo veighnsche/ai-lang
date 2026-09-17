@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -1034,6 +1035,30 @@ func isHexStr(s string) bool {
 	return true
 }
 
+// evBytesB64EncodeOp evaluates base64 encoding (v58 B12): the input
+// Bytes as standard padded base64, byte-ordered, empty to "". Bytes
+// are never read as text.
+func evBytesB64EncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	slots, berr := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if berr != nil {
+		return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := evSmall(argv, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "bytes" {
+		return nil, fmt.Errorf("%s: call to %s takes Bytes", owner, scrut.Fname)
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: base64.StdEncoding.EncodeToString(v.Bytes)}}}, nil
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -1069,6 +1094,8 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				val, err = evBytesHexDecodeOp(scrut, env, ctx, owner)
 			} else if isBytesHexEncode(fname) {
 				val, err = evBytesHexEncodeOp(scrut, env, ctx, owner)
+			} else if isBytesB64Encode(fname) {
+				val, err = evBytesB64EncodeOp(scrut, env, ctx, owner)
 			} else {
 				val, err = evBytesEncodeOp(scrut, env, ctx, owner)
 			}
