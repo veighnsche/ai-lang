@@ -15,7 +15,8 @@
   `acc == ""`). `split`/`split_from` return `Split__Result`,
   retain empty fields, go leftmost on overlaps, and mint
   `text.empty_separator`. Graphemes/casefold/normalize wait on
-  pinned data, base64 on Bytes via `std__base64__encode`
+  pinned data, base64 on Bytes via
+  `std__base64__encode`/`std__base64__decode`
   (`utf8` via `std__utf8__encode`/`std__utf8__decode`,
   `hex` via `std__hex__encode`/`std__hex__decode`).
 - `text.ts` + `errors.json` — committed golden TS prod emit

@@ -15,10 +15,11 @@
 // is next, graphemes/casefold/normalize wait on pinned data,
 // Bytes codecs all landed (see #42): utf8 via std__utf8__encode
 // and std__utf8__decode, hex via std__hex__encode and
-// std__hex__decode, base64 via std__base64__encode below.
+// std__hex__decode, base64 via std__base64__encode and
+// std__base64__decode below.
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, std__hex__decode, std__base64__encode, Str__Value, Bool__Value, Int__Value, Split__Result]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, std__hex__decode, std__base64__encode, std__base64__decode, Str__Value, Bool__Value, Int__Value, Split__Result]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -497,3 +498,27 @@ fn std__base64__encode(value: Bytes) -> Encoding__Text rev 1
 =
   match call bytes__base64__encode(value)
     on Ok r => Ok(value = r.value)
+
+fn std__base64__decode(value: str) -> Bytes__Value rev 1
+  emits [encoding.invalid_base64]
+  tests
+    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
+    nulbyte(value = "AA==") => Ok(value = Bytes(Seq<int>[0]))
+    one(value = "QQ==") => Ok(value = Bytes(Seq<int>[65]))
+    two(value = "QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
+    three(value = "QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    foo(value = "Zm9v") => Ok(value = Bytes(Seq<int>[102, 111, 111]))
+    high(value = "+/8=") => Ok(value = Bytes(Seq<int>[251, 255]))
+    notext(value = "AEE=") => Ok(value = Bytes(Seq<int>[0, 65]))
+    odd(value = "QUI") => encoding.invalid_base64(value = "QUI")
+    misplaced(value = "=QUI") => encoding.invalid_base64(value = "=QUI")
+    sp_mid(value = "QU JD") => encoding.invalid_base64(value = "QU JD")
+    dash(value = "QUJ-") => encoding.invalid_base64(value = "QUJ-")
+    under(value = "QUJ_") => encoding.invalid_base64(value = "QUJ_")
+    padbits4(value = "AE==") => encoding.invalid_base64(value = "AE==")
+    padbits2(value = "QUJ=") => encoding.invalid_base64(value = "QUJ=")
+    fidelity(value = "QUI=QUJD") => encoding.invalid_base64(value = "QUI=QUJD")
+=
+  match call bytes__base64__decode(value)
+    on Ok r => Ok(value = r.value)
+    on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)

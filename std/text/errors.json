@@ -5,10 +5,25 @@
       "value"
     ],
     "raised_by": [
-      "kernel.bytes__base64__decode"
+      "kernel.bytes__base64__decode",
+      "text.std__base64__decode"
     ],
-    "handled_by": [],
-    "hit_by_tests": []
+    "handled_by": [
+      {
+        "fn": "text.std__base64__decode",
+        "arm": "on encoding.invalid_base64 e =\u003e encoding.invalid_base64(value = e.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "text.std__base64__decode/dash",
+      "text.std__base64__decode/fidelity",
+      "text.std__base64__decode/misplaced",
+      "text.std__base64__decode/odd",
+      "text.std__base64__decode/padbits2",
+      "text.std__base64__decode/padbits4",
+      "text.std__base64__decode/sp_mid",
+      "text.std__base64__decode/under"
+    ]
   },
   {
     "kind": "encoding.invalid_hex",

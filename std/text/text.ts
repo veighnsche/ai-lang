@@ -1,6 +1,6 @@
 // GENERATED from text.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string };
+export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } | { $ail_kind: "encoding.invalid_base64"; value: string };
 export type Str__Value = { value: string };
 export type Bool__Value = { value: boolean };
 export type Int__Value = { value: bigint };
@@ -114,6 +114,46 @@ function $ailB64Encode(value: Uint8Array): string {
     out += alpha[(n >> 18) & 63] + alpha[(n >> 12) & 63] + alpha[(n >> 6) & 63] + "=";
   }
   return out;
+}
+function $ailB64Val(c: number): number {
+  if (c >= 65 && c <= 90) return c - 65;
+  if (c >= 97 && c <= 122) return c - 71;
+  if (c >= 48 && c <= 57) return c + 4;
+  if (c === 43) return 62;
+  if (c === 47) return 63;
+  return -1;
+}
+function $ailB64Decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string } {
+  if (value.length % 4 !== 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+  const nq = value.length / 4;
+  let pad = 0;
+  const vals: number[] = new Array(value.length);
+  for (let i = 0; i < value.length; i++) {
+    const q = (i / 4) | 0;
+    const pos = i % 4;
+    const c = value.charCodeAt(i);
+    if (c === 61) {
+      if (q !== nq - 1 || pos < 2) return { $ail_kind: "encoding.invalid_base64", value: value };
+      pad++;
+      vals[i] = 0;
+    } else {
+      const v = $ailB64Val(c);
+      if (v < 0 || pad > 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+      vals[i] = v;
+    }
+  }
+  if (pad > 2) return { $ail_kind: "encoding.invalid_base64", value: value };
+  if (pad === 2 && (vals[value.length - 3] & 15) !== 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+  if (pad === 1 && (vals[value.length - 2] & 3) !== 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+  const out = new Uint8Array((value.length / 4) * 3 - pad);
+  for (let q = 0; q < nq; q++) {
+    const n = (vals[q * 4] << 18) | (vals[q * 4 + 1] << 12) | (vals[q * 4 + 2] << 6) | vals[q * 4 + 3];
+    const base = q * 3;
+    if (base < out.length) out[base] = (n >> 16) & 255;
+    if (base + 1 < out.length) out[base + 1] = (n >> 8) & 255;
+    if (base + 2 < out.length) out[base + 2] = n & 255;
+  }
+  return { $ail_kind: "ok", value: out };
 }
 export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
   return { $ail_kind: "ok", value: (left + right) };
@@ -683,6 +723,22 @@ export function std__base64__encode(value: Uint8Array): { $ail_kind: "ok"; value
   case "ok": {
     const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
+  }
+  }
+}
+export function std__base64__decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string } = $ailB64Decode(value);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", value: r.value };
+  }
+  case "encoding.invalid_base64": {
+    const e = $ail_m1;
+    return { $ail_kind: "encoding.invalid_base64", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }
