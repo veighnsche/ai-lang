@@ -3,7 +3,7 @@
 // ASCII case over the a20 operators (#, s[i], s[a:b]). Concat
 // preserves every scalar unchanged: quotes, ampersands, and markup
 // pass through exactly. Safety lives in context encoders, never in
-// construction. See the Html__Text contract when it lands.
+// construction. See the Html__Text contract in std/html/html.ail.
 //
 // ASCII whitespace here is space, tab, LF, CR (the JSON set):
 // literals are raw (no escapes), so tab/LF/CR never appear in a
@@ -12,7 +12,7 @@
 // Grammars: find locates the empty pattern at 0 (indexOf rule);
 // replace rejects it (text.empty_pattern); conversions live in
 // scalars.ail beside their kernels; join rides Seq (a40), split
-// is next, graphemes/casefold/normalize wait on pinned data,
+// shipped (a41); graphemes/casefold/normalize wait on pinned data,
 // Bytes codecs all landed (see #42): utf8 via std__utf8__encode
 // and std__utf8__decode, hex via std__hex__encode and
 // std__hex__decode, base64 via std__base64__encode and
