@@ -1017,6 +1017,7 @@ type emitter struct {
 	divmod    bool                   // Euclidean division helper used by this module
 	utf8dec   bool                   // strict UTF-8 decode helper used by this module (v50 B6)
 	hexenc    bool                   // hex encode helper used by this module (v52 B8)
+	hexdec    bool                   // strict hex decode helper used by this module (v55 B10)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1138,6 +1139,34 @@ var hexEncodeHelper = []string{
 	"}",
 }
 
+// hexDecodeHelper renders the strict hex decode runtime (v55 B10):
+// validate-then-decode over UTF-16 code units. Length parity and
+// every unit's range membership are checked before any lookup; the
+// explicit -1 sentinel makes an unchecked invalid unit
+// indistinguishable from nothing (never default-zero into digit 0).
+// Fresh output buffer per call; malformed input returns the error
+// value with the original string. Allocation and host-contract
+// failures stay loud: no catch relabels them as invalid hex.
+var hexDecodeHelper = []string{
+	"function $ailHexVal(c: number): number {",
+	"  if (c >= 48 && c <= 57) return c - 48;",
+	"  if (c >= 65 && c <= 70) return c - 55;",
+	"  if (c >= 97 && c <= 102) return c - 87;",
+	"  return -1;",
+	"}",
+	"function $ailHexDecode(value: string): { $ail_kind: \"ok\"; value: Uint8Array } | { $ail_kind: \"encoding.invalid_hex\"; value: string } {",
+	"  if (value.length % 2 !== 0) return { $ail_kind: \"encoding.invalid_hex\", value: value };",
+	"  const out = new Uint8Array(value.length / 2);",
+	"  for (let i = 0; i < value.length; i += 2) {",
+	"    const hi = $ailHexVal(value.charCodeAt(i));",
+	"    const lo = $ailHexVal(value.charCodeAt(i + 1));",
+	"    if (hi < 0 || lo < 0) return { $ail_kind: \"encoding.invalid_hex\", value: value };",
+	"    out[i / 2] = hi * 16 + lo;",
+	"  }",
+	"  return { $ail_kind: \"ok\", value: out };",
+	"}",
+}
+
 func (e *emitter) fresh() string {
 	e.tmp++
 	// Unspellable in ail (identifiers match \w+, so $ never appears in
@@ -1180,7 +1209,7 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if isDecParts(scrut.Fname) {
 		return e.stmtDecParts(node, scrut, out)
 	}
-	if isBytesDecode(scrut.Fname) {
+	if isFallibleDecode(scrut.Fname) {
 		return e.stmtBytesDecode(node, scrut, out)
 	}
 	if isBytesHexEncode(scrut.Fname) {
@@ -1524,11 +1553,16 @@ func (e *emitter) stmtBytesEncode(node *Node, scrut *Small, out *[]string) error
 	return nil
 }
 
-// decodeResultUnion renders the decode kernel's two-outcome TS type
-// from the compiler-owned contracts (never literals): ok carrying
-// the kernel's return record plus one member per emitted error.
-func decodeResultUnion(brands map[string]string, recs map[string][][2]string) (string, error) {
-	k := bytesKernels[bytesDecodeKernel]
+// decodeResultUnion renders one fallible kernel's two-outcome TS
+// type from the compiler-owned contracts (never literals): ok
+// carrying the kernel's return record plus one member per emitted
+// error. The kernel name selects the descriptor; an unknown name
+// fails instead of falling back to another kernel's contract.
+func decodeResultUnion(kernel string, brands map[string]string, recs map[string][][2]string) (string, error) {
+	k, ok := bytesKernels[kernel]
+	if !ok {
+		return "", fmt.Errorf("no fallible contract for %s", kernel)
+	}
 	var td *TypeDecl
 	for _, b := range builtinTypeDecls() {
 		if b.Name == k.ret {
@@ -1536,7 +1570,7 @@ func decodeResultUnion(brands map[string]string, recs map[string][][2]string) (s
 		}
 	}
 	if td == nil {
-		return "", fmt.Errorf("decode kernel returns unknown type %s", k.ret)
+		return "", fmt.Errorf("decode kernel %s returns unknown type %s", kernel, k.ret)
 	}
 	fs := ""
 	for _, f := range td.Fields {
@@ -1550,7 +1584,7 @@ func decodeResultUnion(brands map[string]string, recs map[string][][2]string) (s
 	for _, e := range k.emits {
 		ed := builtinErrorLookup(e, nil)
 		if ed == nil {
-			return "", fmt.Errorf("decode kernel emits unknown error %s", e)
+			return "", fmt.Errorf("decode kernel %s emits unknown error %s", kernel, e)
 		}
 		mem, err := tsErrMember(ed, brands, recs)
 		if err != nil {
@@ -1561,10 +1595,12 @@ func decodeResultUnion(brands map[string]string, recs map[string][][2]string) (s
 	return union, nil
 }
 
-// stmtBytesDecode lowers UTF-8 decoding (v50 B6): the input Bytes
-// through the strict $ailUtf8Decode helper into the kernel's
-// two-outcome union. Matches use ordinary success/error binding via
-// the shared arm lowering, never encoder single-success assumptions.
+// stmtBytesDecode lowers the fallible kernels (v50 B6, v55 B10):
+// the operand through the kernel's own strict helper into that
+// kernel's two-outcome union. Matches use ordinary success/error
+// binding via the shared arm lowering, never encoder single-success
+// assumptions. Helper and flag select per kernel; nothing here may
+// assume UTF-8 shapes.
 func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error {
 	slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
 	if err != nil {
@@ -1580,13 +1616,23 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 	if err != nil {
 		return err
 	}
-	union, err := decodeResultUnion(e.brands, e.recs)
+	var helper string
+	switch {
+	case isBytesDecode(scrut.Fname):
+		helper = "$ailUtf8Decode"
+		e.utf8dec = true
+	case isBytesHexDecode(scrut.Fname):
+		helper = "$ailHexDecode"
+		e.hexdec = true
+	default:
+		return fmt.Errorf("no fallible lowering for %s", scrut.Fname)
+	}
+	union, err := decodeResultUnion(scrut.Fname, e.brands, e.recs)
 	if err != nil {
 		return err
 	}
 	tmp := e.fresh()
-	e.utf8dec = true
-	*out = append(*out, fmt.Sprintf("const %s: %s = $ailUtf8Decode(%s);", tmp, union, v))
+	*out = append(*out, fmt.Sprintf("const %s: %s = %s(%s);", tmp, union, helper, v))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	return e.emitCallArms(node, tmp, out)
 }
@@ -1926,6 +1972,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// kernel is called, so files without one gain no code.
 	if em.hexenc {
 		L = append(L, hexEncodeHelper...)
+	}
+	// Strict hex decode runtime: emitted inline only when the hex
+	// decode kernel is called, so files without one gain no code.
+	if em.hexdec {
+		L = append(L, hexDecodeHelper...)
 	}
 	L = append(L, fnLines...)
 	// v46 S2: compiler-owned record definitions, emitted exactly when

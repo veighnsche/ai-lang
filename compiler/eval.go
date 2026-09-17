@@ -983,6 +983,57 @@ func evBytesHexEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner str
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: hex.EncodeToString(v.Bytes)}}}, nil
 }
 
+// evBytesHexDecodeOp evaluates hex decoding (v55 B10): an
+// even-length ASCII hex string as Bytes, else the
+// encoding.invalid_hex language error carrying the ORIGINAL string
+// unchanged — with a nil Go error. The host's partial prefix is
+// checked and discarded: it must never escape as success.
+func evBytesHexDecodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	slots, berr := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if berr != nil {
+		return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := evSmall(argv, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "str" {
+		return nil, fmt.Errorf("%s: call to %s takes str", owner, scrut.Fname)
+	}
+	if !isHexStr(v.S) {
+		return &Value{Kind: "err", ErrKind: encodingInvalidHex, Dict: map[string]*Value{"value": {Kind: "str", S: v.S}}}, nil
+	}
+	out, herr := hex.DecodeString(v.S)
+	if herr != nil {
+		return &Value{Kind: "err", ErrKind: encodingInvalidHex, Dict: map[string]*Value{"value": {Kind: "str", S: v.S}}}, nil
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
+}
+
+// isHexStr reports the strict hex grammar: even length, every byte
+// an ASCII hex digit. Byte-indexed: AIL strings that reach here are
+// validated scalar-by-scalar upstream, and any non-ASCII byte fails
+// the digit predicate regardless of position.
+func isHexStr(s string) bool {
+	if len(s)%2 != 0 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -1014,6 +1065,8 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			var err error
 			if isBytesDecode(fname) {
 				val, err = evBytesDecodeOp(scrut, env, ctx, owner)
+			} else if isBytesHexDecode(fname) {
+				val, err = evBytesHexDecodeOp(scrut, env, ctx, owner)
 			} else if isBytesHexEncode(fname) {
 				val, err = evBytesHexEncodeOp(scrut, env, ctx, owner)
 			} else {

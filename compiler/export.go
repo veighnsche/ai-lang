@@ -54,6 +54,17 @@ const encodingInvalidUtf8 = "encoding.invalid_utf8"
 // byte-ordered, no text interpretation.
 const bytesHexEncodeKernel = "bytes__hex__encode"
 
+// bytesHexDecodeKernel is the public hex decode intrinsic (v55
+// B10): the second fallible kernel. Even-length ASCII hex in,
+// Bytes on success, encoding.invalid_hex (original string,
+// unchanged) on malformed input. Deterministic,
+// certificate-free.
+const bytesHexDecodeKernel = "bytes__hex__decode"
+
+// encodingInvalidHex is the compiler-owned malformed-hex error,
+// carrying the original str payload unchanged.
+const encodingInvalidHex = "encoding.invalid_hex"
+
 // bytesKernel describes one compiler kernel: its static signature,
 // result record, declared emits, and whether calls need a grant
 // certificate. Only the export kernel is restricted; public kernels
@@ -74,6 +85,7 @@ var bytesKernels = map[string]bytesKernel{
 	bytesEncodeKernel:    {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{}},
 	bytesDecodeKernel:    {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{encodingInvalidUtf8}},
 	bytesHexEncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
+	bytesHexDecodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{encodingInvalidHex}},
 }
 
 // isBytesKernel reports any registered Bytes kernel.
@@ -100,6 +112,7 @@ func builtinTypeDecls() []*TypeDecl {
 func builtinErrorDecls() []*ErrorDecl {
 	return []*ErrorDecl{
 		{Name: encodingInvalidUtf8, Fields: [][2]string{{"value", "Bytes"}}},
+		{Name: encodingInvalidHex, Fields: [][2]string{{"value", "str"}}},
 	}
 }
 
@@ -133,6 +146,19 @@ func isBytesDecode(fname string) bool {
 // its own evaluator and lowering (never the UTF-8 paths).
 func isBytesHexEncode(fname string) bool {
 	return fname == bytesHexEncodeKernel
+}
+
+// isBytesHexDecode reports the fallible hex decode intrinsic. It
+// shares the generalized fallible lowering with UTF-8 decode, with
+// its own codec helper, union, and error contract.
+func isBytesHexDecode(fname string) bool {
+	return fname == bytesHexDecodeKernel
+}
+
+// isFallibleDecode reports a kernel lowered through the shared
+// fallible path (descriptor-resolved union, per-kernel helper).
+func isFallibleDecode(fname string) bool {
+	return isBytesDecode(fname) || isBytesHexDecode(fname)
 }
 
 // exportGrantSite retains a grant with its owning module: ownership is
