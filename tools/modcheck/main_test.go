@@ -72,7 +72,7 @@ func TestRepoPasses(t *testing.T) {
 	if _, err := os.Stat("../../go.mod"); err != nil {
 		t.Skip("not in repo checkout")
 	}
-	_, _, _, errs := check([]string{"../../sketches"})
+	_, _, _, errs := check([]string{"../../sketches", "../../std"})
 	if len(errs) > 0 {
 		t.Fatalf("repo check failed: %v", errs)
 	}

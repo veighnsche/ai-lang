@@ -730,8 +730,12 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		members = append(members, mem)
 	}
-	shapes := map[string]bool{}
-	shapeOf := map[string]map[string]string{}
+	// One ok member per distinct Ok shape, sorted for stability. A
+	// single-shape module emits exactly the old union; a file that
+	// mixes shapes (validators beside their consumers) emits an ok
+	// union instead of failing the build. No language rule limits a
+	// file to one shape; per-fn coherence stays in collectOkShapes.
+	shapes := map[string]map[string]string{}
 	for _, d := range mod.Decls {
 		fn, ok := d.(*FnDecl)
 		if !ok {
@@ -746,27 +750,34 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		shapes[strings.Join(keys, ",")] = true
-		shapeOf[fn.Name] = shape
+		key := strings.Join(keys, ",")
+		if _, seen := shapes[key]; !seen {
+			shapes[key] = shape
+		}
 	}
-	if len(shapes) > 1 {
-		return "", fmt.Errorf("%s: fns disagree on Ok shape", mod.File)
+	var skeys []string
+	for k := range shapes {
+		skeys = append(skeys, k)
 	}
-	var shape map[string]string
-	for _, s := range shapeOf {
-		shape = s
-		break
+	sort.Strings(skeys)
+	var okMembers []string
+	for _, k := range skeys {
+		shape := shapes[k]
+		var names []string
+		for n := range shape {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		okFs := ""
+		for _, n := range names {
+			okFs += "; " + n + ": " + shape[n]
+		}
+		okMembers = append(okMembers, fmt.Sprintf("{ kind: \"ok\"%s }", okFs))
 	}
-	var names []string
-	for n := range shape {
-		names = append(names, n)
+	union := strings.Join(okMembers, " | ")
+	if union == "" {
+		union = "{ kind: \"ok\" }"
 	}
-	sort.Strings(names)
-	okFs := ""
-	for _, n := range names {
-		okFs += "; " + n + ": " + shape[n]
-	}
-	union := fmt.Sprintf("{ kind: \"ok\"%s }", okFs)
 	for _, m := range members {
 		union += " | " + m
 	}

@@ -1,0 +1,111 @@
+[
+  {
+    "kind": "validation.empty_value",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "quota.validate__str_nonempty"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.validate__str_nonempty/empty"
+    ]
+  },
+  {
+    "kind": "validation.exclusive_choice",
+    "fields": [],
+    "raised_by": [
+      "quota.validate__exclusive_pair"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.validate__exclusive_pair/both",
+      "quota.validate__exclusive_pair/neither"
+    ]
+  },
+  {
+    "kind": "validation.failed",
+    "fields": [
+      "field",
+      "rule"
+    ],
+    "raised_by": [
+      "quota.validate__require"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.validate__require/fail"
+    ]
+  },
+  {
+    "kind": "validation.invalid_bounds",
+    "fields": [
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "quota.quota__consume",
+      "quota.validate__int_range"
+    ],
+    "handled_by": [
+      {
+        "fn": "quota.quota__consume",
+        "arm": "on validation.invalid_bounds _ =\u003e validation.invalid_bounds(lower = 0, upper = quota)"
+      }
+    ],
+    "hit_by_tests": [
+      "quota.quota__consume/bad_quota",
+      "quota.validate__int_range/bad_bounds"
+    ]
+  },
+  {
+    "kind": "validation.negative_value",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "quota.quota__consume",
+      "quota.quota__usage",
+      "quota.validate__int_nonnegative"
+    ],
+    "handled_by": [
+      {
+        "fn": "quota.quota__consume",
+        "arm": "on validation.negative_value _ =\u003e validation.negative_value(value = amount)"
+      },
+      {
+        "fn": "quota.quota__usage",
+        "arm": "on validation.negative_value _ =\u003e validation.negative_value(value = quota)"
+      }
+    ],
+    "hit_by_tests": [
+      "quota.quota__consume/negative",
+      "quota.quota__usage/negative_quota",
+      "quota.validate__int_nonnegative/negative"
+    ]
+  },
+  {
+    "kind": "validation.out_of_range",
+    "fields": [
+      "value",
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "quota.quota__consume",
+      "quota.validate__int_range"
+    ],
+    "handled_by": [
+      {
+        "fn": "quota.quota__consume",
+        "arm": "on validation.out_of_range _ =\u003e validation.out_of_range(value = s.value + amount, lower = 0, upper = quota)"
+      }
+    ],
+    "hit_by_tests": [
+      "quota.quota__consume/over",
+      "quota.validate__int_range/above",
+      "quota.validate__int_range/below"
+    ]
+  }
+]

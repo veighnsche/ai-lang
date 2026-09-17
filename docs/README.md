@@ -19,13 +19,15 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v10-numerics.md` | Shipped | One numeric semantics: unbounded ints, exact decs, exact TS emit |
 | `v11-recursion.md` | Shipped | Program-wide recursion ban, guarded unit steps, returned-outcome theorem |
 | `v12-contracts.md` | Shipped | Producer-owned emits, complete error expectations, exchange script rows |
+| `v13-stdlib.md` | Landed (part) | Stdlib rows 0–2: linkage decision, quota-counter validation, scalar catalog |
 
 ## Reading order for a reviewer
 
 1. `REQUIREMENTS.md` Goal + R1–R9 (the thesis and the shape).
 2. `v05-expressiveness.md` (what was missing and in what order).
 3. `v06` → `v09` in order (each spec pairs a power with its proof).
-4. `sketches/` live shape: `auth-login/`, `retry-loop/`, `counter/`.
+4. `sketches/` live shape: `auth-login/`, `retry-loop/`, `counter/`;
+   `std/` blessed library: `quota/`, `scalars/`.
 5. `CLEAN_ROOM_REVIEW.md` (design input; historical record, see note).
 
 ## Rules for reading (and editing)

@@ -11,6 +11,7 @@ emits typed TS plus machine-readable artifacts.
 - [`docs/`](docs/README.md) — version history (`v02`–`v12`), the audit trail, and reviewer notes
 - [`compiler/`](compiler/README.md) — `ailc`, the Go transpiler (stdlib only)
 - [`sketches/`](sketches/README.md) — example programs (auth-login, retry-loop, counter, broken-login)
+- [`std/`](std/README.md) — the blessed standard library (quota, scalars)
 - [`editors/vscode/`](editors/vscode/README.md) — syntax highlighting + LSP client
 - [`tools/`](tools/) — grammar and module checkers
 
