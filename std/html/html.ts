@@ -1,6 +1,6 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string } | { $ail_kind: "html.invalid_class_token"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.invalid_document_structure"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -1418,5 +1418,675 @@ export function html__attribute__classes(tokens: string[]): { $ail_kind: "ok"; a
   default: {
     throw new Error("unreachable");
   }
+  }
+}
+export function html__el__container_from(tag: string, attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__fragment__join(children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const j = $ail_m1;
+    if ((attrs === "")) {
+      return { $ail_kind: "ok", safe: (((("<" + tag) + ">") + j.safe) + (("</" + tag) + ">")) };
+    }
+    else {
+      return { $ail_kind: "ok", safe: (((((("<" + tag) + " ") + attrs) + ">") + j.safe) + (("</" + tag) + ">")) };
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__void_from(tag: string, attrs: string): { $ail_kind: "ok"; safe: string } {
+  if ((attrs === "")) {
+    return { $ail_kind: "ok", safe: (("<" + tag) + ">") };
+  }
+  else {
+    return { $ail_kind: "ok", safe: (((("<" + tag) + " ") + attrs) + ">") };
+  }
+}
+export function html__el__text_from(tag: string, attrs: string, text: string): { $ail_kind: "ok"; safe: string } {
+  if ((attrs === "")) {
+    return { $ail_kind: "ok", safe: (((("<" + tag) + ">") + text) + (("</" + tag) + ">")) };
+  }
+  else {
+    return { $ail_kind: "ok", safe: (((((("<" + tag) + " ") + attrs) + ">") + text) + (("</" + tag) + ">")) };
+  }
+}
+export function html__el__br(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("br", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__hr(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("hr", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__img(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("img", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__input(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("input", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__link(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("link", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__meta(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("meta", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__col(attrs: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__void_from("col", attrs);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__div(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("div", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__p(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("p", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__h1(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("h1", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__h2(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("h2", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__h3(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("h3", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__section(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("section", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__header(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("header", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__footer(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("footer", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__nav(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("nav", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__main(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("main", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__article(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("article", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__aside(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("aside", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__blockquote(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("blockquote", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__pre(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("pre", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__span(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("span", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__a(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("a", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__strong(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("strong", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__em(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("em", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__code(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("code", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__small(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("small", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__ul(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("ul", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__ol(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("ol", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__li(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("li", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__dl(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("dl", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__dt(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("dt", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__dd(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("dd", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__table(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("table", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__tr(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("tr", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__td(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("td", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__th(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("th", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__thead(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("thead", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__tbody(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("tbody", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__tfoot(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("tfoot", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__caption(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("caption", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__form(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("form", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__button(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("button", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__label(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("label", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__select(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("select", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__option(attrs: string, children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__el__container_from("option", attrs, children);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__textarea(attrs: string, text: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__text__node(text);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const n = $ail_m1;
+    const $ail_m2: { $ail_kind: "ok"; safe: string } = html__el__text_from("textarea", attrs, n.safe);
+    switch ($ail_m2.$ail_kind) {
+    case "ok": {
+      const r = $ail_m2;
+      return { $ail_kind: "ok", safe: r.safe };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__title(attrs: string, text: string): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__text__node(text);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const n = $ail_m1;
+    const $ail_m2: { $ail_kind: "ok"; safe: string } = html__el__text_from("title", attrs, n.safe);
+    switch ($ail_m2.$ail_kind) {
+    case "ok": {
+      const r = $ail_m2;
+      return { $ail_kind: "ok", safe: r.safe };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__render__document(language: string, title: string, head: string, body: string): { $ail_kind: "ok"; safe: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_document_structure"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  if (((BigInt([...language].length)) === 0n)) {
+    return { $ail_kind: "html.invalid_document_structure", value: language };
+  }
+  else {
+    const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } = html__attribute__id_check(language, language, (BigInt([...language].length)));
+    switch ($ail_m1.$ail_kind) {
+    case "html.invalid_identifier": {
+      const e = $ail_m1;
+      return { $ail_kind: "html.invalid_document_structure", value: e.value };
+    }
+    case "ok": {
+      const c = $ail_m1;
+      const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(language, c.value, "", (BigInt([...language].length)));
+      switch ($ail_m2.$ail_kind) {
+      case "html.nul_byte": {
+        const e2 = $ail_m2;
+        return { $ail_kind: "html.nul_byte", value: e2.value };
+      }
+      case "ok": {
+        const v = $ail_m2;
+        const $ail_m3: { $ail_kind: "ok"; safe: string } = html__el__title("", title);
+        switch ($ail_m3.$ail_kind) {
+        case "ok": {
+          const t = $ail_m3;
+          return { $ail_kind: "ok", safe: ((((((("<!DOCTYPE html><html lang='" + v.value) + "'><head>") + t.safe) + head) + "</head><body>") + body) + "</body></html>") };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
   }
 }

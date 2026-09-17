@@ -152,6 +152,20 @@
     ]
   },
   {
+    "kind": "html.invalid_document_structure",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "html.html__render__document"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "html.html__render__document/empty_lang",
+      "html.html__render__document/space_lang"
+    ]
+  },
+  {
     "kind": "html.invalid_identifier",
     "fields": [
       "value"
@@ -159,7 +173,8 @@
     "raised_by": [
       "html.html__attribute__id",
       "html.html__attribute__id_check",
-      "html.html__attribute__named_id"
+      "html.html__attribute__named_id",
+      "html.html__render__document"
     ],
     "handled_by": [
       {
@@ -173,6 +188,10 @@
       {
         "fn": "html.html__attribute__named_id",
         "arm": "on html.invalid_identifier e =\u003e html.invalid_identifier(value = e.value)"
+      },
+      {
+        "fn": "html.html__render__document",
+        "arm": "on html.invalid_identifier e =\u003e html.invalid_document_structure(value = e.value)"
       }
     ],
     "hit_by_tests": [
@@ -299,6 +318,7 @@
       "html.html__attribute__src",
       "html.html__attribute__text",
       "html.html__attribute__value_from",
+      "html.html__render__document",
       "html.html__text__escape",
       "html.html__text__escape_from"
     ],
@@ -352,6 +372,10 @@
         "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
       },
       {
+        "fn": "html.html__render__document",
+        "arm": "on html.nul_byte e2 =\u003e html.nul_byte(value = e2.value)"
+      },
+      {
         "fn": "html.html__text__escape",
         "arm": "on html.nul_byte e =\u003e html.nul_byte(value = raw)"
       },
@@ -376,6 +400,7 @@
       "html.html__attribute__value_from/avalue_from_nul_lt",
       "html.html__attribute__value_from/avalue_from_nul_plain",
       "html.html__attribute__value_from/avalue_from_nul_squote",
+      "html.html__render__document/nul_lang",
       "html.html__text__escape/escape_nul_first",
       "html.html__text__escape/escape_nul_last",
       "html.html__text__escape/escape_nul_middle",
