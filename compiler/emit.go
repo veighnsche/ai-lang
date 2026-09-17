@@ -484,7 +484,13 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "", err
 		}
 		if childType(node.L) != "str" {
-			return "", fmt.Errorf("cannot emit []: operand type unknown (run checkSem first)")
+			// v38 S3: sequence indexing lowers to the generic
+			// seq helper; the checker owns the base rule.
+			if _, ok := seqElemName(childType(node.L)); !ok {
+				return "", fmt.Errorf("cannot emit []: operand type unknown (run checkSem first)")
+			}
+			e.seqOps["seqat"] = true
+			return fmt.Sprintf("$ailSeqAt(%s, %s)", b, ix), nil
 		}
 		e.strOps["at"] = true
 		return fmt.Sprintf("$ailStrAt(%s, %s)", b, ix), nil
@@ -811,6 +817,34 @@ func strHelpers(used map[string]bool) []string {
 	return out
 }
 
+var seqRuntimeOps = []struct {
+	key  string
+	code []string
+}{
+	{"seqat", []string{
+		"function $ailSeqAt<T>(a: T[], i: bigint): T {",
+		"  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"seq index out of range\");",
+		"  const k = Number(i);",
+		"  if (k >= a.length) throw new Error(\"seq index out of range\");",
+		"  return a[k];",
+		"}",
+	}},
+}
+
+// seqHelpers renders the sequence runtime for exactly the used
+// operations, mirroring strHelpers: shared plumbing first (none
+// yet), then ops in fixed order.
+func seqHelpers(used map[string]bool) []string {
+	var out []string
+	out = append(out, "// Sequence indexing (v38 S3): bounds throw, matching Go.")
+	for _, op := range seqRuntimeOps {
+		if used[op.key] {
+			out = append(out, op.code...)
+		}
+	}
+	return out
+}
+
 // decHelpers renders the exact-decimal runtime for exactly the used
 // operations, shared plumbing first, then ops in fixed order.
 func decHelpers(used map[string]bool) []string {
@@ -834,6 +868,7 @@ type emitter struct {
 	tailUnion string
 	decOps    map[string]bool        // exact-decimal helpers used by this module
 	strOps    map[string]bool        // byte-order string helpers used by this module
+	seqOps    map[string]bool        // sequence helpers used by this module (v38 S3)
 	recEq     bool                   // structural record comparison used by this module
 	recs      map[string][][2]string // record name -> declared fields
 	errFields map[string][]string    // error kind -> declared field names
@@ -1369,7 +1404,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, recs: recs, errFields: prog.Errors, divmod: false}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
@@ -1416,6 +1451,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// ordering is used, so files without one gain no code.
 	if len(em.strOps) > 0 {
 		L = append(L, strHelpers(em.strOps)...)
+	}
+	// Sequence runtime: emitted inline only when sequence indexing
+	// is used, so files without one gain no code.
+	if len(em.seqOps) > 0 {
+		L = append(L, seqHelpers(em.seqOps)...)
 	}
 	// Structural equality runtime: emitted inline only when a record,
 	// error-payload, or cell comparison is used.

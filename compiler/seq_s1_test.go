@@ -520,34 +520,6 @@ func TestSeqParseShapes(t *testing.T) {
 	}
 }
 
-// Indexing into a sequence is not a v1 surface either (S3 owns it):
-// a trailing index parses, then fails at the str-only index rule.
-// The companion int-vs-Seq mismatch is the pre-existing stridx
-// double report (the pure typeOf still says int): both pinned here.
-func TestSeqNoIndex(t *testing.T) {
-	body := strings.Replace(seqV0, `Ok(vals = Seq<str>[])`, `Ok(vals = Seq<str>["a"][0])`, 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
-	base, outer := 0, 0
-	for _, d := range diags {
-		if d.Sev != "error" {
-			continue
-		}
-		switch {
-		case d.Code == CodeTypeMismatch && strings.Contains(d.Msg, "base must be str"):
-			base++
-		case d.Code == CodeTypeMismatch && strings.Contains(d.Msg, "got int, want Seq<str>"):
-			outer++
-		case d.Code == CodeTestFailed:
-		default:
-			t.Fatalf("unexpected cascade error, got %v", diags)
-		}
-	}
-	if base != 1 || outer != 1 {
-		t.Fatalf("expected one base and one outer AIL6003, got %v", diags)
-	}
-}
-
 // Sequence equality is not a v1 surface, even when both sides agree.
 func TestSeqNoEquality(t *testing.T) {
 	body := `mod m

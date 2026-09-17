@@ -258,6 +258,15 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 	case "strlen":
 		return "int", true
 	case "stridx":
+		// v38 S3: a sequence base yields its element type, so a
+		// brand member stays branded at check time. Unknown bases
+		// keep the historical int; the value rule owns the base
+		// diagnostic and preseq code never sees a sequence.
+		if lt, ok := c.typeOf(s.L, env); ok {
+			if elem, isSeq := seqElemName(lt); isSeq {
+				return elem, true
+			}
+		}
 		return "int", true
 	case "strslice":
 		return "str", true
@@ -520,6 +529,18 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		c.value(s.L, "", line, env, "index base")
 		c.value(s.R, "", line, env, "index")
 		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
+			// v38 S3: a sequence base indexes to its element
+			// type. The index stays int; anything else keeps
+			// the pinned diagnostic verbatim.
+			if elem, isSeq := seqElemName(t); isSeq {
+				if it, ok := c.typeOf(s.R, env); ok && it != "int" {
+					c.out = append(c.out, spanDiag(c.text, line, "error",
+						fmt.Sprintf("cannot index with %s: index must be int", it), "[]", CodeTypeMismatch))
+					return
+				}
+				s.T = elem
+				return
+			}
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot index into %s: base must be str", t), "[]", CodeTypeMismatch))
 			return

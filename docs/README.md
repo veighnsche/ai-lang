@@ -27,6 +27,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v35-typed-fragments.md` | Sketch (pre-decision) | HTMX-shaped fragment endpoints after unions, HTTP, components; revisit trigger, no rule yet |
 | `v36-seq-typed-construction.md` | Shipped (S1) | Typed `Seq<T>` literals, element checking, AIL6007; length/access/append are later slices |
 | `v37-seq-length.md` | Shipped (S2) | `#` counts sequence elements; `std__seq__length` realized by `#`, no second spelling |
+| `v38-seq-access.md` | Shipped (S3) | `xs[i]` over `Seq<T>` yields `T`; bounded traversal under existing `decreases`; `std/seq` deferred |
 
 ## Reading order for a reviewer
 

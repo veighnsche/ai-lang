@@ -439,6 +439,23 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		if err != nil {
 			return nil, err
 		}
+		// v38 S3: sequences fetch members, never scalars. Bounds
+		// never clamp: an unguarded out-of-range index (or a
+		// non-int64 one) fails loud, reachable only without the
+		// .ail guards the checked wrapper owns.
+		if b.Kind == "seq" {
+			if ix.Kind != "int" {
+				return nil, fmt.Errorf("bad index operands")
+			}
+			if !ix.N.IsInt64() {
+				return nil, fmt.Errorf("seq index out of range")
+			}
+			i := ix.N.Int64()
+			if i < 0 || i >= int64(len(b.Arr)) {
+				return nil, fmt.Errorf("seq index out of range")
+			}
+			return b.Arr[i], nil
+		}
 		if b.Kind != "str" || ix.Kind != "int" {
 			return nil, fmt.Errorf("bad index operands")
 		}
