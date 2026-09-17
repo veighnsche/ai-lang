@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v36 S1: typed sequence construction. Finite immutable Seq values
+// a36 S1: typed sequence construction. Finite immutable Seq values
 // with explicit element types, including the empty case. Decision
 // tables below are the P0 acceptance rows: V-rows must diagnose
 // clean (a wrong expectation fails the test run, so clean means the

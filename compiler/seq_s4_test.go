@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v39 S4: immutable append. Fixtures return BOTH sequences so a
+// a39 S4: immutable append. Fixtures return BOTH sequences so a
 // mutation cannot hide behind a correct final result; the aliasing
 // row shares one base value between two appends.
 

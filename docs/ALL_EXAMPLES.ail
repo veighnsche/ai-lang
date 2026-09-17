@@ -183,7 +183,7 @@ fn auth__verify(user_id: str, failed_attempts: int, pw: Auth__Password, pw_hash:
 // under the false arm of fuel <= 0 with fuel - 1 at the site, so the
 // compiler sees termination before running a single test.
 // Delete the decreases line and the same file is a cycle error —
-// proof-gated admission (v11): the finite fuel trace never hangs;
+// proof-gated admission (a11): the finite fuel trace never hangs;
 // without the proof the compiler refuses to admit it.
 // Tests read as call specifications: name(inputs) => expected output.
 
@@ -448,7 +448,7 @@ fn auth__leak(id: str) -> Auth__Leak rev 1
 // ===== sketches/broken-login/incomplete-expectation.ail =====
 // broken-login/incomplete-expectation.ail — DEMO: red squiggle, a kind
 // without its payload. Error expectations must construct the complete
-// error value (v12): a bare kind proves nothing about the payload.
+// error value (a12): a bare kind proves nothing about the payload.
 
 mod auth
   provides [auth__need, Auth__Need]
@@ -508,7 +508,7 @@ fn auth__partial(id: str) -> Auth__Partial rev 1
 // ===== sketches/broken-login/missing-exchange.ail =====
 // broken-login/missing-exchange.ail — DEMO: red squiggle, a response
 // without its request. Every script row is an exchange binding
-// expected call args to one permitted outcome (v12): outcome-only
+// expected call args to one permitted outcome (a12): outcome-only
 // rows prove nothing about what was asked.
 
 mod auth
@@ -593,7 +593,7 @@ fn auth__bare(id: str) -> Auth__Bare rev 1
 // ===== sketches/broken-login/unknown-emits.ail =====
 // broken-login/unknown-emits.ail — DEMO: red squiggle, a manifest naming nothing.
 // auth.stale sits in emits but no error auth.stale is declared anywhere.
-// Unrealized entries are a conservative upper bound (v12) and compile clean;
+// Unrealized entries are a conservative upper bound (a12) and compile clean;
 // only undeclared entries are refused.
 
 mod auth

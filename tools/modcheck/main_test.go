@@ -122,7 +122,7 @@ func TestBracesBanned(t *testing.T) {
 	}
 }
 
-// R1 (v45): braces inside string literals are data, so a fixture
+// R1 (a45): braces inside string literals are data, so a fixture
 // carrying "{u}" in a test row passes; a brace in code still fails.
 func TestBracesInStringsAllowed(t *testing.T) {
 	withBraces := strings.Replace(goodDB,

@@ -8,8 +8,8 @@ effects via `emits`). It compiles to dependency-free TypeScript.
 READING ORDER
 1. `docs/FOR_REVIEWER.md` — the guided tour, read first.
 2. `REQUIREMENTS.md` — the rules (R1–R11) plus the open-questions list.
-3. `docs/v05-expressiveness.md` — the original plan and its scoring method.
-4. `docs/v06-arithmetic.md` through `docs/v09-effects.md` — the four shipped
+3. `docs/a05-expressiveness.md` — the original plan and its scoring method.
+4. `docs/a06-arithmetic.md` through `docs/a09-effects.md` — the four shipped
    feature specs, each with its proof argument.
 5. `docs/ALL_EXAMPLES.ail` — every program in the language: 4 shipped modules
    first (`auth-login/`, `retry-loop/`, `counter/`), then `broken-login/`, a
@@ -30,7 +30,7 @@ TASK 1 — AUDIT (soundness and honesty)
 - Does any `broken-login/` rejection have an unconvincing reason, or punish
   code a reasonable AI agent would naturally write?
 - Scoring moves only on shipped expressiveness with proofs attached: re-rate
-  the language against the v05 plan and say exactly which scores move and why.
+  the language against the a05 plan and say exactly which scores move and why.
 
 TASK 2 — POINTS OF IMPROVEMENT
 A prioritized list. Each item: severity (soundness hole / expressiveness gap /

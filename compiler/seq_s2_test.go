@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v37 S2: # counts sequence elements. Each row is a tested function
+// a37 S2: # counts sequence elements. Each row is a tested function
 // returning a record int field; a miscount fails the test run, so
 // clean means the evaluator computed exactly the pinned count.
 

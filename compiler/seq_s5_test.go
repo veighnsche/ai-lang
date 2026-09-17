@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v42 P1: same-brand str-backed + yields the brand (checker-only;
+// a42 P1: same-brand str-backed + yields the brand (checker-only;
 // eval and emit erase brands already, so no runtime arm exists).
 // Fragment assembly rides this rule; nothing else changes.
 

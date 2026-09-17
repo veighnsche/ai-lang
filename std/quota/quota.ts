@@ -7,7 +7,7 @@ export type Int__Value = { value: bigint };
 export type Dec__Value = { value: string };
 export type Str__Value = { value: string };
 let Quota__used: bigint = 0n;
-// Exact-decimal runtime (v10): canonical-digit strings, BigInt math.
+// Exact-decimal runtime (a10): canonical-digit strings, BigInt math.
 function $ailDecSplit(d: string): { neg: boolean; ip: string; fp: string } {
   let neg = false;
   if (d.startsWith("-")) {

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// R1 (v45): braces inside string literals are data, never
+// R1 (a45): braces inside string literals are data, never
 // delimiters, so a module wrapping values in braces compiles and
 // its decision table runs.
 const braceStringSrc = `mod m

@@ -8,7 +8,7 @@ emits typed TS plus machine-readable artifacts.
 ## Layout
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — the language contract, versioned by amendment
-- [`docs/`](docs/README.md) — version history (`v02`–`v12`), the audit trail, and reviewer notes
+- [`docs/`](docs/README.md) — version history (`a02`–`a12`), the audit trail, and reviewer notes
 - [`compiler/`](compiler/README.md) — `ailc`, the Go transpiler (stdlib only)
 - [`sketches/`](sketches/README.md) — example programs (auth-login, retry-loop, counter, broken-login)
 - [`std/`](std/README.md) — the blessed standard library (quota, scalars)
@@ -70,10 +70,10 @@ emit change that alters output or diagnostics fails the build.
 
 ## Status
 
-Through **v12**: unbounded exact numerics (bigint/decimal agreement),
+Through **a12**: unbounded exact numerics (bigint/decimal agreement),
 program-wide guarded termination with a returned-outcome theorem, and
 producer-owned contracts with complete observations. See
-[`docs/v10-numerics.md`](docs/v10-numerics.md),
-[`docs/v11-recursion.md`](docs/v11-recursion.md),
-[`docs/v12-contracts.md`](docs/v12-contracts.md), and the
+[`docs/a10-numerics.md`](docs/a10-numerics.md),
+[`docs/a11-recursion.md`](docs/a11-recursion.md),
+[`docs/a12-contracts.md`](docs/a12-contracts.md), and the
 [`docs/ASTRA_AUDIT.md`](docs/ASTRA_AUDIT.md) trail that drove them.

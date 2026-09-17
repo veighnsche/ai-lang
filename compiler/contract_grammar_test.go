@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// v69: requires/ensures parse and store. No verifier, no
+// a69: requires/ensures parse and store. No verifier, no
 // checks, no emit effect. Probes first: the keywords do
 // not parse yet.
 

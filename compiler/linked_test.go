@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v68: runLinkedPure executes linked pure bodies across
+// a68: runLinkedPure executes linked pure bodies across
 // module boundaries with no given consumed. The verdict
 // falsifier: every unit suite is green, the composition
 // is wrong, and only linked execution sees it.

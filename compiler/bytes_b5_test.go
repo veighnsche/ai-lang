@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v49 B5: std__utf8__encode is the public stdlib face of the B3
+// a49 B5: std__utf8__encode is the public stdlib face of the B3
 // kernel. The foreign-caller probe below proves the §6 claim that
 // ordinary wrappers are normal functions: a separate client module
 // calls the wrapper through uses [std__utf8__encode@1], which the

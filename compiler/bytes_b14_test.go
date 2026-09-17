@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// v59 B14: base64 decode kernel. bytes__base64__decode is the third
+// a59 B14: base64 decode kernel. bytes__base64__decode is the third
 // fallible kernel: str in, Bytes__Value on success,
 // encoding.invalid_base64 (original string, unchanged) on malformed
 // input. F-rows are the acceptance rows (verdict v2: corrected

@@ -4,7 +4,7 @@ export type DivisionResult = { $ail_kind: "ok"; quotient: bigint; remainder: big
 export type Int__DivMod = { quotient: bigint; remainder: bigint };
 export type Int__Value = { value: bigint };
 export type Bool__Value = { value: boolean };
-// Euclidean integer division (v17): quotient and remainder with
+// Euclidean integer division (a17): quotient and remainder with
 // 0 <= r < |b| on every sign combination.
 function $ailDivMod(a: bigint, b: bigint): [bigint, bigint] {
   let q: bigint = a / b;

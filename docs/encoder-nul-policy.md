@@ -1,8 +1,8 @@
-# Row 5 (E) — Encoder NUL policy (standalone, before v28)
+# Row 5 (E) — Encoder NUL policy (standalone, before a28)
 
 Status: shipped. The text encoder rejects NUL with a typed error.
-This reopens the v25 contract deliberately, as its own versioned
-change — not a quiet tweak, and not folded into v28.
+This reopens the a25 contract deliberately, as its own versioned
+change — not a quiet tweak, and not folded into a28.
 
 ## Policy
 
@@ -53,5 +53,5 @@ relabels whatever it receives, NUL included, with no filtering.
 
 ## Still scheduled
 
-v28 (attribute values) consumes this settled policy; it owns its
-attribute-context questions, not a repair of v25.
+a28 (attribute values) consumes this settled policy; it owns its
+attribute-context questions, not a repair of a25.

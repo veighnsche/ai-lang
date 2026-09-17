@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v58 B13: std__base64__encode is the public stdlib face of the
+// a58 B13: std__base64__encode is the public stdlib face of the
 // B12 kernel. The foreign-caller probe proves the §6 claim that
 // ordinary wrappers are normal functions, plus padding, order,
 // and no-text-interpretation vectors.

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// v63: a stale arm nested inside a match that is missing the
+// a63: a stale arm nested inside a match that is missing the
 // same outcome almost always means the arm was attached to the
 // wrong match. The stale diagnostic must point at the
 // enclosing match; genuinely independent matches must not get

@@ -1,7 +1,7 @@
 package main
 
-// v68: runLinkedPure, the explicitly selected linked-pure
-// integration runner (v67 §1.3, verdict B). Committed Go
+// a68: runLinkedPure, the explicitly selected linked-pure
+// integration runner (a67 §1.3, verdict B). Committed Go
 // tests name an explicit module set, a root function and
 // revision, and arguments; the reachable pure graph
 // executes with real bodies and no scripts. Ordinary

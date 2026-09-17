@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// v15: executable code mints only its own module's brands. The
+// a15: executable code mints only its own module's brands. The
 // declaring file owns every executable seal site; tests and given
 // rows may name any declared brand because they are checked data.
 // A forged brand in a body is AIL6004; the same seal in a test or
@@ -120,7 +120,7 @@ fn app__pass() -> App__Out rev 1
 	}
 }
 
-// v26: explicitly authorized one-way promotion. A destination brand
+// a26: explicitly authorized one-way promotion. A destination brand
 // names its admitted sources in seals_from; the seal site, source,
 // and destination all belong to one module; representation is str on
 // both sides by the v0 rule, and evaluation preserves the string by

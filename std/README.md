@@ -8,7 +8,7 @@ motivating program and checks, and never as a sketch first.
 
 Each directory is one self-contained program (cross-file calls
 stay scripted until the linkage amendment lands, so blessed
-helpers ship as same-file locals; see `docs/v13-stdlib.md`):
+helpers ship as same-file locals; see `docs/a13-stdlib.md`):
 
 - `quota/` — row 1: scalar validators plus the quota counter
   that consumes them.
@@ -17,11 +17,11 @@ helpers ship as same-file locals; see `docs/v13-stdlib.md`):
   conversions, bounded backoff).
 - `text/` — row 3, first cut: explicit text construction
   (`std__str__concat`). Measurement and indexing wait on the
-  scalar-access surface decision in `docs/v16-text.md`.
+  scalar-access surface decision in `docs/a16-text.md`.
 - `division/` — row 4, first cut: exact Euclidean integer
   division (`std__int__divmod` and family). Decimal division
   stays refused; `gcd` and beyond wait on fuel patterns
-  (`docs/v17-division.md`).
+  (`docs/a17-division.md`).
 
 Admission rule (from the program doc): a module is not blessed
 until it has a real motivating `.ail` program, complete
@@ -32,4 +32,4 @@ argument where it iterates, and committed golden emit
 
 Checks: `go test ./...`, `go run ./tools/modcheck` (covers
 `std/` beside `sketches/`), `go run ./tools/gramcheck`.
-Program: `docs/v13-stdlib.md`.
+Program: `docs/a13-stdlib.md`.

@@ -154,7 +154,7 @@ func compileEx(out string, paths []string, jsonOut bool) error {
 			case *TypeDecl:
 				stemOf[d.Name] = m.Stem
 			case *VariantDecl:
-				// v74: variant parents join the stem table like
+				// a74: variant parents join the stem table like
 				// records, so cross-module type references import
 				// the union from the provider stem.
 				stemOf[d.Name] = m.Stem
@@ -334,12 +334,12 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	if hasErrors(world) {
 		return prog, collected
 	}
-	// v46 S2 barrier: export certificates issue whole-program before
+	// a46 S2 barrier: export certificates issue whole-program before
 	// any linkage evaluation, so an uncertified refusal can never
 	// launder into trusted script evidence.
 	collected = append(collected, certifyExports(mods, prog, texts)...)
 
-	// World-level termination refusal (v11): cross-file cycles are
+	// World-level termination refusal (a11): cross-file cycles are
 	// reported per-line and suppress only execution-dependent checks,
 	// per the R10 world-error rule.
 	global := checkGlobalCycles(mods, texts, prog)

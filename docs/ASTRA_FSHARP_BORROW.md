@@ -4,7 +4,7 @@
 
 Your design should be cruel about **unmade decisions, unhandled cases, and unsupported claims**. Making an agent repeat the same arithmetic or flatten every record into arguments is not useful cruelty; it creates more opportunities for inconsistency.
 
-Using the uploaded v13 rules as the baseline, these are my priorities. **All new `.ail` syntax below is proposed; sketches are fragments, not programs the current compiler accepts.**
+Using the uploaded a13 rules as the baseline, these are my priorities. **All new `.ail` syntax below is proposed; sketches are fragments, not programs the current compiler accepts.**
 
 ## Ranked shortlist
 
@@ -60,7 +60,7 @@ This is the most important borrowing.
 
 Dafny’s `requires` and `ensures` describe obligations at function entry and exit. Its postconditions must hold for every invocation satisfying the preconditions, not merely the examples in a test suite. F* can express similarly precise input/output relationships through dependent function and refinement types. ([Dafny][2])
 
-Your v13 system has executable decision tables, exhaustive outcomes, and branch coverage. Those are useful, but they do not establish arbitrary input/output properties for every possible input.  
+Your a13 system has executable decision tables, exhaustive outcomes, and branch coverage. Those are useful, but they do not establish arbitrary input/output properties for every possible input.  
 
 ### Adaptation: contracts indexed by the actual outcome
 
@@ -186,7 +186,7 @@ A checked constructor validates an ordinary integer and returns either a `Retry_
 
 **Neither construction nor projection should be implicit.** Also keep refinements distinct from secret brands: authorizing explicit numeric projection must not create a generic declassification path for passwords or safe-HTML values.
 
-Your existing brand mechanism is nominal and string-backed; constructor control is already explicitly deferred in v13. Refinements should build on that work, not bypass it with a new unchecked construction gate.  
+Your existing brand mechanism is nominal and string-backed; constructor control is already explicitly deferred in a13. Refinements should build on that work, not bypass it with a new unchecked construction gate.  
 
 **Proof cost:** predicates restricted to the supported verification logic; every construction establishes the invariant; mutation cannot invalidate it; conversions remain explicit. Arithmetic on a refined value must not silently preserve its refinement.
 
@@ -268,7 +268,7 @@ Later lemmas could contain explicit case splits and induction, but each extensio
 
 **Acceptance test:** replace the conclusion with `upper - lower >= 1`; reject it. Attempt to return a ghost-computed value at runtime; reject that too. Changing a valid proof without changing executable code must not change production behavior.
 
-This also provides a disciplined answer to your fallible-recursion coverage problem: an impossible handler could carry a checked contradiction proof. It must never receive an unverified “ignore coverage” annotation. The v13 split-worker convention exists specifically to avoid such unreachable error arms today. 
+This also provides a disciplined answer to your fallible-recursion coverage problem: an impossible handler could carry a checked contradiction proof. It must never receive an unverified “ignore coverage” annotation. The a13 split-worker convention exists specifically to avoid such unreachable error arms today. 
 
 ---
 
@@ -316,7 +316,7 @@ For HTML, the desired guarantee is not just “the consumer cannot write `seal H
 
 > The consumer cannot construct, inspect, or bypass the representation except through the explicitly exported operations.
 
-That is a concrete direction for the constructor-controlled-brand work already listed in v13. 
+That is a concrete direction for the constructor-controlled-brand work already listed in a13. 
 
 ### Richer explicit termination measures
 

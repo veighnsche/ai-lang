@@ -4,7 +4,7 @@
 // 0 <= remainder < abs(divisor), on every sign combination. A zero
 // divisor fails loud instead of pretending. Decimal division stays
 // refused (AIL6005 lives in checkSem: 1/3 does not terminate).
-// See docs/v17-division.md.
+// See docs/a17-division.md.
 
 mod division
   provides [std__int__divmod, std__int__mod, std__int__is_multiple, std__int__is_even, std__int__is_odd, Int__DivMod, Int__Value, Bool__Value]
@@ -104,5 +104,5 @@ fn std__int__is_odd(value: int) -> Bool__Value rev 1
 //    linear downward scans in scalars.ail: the unit decreases rule
 //    admits exact p - 1 steps, so each scan uses a shifted guard
 //    (e = d - 1, so the stop coincides with e <= 0). gcd and
-//    sqrt_floor graduated to the v19 blessed schemas (euclid and
+//    sqrt_floor graduated to the a19 blessed schemas (euclid and
 //    narrowing); lcm rides gcd.

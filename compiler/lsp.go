@@ -34,7 +34,7 @@ type Diag struct {
 	Start, End int
 	Code       string
 	// Expected, Found, and Hint carry machine-actionable
-	// payloads (v71, v61 item 1): what the rule wanted, what
+	// payloads (a71, a61 item 1): what the rule wanted, what
 	// it saw, and the suggested fix shape. Empty means the
 	// code carries no payload; JSON omits empty fields so
 	// payload-free lines stay byte-identical.
@@ -200,14 +200,14 @@ func diagnose(dir, name, text string) []Diag {
 		sortDiags(out)
 		return withFile(out, name)
 	}
-	// v46 S2 barrier: same whole-program certification as the CLI, so
+	// a46 S2 barrier: same whole-program certification as the CLI, so
 	// "no squiggles" and "compiles" cannot diverge on authority.
 	out = append(out, certifyExports(all, prog, texts)...)
 
 	for _, err := range verifyExhaustiveAll([]*Module{open}, prog) {
 		out = append(out, proofDiag(text, err))
 	}
-	// World-level termination refusal (v11): cross-file cycles block
+	// World-level termination refusal (a11): cross-file cycles block
 	// execution through the same gate, per the R10 world-error rule
 	// (report per-line, suppress only execution-dependent checks).
 	global := checkGlobalCycles(all, texts, prog)
@@ -255,7 +255,7 @@ func checkStatic(open *Module, text string) []Diag {
 // checkSem runs the world-dependent checks: calls, given, emits, and
 // unused items. onPass fires per passing test (the CLI prints PASS; the
 // editor passes nil). Only call on a clean world. extBlocked carries a
-// world-level refusal (v11: cross-file cycles) into the same
+// world-level refusal (a11: cross-file cycles) into the same
 // prove-first gate as the per-module termination proofs.
 func checkSem(open *Module, text string, prog *Program, onPass func(fn, test string), extBlocked bool) []Diag {
 	var out []Diag
@@ -347,7 +347,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 				if err := runTest(fn, t, prog, tc); err != nil {
 					var uce *UnknownCallError
 					if errors.As(err, &uce) && calleeUnknown(prog, uce.Fname) {
-						// v62: the row can only fail on the
+						// a62: the row can only fail on the
 						// unknown call checkCalls already
 						// reported; suppress the AIL4200 but
 						// mark the fn failed so coverage
@@ -493,7 +493,7 @@ func patDesc(p Pattern) (desc, tok string) {
 		}
 		return "on false", "false"
 	case "str":
-		// v66: an interpreted pattern's decoded value is not
+		// a66: an interpreted pattern's decoded value is not
 		// searchable in source; locate its verbatim spelling.
 		if strings.HasPrefix(p.Raw, `e"`) {
 			return "on " + p.Raw, p.Raw
@@ -536,7 +536,7 @@ func proofDiag(text string, err error) Diag {
 	line := diagLine(err, 1)
 	msg := stripLinePrefix(err)
 	if i := strings.Index(msg, "stale match arm "); i >= 0 {
-		// v63: the kind is the first field after the marker;
+		// a63: the kind is the first field after the marker;
 		// a nesting hint may follow it (see verifyExhaustiveAll).
 		kind := strings.TrimSpace(msg[i+len("stale match arm "):])
 		if j := strings.IndexAny(kind, " ;"); j >= 0 {

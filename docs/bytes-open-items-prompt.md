@@ -80,7 +80,7 @@ execute as B1…Bn.
 
 - `docs/bytes-plan.md` (the v2 plan under resolution)
 - `docs/bytes-workstream.md` (requirements, acceptance)
-- `docs/v36-seq-typed-construction.md`, `docs/v37-seq-length.md` (template)
+- `docs/a36-seq-typed-construction.md`, `docs/a37-seq-length.md` (template)
 - `docs/encoder-nul-policy.md`, `docs/fault-contracts.md` (boundaries)
 - `std/text/text.ail`, `std/html/html.ail` (consumers)
 - `compiler/emit.go`, `compiler/check.go`, `compiler/eval.go`,

@@ -45,5 +45,5 @@ here: no other defect demonstrated, no new machinery invented.
 ## Still scheduled
 
 Row 4 conditional repairs (source-decode rejection), row 5 NUL
-policy, then v28. General site-level domain analysis stays
+policy, then a28. General site-level domain analysis stays
 deferred as ordered.

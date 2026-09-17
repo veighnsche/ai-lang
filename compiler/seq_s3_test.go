@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v38 S3: checked access and traversal. Raw xs[i] is guarded-at-use
+// a38 S3: checked access and traversal. Raw xs[i] is guarded-at-use
 // access (the s[i] precedent): the compiler checks shapes and types,
 // .ail guards ensure bounds, and wrappers map guard failures to
 // error constructors. There is no catch surface for index failure;

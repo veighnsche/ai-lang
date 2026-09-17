@@ -35,8 +35,8 @@ positional-construction rejection the Bytes branch must precede
 (`docs/fault-contracts.md:9–14`); `text.empty_separator` declared+raised
 but header-omitted (`std/text/text.ail:21,27,390–405`); brand base
 (`std/html/html.ail:8–12,28–30`); Seq atomic-boundary + `vEq`-as-support
-(`docs/v36-seq-typed-construction.md:106–118`); one-operation + kernel
-plumbing warning (`docs/v37-seq-length.md:39–55`); `checkCalls`/`checkGiven`/
+(`docs/a36-seq-typed-construction.md:106–118`); one-operation + kernel
+plumbing warning (`docs/a37-seq-length.md:39–55`); `checkCalls`/`checkGiven`/
 `evCallMatch`/`emitValue`/`emitModule`/`ctor` parse sites exist. Not
 line-verified: emit/eval/check interior sub-spans (function-level
 touchpoints confirmed by name; drift risk cosmetic only). `checkStateDecl` admits four scalars with `AIL6002` rejection
@@ -432,15 +432,15 @@ the scalar-state cases. Primitive ≠ state-admissible.
 | JSON/random/hash | Outside this workstream. |
 
 Preserves Seq's value-admission vs operations/customers distinction
-(anchors `v36-seq-typed-construction.md:13–17,106–118`;
-`v37-seq-length.md:39–55`).
+(anchors `a36-seq-typed-construction.md:13–17,106–118`;
+`a37-seq-length.md:39–55`).
 
 ## 12. Slice gates + return wrappers
 
 Every slice: versioned scope/rollback doc, committed direct rows,
 README/index updates, regenerated outputs where applicable. Every new AIL
 match arm executed by a committed row (identity-relay exception is not
-substitute evidence; anchors `v36-seq-typed-construction.md:134–155`;
+substitute evidence; anchors `a36-seq-typed-construction.md:134–155`;
 `compiler/lsp.go:357–405`). After each slice, forcibly:
 
 ```sh

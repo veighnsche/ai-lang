@@ -3,7 +3,7 @@
 // Every helper here is a same-file local, so every call below executes
 // its body. Cross-file reuse stays scripted until the Order 0 linkage
 // amendment lands, which is why the validators live in this file
-// instead of being imported. See docs/v13-stdlib.md.
+// instead of being imported. See docs/a13-stdlib.md.
 // A validator returns the accepted value or a producer-owned typed
 // error. It never clamps, trims, or supplies a default.
 

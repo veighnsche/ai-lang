@@ -1,6 +1,6 @@
 // std/text/text.ail — row 3 of the standard-library program.
 // Explicit text construction and scalar measurement, search, and
-// ASCII case over the v20 operators (#, s[i], s[a:b]). Concat
+// ASCII case over the a20 operators (#, s[i], s[a:b]). Concat
 // preserves every scalar unchanged: quotes, ampersands, and markup
 // pass through exactly. Safety lives in context encoders, never in
 // construction. See the Html__Text contract when it lands.
@@ -11,7 +11,7 @@
 // scalars (as s[i] yields) and pins all four arms directly.
 // Grammars: find locates the empty pattern at 0 (indexOf rule);
 // replace rejects it (text.empty_pattern); conversions live in
-// scalars.ail beside their kernels; join rides Seq (v40), split
+// scalars.ail beside their kernels; join rides Seq (a40), split
 // is next, graphemes/casefold/normalize wait on pinned data,
 // Bytes codecs all landed (see #42): utf8 via std__utf8__encode
 // and std__utf8__decode, hex via std__hex__encode and

@@ -1,6 +1,6 @@
 package main
 
-// Multi-scrutinee value matches (docs/v28): parse gates, product-space
+// Multi-scrutinee value matches (docs/a28): parse gates, product-space
 // exhaustiveness, evaluation, and TS emit — plus the native-match
 // refactor (MatchKind families, one 1..N value path per phase).
 

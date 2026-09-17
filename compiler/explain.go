@@ -1,6 +1,6 @@
 package main
 
-// v71 (v61 item 1, first cut): `ailc explain CODE` prints the
+// a71 (a61 item 1, first cut): `ailc explain CODE` prints the
 // per-code doc — the rule, a minimal violation, the legal
 // fix. Four payload codes carry full entries; every other
 // registered code falls back to family text that admits
@@ -26,7 +26,7 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Add the kind to emits, or raise a declared kind. The diagnostic names the raised kind (found) and the declared set (expected).",
 	},
 	CodeBareErrorKind: {
-		rule:    "Test expectations must construct the complete error value; a bare kind proves nothing about the payload (v12).",
+		rule:    "Test expectations must construct the complete error value; a bare kind proves nothing about the payload (a12).",
 		violate: `go => m.bad  (where error m.bad(id: str))`,
 		fix:     "Write m.bad(id = ...) with all fields. The diagnostic shows the complete construction (expected).",
 	},

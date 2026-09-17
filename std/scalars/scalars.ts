@@ -11,7 +11,7 @@ export type Dec__Strip = { stripped: bigint; exact: boolean };
 export type Dec__Factors = { rest: bigint; twos: bigint; fives: bigint };
 export type Dec__Rounded = { value: string; discarded: string };
 export type Dec__RoundedQuotient = { value: string; remainder: string };
-// Exact-decimal runtime (v10): canonical-digit strings, BigInt math.
+// Exact-decimal runtime (a10): canonical-digit strings, BigInt math.
 function $ailDecSplit(d: string): { neg: boolean; ip: string; fp: string } {
   let neg = false;
   if (d.startsWith("-")) {
@@ -125,7 +125,7 @@ function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   if (lo > hi || hi > cps.length) throw new Error("str slice out of range");
   return cps.slice(lo, hi).join("");
 }
-// Euclidean integer division (v17): quotient and remainder with
+// Euclidean integer division (a17): quotient and remainder with
 // 0 <= r < |b| on every sign combination.
 function $ailDivMod(a: bigint, b: bigint): [bigint, bigint] {
   let q: bigint = a / b;

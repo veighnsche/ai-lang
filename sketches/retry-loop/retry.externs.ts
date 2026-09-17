@@ -1,4 +1,4 @@
-// Extern-stub fixture for the v70 tsc gate. Hand-written; signature
+// Extern-stub fixture for the a70 tsc gate. Hand-written; signature
 // mirrors `extern net__fetch` in sketches/retry-loop/retry.ail and
 // its call site in retry.ts. Never executed by the gate (`noEmit`
 // check only). If the extern decl or emit shape changes, update this

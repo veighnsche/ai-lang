@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// v17: / and % are exact Euclidean integer division (a == b*q + r
+// a17: / and % are exact Euclidean integer division (a == b*q + r
 // with 0 <= r < |b| on every sign combination), discharged through
 // big.Int.DivMod — no unit-step scans. Dec operands are refused
 // statically (AIL6005); a zero divisor is loud at runtime.

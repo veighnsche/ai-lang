@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// v21: dec__parts is the blessed decimal observation kernel — one
+// a21: dec__parts is the blessed decimal observation kernel — one
 // positional dec operand in, Ok(coefficient, scale) out, total. These
 // tests pin the kernel contract directly, its static misuse shapes,
 // and its TS helper wiring. Decision-table coverage of the blessed

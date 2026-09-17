@@ -1,4 +1,4 @@
-// export.go: owner-authorized typed UTF-8 export (v46 S2).
+// export.go: owner-authorized typed UTF-8 export (a46 S2).
 //
 // A grant (exports_utf8 Brand via fn@rev) authorizes one exact-shape
 // function to disclose one brand as Bytes through the
@@ -33,11 +33,11 @@ func isBytesExport(fname string) bool {
 	return fname == bytesExportKernel
 }
 
-// bytesEncodeKernel is the public UTF-8 encode intrinsic (v47 S3):
+// bytesEncodeKernel is the public UTF-8 encode intrinsic (a47 S3):
 // total over str, deterministic, certificate-free.
 const bytesEncodeKernel = "bytes__utf8__encode"
 
-// bytesDecodeKernel is the public UTF-8 decode intrinsic (v50 B6):
+// bytesDecodeKernel is the public UTF-8 decode intrinsic (a50 B6):
 // the first fallible kernel. Bytes in, Encoding__Text on success,
 // encoding.invalid_utf8 (original payload, unchanged) on malformed
 // input. Deterministic, certificate-free.
@@ -49,12 +49,12 @@ const bytesDecodeKernel = "bytes__utf8__decode"
 const encodingTextRecord = "Encoding__Text"
 const encodingInvalidUtf8 = "encoding.invalid_utf8"
 
-// bytesHexEncodeKernel is the public hex encode intrinsic (v52 B8):
+// bytesHexEncodeKernel is the public hex encode intrinsic (a52 B8):
 // total over Bytes, deterministic, certificate-free. Lowercase,
 // byte-ordered, no text interpretation.
 const bytesHexEncodeKernel = "bytes__hex__encode"
 
-// bytesHexDecodeKernel is the public hex decode intrinsic (v55
+// bytesHexDecodeKernel is the public hex decode intrinsic (a55
 // B10): the second fallible kernel. Even-length ASCII hex in,
 // Bytes on success, encoding.invalid_hex (original string,
 // unchanged) on malformed input. Deterministic,
@@ -65,12 +65,12 @@ const bytesHexDecodeKernel = "bytes__hex__decode"
 // carrying the original str payload unchanged.
 const encodingInvalidHex = "encoding.invalid_hex"
 
-// bytesB64EncodeKernel is the public base64 encode intrinsic (v58
+// bytesB64EncodeKernel is the public base64 encode intrinsic (a58
 // B12): total over Bytes, deterministic, certificate-free.
 // Standard padded alphabet, byte-ordered, no text interpretation.
 const bytesB64EncodeKernel = "bytes__base64__encode"
 
-// bytesB64DecodeKernel is the public base64 decode intrinsic (v59
+// bytesB64DecodeKernel is the public base64 decode intrinsic (a59
 // B14): the third fallible kernel. Strict standard base64 in,
 // Bytes on success, encoding.invalid_base64 (original string,
 // unchanged) on malformed input. Deterministic,
@@ -124,7 +124,7 @@ func builtinTypeDecls() []*TypeDecl {
 }
 
 // builtinErrorDecls returns the compiler-owned error declarations
-// (v50 B6). Builtin records seed every consumer first-wins; builtin
+// (a50 B6). Builtin records seed every consumer first-wins; builtin
 // errors follow the same rule. Source must never redeclare these,
 // even identically (CodePrimitiveShadow at world build).
 func builtinErrorDecls() []*ErrorDecl {

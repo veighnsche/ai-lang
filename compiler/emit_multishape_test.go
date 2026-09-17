@@ -73,7 +73,7 @@ func TestMultiShapeEmit(t *testing.T) {
 // Per-function result types: call temporaries and return annotations
 // carry the callee's own outcomes, never the module-wide union, so a
 // strict checker narrows each handled outcome to its exact payload
-// shape (v14: emit narrowing, not suppressions). Every call-switch
+// shape (a14: emit narrowing, not suppressions). Every call-switch
 // also ends in an unreachable default arm.
 func TestPerFnResultUnions(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"m.ail": multiShapeSrc})

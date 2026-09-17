@@ -54,7 +54,7 @@ function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   if (lo > hi || hi > cps.length) throw new Error("str slice out of range");
   return cps.slice(lo, hi).join("");
 }
-// Sequence indexing (v38 S3): bounds throw, matching Go.
+// Sequence indexing (a38 S3): bounds throw, matching Go.
 function $ailSeqAt<T>(a: T[], i: bigint): T {
   if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("seq index out of range");
   const k = Number(i);

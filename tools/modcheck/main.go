@@ -35,7 +35,7 @@ var (
 	demoRe     = regexp.MustCompile(`(?m)^\s*//\s*DEMO-EXPECTS:\s*(.+?)\s*$`)
 )
 
-// braceOutsideString mirrors ailc's R1 (v45) scan: braces inside
+// braceOutsideString mirrors ailc's R1 (a45) scan: braces inside
 // "..." literals are data, never delimiters; braces in code or
 // comments stay banned. String tracking matches the compiler:
 // " opens, \ skips the next byte, " closes, and // outside a

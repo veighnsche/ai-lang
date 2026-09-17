@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v71: machine-actionable payloads on four codes plus
+// a71: machine-actionable payloads on four codes plus
 // `ailc explain`. Probes first: Diag has no payload
 // fields and explainCode does not exist.
 

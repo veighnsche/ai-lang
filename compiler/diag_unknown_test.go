@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// v62: a match-call on a function that resolves nowhere must
+// a62: a match-call on a function that resolves nowhere must
 // report exactly one diagnostic (AIL3001, the cause). The
 // given/proof/execution rungs that vanish with the fix are
 // noise: AIL3101, AIL3103, AIL4101, AIL4102, AIL4200, AIL4107.

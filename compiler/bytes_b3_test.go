@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v47 S3 (B3): generic UTF-8 encode kernel. bytes__utf8__encode is a
+// a47 S3 (B3): generic UTF-8 encode kernel. bytes__utf8__encode is a
 // public, total, deterministic kernel: strict str admission through
 // the ordinary checker, explicit empty contract, TextEncoder
 // lowering. N-rows are the scope-doc acceptance rows.

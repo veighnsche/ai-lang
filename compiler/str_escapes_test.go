@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v66 (chatbot verdict A): interpreted string literals
+// a66 (chatbot verdict A): interpreted string literals
 // e"..." with exactly six escapes (\" \\ \n \r \t \0),
 // decoded once left to right. Ordinary "..." stays raw.
 // Probes first: the e-forms do not parse yet.
@@ -78,7 +78,7 @@ fn probe__pat(value: str) -> Str__Value rev 1
 	}
 }
 
-// TestEscapedPatternDiagLocation pins the v66 squiggle: an
+// TestEscapedPatternDiagLocation pins the a66 squiggle: an
 // untaken e-arm reports its source spelling, never a decoded
 // control character.
 func TestEscapedPatternDiagLocation(t *testing.T) {

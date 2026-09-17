@@ -3,7 +3,7 @@
 // under the false arm of fuel <= 0 with fuel - 1 at the site, so the
 // compiler sees termination before running a single test.
 // Delete the decreases line and the same file is a cycle error —
-// proof-gated admission (v11): the finite fuel trace never hangs;
+// proof-gated admission (a11): the finite fuel trace never hangs;
 // without the proof the compiler refuses to admit it.
 // Tests read as call specifications: name(inputs) => expected output.
 

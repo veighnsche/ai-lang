@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// v48 B4: html__render__utf8 is the first real Bytes consumer. The
+// a48 B4: html__render__utf8 is the first real Bytes consumer. The
 // probe below appends a composition function to a TEMPORARY copy of
 // the real html.ail, so the NUL chain exercises real bodies:
 // node("A<NUL>&amp;B") -> render -> exactly eight bytes, NUL

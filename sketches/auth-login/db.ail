@@ -36,7 +36,7 @@ fn db__get_user(id: str) -> Db__User rev 5
 =
   // u_02 is the locked account: five failed attempts on a real
   // provider row, so lockout scripts stage against computed state
-  // instead of a fictional one (v18: scripts must agree with bodies).
+  // instead of a fictional one (a18: scripts must agree with bodies).
   match id
     "u_01" => Ok(id = "u_01", pw_hash = seal Db__Hash("secret"), failed_attempts = 0)
     "u_02" => Ok(id = "u_02", pw_hash = seal Db__Hash("second"), failed_attempts = 5)

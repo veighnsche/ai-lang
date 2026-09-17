@@ -10,7 +10,7 @@ and the text conversions in `std/text/text.ail` (hex/base64/utf8).
 
 A new primitive touches the full compiler pipeline — literal syntax,
 type rules, evaluation, TypeScript emit — at the same scale as `Seq`,
-which took multiple version slices (v36 literals, v37 length/indexing,
+which took multiple version slices (a36 literals, a37 length/indexing,
 …). Same files the type-system thread is cutting in now; coordinate,
 don't collide.
 
@@ -23,7 +23,7 @@ don't collide.
 - Empty bytes value; equality on bytes (needed for tests).
 - Literal syntax: OPEN QUESTION, yours to decide. Candidates: hex
   literals, constructor from `Seq<int>`, or both. `Seq` literal
-  syntax (`Seq<T>[…]`, v36) is the template to mirror or reuse.
+  syntax (`Seq<T>[…]`, a36) is the template to mirror or reuse.
 - TypeScript emit representation: OPEN QUESTION. `Uint8Array` is the
   obvious candidate; pin it explicitly.
 

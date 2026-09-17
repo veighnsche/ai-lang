@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// v50 B6: UTF-8 decode kernel. bytes__utf8__decode is the first
+// a50 B6: UTF-8 decode kernel. bytes__utf8__decode is the first
 // fallible kernel: Bytes in, Encoding__Text on success,
 // encoding.invalid_utf8 (original payload, unchanged) on malformed
 // input. Both contracts are compiler-owned; fixtures must compile

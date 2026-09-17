@@ -679,5 +679,5 @@ The dependency branches should remain visible: **HTML can ship before async; a f
 [3]: https://www.rfc-editor.org/rfc/rfc8259 "RFC 8259: The JavaScript Object Notation (JSON) Data Interchange Format | RFC Editor"
 [4]: https://pkg.go.dev/net/http "http package - net/http - Go Packages"
 [5]: https://pkg.go.dev/database/sql "sql package - database/sql - Go Packages"
-[6]: https://preactjs.com/guide/v10/components/ "Components – Preact Guide"
-[7]: https://preactjs.com/guide/v10/forms/ "Forms – Preact Guide"
+[6]: https://preactjs.com/guide/a10/components/ "Components – Preact Guide"
+[7]: https://preactjs.com/guide/a10/forms/ "Forms – Preact Guide"

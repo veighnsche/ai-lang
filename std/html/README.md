@@ -19,53 +19,53 @@
   for script, style, attribute, or URL contexts. Promotion is
   relabeling (`erase(node(t)) = erase(t)`): no double escape, no
   normalization. One-way, exact, same-module, non-transitive; see
-  `docs/v26-html-node.md`.
+  `docs/a26-html-node.md`.
 - `html__attribute__name` gates `Html__TextAttributeName`: a small
   exact lowercase allowlist (currently `title`), each member with
   its own justification; everything else is `invalid_attribute_name`.
-  See `docs/v27-attribute-name.md`.
+  See `docs/a27-attribute-name.md`.
 - `html__attribute__text` composes a brand-typed name with an
   encoded value into `Html__Attribute`, canonical single-quoted
   form (`title='...'`). The spelling is reconstructed from the
   closed admitted domain, not extracted from the brand. See
-  `docs/v29-attribute-value.md`.
+  `docs/a29-attribute-value.md`.
 - `html__attribute__boolean_name` gates
   `Html__BooleanAttributeName` (currently `disabled`,
   `readonly`, `required`, `checked`);
   `html__attribute__boolean` serializes presence as the spelling
   and absence as the empty contribution. Syntactic guarantee
   only — never inertness, never element applicability. See
-  `docs/v30-boolean-attribute.md`.
+  `docs/a30-boolean-attribute.md`.
 - `html__attribute__id` validates an identifier (nonempty, no
   ASCII whitespace) and serializes it as `id='...'`, reusing the
   shared value worker. Uniqueness needs a tree and stays out.
   New error `html.invalid_identifier`. See
-  `docs/v31-identifier-attribute.md`.
+  `docs/a31-identifier-attribute.md`.
 - `html__attribute__href` / `html__attribute__src` validate
   absolute-`https` URLs under a restricted ASCII authority
   profile and serialize them reusing the shared worker. Fused
   raw input: no `Html__Url` brand exists yet because no
   consumer could serialize one. New errors `html.invalid_url`,
-  `html.disallowed_scheme`. See `docs/v32-url-attributes.md`.
+  `html.disallowed_scheme`. See `docs/a32-url-attributes.md`.
 - `html__fragment__empty` seals `""` as the zero `Html__Safe`
-  fragment. See `docs/v33-empty-fragment.md`.
+  fragment. See `docs/a33-empty-fragment.md`.
 - `html__fragment__join`/`_from` walk explicit `Html__Children`
   (plain record over `Seq<Html__Safe>`) with same-brand `+`
   assembly, seeded from `fragment__empty`: composition has the
   empty fragment as identity. Order, empties, and spacing
-  preserved exactly. See `docs/v42-fragment-join.md`.
+  preserved exactly. See `docs/a42-fragment-join.md`.
 - `Html__NamedAttribute` pairs a minted attribute with its name
   by construction; `named_text`/`named_boolean`/`named_id`/
   `named_href`/`named_src` relay the five makers (errors
-  forwarded unchanged). See `docs/v43-named-attributes.md`.
+  forwarded unchanged). See `docs/a43-named-attributes.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; `errors.json` is the error registry).
   Regenerate: `go run ./compiler --out std/html
   std/html/html.ail`; verify: `go test ./...`.
 
-Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
-`docs/v26-html-node.md`, `docs/v27-attribute-name.md`,
-`docs/v29-attribute-value.md`, `docs/v30-boolean-attribute.md`,
-`docs/v31-identifier-attribute.md`, `docs/v32-url-attributes.md`,
-`docs/v33-empty-fragment.md`, `docs/v34-boolean-names.md`,
-`docs/encoder-nul-policy.md`, brand scope: `docs/v15-brands.md`.
+Rules: `/REQUIREMENTS.md`. Program: `docs/a25-html-text.md`,
+`docs/a26-html-node.md`, `docs/a27-attribute-name.md`,
+`docs/a29-attribute-value.md`, `docs/a30-boolean-attribute.md`,
+`docs/a31-identifier-attribute.md`, `docs/a32-url-attributes.md`,
+`docs/a33-empty-fragment.md`, `docs/a34-boolean-names.md`,
+`docs/encoder-nul-policy.md`, brand scope: `docs/a15-brands.md`.

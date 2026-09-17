@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v53 B9: std__hex__encode is the public stdlib face of the B8
+// a53 B9: std__hex__encode is the public stdlib face of the B8
 // kernel. The foreign-caller probe proves the §6 claim that
 // ordinary wrappers are normal functions, plus lowercase,
 // order, and no-text-interpretation vectors.

@@ -13,7 +13,7 @@ policy (row 5), not to this boundary.
   decoding, no validation). Invalid bytes (`FF FE`) parse with no
   diagnostic and table-compare by raw equality.
 - The evaluator reads via `[]rune` (substitution per bad byte;
-  v20-documented). The emitter substitutes U+FFFD at compile time
+  a20-documented). The emitter substitutes U+FFFD at compile time
   into the golden — so tested bytes and shipped bytes differ for
   malformed input, while the two runtimes agree downstream.
 - A side probe collapsed honestly: a text-mode-written fixture

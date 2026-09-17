@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v51 B7: std__utf8__decode is the public stdlib face of the B6
+// a51 B7: std__utf8__decode is the public stdlib face of the B6
 // kernel, and the first stdlib function over the fallible path.
 // The foreign-caller probe scripts TRUE outcomes for both sides:
 // success, failure with identical payload, and the NUL/BOM

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// v60 B15: std__base64__decode is the public stdlib face of the
+// a60 B15: std__base64__decode is the public stdlib face of the
 // B14 kernel, and this slice closes the workstream with wrapper-
 // level compositions through real bodies. The foreign-caller
 // probe pins §6 callability against the REAL text.ail; the

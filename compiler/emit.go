@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// v10: ints emit as bigint (unbounded, exact) and decs as strings
+// a10: ints emit as bigint (unbounded, exact) and decs as strings
 // carrying canonical digits (exact via the $ailDec helpers below).
 // The old number mapping was lossy (0.1+0.2) and is gone.
 var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string", "Bytes": "Uint8Array"}
@@ -39,7 +39,7 @@ func recordShapes(mods []*Module) map[string][][2]string {
 
 // variantShapes indexes declared variants by parent name, first
 // wins across modules, matching the checker and the evaluator
-// (v74). Collisions are rejected at the registry, so first wins is
+// (a74). Collisions are rejected at the registry, so first wins is
 // deterministic, exactly like records.
 func variantShapes(mods []*Module) map[string]*VariantDecl {
 	variants := map[string]*VariantDecl{}
@@ -77,13 +77,13 @@ func errorShapes(mods []*Module) map[string][][2]string {
 // tsTypeB maps an ail annotation to TS, erasing brands to their
 // underlying type. Branding is proof, not runtime: the emit forgets it.
 // Declared record names map to their emitted TS type of the same name.
-// Declared variant parents (v74) map to their emitted union type of
+// Declared variant parents (a74) map to their emitted union type of
 // the same name, so variant-typed fields and params reference it.
 func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
 	if out, ok := tsBase[t]; ok {
 		return out, nil
 	}
-	// v36 S1: sequences emit as arrays over the mapped element
+	// a36 S1: sequences emit as arrays over the mapped element
 	// type. Brands erase through the same rule as scalars, so
 	// Seq<M__B> is string[] without hard-coding brand names here.
 	if elem, ok := seqElemName(t); ok {
@@ -139,7 +139,7 @@ func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]s
 }
 
 // tsVariantMember renders one variant case as a TS union member
-// (v74): the qualified case name is the discriminant tag, payload
+// (a74): the qualified case name is the discriminant tag, payload
 // fields map through their declared types. Nullary cases carry the
 // tag only. The shape mirrors tsErrMember; the checker guarantees
 // exact fields, so emit trusts the declaration.
@@ -226,7 +226,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 // carrying its declared Ret record plus one member per declared emits
 // kind, in emits order. Call temporaries and return annotations use
 // this instead of the module-wide union so a strict checker narrows
-// each handled outcome to its exact payload shape (v14: emit
+// each handled outcome to its exact payload shape (a14: emit
 // narrowing, not suppressions). The module union stays as the general
 // published type. Ok fields sort to match the module-union member for
 // the same shape.
@@ -332,7 +332,7 @@ func childType(s *Small) string {
 // strings, strings, booleans) and str-backed brands.
 func (e *emitter) isScalar(ot string) bool {
 	if _, ok := tsBase[ot]; ok {
-		// v45 S1: Bytes lowers through tsBase but never compares
+		// a45 S1: Bytes lowers through tsBase but never compares
 		// natively; membership here must not imply ===.
 		return ot != "Bytes"
 	}
@@ -355,7 +355,7 @@ func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 		shape = strings.TrimPrefix(shape, "cell:")
 	}
 	if shape == "Bytes" {
-		// v45 S1: direct byte operators are deferred. Nested byte
+		// a45 S1: direct byte operators are deferred. Nested byte
 		// comparison routes through the structural runtime below;
 		// never emit === for Bytes here.
 		return "", fmt.Errorf("cannot emit comparison over Bytes: byte equality is deferred (%s)", CodeBadCompare)
@@ -430,7 +430,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 	case "str":
 		// One literal encoder (normStr): the in-memory string is
 		// either source-raw (ordinary "..." interprets no
-		// escapes) or already decoded (v66 e"..." six escapes),
+		// escapes) or already decoded (a66 e"..." six escapes),
 		// so the target literal must re-escape every special
 		// char. Values and patterns share this encoder (see
 		// stmtMatch).
@@ -441,7 +441,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		return strconv.Quote(node.Dec), nil
 	case "seal":
 		// Sealed values emit as their string: brands erase. The
-		// checker owns the one-string-operand rule (v25).
+		// checker owns the one-string-operand rule (a25).
 		if len(node.Args) != 1 {
 			return "", fmt.Errorf("cannot emit seal: want one value")
 		}
@@ -452,7 +452,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		}
 		return "false", nil
 	case "seqlit":
-		// v36 S1: sequence values are array literals, members in
+		// a36 S1: sequence values are array literals, members in
 		// order. Sealed members erase to their strings through the
 		// shared seal arm, so brands need no special case here.
 		parts := make([]string, 0, len(node.Items))
@@ -554,7 +554,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return fmt.Sprintf("$ailDivMod(%s, %s)[%s]", l, r, idx), nil
 		}
-		// v39 S4: sequence append lowers to spread with precise
+		// a39 S4: sequence append lowers to spread with precise
 		// element types; the checker owns the operand rule
 		// (Seq+T only, never Seq+Seq).
 		if node.Op == "+" {
@@ -573,7 +573,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		// v37 S2: arrays lower through the same spread-length
+		// a37 S2: arrays lower through the same spread-length
 		// shape as strings; the checker owns the operand rule.
 		if ct := childType(node.L); ct != "str" {
 			if _, ok := seqElemName(ct); !ok {
@@ -591,7 +591,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "", err
 		}
 		if childType(node.L) != "str" {
-			// v38 S3: sequence indexing lowers to the generic
+			// a38 S3: sequence indexing lowers to the generic
 			// seq helper; the checker owns the base rule.
 			if _, ok := seqElemName(childType(node.L)); !ok {
 				return "", fmt.Errorf("cannot emit []: operand type unknown (run checkSem first)")
@@ -621,7 +621,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		return fmt.Sprintf("$ailStrSlice(%s, %s, %s)", b, lo, hi), nil
 	case "ctor":
 		if node.Ctor == "Bytes" {
-			// v45 S1: validated byte lowering. Emit checked members
+			// a45 S1: validated byte lowering. Emit checked members
 			// as number literals, never through the Seq bigint path:
 			// wrapping it would throw on 0n and silently remap -1
 			// and 256. Re-validate for direct emitter callers.
@@ -662,7 +662,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return `{ ` + tsTag + `: "` + node.Ctor + `", ` + inner + ` }`, nil
 		}
-		// Declared variant cases in value positions (v74) are
+		// Declared variant cases in value positions (a74) are
 		// tagged data objects like errors: the qualified tag
 		// names the case, payload fields follow. Emit runs only
 		// after checkSem, so exact fields are guaranteed here.
@@ -942,7 +942,7 @@ var eqHelpers = []string{
 }
 
 // bytesEqHelpers renders the structural equality runtime for shapes
-// that can contain Bytes (v45 S1): the same $ailEqRec shape, a
+// that can contain Bytes (a45 S1): the same $ailEqRec shape, a
 // $ailEqVal with a typed-array branch before generic object-key
 // traversal, and the $ailEqBytes byte comparison. A typed array never
 // compares equal to an ordinary array merely because enumerable keys
@@ -1032,7 +1032,7 @@ var seqRuntimeOps = []struct {
 // yet), then ops in fixed order.
 func seqHelpers(used map[string]bool) []string {
 	var out []string
-	out = append(out, "// Sequence indexing (v38 S3): bounds throw, matching Go.")
+	out = append(out, "// Sequence indexing (a38 S3): bounds throw, matching Go.")
 	for _, op := range seqRuntimeOps {
 		if used[op.key] {
 			out = append(out, op.code...)
@@ -1045,7 +1045,7 @@ func seqHelpers(used map[string]bool) []string {
 // operations, shared plumbing first, then ops in fixed order.
 func decHelpers(used map[string]bool) []string {
 	var out []string
-	out = append(out, "// Exact-decimal runtime (v10): canonical-digit strings, BigInt math.")
+	out = append(out, "// Exact-decimal runtime (a10): canonical-digit strings, BigInt math.")
 	out = append(out, decRuntimeShared...)
 	for _, op := range decRuntimeOps {
 		if used[op.key] {
@@ -1064,20 +1064,20 @@ type emitter struct {
 	tailUnion string
 	decOps    map[string]bool         // exact-decimal helpers used by this module
 	strOps    map[string]bool         // byte-order string helpers used by this module
-	seqOps    map[string]bool         // sequence helpers used by this module (v38 S3)
+	seqOps    map[string]bool         // sequence helpers used by this module (a38 S3)
 	recEq     bool                    // structural record comparison used by this module
-	bytesEq   bool                    // compared shapes can contain Bytes (v45 S1)
+	bytesEq   bool                    // compared shapes can contain Bytes (a45 S1)
 	recs      map[string][][2]string  // record name -> declared fields
 	errFields map[string][]string     // error kind -> declared field names
 	errTypes  map[string][][2]string  // error kind -> declared typed fields
-	variants  map[string]*VariantDecl // variant parent -> declaration (v74)
-	cases     map[string]string       // qualified case -> parent variant (v74)
+	variants  map[string]*VariantDecl // variant parent -> declaration (a74)
+	cases     map[string]string       // qualified case -> parent variant (a74)
 	divmod    bool                    // Euclidean division helper used by this module
-	utf8dec   bool                    // strict UTF-8 decode helper used by this module (v50 B6)
-	hexenc    bool                    // hex encode helper used by this module (v52 B8)
-	hexdec    bool                    // strict hex decode helper used by this module (v55 B10)
-	b64enc    bool                    // base64 encode helper used by this module (v58 B12)
-	b64dec    bool                    // strict base64 decode helper used by this module (v59 B14)
+	utf8dec   bool                    // strict UTF-8 decode helper used by this module (a50 B6)
+	hexenc    bool                    // hex encode helper used by this module (a52 B8)
+	hexdec    bool                    // strict hex decode helper used by this module (a55 B10)
+	b64enc    bool                    // base64 encode helper used by this module (a58 B12)
+	b64dec    bool                    // strict base64 decode helper used by this module (a59 B14)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1130,7 +1130,7 @@ func (e *emitter) shapeContainsBytes(ot string) bool {
 // executing the emitted helper against the contract awaits a node
 // gate (tsc verification stays suspended per #11).
 var divModHelper = []string{
-	"// Euclidean integer division (v17): quotient and remainder with",
+	"// Euclidean integer division (a17): quotient and remainder with",
 	"// 0 <= r < |b| on every sign combination.",
 	"function $ailDivMod(a: bigint, b: bigint): [bigint, bigint] {",
 	"  let q: bigint = a / b;",
@@ -1143,7 +1143,7 @@ var divModHelper = []string{
 	"}",
 }
 
-// utf8DecodeHelper renders the strict UTF-8 decode runtime (v50 B6):
+// utf8DecodeHelper renders the strict UTF-8 decode runtime (a50 B6):
 // validate-then-decode over the input VIEW (indices, never the
 // backing buffer). The leading-byte table is the strict grammar Go
 // utf8.Valid implements (C0/C1/F5+ excluded, E0/ED/F0/F4 second-byte
@@ -1184,7 +1184,7 @@ var utf8DecodeHelper = []string{
 	"}",
 }
 
-// hexEncodeHelper renders the hex encode runtime (v52 B8): one
+// hexEncodeHelper renders the hex encode runtime (a52 B8): one
 // lowercase digit pair per octet, byte-ordered, empty to "". The
 // digit table (not arithmetic + case fixups) is what makes
 // lowercase structural; indices keep views exact.
@@ -1199,7 +1199,7 @@ var hexEncodeHelper = []string{
 	"}",
 }
 
-// hexDecodeHelper renders the strict hex decode runtime (v55 B10):
+// hexDecodeHelper renders the strict hex decode runtime (a55 B10):
 // validate-then-decode over UTF-16 code units. Length parity and
 // every unit's range membership are checked before any lookup; the
 // explicit -1 sentinel makes an unchecked invalid unit
@@ -1227,7 +1227,7 @@ var hexDecodeHelper = []string{
 	"}",
 }
 
-// b64EncodeHelper renders the base64 encode runtime (v58 B12):
+// b64EncodeHelper renders the base64 encode runtime (a58 B12):
 // standard padded alphabet over the input VIEW, three octets to
 // four sextets, byte-ordered, empty to "". The alphabet table (not
 // host btoa, whose binary-string contract is a misuse trap) is what
@@ -1253,7 +1253,7 @@ var b64EncodeHelper = []string{
 	"}",
 }
 
-// b64DecodeHelper renders the strict base64 decode runtime (v59
+// b64DecodeHelper renders the strict base64 decode runtime (a59
 // B14): validate-then-decode over UTF-16 code units. Length mod 4,
 // per-position alphabet membership, final-quartet padding shape,
 // and the exact unused-bit masks (four for DD==, two for DDD=)
@@ -1438,7 +1438,7 @@ func (e *emitter) emitCallArms(node *Node, tmp string, out *[]string) error {
 // tested condition. Exhaustiveness already proven; emit assumes it.
 func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
 	nslot := len(node.Scruts)
-	// v75: variant elimination lowers through a tag switch, never
+	// a75: variant elimination lowers through a tag switch, never
 	// the bool/str condition chain. The checker proves the arms
 	// total before emission, so this path assumes it.
 	if nslot == 1 {
@@ -1524,7 +1524,7 @@ func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
 	return nil
 }
 
-// emitVariantMatch lowers one variant elimination (v75): the
+// emitVariantMatch lowers one variant elimination (a75): the
 // scrutinee evaluates once into a generated temporary, the switch
 // reads that temporary's tag, and each payload arm binds the same
 // temporary so field access narrows through it. Case order follows
@@ -1625,7 +1625,7 @@ func (e *emitter) valueConds(arm Arm, refs []string, known []*bool) (conds []str
 
 // stmtStoreOp emits a cell operation as plain module state access: a
 // get reads the cell into an ok+value union, a put assigns then
-// proceeds. No imports: shared numeric code is emitted inline (v10).
+// proceeds. No imports: shared numeric code is emitted inline (a10).
 // Only Ok-variant arms are legal past the exhaustiveness gate.
 func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 	cell, ok := storeCellName(scrut)
@@ -1700,7 +1700,7 @@ func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
 	return nil
 }
 
-// stmtBytesEncode lowers UTF-8 encoding (v46 S2, v47 S3): the input
+// stmtBytesEncode lowers UTF-8 encoding (a46 S2, a47 S3): the input
 // string through TextEncoder into an Ok record of Uint8Array.
 // Restricted calls require the certificate annotation; uncertified
 // nodes fail loud and never fall through to the ordinary call path.
@@ -1791,7 +1791,7 @@ func decodeResultUnion(kernel string, brands map[string]string, recs map[string]
 	return union, nil
 }
 
-// stmtBytesDecode lowers the fallible kernels (v50 B6, v55 B10):
+// stmtBytesDecode lowers the fallible kernels (a50 B6, a55 B10):
 // the operand through the kernel's own strict helper into that
 // kernel's two-outcome union. Matches use ordinary success/error
 // binding via the shared arm lowering, never encoder single-success
@@ -1836,7 +1836,7 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 	return e.emitCallArms(node, tmp, out)
 }
 
-// stmtBytesHexEncode lowers hex encoding (v52 B8): the input Bytes
+// stmtBytesHexEncode lowers hex encoding (a52 B8): the input Bytes
 // through $ailHexEncode into an Ok record of lowercase hex. Total
 // kernel, so matches take the Ok arm only.
 func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) error {
@@ -1876,7 +1876,7 @@ func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) er
 	return nil
 }
 
-// stmtBytesB64Encode lowers base64 encoding (v58 B12): the input
+// stmtBytesB64Encode lowers base64 encoding (a58 B12): the input
 // Bytes through $ailB64Encode into an Ok record of padded base64.
 // Total kernel, so matches take the Ok arm only.
 func (e *emitter) stmtBytesB64Encode(node *Node, scrut *Small, out *[]string) error {
@@ -1953,7 +1953,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	L = append(L, fmt.Sprintf("// GENERATED from %s by ailc v0.0.0. DO NOT EDIT.", mod.File))
 	L = append(L, "// Prod emit: tests + given stripped.")
 	// Declared records resolve to their emitted TS type of the same
-	// name throughout this module. Declared variant parents (v74)
+	// name throughout this module. Declared variant parents (a74)
 	// resolve to their emitted union type the same way.
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
@@ -1972,7 +1972,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			}
 		}
 	}
-	// Foreign type references (v74): a field, case payload,
+	// Foreign type references (a74): a field, case payload,
 	// param, or Ret-record shape naming a type from another stem
 	// imports that stem's type. Previously only called functions
 	// (plus the Result type) were imported, so a cross-module
@@ -2187,7 +2187,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			L = append(L, fmt.Sprintf("export type %s = { %s };", td.Name, strings.Join(fs, "; ")))
 		}
 	}
-	// Variant unions (v74): one exported union type per variant
+	// Variant unions (a74): one exported union type per variant
 	// parent, one member per case in declaration order, qualified
 	// tags as discriminants. Payload field types map through the
 	// same rule as records, so nested variants resolve.
@@ -2310,7 +2310,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		L = append(L, b64DecodeHelper...)
 	}
 	L = append(L, fnLines...)
-	// v46 S2: compiler-owned record definitions, emitted exactly when
+	// a46 S2: compiler-owned record definitions, emitted exactly when
 	// referenced. References reach the output only through tsTypeB,
 	// but at too many call sites to track explicitly; the
 	// word-boundary scan cannot miss a spelling and cannot

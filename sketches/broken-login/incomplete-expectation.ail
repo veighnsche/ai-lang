@@ -1,6 +1,6 @@
 // broken-login/incomplete-expectation.ail — DEMO: red squiggle, a kind
 // without its payload. Error expectations must construct the complete
-// error value (v12): a bare kind proves nothing about the payload.
+// error value (a12): a bare kind proves nothing about the payload.
 
 mod auth
   provides [auth__need, Auth__Need]

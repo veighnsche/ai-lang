@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// v55 B10: hex decode kernel. bytes__hex__decode is the second
+// a55 B10: hex decode kernel. bytes__hex__decode is the second
 // fallible kernel: str in, Bytes__Value on success,
 // encoding.invalid_hex (original string, unchanged) on malformed
 // input. X-rows are the acceptance rows (verdict v2: str payload,

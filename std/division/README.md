@@ -12,6 +12,6 @@
   Regenerate: `go run ./compiler --out std/division
   std/division/division.ail`; verify: `go test ./...`.
 
-Rules: `/REQUIREMENTS.md`. Program: `docs/v17-division.md`.
+Rules: `/REQUIREMENTS.md`. Program: `docs/a17-division.md`.
 `gcd`, `lcm`, roots, and primality wait on fuel-pattern
 recursion (issue 4 stays open).

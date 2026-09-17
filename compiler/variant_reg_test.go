@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v73: variant declaration registry. Frontend foundation
+// a73: variant declaration registry. Frontend foundation
 // only: no construction, proof, or emit. Probes first:
 // `variant` is an unknown top-level decl.
 

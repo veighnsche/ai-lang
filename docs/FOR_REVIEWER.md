@@ -60,7 +60,7 @@ time or the build fails.
 A test row is a call specification: `name(inputs) => expected`.
 An expectation is either an `Ok(...)` record or a complete error
 construction (`=> auth.login_failed(user_id = "u_99")`, compared
-kind and payload — v12). Bare error kinds are refused.
+kind and payload — a12). Bare error kinds are refused.
 
 Foreign calls are scripted at the call site through `given` — one
 exchange sequence per test (`sketches/auth-login/auth.ail`):
@@ -119,7 +119,7 @@ no curly braces anywhere, including comments.
 - Errors are values, never thrown: `auth.login_failed(user_id = id)`
   constructs one; `on` arms handle them. A function raising anything
   outside its `emits` is an error. `emits` is a conservative upper
-  bound (v12): entries need not be raised, but every entry must name
+  bound (a12): entries need not be raised, but every entry must name
   a declared error — no consumer stub can manufacture provider
   honesty.
 
@@ -185,7 +185,7 @@ must be taken across helper tests plus caller flow-through.
 The only loop is direct self-recursion admitted by a `decreases`
 line naming one `int` param; every self-call site must pass
 exactly `p - 1` and sit under the false arm of the canonical
-`p <= 0` guard (v11). Recursion across files is refused
+`p <= 0` guard (a11). Recursion across files is refused
 program-wide; only direct self-recursion is admitted
 (`retry.ail` lines 23–43):
 
@@ -212,7 +212,7 @@ branch, so every chain — including negative entries, which take
 the base arm immediately — returns a declared outcome, and the
 proof runs before anything executes. Delete the `decreases` line
 and the identical file is a cycle error: proof-gated admission
-(v11), not a diverted hang — the trace is finite either way.
+(a11), not a diverted hang — the trace is finite either way.
 Mutual recursion stays refused, same-file or cross-file; `p - 0`,
 larger steps, computed steps, unchanged `p`, and unguarded sites
 are all rejected.
@@ -277,7 +277,7 @@ error per mistake:
 - Division: no rule (exactness of `/` on `dec` needs its own).
 - `int` is unbounded and exact in proofs; TS emit preserves it
   (`bigint`). `dec` is exact in proofs and in TS emit
-  (canonical-digit strings plus exact `$ailDec` helpers, v10).
+  (canonical-digit strings plus exact `$ailDec` helpers, a10).
 - Prod cells persist across calls while tests prove per-scenario
   behavior from init; prod recursion depth is host-limited.
 - No bool-returning calls, no cross-module externs, no non-literal

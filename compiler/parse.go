@@ -23,13 +23,13 @@ type Small struct {
 	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
-	// "this request received this permitted response" (v12).
+	// "this request received this permitted response" (a12).
 	Outcome *Small
-	// Num holds an int literal of arbitrary size (v10: ints are
+	// Num holds an int literal of arbitrary size (a10: ints are
 	// mathematically unbounded, so literals never overflow).
 	Num *big.Int
 	// T holds the checker's static type for ref/binop/seal nodes
-	// (v10: emit reads it to choose bigint-native vs exact-decimal
+	// (a10: emit reads it to choose bigint-native vs exact-decimal
 	// code, so code generation reasons over typed structure).
 	T string
 	B bool
@@ -39,7 +39,7 @@ type Small struct {
 	// Seal holds the brand name for Kind seal; Str holds the literal.
 	Seal string
 	// Elem holds the element type name for Kind seqlit
-	// (v36 S1: typed sequence literals Seq<T>[...]).
+	// (a36 S1: typed sequence literals Seq<T>[...]).
 	Elem string
 	Op   string
 	L, R *Small
@@ -51,7 +51,7 @@ type Small struct {
 	Items []*Small
 	Ref   []string
 	// ExportBrand names the granted brand on a certified
-	// bytes__utf8__export call node (v46 S2). Set only by
+	// bytes__utf8__export call node (a46 S2). Set only by
 	// certifyExports after full validation; empty means
 	// uncertified, and both evaluator and emitter refuse it.
 	ExportBrand string
@@ -64,14 +64,14 @@ type Pattern struct {
 	Name string
 	Var  string
 
-	// Raw is the source spelling of a str pattern (v66): the
+	// Raw is the source spelling of a str pattern (a66): the
 	// squiggle locator needs the verbatim token because a
 	// decoded interpreted literal is not searchable in source.
 	Raw string
 }
 
 // isCase reports whether a pattern names a variant case by shape
-// (v75): a qualified __ name that is neither Ok nor a dotted
+// (a75): a qualified __ name that is neither Ok nor a dotted
 // error kind. Shape only — membership is the checker's job, so
 // unknown and wrong-union names still parse. Every phase uses
 // this one predicate, so error-protocol patterns (Ok, dotted)
@@ -83,7 +83,7 @@ func (p Pattern) isCase() bool {
 	return p.Name != "Ok" && !strings.Contains(p.Name, ".")
 }
 
-// ContractArm is one ensures arm (v69): the outcome it
+// ContractArm is one ensures arm (a69): the outcome it
 // specifies, the bound result/error name, expression
 // predicates, and Boolean match blocks. Stored only;
 // no phase proves, checks, or emits contracts yet.
@@ -96,7 +96,7 @@ type ContractArm struct {
 }
 
 // VariantCase is one case row of a variant declaration
-// (v73): the short name as written plus payload fields.
+// (a73): the short name as written plus payload fields.
 // The qualified constructor name is elaborated by
 // qualifyCase, never written in the declaration.
 type VariantCase struct {
@@ -106,7 +106,7 @@ type VariantCase struct {
 }
 
 // VariantDecl is a closed tagged union declaration
-// (v73): a nominal parent with a fixed case set.
+// (a73): a nominal parent with a fixed case set.
 // Registry foundation only; construction, patterns,
 // proof, and emit arrive in later slices.
 type VariantDecl struct {
@@ -131,7 +131,7 @@ func qualifyCase(variant, short string) string {
 type Arm struct {
 	// Pats holds the arm's patterns, one per match scrutinee: exactly
 	// one entry for single-scrutinee arms, two or more for
-	// multi-scrutinee value arms (docs/v28, slots bool/str/wild).
+	// multi-scrutinee value arms (docs/a28, slots bool/str/wild).
 	// Always non-empty; the parser rejects empty slots.
 	Pats []Pattern
 	Rhs  *Node
@@ -212,11 +212,11 @@ type FnDecl struct {
 	// "" is the unit loop (site passes p - 1), "euclid" is the
 	// Euclidean step (site passes (b, a % b)), "narrowing" is binary
 	// search (site passes (lo, mid) or (mid, hi) with mid (lo+hi)/2).
-	// Set from the decreases metadata line; v19 owns the theorems.
+	// Set from the decreases metadata line; a19 owns the theorems.
 	DecNames  []string
 	DecSchema string
 	// Requires holds requires-block predicates and Ensures the
-	// outcome-indexed ensures arms (v69). Parsed and stored
+	// outcome-indexed ensures arms (a69). Parsed and stored
 	// only; no phase enforces them yet.
 	Requires []*Small
 	Ensures  []ContractArm
@@ -226,7 +226,7 @@ type FnDecl struct {
 func (d *FnDecl) declKind() string { return "fn" }
 
 // Utf8ExportDecl authorizes one function revision to disclose one
-// brand's representation as UTF-8 Bytes (v46 S2). It defines no value
+// brand's representation as UTF-8 Bytes (a46 S2). It defines no value
 // or function: certifyExports validates it whole-program and annotates
 // the exact permitted call site. Never in provides.
 type Utf8ExportDecl struct {
@@ -240,7 +240,7 @@ func (d *Utf8ExportDecl) declKind() string { return "export" }
 
 // BrandDecl is a nominal string wrapper: brand Name is str rev N.
 // An optional seals_from [B, ...] clause authorizes explicit one-way
-// promotion seals from those same-module brands (v26); without it the
+// promotion seals from those same-module brands (a26); without it the
 // brand mints from str only. Branding is proof, not runtime; the
 // emitter forgets every brand.
 type BrandDecl struct {
@@ -524,7 +524,7 @@ func findTop(s string, ops []string) (int, string) {
 		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
 			stack = stack[:len(stack)-1]
 		} else if len(stack) == 0 {
-			// v36 S1: a sequence head is one atom. Its <, >,
+			// a36 S1: a sequence head is one atom. Its <, >,
 			// and member commas never split an outer operator.
 			if strings.HasPrefix(s[i:], "Seq<") {
 				if end := seqHeadEnd(s[i:]); end > 0 {
@@ -566,7 +566,7 @@ func findLastTop(s string, ops []string) (int, string) {
 		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
 			stack = stack[:len(stack)-1]
 		} else if len(stack) == 0 {
-			// v36 S1: a sequence head is one atom (see findTop).
+			// a36 S1: a sequence head is one atom (see findTop).
 			if strings.HasPrefix(s[i:], "Seq<") {
 				if end := seqHeadEnd(s[i:]); end > 0 {
 					i += end
@@ -715,7 +715,7 @@ func parseSmall(s string) (*Small, error) {
 	if s == "" {
 		return nil, fmt.Errorf("empty expression")
 	}
-	// v66: interpreted string literals e"...". Same str kind and
+	// a66: interpreted string literals e"...". Same str kind and
 	// runtime representation as ordinary literals; only the six
 	// escapes decode. The e prefix is inert to every splitter
 	// (they track "..." regions uniformly), so embedding and
@@ -839,11 +839,11 @@ func parseSmall(s string) (*Small, error) {
 	}
 	// Exchange precedes binops for the same reason: args bind with =
 	// and outcomes may contain comparisons. One spelling per meaning:
-	// every script row is `exchange args (...) outcome ...` (v12).
+	// every script row is `exchange args (...) outcome ...` (a12).
 	if s == "exchange" || strings.HasPrefix(s, "exchange ") || strings.HasPrefix(s, "exchange\t") {
 		return parseExchange(s)
 	}
-	// v36 S1: typed sequence literals Seq<T>[...]. The element type
+	// a36 S1: typed sequence literals Seq<T>[...]. The element type
 	// is always written; bare [...] keeps its script-row meaning.
 	// This rule precedes binop splitting so the < and > never read
 	// as comparisons. Anything starting with Seq< is claimed here:
@@ -884,7 +884,7 @@ func parseSmall(s string) (*Small, error) {
 	// *, /, % (lower precedence splits first); each level splits at
 	// the LAST top-level occurrence so chains associate left:
 	// 10 - 3 - 2 is (10-3)-2. Unary minus exists on literals only
-	// (reInt above). / and % share * precedence (v17: exact
+	// (reInt above). / and % share * precedence (a17: exact
 	// Euclidean integer division; dec operands refused in checkSem).
 	if i, op := findLastTop(s, []string{"+", "-"}); i > 0 {
 		l, err := parseSmall(s[:i])
@@ -908,7 +908,7 @@ func parseSmall(s string) (*Small, error) {
 		}
 		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
 	}
-	// v20: scalar text operators. # binds tightest (this branch runs
+	// a20: scalar text operators. # binds tightest (this branch runs
 	// only when no looser split matched, so the operand is atomic);
 	// s[i] and s[a:b] are postfix at the same level, chaining left.
 	if strings.HasPrefix(s, "#") {
@@ -1027,7 +1027,7 @@ func seqHeadEnd(s string) int {
 }
 
 // parseSeqLit parses one typed sequence literal Seq<T>[v, ...]
-// (v36 S1). The element type is one plain name: no nesting, no
+// (a36 S1). The element type is one plain name: no nesting, no
 // elision. Members are full expressions split top-level-comma aware,
 // so members containing commas parse; an empty bracket is the empty
 // sequence. Anything else starting with Seq< fails here precisely.
@@ -1187,7 +1187,7 @@ var (
 	reGiven       = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
 	reArm         = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
 	// reContractArm heads an ensures arm: outcome plus bound name,
-	// no => (predicates follow as rows). v69 owns the shape.
+	// no => (predicates follow as rows). a69 owns the shape.
 	reContractArm     = regexp.MustCompile(`^on\s+([A-Za-z][\w.]*)\s+(\w+)$`)
 	reDecreases       = regexp.MustCompile(`^decreases\s+(\w+)$`)
 	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+)\s*,\s*(\w+)\s+by\s+(euclid|narrowing)$`)
@@ -1243,7 +1243,7 @@ func parseModuleText(name, text string) (*Module, error) {
 	if !utf8.ValidString(text) {
 		return nil, at(1, fmt.Errorf("source is not valid UTF-8: decode the file as UTF-8 before compiling"))
 	}
-	// R1 (v45): braces are delimiters nowhere, but data inside
+	// R1 (a45): braces are delimiters nowhere, but data inside
 	// string literals is not delimiters either, so the ban scans
 	// string-aware. Comments stay banned.
 	for n, raw := range strings.Split(text, "\n") {
@@ -1571,7 +1571,7 @@ func parseModuleText(name, text string) (*Module, error) {
 				return nil, err
 			}
 			i = next
-			// v69: ensures outcomes resolve against the complete
+			// a69: ensures outcomes resolve against the complete
 			// emits set, so block order is free.
 			allowed := map[string]bool{"Ok": true}
 			for _, e := range fn.Emits {
@@ -1625,7 +1625,7 @@ func parsePattern(s string) (Pattern, error) {
 		return Pattern{Kind: "str", Str: decoded, Raw: s}, nil
 	}
 	if m := rePatVar.FindStringSubmatch(s); m != nil && (m[1] == "Ok" || strings.Contains(m[1], ".") || strings.Contains(m[1], "__")) {
-		// v75: qualified case names parse as patterns; the
+		// a75: qualified case names parse as patterns; the
 		// checker proves membership, so any __ shape parses.
 		return Pattern{Kind: "variant", Name: m[1], Var: m[2]}, nil
 	}
@@ -1664,7 +1664,7 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 }
 
 // parseScrutList parses a match scrutinee list: one value/call expression,
-// or several comma-separated value expressions (docs/v28). Arity and
+// or several comma-separated value expressions (docs/a28). Arity and
 // call-in-multi rules belong to the checker (proper diagnostic codes);
 // only malformed slots fail here.
 func parseScrutList(s string) ([]*Small, error) {

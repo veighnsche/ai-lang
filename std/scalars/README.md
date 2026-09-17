@@ -24,5 +24,5 @@
   std/scalars std/scalars/scalars.ail`;
   verify: `go test ./...`.
 
-Rules: `/REQUIREMENTS.md`. Program: `docs/v13-stdlib.md` (row 2).
+Rules: `/REQUIREMENTS.md`. Program: `docs/a13-stdlib.md` (row 2).
 Names follow the brief verbatim (issue 5).

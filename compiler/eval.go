@@ -14,7 +14,7 @@ import (
 // Values: Kind str,int,bool,dec,rec,ok,err,seq,bytes. Field access
 // works on rec/ok/err. Dec holds canonical digits; proofs compare
 // exactly via big.Rat, so canonical strings compare equal exactly
-// when numeric. Int holds an arbitrary-precision value (v10:
+// when numeric. Int holds an arbitrary-precision value (a10:
 // unbounded, never wraps).
 type Value struct {
 	Kind    string
@@ -24,18 +24,18 @@ type Value struct {
 	D       string
 	Dict    map[string]*Value
 	ErrKind string
-	// Bytes holds the owned octets of a bytes value (v45 S1):
+	// Bytes holds the owned octets of a bytes value (a45 S1):
 	// exactly the validated literal contents, never shared.
 	Bytes []byte
 	// Rec names the record constructor for rec values built in value
 	// positions; empty for Ok payloads (which render as Ok).
 	Rec string
 	// Tag names the qualified case for variant values built in
-	// value positions (v74). The carrier shares the tagged-payload
+	// value positions (a74). The carrier shares the tagged-payload
 	// shape with errors, but Kind stays "variant": a case is data
 	// and never enters error paths (emits, catalogs, on e.kind).
 	Tag string
-	// Arr holds the ordered members of a seq value (v36 S1);
+	// Arr holds the ordered members of a seq value (a36 S1);
 	// Elem names the checked element type. Brands erase at runtime,
 	// so branded members arrive here as their strings: Elem keeps
 	// the static identity vEq compares.
@@ -45,7 +45,7 @@ type Value struct {
 
 // variantCaseDecl finds a case declaration by qualified name,
 // first wins across modules, matching the checker and the emitter
-// (v74). Collisions are rejected at the registry, so first wins is
+// (a74). Collisions are rejected at the registry, so first wins is
 // deterministic, exactly like records.
 func variantCaseDecl(prog *Program, qualified string) *VariantCase {
 	if prog == nil {
@@ -119,13 +119,13 @@ func decCmp(op string, c int) bool {
 
 // evArith evaluates exact arithmetic: same-kind operands only (the
 // static rule fires first with a code; this is unreachable past the
-// gate). Ints are unbounded (v10: no overflow, never wraps — the old
+// gate). Ints are unbounded (a10: no overflow, never wraps — the old
 // int64 gate is gone). Dec runs on scaled integers, so 0.1+0.2 is 0.3
 // and rendering is total with no rounding rule (add/sub/mul of
 // terminating decimals always terminate, which is why division waits
 // for its own spec).
 func evArith(op string, lv, rv *Value) (*Value, error) {
-	// v39 S4: Seq<T> + T appends immutably. The tail array is
+	// a39 S4: Seq<T> + T appends immutably. The tail array is
 	// copied, never shared, so the original value is unchanged;
 	// member typing is the checker's (brands erase before values
 	// arrive here, so no runtime recheck could be exact anyway).
@@ -133,7 +133,7 @@ func evArith(op string, lv, rv *Value) (*Value, error) {
 		arr := append(append([]*Value{}, lv.Arr...), rv)
 		return &Value{Kind: "seq", Arr: arr, Elem: lv.Elem}, nil
 	}
-	// v16: + concatenates strings; every other string computation
+	// a16: + concatenates strings; every other string computation
 	// stays a loud dynamic error past the static gate, as before.
 	if lv.Kind == "str" && rv.Kind == "str" {
 		if op != "+" {
@@ -151,7 +151,7 @@ func evArith(op string, lv, rv *Value) (*Value, error) {
 		}
 		return &Value{Kind: "dec", D: d}, nil
 	}
-	// v17: / and % are exact Euclidean integer division through
+	// a17: / and % are exact Euclidean integer division through
 	// big.Int.DivMod (verified: a == b*q + r with 0 <= r < |b| on
 	// every sign combination). A zero divisor is loud, never silent.
 	// Non-int operands are loud too: direct evaluator callers bypass
@@ -266,7 +266,7 @@ type Ctx struct {
 	Depth int
 	// match node -> test -> remaining outcome nodes (nil entry = "-")
 	Scripts map[*Node]map[string][]*Small
-	// Linked selects v68 linked-pure execution: foreign calls
+	// Linked selects a68 linked-pure execution: foreign calls
 	// dispatch to real bodies across modules and given tables
 	// are never consulted. Set only by runLinkedPure; ordinary
 	// unit runs always execute with scripts.
@@ -312,10 +312,10 @@ type Program struct {
 	EmitsOf   map[string][]string
 	Uses      map[string]bool
 	Modules   []*Module
-	// Variants maps variant name to its declaration (v73);
+	// Variants maps variant name to its declaration (a73);
 	// Cases maps a qualified case name to its parent
 	// variant. Case identities are globally unique by
-	// construction (v73 registry rejects collisions).
+	// construction (a73 registry rejects collisions).
 	Variants map[string]*VariantDecl
 	Cases    map[string]string
 }
@@ -324,7 +324,7 @@ func vField(v *Value, field string) (*Value, error) {
 	var d map[string]*Value
 	switch v.Kind {
 	case "rec", "ok", "err", "variant":
-		// v75: a bound case value projects its payload fields
+		// a75: a bound case value projects its payload fields
 		// like a record. The checker proves the field belongs
 		// to the arm's case; here it fails closed.
 		d = v.Dict
@@ -372,7 +372,7 @@ func vEq(a, b *Value) (bool, error) {
 		}
 		return vEq(&Value{Kind: "rec", Dict: a.Dict}, &Value{Kind: "rec", Dict: b.Dict})
 	case "variant":
-		// Nominal case equality (v74): the qualified tag leads,
+		// Nominal case equality (a74): the qualified tag leads,
 		// so same-shape cases of different identity never match.
 		// A variant never equals an error, a record, or Ok: the
 		// Kind gate above already separates those.
@@ -382,7 +382,7 @@ func vEq(a, b *Value) (bool, error) {
 		return vEq(&Value{Kind: "rec", Dict: a.Dict}, &Value{Kind: "rec", Dict: b.Dict})
 	case "seq":
 		// Structural sequence comparison for the test evaluator
-		// only (v36 S1): same element type, same length, ordered
+		// only (a36 S1): same element type, same length, ordered
 		// member comparison. This is not a language equality
 		// operator; == over sequences stays a compile error.
 		if a.Elem != b.Elem || len(a.Arr) != len(b.Arr) {
@@ -397,7 +397,7 @@ func vEq(a, b *Value) (bool, error) {
 		return true, nil
 	case "bytes":
 		// Structural byte comparison for the test evaluator only
-		// (v45 S1): same length, ordered contents. This is not a
+		// (a45 S1): same length, ordered contents. This is not a
 		// language equality operator; == over bytes stays a
 		// compile error.
 		if len(a.Bytes) != len(b.Bytes) {
@@ -506,7 +506,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		if err != nil {
 			return nil, err
 		}
-		// v37 S2: sequences count elements, strings count
+		// a37 S2: sequences count elements, strings count
 		// scalars. Members are never inspected, so brands need
 		// no case here.
 		if v.Kind == "seq" {
@@ -525,7 +525,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		if err != nil {
 			return nil, err
 		}
-		// v38 S3: sequences fetch members, never scalars. Bounds
+		// a38 S3: sequences fetch members, never scalars. Bounds
 		// never clamp: an unguarded out-of-range index (or a
 		// non-int64 one) fails loud, reachable only without the
 		// .ail guards the checked wrapper owns.
@@ -585,7 +585,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		return nil, fmt.Errorf("exchange outside a script row is outside the v0 subset")
 	case "ctor":
 		if node.Ctor == "Bytes" {
-			// v45 S1: literal-only construction, validated before
+			// a45 S1: literal-only construction, validated before
 			// creating the value. The checker admits only Seq<int>
 			// literals of in-range integer members; re-check here
 			// so execution (direct callers included) never invents
@@ -645,7 +645,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			}
 			return &Value{Kind: "err", ErrKind: node.Ctor, Dict: fields}, nil
 		}
-		// Declared variant cases in value positions (v74): exact
+		// Declared variant cases in value positions (a74): exact
 		// named fields with explicit declared types (checked
 		// statically; re-verified here so execution never invents
 		// a shape the declaration does not name). The carrier is
@@ -693,7 +693,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 	case "list":
 		return nil, fmt.Errorf("list literal outside given is outside the v0 subset")
 	case "seqlit":
-		// v36 S1: order, empties, and repeats preserved exactly.
+		// a36 S1: order, empties, and repeats preserved exactly.
 		// Members evaluate left to right; the first failure ends
 		// the literal, like every other strict position.
 		arr := make([]*Value, 0, len(node.Items))
@@ -776,7 +776,7 @@ func evLocalCall(helper *FnDecl, scrut *Small, env map[string]*Value, ctx *Ctx, 
 	for i, p := range helper.Params {
 		env2[p[0]] = vals[i]
 	}
-	// No negative-entry check here (v11): every admitted self-call
+	// No negative-entry check here (a11): every admitted self-call
 	// sits under the false arm of its p <= 0 guard, so a negative
 	// entry takes the base arm before any recursion. The sandbox depth
 	// bound below stays as the resource backstop against hangs.
@@ -896,7 +896,7 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
 			return true
 		}
-		// v75: a case pattern matches its carrier by qualified
+		// a75: a case pattern matches its carrier by qualified
 		// tag and binds the whole case value, so payload
 		// projects through field access. Error kinds never match
 		// here: p.Name carries no dot by the isCase shape, and
@@ -910,7 +910,7 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 		if v.Kind == "err" && v.ErrKind == p.Name {
 			return true
 		}
-		// v75: discarding a case matches by tag with no binding.
+		// a75: discarding a case matches by tag with no binding.
 		return p.isCase() && v.Kind == "variant" && v.Tag == p.Name
 	default:
 		return false
@@ -924,7 +924,7 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 	return evValueMatch(node, env, ctx, owner)
 }
 
-// evValueMatch evaluates a value table of any arity 1..N (docs/v28):
+// evValueMatch evaluates a value table of any arity 1..N (docs/a28):
 // every scrutinee evaluates exactly once, left to right, then the
 // first arm whose every slot matches wins, binding variant payloads
 // exactly as the old single loop did. A call scrutinee is a shape
@@ -972,7 +972,7 @@ func evValueMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*V
 	return nil, fmt.Errorf("%s/%s: non-exhaustive multi-scrutinee match", owner, ctx.Test)
 }
 
-// evBytesEncodeOp evaluates UTF-8 encoding (v46 S2, v47 S3): the input
+// evBytesEncodeOp evaluates UTF-8 encoding (a46 S2, a47 S3): the input
 // string as UTF-8 bytes, NUL and BOM preserved. Restricted calls
 // refuse loud without a certificate; the refusal must never become
 // trusted script evidence (certificates issue before linkage for
@@ -1015,7 +1015,7 @@ func evBytesEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
 }
 
-// evBytesDecodeOp evaluates UTF-8 decoding (v50 B6): the input Bytes
+// evBytesDecodeOp evaluates UTF-8 decoding (a50 B6): the input Bytes
 // as a string when the whole input is valid UTF-8, else the
 // encoding.invalid_utf8 language error carrying the ORIGINAL payload
 // unchanged — with a nil Go error. Malformed input is a computed
@@ -1048,7 +1048,7 @@ func evBytesDecodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: string(v.Bytes)}}}, nil
 }
 
-// evBytesHexEncodeOp evaluates hex encoding (v52 B8): the input
+// evBytesHexEncodeOp evaluates hex encoding (a52 B8): the input
 // Bytes as lowercase hex, byte-ordered, empty to "". Bytes are
 // never read as text: ASCII-looking octets encode as digits.
 func evBytesHexEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
@@ -1072,7 +1072,7 @@ func evBytesHexEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner str
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: hex.EncodeToString(v.Bytes)}}}, nil
 }
 
-// evBytesHexDecodeOp evaluates hex decoding (v55 B10): an
+// evBytesHexDecodeOp evaluates hex decoding (a55 B10): an
 // even-length ASCII hex string as Bytes, else the
 // encoding.invalid_hex language error carrying the ORIGINAL string
 // unchanged — with a nil Go error. The host's partial prefix is
@@ -1123,7 +1123,7 @@ func isHexStr(s string) bool {
 	return true
 }
 
-// evBytesB64EncodeOp evaluates base64 encoding (v58 B12): the input
+// evBytesB64EncodeOp evaluates base64 encoding (a58 B12): the input
 // Bytes as standard padded base64, byte-ordered, empty to "". Bytes
 // are never read as text.
 func evBytesB64EncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
@@ -1147,7 +1147,7 @@ func evBytesB64EncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner str
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: base64.StdEncoding.EncodeToString(v.Bytes)}}}, nil
 }
 
-// evBytesB64DecodeOp evaluates base64 decoding (v59 B14): a strict
+// evBytesB64DecodeOp evaluates base64 decoding (a59 B14): a strict
 // standard-base64 string as Bytes, else the encoding.invalid_base64
 // language error carrying the ORIGINAL string unchanged — with a
 // nil Go error. Strict decoding owns unused-bit rejection, but the
@@ -1307,7 +1307,7 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				return nil, &UnknownCallError{Owner: owner, Fname: fname}
 			}
 			if ctx.Linked {
-				// v68: linked-pure execution dispatches to the
+				// a68: linked-pure execution dispatches to the
 				// real body with module identity preserved
 				// (evLocalCall is file-agnostic; FnFile is
 				// never rewritten). Given tables are not
@@ -1423,7 +1423,7 @@ func describe(v *Value) string {
 	if v.Kind == "err" {
 		return "err(" + v.ErrKind + ")"
 	}
-	// v74: a variant describes by its qualified tag, never its
+	// a74: a variant describes by its qualified tag, never its
 	// bare kind: mismatch messages must name the case.
 	if v.Kind == "variant" {
 		return "variant(" + v.Tag + ")"
@@ -1520,7 +1520,7 @@ func normalizeValue(v *Value) string {
 		}
 		return "err(" + v.ErrKind + "(" + strings.Join(parts, ", ") + "))"
 	case "variant":
-		// Canonical case form (v74): the qualified tag names the
+		// Canonical case form (a74): the qualified tag names the
 		// value, payload fields sort like records. Never err(..):
 		// the carrier is data, and the rendering must show it.
 		keys := make([]string, 0, len(v.Dict))
@@ -1580,7 +1580,7 @@ func runTestValue(fn *FnDecl, test Test, prog *Program, cov map[*Node]map[int]bo
 		return nil, nil, err
 	}
 	ctx := &Ctx{Prog: prog, Test: test.Name, Scripts: map[*Node]map[string][]*Small{}, Cov: cov, Store: store}
-	// No negative-entry check here either (v11): the static guard rule
+	// No negative-entry check here either (a11): the static guard rule
 	// admits recursion only under the positive branch, so a negative
 	// entry evaluates the base arm and returns a declared outcome.
 	got, err := evNode(fn.Body, env, ctx, fn.Name)
@@ -1596,7 +1596,7 @@ func runTestValue(fn *FnDecl, test Test, prog *Program, cov map[*Node]map[int]bo
 }
 
 // checkExchangeArgs proves "this request received this permitted
-// response" (v12): every expected arg must arrive with an equal value
+// response" (a12): every expected arg must arrive with an equal value
 // under the same name, and the call must supply nothing unexpected.
 // Positional call args resolve through the callee signature; expected
 // args are always named (the parser refuses anything else).
@@ -1774,7 +1774,7 @@ func verifyExhaustive(mods []*Module, prog *Program) error {
 // matchMissing is one enclosing call-match's line and the outcome
 // kinds it is missing: a stale arm for one of those kinds nested
 // inside it is almost always an arm attached to the wrong match,
-// so the stale report points at the enclosing line (v63).
+// so the stale report points at the enclosing line (a63).
 type matchMissing struct {
 	line    int
 	missing map[string]bool
@@ -1801,7 +1801,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 		if n.Kind == MatchCall {
 			fname := n.Scruts[0].Fname
 			if isBytesKernel(fname) {
-				// v46 S2: every kernel's contract must exist
+				// a46 S2: every kernel's contract must exist
 				// explicitly; an absent entry is never an empty
 				// error set (no dec__parts shortcut).
 				if _, ok := prog.EmitsOf[fname]; !ok {
@@ -1809,7 +1809,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 				}
 			}
 			if calleeUnknown(prog, fname) {
-				// v62: the call resolves nowhere (checkCalls
+				// a62: the call resolves nowhere (checkCalls
 				// owns the AIL3001); prove nothing about its
 				// outcomes, but still prove nested matches.
 				for _, a := range n.Arms {
@@ -2043,7 +2043,7 @@ func residualInLast(prior []armCover, last armCover, nslot int, domains [][]valu
 }
 
 // verifyValueMatch proves a value table of any arity 1..N total
-// (docs/v28): no call scrutinees, one pattern per slot on every arm,
+// (docs/a28): no call scrutinees, one pattern per slot on every arm,
 // bool and string literals never mixed in one slot, and the arms'
 // product spaces covering the total space. Arity 1 keeps the historical
 // single policy verbatim (AIL4103/AIL4104 byte-pinned; the product
@@ -2086,7 +2086,7 @@ func verifyValueMatch(n *Node, owner string) []error {
 				}
 			case "wild":
 			default:
-				// v75: case-shaped patterns belong to the
+				// a75: case-shaped patterns belong to the
 				// checker, which proves membership,
 				// exhaustiveness, and placement against typed
 				// scrutinees this proof cannot see. The proof

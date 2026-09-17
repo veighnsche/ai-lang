@@ -8,7 +8,7 @@ import (
 
 // Termination + iteration: a direct self-call is a loop only with a
 // decreases line proving an int param steps down by one under the
-// positive branch on every site (v11). Without the proof the shape is
+// positive branch on every site (a11). Without the proof the shape is
 // a cycle error, refused before anything runs; recursion across files
 // is refused program-wide by the same rule.
 
@@ -100,7 +100,7 @@ func TestLoopNoDecreaseShapes(t *testing.T) {
 }
 
 // Larger steps terminate but break the one-spelling rule: only the
-// unit step is admitted (v11).
+// unit step is admitted (a11).
 func TestLoopLargerStepRefused(t *testing.T) {
 	for _, site := range []string{"match call m__poll(n - 2)", "match call m__poll(n = n - 3)"} {
 		bad := strings.Replace(loopPoll, "match call m__poll(n - 1)", site, 1)
@@ -114,7 +114,7 @@ func TestLoopLargerStepRefused(t *testing.T) {
 
 // Unguarded self-calls are refused even with a unit step: a site in
 // the true arm diverges (each entry steps further negative), and a
-// site with no bound guard at all proves nothing (v11, AIL3009).
+// site with no bound guard at all proves nothing (a11, AIL3009).
 func TestLoopUnguardedRefused(t *testing.T) {
 	trueArm := strings.Replace(loopPoll,
 		"    true => Ok(n = 0)\n    false => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)",
@@ -152,7 +152,7 @@ func TestLoopStrictGuardRefused(t *testing.T) {
 	}
 }
 
-// Blessed schemas (v19, issue #41): euclid and narrowing admit
+// Blessed schemas (a19, issue #41): euclid and narrowing admit
 // efficient recursion the unit step cannot spell. Each pairs one
 // canonical step with one canonical guard; anything else is refused
 // with the same code families as the unit loop.
@@ -334,7 +334,7 @@ fn m__b(n: int) -> M__S rev 1
 }
 
 // Negative entries take the base arm and return a declared outcome
-// (v11): the guard rule admits recursion only under the positive
+// (a11): the guard rule admits recursion only under the positive
 // branch, so fault-bounded evaluation is no longer the theorem.
 func TestLoopNegativeEntryTakesBase(t *testing.T) {
 	neg := strings.Replace(loopPoll,
@@ -356,7 +356,7 @@ func TestLoopDupDecreases(t *testing.T) {
 	}
 }
 
-// Cross-file recursion is refused program-wide (v11): the sandbox
+// Cross-file recursion is refused program-wide (a11): the sandbox
 // stubs foreign calls, so without a whole-program check a mutual
 // cycle across two files passes every test, then links into an
 // unproved recursive cycle in production. The gate blocks test

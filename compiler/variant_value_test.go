@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// v74: variant value admission. Cases construct by qualified name,
+// a74: variant value admission. Cases construct by qualified name,
 // carry the parent type outward, evaluate to a tagged carrier that
 // is never an error, and emit as TS discriminated unions. Probes
 // first: every TestVariantValue* below fails before the slice.
@@ -203,7 +203,7 @@ func TestVariantBareExpectRejected(t *testing.T) {
 }
 
 // TestVariantEqualityRefused pins the == boundary: cases compare
-// by matching (v75), never by ==. Like Bytes and Seq, the refusal
+// by matching (a75), never by ==. Like Bytes and Seq, the refusal
 // lands at check time so no variant operand sails through to a
 // loud emit failure.
 func TestVariantEqualityRefused(t *testing.T) {

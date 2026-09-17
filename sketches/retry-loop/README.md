@@ -9,4 +9,4 @@
   (tests/given stripped). Regenerate: `go run ./compiler --out
   <dir> sketches/retry-loop/retry.ail`; verify: `go test ./...`.
 
-Rules: `/REQUIREMENTS.md`. Proof: `docs/v08-termination.md`.
+Rules: `/REQUIREMENTS.md`. Proof: `docs/a08-termination.md`.

@@ -30,17 +30,17 @@ type tycker struct {
 	recs   map[string][][2]string
 	errs   map[string][][2]string
 	brands map[string]bool
-	// variants holds declared variant names (v73): payloads
+	// variants holds declared variant names (a73): payloads
 	// may name variants, but never sequences of them.
 	variants map[string]bool
 	// cases maps a qualified case name to its check shape
-	// (v74): the parent variant is the constructor's nominal
+	// (a74): the parent variant is the constructor's nominal
 	// type, the fields its exact construction contract.
 	cases map[string]variantCase
 	// brandFiles maps brand name to declaring file (first wins).
 	brandFiles map[string]string
 	// brandSeals maps brand name to its declared promotion sources
-	// (v26 seals_from; first wins). Empty means str-only minting.
+	// (a26 seals_from; first wins). Empty means str-only minting.
 	brandSeals map[string][]string
 	// exec is true inside function bodies (executable positions)
 	// and false in tests and given rows (checked data positions).
@@ -75,7 +75,7 @@ func newTycker(prog *Program, text, fn string) *tycker {
 				}
 			case *VariantDecl:
 				c.variants[d.Name] = true
-				// v74: qualified cases enter the construction
+				// a74: qualified cases enter the construction
 				// table with their parent and exact fields.
 				// Collisions are rejected at the registry, so
 				// first wins here exactly like records.
@@ -117,14 +117,14 @@ func newTycker(prog *Program, text, fn string) *tycker {
 	return c
 }
 
-// variantCase is one qualified case's check shape (v74): the
+// variantCase is one qualified case's check shape (a74): the
 // parent variant it constructs, and the exact declared fields.
 type variantCase struct {
 	parent string
 	fields [][2]string
 }
 
-// isCaseType reports whether t is a qualified case name (v75): a
+// isCaseType reports whether t is a qualified case name (a75): a
 // binder's static identity. Parents are variants, never cases.
 func isCaseType(c *tycker, t string) bool {
 	_, ok := c.cases[t]
@@ -132,7 +132,7 @@ func isCaseType(c *tycker, t string) bool {
 }
 
 // seqElemName splits a sequence annotation Seq<T> into its element
-// type name (v36 S1). ok=false for anything else, including nested
+// type name (a36 S1). ok=false for anything else, including nested
 // sequences: Seq<Seq<str>> is not a v1 shape.
 func seqElemName(t string) (string, bool) {
 	if !strings.HasPrefix(t, "Seq<") || !strings.HasSuffix(t, ">") {
@@ -221,7 +221,7 @@ func (c *tycker) resolveRef(ref []string, env map[string]string) (string, bool) 
 		if strings.HasPrefix(t, "err:") {
 			fields = c.errs[strings.TrimPrefix(t, "err:")]
 		} else if cc, ok := c.cases[t]; ok {
-			// v75: a case binder views its own payload. The
+			// a75: a case binder views its own payload. The
 			// binder's static type is the qualified case, so a
 			// same-named field of a sibling case never resolves
 			// here — projection is case-specific by construction.
@@ -293,7 +293,7 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		// param/field declaration owns the AIL6002, and comparing
 		// through it would cascade one typo into many.
 		if !c.knownType(t) {
-			// v75: a case binder carries its qualified case as
+			// a75: a case binder carries its qualified case as
 			// its static type. It is not a known annotation, but
 			// it must compare — otherwise a binder smuggled into
 			// a parent-typed position would pass silently. The
@@ -313,7 +313,7 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		// their own rules; unknown records stay silent here because
 		// checkCtor owns the unknown-record diagnostic.
 		if s.Ctor != "Ok" && !strings.Contains(s.Ctor, ".") {
-			// v45 S1: the primitive Bytes constructor carries its
+			// a45 S1: the primitive Bytes constructor carries its
 			// type outward like a record constructor. checkCtor
 			// owns shape and range validation.
 			if s.Ctor == "Bytes" {
@@ -322,7 +322,7 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			if _, ok := c.recs[s.Ctor]; ok {
 				return s.Ctor, true
 			}
-			// v74: a qualified case constructor carries its
+			// a74: a qualified case constructor carries its
 			// parent variant outward, so outer positions check
 			// the nominal identity, never the payload shape.
 			// checkCtor owns the undeclared-case diagnostic.
@@ -334,7 +334,7 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 	case "strlen":
 		return "int", true
 	case "stridx":
-		// v38 S3: a sequence base yields its element type, so a
+		// a38 S3: a sequence base yields its element type, so a
 		// brand member stays branded at check time. Unknown bases
 		// keep the historical int; the value rule owns the base
 		// diagnostic and preseq code never sees a sequence.
@@ -352,26 +352,26 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		}
 		l, lok := c.typeOf(s.L, env)
 		r, rok := c.typeOf(s.R, env)
-		// v16: + concatenates strings (construction needs no
+		// a16: + concatenates strings (construction needs no
 		// indexing); - and * stay numeric-only, and brands and
 		// bools compute nothing even when both sides agree.
 		if s.Op == "+" && lok && rok && l == "str" && r == "str" {
 			return "str", true
 		}
-		// v39 S4: an append carries its sequence type outward,
+		// a39 S4: an append carries its sequence type outward,
 		// so outer positions check element identity once.
 		if s.Op == "+" && lok && rok {
 			if le, ok := seqElemName(l); ok && r == le {
 				return l, true
 			}
 		}
-		// v42: same-brand str-backed + yields the brand.
+		// a42: same-brand str-backed + yields the brand.
 		if s.Op == "+" && lok && rok && l == r && c.brands[l] {
 			if under, ok := c.prog.Brands[l]; ok && under == "str" {
 				return l, true
 			}
 		}
-		// v17: decimal division and remainder have no exact result;
+		// a17: decimal division and remainder have no exact result;
 		// keep them untyped so parents stay silent and the value
 		// rule reports the one refusal.
 		if (s.Op == "/" || s.Op == "%") && lok && rok && l == "dec" && r == "dec" {
@@ -386,7 +386,7 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 }
 
 // isArith reports the computing operators: comparisons ask, these do.
-// v17 adds / and % (exact Euclidean integer division); dec operands
+// a17 adds / and % (exact Euclidean integer division); dec operands
 // for either are refused in the value rule, not here.
 func isArith(op string) bool {
 	return op == "+" || op == "-" || op == "*" || op == "/" || op == "%"
@@ -461,7 +461,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 				fmt.Sprintf("unknown brand %s in seal", s.Seal), s.Seal, CodeUnknownType))
 			return
 		}
-		// v15: executable code mints only its own module's brands.
+		// a15: executable code mints only its own module's brands.
 		// The declaring file owns every executable seal site (grep
 		// seal is the audit); tests and given rows may name any
 		// declared brand because they are checked data, not code.
@@ -472,9 +472,9 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 				return
 			}
 		}
-		// v10: brands erase to strings at runtime; emit reads T.
+		// a10: brands erase to strings at runtime; emit reads T.
 		s.T = s.Seal
-		// v25: seals take string literals or string-typed refs and
+		// a25: seals take string literals or string-typed refs and
 		// fields, so decision-tabled constructors can mint computed
 		// brands. The file-ownership rule above stays the audit.
 		if len(s.Args) != 1 {
@@ -485,7 +485,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		slabel := fmt.Sprintf("seal %s value", s.Seal)
 		c.value(s.Args[0].V, "", line, env, slabel)
 		if got, ok := c.typeOf(s.Args[0].V, env); ok && c.brands[got] {
-			// v26: explicitly authorized one-way promotion. The
+			// a26: explicitly authorized one-way promotion. The
 			// destination's seals_from names the admitted source
 			// brands; unlisted sources stay AIL6003, and there is
 			// no reverse, transitive, or inferred promotion.
@@ -540,7 +540,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if want != "" && !strings.HasPrefix(got, "err:") && got != want {
 			c.mismatch(line, where, got, want, tokenOf(s))
 		}
-		// v10: record the resolved type for emit's typed dispatch.
+		// a10: record the resolved type for emit's typed dispatch.
 		s.T = got
 		return
 	}
@@ -562,7 +562,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if !lok || !rok {
 			return
 		}
-		// v10: record the operand type for emit's typed dispatch.
+		// a10: record the operand type for emit's typed dispatch.
 		// Same-type operands are enforced below; emit runs only on
 		// success, so the annotation always agrees there.
 		if l == r {
@@ -570,14 +570,14 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 		if isArith(s.Op) {
 			// Arithmetic yields the operand type, but only int
-			// and dec compute, plus str under + (v16: explicit
+			// and dec compute, plus str under + (a16: explicit
 			// construction). Same-brand seals and bools do not,
 			// even when both sides agree; neither do - and * on
 			// strings.
 			if l == r && l == "str" && s.Op == "+" {
 				return
 			}
-			// v42: B + B -> B for str-backed brands (fragment
+			// a42: B + B -> B for str-backed brands (fragment
 			// assembly). Both operands are already minted, so
 			// no seal site is added or bypassed (the grep-seal
 			// audit is untouched); the result stays branded
@@ -591,7 +591,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 					return
 				}
 			}
-			// v39 S4: Seq<T> + T appends, yielding the sequence
+			// a39 S4: Seq<T> + T appends, yielding the sequence
 			// type. Seq + Seq is a separate concatenation
 			// contract (not v1) with its own diagnostic; a
 			// member on the left keeps the existing
@@ -611,7 +611,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 					return
 				}
 			}
-			// v17: 1/3 does not terminate, so decimal division and
+			// a17: 1/3 does not terminate, so decimal division and
 			// remainder are refused per operation. Integers divide
 			// exactly (Euclidean); use them.
 			if l == r && l == "dec" && (s.Op == "/" || s.Op == "%") {
@@ -629,26 +629,26 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: no implicit conversions", l, r), s.Op, CodeTypeMismatch))
 		} else if l == "Bytes" || r == "Bytes" {
-			// v45 S1: no direct byte operators. Structural comparison
+			// a45 S1: no direct byte operators. Structural comparison
 			// lives in the test evaluator (vEq) only, so record and
 			// payload expectations still verify.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: Bytes comparison is not in v1", l, r), s.Op, CodeTypeMismatch))
 		} else if _, ok := seqElemName(l); ok {
-			// v36 S1 promises no sequence equality surface: ==
+			// a36 S1 promises no sequence equality surface: ==
 			// over two sequences is a compile error, not a silent
 			// shape. Structural comparison lives in the test
 			// evaluator (vEq) only, so expectations still verify.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: sequence equality is not in v1", l, r), s.Op, CodeTypeMismatch))
 		} else if c.variants[l] || isCaseType(c, l) {
-			// v74: cases compare by matching (v75), never by ==.
+			// a74: cases compare by matching (a75), never by ==.
 			// The refusal lands here so no variant operand sails
 			// through to a loud emit failure. Structural
 			// comparison lives in the test evaluator (vEq) only,
 			// so expectations over variant payloads still verify.
 			// A future slice may amend this explicitly if it
-			// carries its own comparison convention. v75: case
+			// carries its own comparison convention. a75: case
 			// binders compare through their case identity, so the
 			// refusal covers them too.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
@@ -657,7 +657,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 	case "strlen":
 		c.value(s.L, "", line, env, "length")
 		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
-			// v37 S2: # counts sequence elements too. Anything
+			// a37 S2: # counts sequence elements too. Anything
 			// else keeps the pinned scalar diagnostic verbatim.
 			if _, isSeq := seqElemName(t); !isSeq {
 				c.out = append(c.out, spanDiag(c.text, line, "error",
@@ -670,7 +670,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		c.value(s.L, "", line, env, "index base")
 		c.value(s.R, "", line, env, "index")
 		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
-			// v38 S3: a sequence base indexes to its element
+			// a38 S3: a sequence base indexes to its element
 			// type. The index stays int; anything else keeps
 			// the pinned diagnostic verbatim.
 			if elem, isSeq := seqElemName(t); isSeq {
@@ -745,7 +745,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 	case "ctor":
 		c.checkCtor(s, want, line, env, where)
 	case "list":
-		// v36 S1: bare [...] is script rows, never a value. Given
+		// a36 S1: bare [...] is script rows, never a value. Given
 		// tables consume the outer list structurally (checkStubs),
 		// so this arm only fires in real value positions, where the
 		// fix is always an explicitly typed Seq<T>[...] literal.
@@ -755,11 +755,11 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.value(it, "", line, env, where)
 		}
 	case "seqlit":
-		// v36 S1: values and element checking are one admission
+		// a36 S1: values and element checking are one admission
 		// boundary. Every member checks against the written element
 		// type with no inference and no emptiness waiver; exec is
 		// untouched, so seals inside executable literals keep the
-		// v15 file-ownership rule (AIL6004) while test and script
+		// a15 file-ownership rule (AIL6004) while test and script
 		// data keep naming any declared brand.
 		if _, nested := seqElemName(s.Elem); nested || !c.knownType(s.Elem) {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
@@ -944,7 +944,7 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		}
 		fields, label = ed, name
 	} else if name == "Bytes" {
-		// v45 S1: literal-only construction. Exactly one positional
+		// a45 S1: literal-only construction. Exactly one positional
 		// argument holding an explicit Seq<int> literal whose members
 		// are integer-literal AST nodes in 0..255 (big.Int
 		// comparison, no narrowing). No conversion, no inference.
@@ -988,13 +988,13 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		}
 		return
 	} else if cc, ok := c.cases[name]; ok {
-		// v74: a qualified case constructs its parent variant
+		// a74: a qualified case constructs its parent variant
 		// with exactly the declared case fields. The shared
 		// field loop below checks unknown, repeated, missing,
 		// and mistyped fields; the constructor's nominal type
 		// is the parent, never the payload shape.
 		fields, label = cc.fields, name
-		// v75: the nominal type annotates outward like Bytes, so
+		// a75: the nominal type annotates outward like Bytes, so
 		// emit's typed dispatch reads the parent for scrutinees
 		// built inline. Anything else ignores constructor T.
 		s.T = cc.parent
@@ -1111,7 +1111,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		}
 		return
 	}
-	// v75: variant elimination. A single scrutinee resolving to a
+	// a75: variant elimination. A single scrutinee resolving to a
 	// variant parent takes the case path; a case-typed scrutinee
 	// (an already-eliminated binder) is refused; any variant slot
 	// in a multi match refuses the second scrutinee. Everything
@@ -1158,7 +1158,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 	}
 }
 
-// nodeVariantArms checks one variant elimination (v75): every arm
+// nodeVariantArms checks one variant elimination (a75): every arm
 // carries exactly one case pattern of the scrutinee's union, each
 // case exactly once, no other pattern kinds. Binders enter the arm
 // env typed as their qualified case, so projection resolves through
@@ -1288,7 +1288,7 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("unknown type %s in returns", fn.Ret), fn.Ret, CodeUnknownType))
 	}
-	// v26: bare-brand returns are unsupported. checkCtor skips Ok
+	// a26: bare-brand returns are unsupported. checkCtor skips Ok
 	// payloads when the return is not a record, so a brand return
 	// would sail through static checking and die only at emit.
 	// Reject at the source instead; entries return wrapper records.
@@ -1296,7 +1296,7 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns brand %s: bare-brand returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
 	}
-	// v36 S1: bare-Seq returns are unsupported, like bare-brand
+	// a36 S1: bare-Seq returns are unsupported, like bare-brand
 	// returns. Expectations must be Ok(...) or an error kind, so a
 	// function returning a bare sequence could never be tested;
 	// entries return wrapper records. A future customer slice may
@@ -1305,14 +1305,14 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns %s: bare-Seq returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
 	}
-	// v45 S1: bare-Bytes returns are unsupported, like bare-brand and
+	// a45 S1: bare-Bytes returns are unsupported, like bare-brand and
 	// bare-Seq returns. Entries return wrapper records; codecs and
 	// Render name theirs explicitly (B2+).
 	if fn.Ret == "Bytes" {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns Bytes: bare-Bytes returns are unsupported, return a record", fn.Name), fn.Ret, CodeTypeMismatch))
 	}
-	// v74: bare-variant returns are unsupported, like bare-brand,
+	// a74: bare-variant returns are unsupported, like bare-brand,
 	// bare-Seq, and bare-Bytes returns. Entries return wrapper
 	// records; the case constructor's parent type is data, not a
 	// function result shape.
@@ -1359,7 +1359,7 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 				c.checkCtor(exp, "", t.Line, env, label)
 			}
 		case exp.Kind == "ref" && len(exp.Ref) > 1:
-			// Bare error kinds prove nothing about the payload (v12):
+			// Bare error kinds prove nothing about the payload (a12):
 			// expectations must construct the complete error value.
 			name := strings.Join(exp.Ref, ".")
 			d := spanDiag(text, t.Line, "error",
@@ -1411,7 +1411,7 @@ func checkExternSig(ex *ExternDecl, prog *Program, text string) []Diag {
 		c.out = append(c.out, spanDiag(text, ex.Line, "error",
 			fmt.Sprintf("extern %s returns %s: externs return a record type, Ok/errors script the outcome", ex.Name, ex.Ret), ex.Ret, CodeTypeMismatch))
 	}
-	// v12: extern manifests are upper bounds like function emits —
+	// a12: extern manifests are upper bounds like function emits —
 	// every entry must name a declared error.
 	for _, e := range ex.Emits {
 		if _, ok := c.errs[e]; !ok {
@@ -1448,7 +1448,7 @@ func checkDeclFields(name string, fields [][2]string, line int, prog *Program, t
 // checkBrandDecl enforces the v0 brand boundary: string-backed only.
 // int-backed brands wait for a second underlying type with something
 // to prove about it. A seals_from source must name a declared brand
-// from the same module (v26): promotion authority is explicit and
+// from the same module (a26): promotion authority is explicit and
 // owner-local, never inferred across files.
 func checkBrandDecl(b *BrandDecl, prog *Program, text string) []Diag {
 	if b.Under != "str" {

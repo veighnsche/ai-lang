@@ -113,7 +113,7 @@ func TestDiagnoseMissingRev(t *testing.T) {
 	}
 }
 
-// Complete error expectations compare kind and payload (v12): a
+// Complete error expectations compare kind and payload (a12): a
 // wrong payload fails the test even when the kind matches, and a
 // bare kind is refused statically.
 const expectErrFixture = `mod m
@@ -238,7 +238,7 @@ func TestDiagnoseBadStub(t *testing.T) {
 }
 
 // Exchanges prove "this request received this permitted response"
-// (v12): a wrong request value, a wrong request name, or a row
+// (a12): a wrong request value, a wrong request name, or a row
 // without an exchange all fail loudly.
 func TestExchangeArgMismatch(t *testing.T) {
 	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok(id = "u")]`, `ok => [exchange args (id = "x") outcome db.down()]`, 1)
@@ -286,7 +286,7 @@ func TestDiagnoseForeignRaise(t *testing.T) {
 }
 
 // Unrealized emits entries are a conservative upper bound, not an
-// error (v12) — but every entry must name a declared error.
+// error (a12) — but every entry must name a declared error.
 func TestDiagnoseUpperBoundEmits(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"db.ail": lspDB, "auth.ail": lspAuth})
 	if diags := diagnose(dir, "auth.ail", lspAuth); len(diags) != 0 {
@@ -720,7 +720,7 @@ func TestDiagnoseInvalidRelayUnexpected(t *testing.T) {
 // A valid identity relay over a local call is exempt from execution
 // coverage by structural certificate: relayMathTwo's relay arm never
 // executes (fail raises before any call; pos unwinds through Ok), yet
-// the fixture must diagnose clean — same shape as the v44 skip-level
+// the fixture must diagnose clean — same shape as the a44 skip-level
 // relay arm, which compiles without a dedicated row.
 func TestDiagnoseValidRelayExempt(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"math2.ail": relayMathTwo})
@@ -1119,7 +1119,7 @@ fn m__seal(pw: str, n: int) -> M__Out rev 1
   Ok(echo = seal M__B(pw))
 `
 
-// v25 supersedes the literal-only seal rule: seals take string
+// a25 supersedes the literal-only seal rule: seals take string
 // literals or string-typed refs and fields, so decision-tabled
 // constructors can mint computed brands. What stays rejected is
 // anything not statically a string — int literals and int refs.
@@ -1288,7 +1288,7 @@ func TestDiagnoseArithMixed(t *testing.T) {
 }
 
 func TestDiagnoseArithStr(t *testing.T) {
-	// v16: + concatenates strings, so the refused string operation
+	// a16: + concatenates strings, so the refused string operation
 	// is now -. The contract under test is unchanged: strings do
 	// no arithmetic besides explicit construction.
 	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(a = 10, b = 3, c = 2) => Ok(n = 5)\n=\n  Ok(n = a - b - c)",
@@ -1317,7 +1317,7 @@ fn m__cat(left: str, right: str) -> M__Cat rev 1
 `
 
 func TestDiagnoseStrConcatClean(t *testing.T) {
-	// v16: str + str is explicit construction, not a mismatch.
+	// a16: str + str is explicit construction, not a mismatch.
 	dir := writeLSPDir(t, map[string]string{"m.ail": typeConcat})
 	if diags := diagnose(dir, "m.ail", typeConcat); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
@@ -1342,7 +1342,7 @@ fn m__div(a: int, b: int) -> M__Out rev 1
 `
 
 func TestDiagnoseDivisionDeferred(t *testing.T) {
-	// v17 discharges the v06 deferral for integers: / is exact
+	// a17 discharges the a06 deferral for integers: / is exact
 	// Euclidean division with a loud zero divisor. What stays
 	// deferred is decimal division (AIL6005, pinned separately).
 	dir := writeLSPDir(t, map[string]string{"m.ail": typeIntDiv})

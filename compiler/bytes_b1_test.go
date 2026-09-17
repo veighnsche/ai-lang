@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v45 S1 (B1): Bytes value admission and literal construction. Finite
+// a45 S1 (B1): Bytes value admission and literal construction. Finite
 // immutable byte values denoted only by Bytes(Seq<int>[...]) with
 // integer-literal members in 0..255. Decision tables below are the
 // scope-doc acceptance rows: V-rows must diagnose clean (a wrong

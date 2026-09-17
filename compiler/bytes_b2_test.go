@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// v46 S2 (B2): owner-authorized typed UTF-8 export. A grant
+// a46 S2 (B2): owner-authorized typed UTF-8 export. A grant
 // (exports_utf8 Brand via fn@rev) authorizes one exact-shape function
 // to disclose one brand as Bytes through the bytes__utf8__export
 // kernel. E-rows are the scope-doc acceptance rows. Single-module

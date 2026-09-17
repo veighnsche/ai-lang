@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v52 B8: hex encode kernel. bytes__hex__encode is total and
+// a52 B8: hex encode kernel. bytes__hex__encode is total and
 // deterministic: Bytes in, lowercase hex in Encoding__Text, empty
 // contract. H-rows are the acceptance rows. Lowercase, byte order,
 // and no-text-interpretation are the pinned properties.

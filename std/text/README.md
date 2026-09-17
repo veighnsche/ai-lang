@@ -23,5 +23,5 @@
   (tests stripped). Regenerate: `go run ./compiler --out
   std/text std/text/text.ail`; verify: `go test ./...`.
 
-Rules: `/REQUIREMENTS.md`. Program: `docs/v16-text.md`,
-surface: `docs/v20-text-operators.md` (`#`, `s[i]`, `s[a:b]`).
+Rules: `/REQUIREMENTS.md`. Program: `docs/a16-text.md`,
+surface: `docs/a20-text-operators.md` (`#`, `s[i]`, `s[a:b]`).

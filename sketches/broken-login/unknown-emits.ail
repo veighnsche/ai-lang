@@ -1,6 +1,6 @@
 // broken-login/unknown-emits.ail — DEMO: red squiggle, a manifest naming nothing.
 // auth.stale sits in emits but no error auth.stale is declared anywhere.
-// Unrealized entries are a conservative upper bound (v12) and compile clean;
+// Unrealized entries are a conservative upper bound (a12) and compile clean;
 // only undeclared entries are refused.
 
 mod auth

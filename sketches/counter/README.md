@@ -11,4 +11,4 @@
   Regenerate: `go run ./compiler --out <dir>
   sketches/counter/counter.ail`; verify: `go test ./...`.
 
-Rules: `/REQUIREMENTS.md`. Proof: `docs/v09-effects.md`.
+Rules: `/REQUIREMENTS.md`. Proof: `docs/a09-effects.md`.

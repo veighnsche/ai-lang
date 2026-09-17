@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v58 B12: base64 encode kernel. bytes__base64__encode is total
+// a58 B12: base64 encode kernel. bytes__base64__encode is total
 // and deterministic: Bytes in, standard padded base64 in
 // Encoding__Text, empty contract. G-rows are the acceptance rows.
 // Padding shapes, byte order, and no-text-interpretation are the

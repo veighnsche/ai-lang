@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// v57 B11: std__hex__decode is the public stdlib face of the B10
+// a57 B11: std__hex__decode is the public stdlib face of the B10
 // kernel. The foreign-caller probe scripts TRUE outcomes for both
 // sides, including the NUL/non-ASCII malformed inputs the
 // committed rows omit (text.ail stays a text file).

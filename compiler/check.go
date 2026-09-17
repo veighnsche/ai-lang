@@ -113,7 +113,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 		d.File = qualifiedFile(mods, m)
 		out = append(out, d)
 	}
-	// recordNames seeds the case-identity collision check (v73):
+	// recordNames seeds the case-identity collision check (a73):
 	// a qualified case name must not equal any record type name.
 	// Builtins plus every declared record, collected up front so
 	// declaration order never matters.
@@ -221,7 +221,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						fmt.Sprintf("variant %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
 				} else if recordNames[d.Name] {
-					// v74: a variant parent shares its TS type
+					// a74: a variant parent shares its TS type
 					// name with a record of the same name, so a
 					// silent collision would map one name to two
 					// shapes at emit. Reject like case/record
@@ -319,13 +319,13 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			prog.Uses[base] = true
 		}
 	}
-	// v46 S2: every registered kernel declares its contract
+	// a46 S2: every registered kernel declares its contract
 	// explicitly. Entries must exist (exhaustiveness verifies them
 	// independently); an absent entry is never an empty error set.
 	for name, k := range bytesKernels {
 		prog.EmitsOf[name] = k.emits
 	}
-	// v50 B6: compiler-owned errors register globally, after source
+	// a50 B6: compiler-owned errors register globally, after source
 	// declarations. Source redefinitions are shadow rejections (see
 	// above), never silent overwrites, so this assignment is the
 	// single authoritative field list. Catalogs enumerate prog.Errors
@@ -882,11 +882,11 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 	return out
 }
 
-// checkScriptConsistency proves v18 linkage (issue #1): a scripted Ok
+// checkScriptConsistency proves a18 linkage (issue #1): a scripted Ok
 // outcome is a claim about what the provider computes, so when the
 // provider body evaluates on the script args the claim must match.
 // Scripted errors stay trusted: emits is an upper bound that admits
-// unrealized entries (v12), and failure injection is what scripts are
+// unrealized entries (a12), and failure injection is what scripts are
 // for. Anything the sandbox cannot evaluate (a foreign call needing
 // its own script, unreachable state, depth exhaustion, uncomparable
 // values) is trusted, never failed: a proof attempt that cannot run
@@ -1178,7 +1178,7 @@ func checkRecordCycles(mods []*Module, texts map[string]string) []Diag {
 	return out
 }
 
-// checkGlobalCycles bans recursion across files (v11): the sandbox
+// checkGlobalCycles bans recursion across files (a11): the sandbox
 // stubs foreign calls, so a cross-file cycle passes every per-file
 // check and every test, then links into an unproved recursive cycle
 // in production. Every ail-to-ail edge counts — same-file and
@@ -1308,7 +1308,7 @@ func checkGlobalCycles(mods []*Module, texts map[string]string, prog *Program) [
 // isDecrease reports whether a full-arity call site passes p - 1 for
 // the decreases param: a named arg wins by name, else the positional
 // arg at the param's index. The unit step is syntactic on purpose
-// (v11: larger steps are refused even though they terminate — one
+// (a11: larger steps are refused even though they terminate — one
 // spelling for the loop step): the compiler sees the decrease, it
 // never infers one.
 func isDecrease(scrut *Small, pidx int, p string) bool {
@@ -1337,7 +1337,7 @@ func isDecrease(scrut *Small, pidx int, p string) bool {
 // checkDecreases proves termination for self-recursion before anything
 // runs: decreases must name int params, must guard a real self-call,
 // and every self-call site must take the schema's canonical step
-// under its canonical guard (v11 unit loop, v19 blessed schemas), so
+// under its canonical guard (a11 unit loop, a19 blessed schemas), so
 // the proof promises a returned outcome, not a loud fault. Sites with
 // the wrong arity belong to the arity rule and are skipped here, so
 // one mistake yields one error family.
@@ -1469,7 +1469,7 @@ func siteArg(m *Small, pidx int, p string) *Small {
 // isEuclidStep reports the one Euclidean shape: the site passes
 // exactly (b, a % b). Under a b <= 0 false guard b is positive, and
 // Euclidean % lands the new b in [0, b), so the second component
-// walks a natural chain into the base arm (v19).
+// walks a natural chain into the base arm (a19).
 func isEuclidStep(m *Small, aidx, bidx int, a, b string) bool {
 	if !isBareRef(siteArg(m, aidx, a), b) {
 		return false
@@ -1500,7 +1500,7 @@ func isMid(v *Small, lo, hi string) bool {
 
 // isNarrowStep reports the two binary-search shapes: (lo, mid) or
 // (mid, hi). With hi - lo >= 2 the midpoint sits strictly inside,
-// so the bound gap strictly shrinks every site (v19).
+// so the bound gap strictly shrinks every site (a19).
 func isNarrowStep(m *Small, loidx, hiidx int, lo, hi string) bool {
 	lv := siteArg(m, loidx, lo)
 	hv := siteArg(m, hiidx, hi)
@@ -1554,7 +1554,7 @@ func isStoreOp(fname string) bool {
 // foreign (stubbed) nor local (executed), but a total deterministic
 // observation of its dec operand. Like the store ops it needs no
 // uses entry and takes no given table; unlike them it needs no
-// effects and emits nothing (v21). Totality is load-bearing below:
+// effects and emits nothing (a21). Totality is load-bearing below:
 // verifyExhaustive wants exactly {ok} through the absent EmitsOf
 // entry, so a future emits registration here must revisit that gate.
 func isDecParts(fname string) bool {
@@ -1840,7 +1840,7 @@ func checkStateDecl(s *StateDecl, text string) []Diag {
 	return out
 }
 
-// checkStub validates one scripted row for a foreign call (v12): every
+// checkStub validates one scripted row for a foreign call (a12): every
 // row is an exchange binding expected call args to one permitted
 // outcome, so the table proves "this request received this permitted
 // response", not merely the next response. Outcome-only rows are
@@ -1885,7 +1885,7 @@ func checkOutcome(sm *Small, fname string, allowed map[string]bool, text string,
 // checkEmits enforces R5 at the function boundary: every error value the
 // body can produce must be declared in emits, and every constructed kind
 // must be a declared error somewhere. Declared entries are a conservative
-// upper bound (v12): unrealized entries are allowed, so no consumer stub
+// upper bound (a12): unrealized entries are allowed, so no consumer stub
 // can manufacture provider honesty. Every entry must still name a
 // declared error. Caught values forwarded whole (on e.kind var => var)
 // count as produced for their kind.

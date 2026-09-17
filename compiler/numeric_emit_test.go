@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestEmitNumerics pins v10's exact target: ints emit as bigint,
+// TestEmitNumerics pins a10's exact target: ints emit as bigint,
 // decs as canonical-digit strings through exact helpers. The fixture
 // exercises arithmetic and ordering over refs (typed dispatch via
 // checker annotations) and literals in bodies.

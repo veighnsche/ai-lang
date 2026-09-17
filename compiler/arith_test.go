@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// Arithmetic (v0.6, unbounded v10) unit proofs: exactness and
+// Arithmetic (v0.6, unbounded a10) unit proofs: exactness and
 // normalization at the evaluator level. Decision-table coverage lives
 // in lsp_test.go; this file pins the value semantics underneath it.
 func wantInt(t *testing.T, expr, want string) {
@@ -135,10 +135,10 @@ func TestStrictComparisonStr(t *testing.T) {
 	}
 }
 
-// TestArithUnbounded pins v10: ints never overflow, never wrap. The
+// TestArithUnbounded pins a10: ints never overflow, never wrap. The
 // old int64 gate is gone; chains that once failed loud now compute
 // exactly, matching the bigint target.
-// TestTextOpsEval pins the v20 scalar operators at the evaluator
+// TestTextOpsEval pins the a20 scalar operators at the evaluator
 // level: # counts Unicode scalars, s[i] yields the scalar value,
 // s[a:b] slices half-open. Out-of-range shapes are loud faults,
 // never silent values.
@@ -218,7 +218,7 @@ func TestArithUnbounded(t *testing.T) {
 func TestArithBadOperands(t *testing.T) {
 	// Note: `"a" + "b"` is one string literal (quotes swallow
 	// operators, as ever); str operands arrive via seals and refs.
-	// v16: str + str concatenates (seals erase to strings at
+	// a16: str + str concatenates (seals erase to strings at
 	// runtime), so the loud string case is now -.
 	for _, expr := range []string{`1 + d"1.5"`, `seal B("x") - seal B("y")`, `true * 2`} {
 		sm, err := parseSmall(expr)

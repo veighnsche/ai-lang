@@ -1,6 +1,6 @@
 # Row 2 — Fault-contract conformance (partial core, executable checks)
 
-Status: shipped. The partial-core amendment (v20) is now backed by
+Status: shipped. The partial-core amendment (a20) is now backed by
 executable checks on both runtimes plus an inventory of the
 shipped wrappers' guard arguments.
 
@@ -50,5 +50,5 @@ do not establish partial-operation domains for future calls.
 ## Still scheduled
 
 Row 3 (D1 reporting/safeguards), row 4 conditional repairs, row 5
-NUL policy, then v28. General site-level domain analysis stays
+NUL policy, then a28. General site-level domain analysis stays
 deferred as ordered.

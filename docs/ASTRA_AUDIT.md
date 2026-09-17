@@ -2,7 +2,7 @@
 
 **The language has gained real expressiveness, but its strongest correctness claims outrun its specified guarantees.** The main problems are not missing async or missing syntax. They are changes in what “proved” means when crossing from evaluator to TypeScript, from local calls to imported calls, and from complete values to error-kind-only expectations.
 
-My re-rating is **7/10 → 8/10 for shipped, scenario-checked expressiveness**. That is **not** a soundness endorsement. The uploaded v05 plan provides the original 7/10 baseline, but no numerical subscore rubric; the more granular assessments below are mine, not reconstructed panel scores. *Source: `docs/v05-expressiveness.md`, “Consequences.”* 
+My re-rating is **7/10 → 8/10 for shipped, scenario-checked expressiveness**. That is **not** a soundness endorsement. The uploaded a05 plan provides the original 7/10 baseline, but no numerical subscore rubric; the more granular assessments below are mine, not reconstructed panel scores. *Source: `docs/a05-expressiveness.md`, “Consequences.”* 
 
 This is a language/specification audit. I did not execute the ai-lang compiler. I distinguish **findings supported directly by the files** from **deduced counterexamples whose compiler acceptance remains unverified**. Example citations refer to the real repository paths embedded in `docs/ALL_EXAMPLES.ail`.
 
@@ -18,7 +18,7 @@ This is a language/specification audit. I did not execute the ai-lang compiler. 
 
 > “exact or loud”
 
-But `docs/v06-arithmetic.md`, “TS emit,” specifies native operators over `number` and claims:
+But `docs/a06-arithmetic.md`, “TS emit,” specifies native operators over `number` and claims:
 
 > “`dec` within 15 significant digits”
 
@@ -36,7 +36,7 @@ fn audit__sum(a: dec, b: dec) -> Audit__Value rev 1
   Ok(value = a + b)
 ```
 
-This function fragment follows v06’s arithmetic rule. Its evaluator result is explicitly supported by v06’s “Eval semantics.” Under the specified target mapping, however, the computation becomes `0.1 + 0.2`. I evaluated that expression locally: it produces `0.30000000000000004`, and comparison with `0.3` is false. TypeScript’s `number` is the floating-point numeric type, not an exact decimal type. *Sources: v06, “Eval semantics” and “TS emit”; TypeScript Handbook, “Number.”*   ([TypeScript][1])
+This function fragment follows a06’s arithmetic rule. Its evaluator result is explicitly supported by a06’s “Eval semantics.” Under the specified target mapping, however, the computation becomes `0.1 + 0.2`. I evaluated that expression locally: it produces `0.30000000000000004`, and comparison with `0.3` is false. TypeScript’s `number` is the floating-point numeric type, not an exact decimal type. *Sources: a06, “Eval semantics” and “TS emit”; TypeScript Handbook, “Number.”*   ([TypeScript][1])
 
 **The 15-digit caveat does not rescue this:** the input values and the mathematical result each have one significant digit.
 
@@ -46,7 +46,7 @@ The integer boundary also interacts with termination. Under the documented `numb
 1000000000000000000 - 1 == 1000000000000000000
 ```
 
-as true. That value is within the evaluator’s stated `int64` domain, although outside its documented exact TypeScript domain. Consequently, an accepted source-level decrement need not decrease the emitted value. This is a **deduced production counterexample**, not a tested ai-lang compilation. *Sources: v06, “Eval semantics” / “TS emit”; v08, “Loop shape.”*   
+as true. That value is within the evaluator’s stated `int64` domain, although outside its documented exact TypeScript domain. Consequently, an accepted source-level decrement need not decrease the emitted value. This is a **deduced production counterexample**, not a tested ai-lang compilation. *Sources: a06, “Eval semantics” / “TS emit”; a08, “Loop shape.”*   
 
 **Conclusion:** documentation of a numeric boundary is not enforcement of that boundary. Either the target preserves source arithmetic, or admissible source programs must be restricted accordingly.
 
@@ -62,7 +62,7 @@ R7 says:
 
 > “direct self-recursion only”
 
-However, v07 restricts its cycle check to **same-file edges**, and v08’s halting argument explicitly relies on the fact that **foreign calls never execute during tests**. *Sources: `REQUIREMENTS.md`, R7; v07, “Termination”; v08, “The halting argument.”*   
+However, a07 restricts its cycle check to **same-file edges**, and a08’s halting argument explicitly relies on the fact that **foreign calls never execute during tests**. *Sources: `REQUIREMENTS.md`, R7; a07, “Termination”; a08, “The halting argument.”*   
 
 Consider two modules with properly pinned imports, ordinary record declarations, and these function fragments:
 
@@ -98,7 +98,7 @@ The sandbox termination argument can remain valid. The claim that the deployed p
 
 ### 2.2 Negative-entry failure is part of the mechanism, not merely a diagnostic convenience
 
-v08 permits `p - k` without requiring that the call site establish `p >= k`. Its argument then relies on negative entry causing an evaluation error. *Source: v08, “Loop shape” / “The halting argument.”*  
+a08 permits `p - k` without requiring that the call site establish `p >= k`. Its argument then relies on negative entry causing an evaluation error. *Source: a08, “Loop shape” / “The halting argument.”*  
 
 Thus, the specified theorem is closer to:
 
@@ -110,7 +110,7 @@ It is **not**:
 
 For example, a guarded function that stops only at zero and subtracts two can enter with one and fault on the next entry. Ordinary branch coverage does not exclude that input.
 
-There is also a concrete verification obligation to check: v08’s implementation description places the negative-entry guard in `evLocalCall`. **That does not establish whether root tests and production entry points receive the same check.** I would test all entry routes; I am not asserting the implementation omits one. *Source: v08, “Implementation.”* 
+There is also a concrete verification obligation to check: a08’s implementation description places the negative-entry guard in `evLocalCall`. **That does not establish whether root tests and production entry points receive the same check.** I would test all entry routes; I am not asserting the implementation omits one. *Source: a08, “Implementation.”* 
 
 ### 2.3 The shipped “would hang without the proof” demonstration is false
 
@@ -126,7 +126,7 @@ fuel 1 → down
 fuel 0 → exhausted
 ```
 
-Deleting metadata does not change those expressions or that trace. It changes whether the compiler admits the program. The example demonstrates **proof-gated admission**, not a program that would otherwise diverge. *Sources: `sketches/retry-loop/retry.ail`, header and `retry__fetch`; v05, “Consequences.”*   
+Deleting metadata does not change those expressions or that trace. It changes whether the compiler admits the program. The example demonstrates **proof-gated admission**, not a program that would otherwise diverge. *Sources: `sketches/retry-loop/retry.ail`, header and `retry__fetch`; a05, “Consequences.”*   
 
 Replace that demonstration with mutations that remove the base case or make the recursive argument unchanged.
 
@@ -204,19 +204,19 @@ can preserve the existing error expectations.
 | Rule or promise                                                    | Counterexample or unresolved conflict                                                                                                                                                         | Assessment                                                                                                                                                     |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **R6:** “A function touching the outside world says so in `uses`.” | `retry.ail` has `uses []`, declares `extern net__fetch`, and calls it. R2 itself reserves `uses` for external **ail** items.                                                                  | Rewrite R6: `uses` is not a complete external-effect declaration.                                                                                              |
-| **R7:** “Each function carries `tests`.”                           | v07 says a function without tests is still a warning; `missing-tests.ail` explicitly advertises a yellow squiggle.                                                                            | Mandatory evidence and warning-only absence are inconsistent. This does **not** prove that this particular gallery file builds; it contains other problems.    |
+| **R7:** “Each function carries `tests`.”                           | a07 says a function without tests is still a warning; `missing-tests.ail` explicitly advertises a yellow squiggle.                                                                            | Mandatory evidence and warning-only absence are inconsistent. This does **not** prove that this particular gallery file builds; it contains other problems.    |
 | **R9:** “types + signatures before bodies”                         | `auth__verify`’s signature follows the complete `auth__login` body.                                                                                                                           | An explicitly “to enforce” layout goal remains unmet—not a newly discovered implementation failure.                                                            |
 | **R4:** “Provider bumps never break pinned callers.”               | Runtime coexistence of revisions remains open question 1. The example claims old hashes remain addressable, but does not establish retained executable versions or their dependency closures. | Unsupported guarantee, not a verified runtime failure.                                                                                                         |
 | **R2:** `provides` names what the file defines.                    | Errors are omitted; private cells have an explicit exemption; module-local externs are included even though cross-module externs are unavailable.                                             | Define whether this is a declaration inventory or an export interface. Currently it is neither cleanly.                                                        |
 | **R2:** module `emits` describes errors the module can produce.    | `retry` includes handled `net.down`; its only ail function declares only `retry.exhausted`. The module/function relation is still explicitly open.                                            | Do not claim exact module-level escaping effects until the relation is defined.                                                                                |
 
-I would **not** count v07’s original recursion ban versus v08’s amendment, or R8’s original all-calls wording versus its three-callee amendment, as contradictions. Those are identifiable, versioned changes. *Sources: Requirements status; R7–R8.*  
+I would **not** count a07’s original recursion ban versus a08’s amendment, or R8’s original all-calls wording versus its three-callee amendment, as contradictions. Those are identifiable, versioned changes. *Sources: Requirements status; R7–R8.*  
 
 Two additional honesty corrections:
 
-**The counter is not application-bounded.** Its `by: int` parameter and addition have no declared counter limit. “Bounded counter” should mean a specified limit with handling, not merely the existence of an integer representation. *Sources: v09, “Consequences”; `counter.ail`, `count__bump`.*  
+**The counter is not application-bounded.** Its `by: int` parameter and addition have no declared counter limit. “Bounded counter” should mean a specified limit with handling, not merely the existence of an integer representation. *Sources: a09, “Consequences”; `counter.ail`, `count__bump`.*  
 
-**Fresh-store semantics provides test isolation; repeated rows demonstrate a regression case.** Those rows do not prove arbitrary production histories. v09 correctly acknowledges that production histories are outside its tables; the reviewer guide should retain that qualification wherever it says the tables “prove” isolation. *Sources: v09, “The isolation argument”; reviewer guide §8.*  
+**Fresh-store semantics provides test isolation; repeated rows demonstrate a regression case.** Those rows do not prove arbitrary production histories. a09 correctly acknowledges that production histories are outside its tables; the reviewer guide should retain that qualification wherever it says the tables “prove” isolation. *Sources: a09, “The isolation argument”; reviewer guide §8.*  
 
 ---
 
@@ -226,12 +226,12 @@ These are **required adversarial checks**, not claims that the current implement
 
 | Proof surface          | Adversarial cases and required result                                                                                                                                                                                              |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Arithmetic structure   | `10 - 3 - 2` must be 5; `10 - (3 - 2)` must be 9. `fuel - -1` and `fuel - 1 + 2` must not satisfy the decrease rule. Recognition must use expression structure, not a matching substring. *v06 “Rule”; v08 “Loop shape.”*          |
-| Named argument binding | Reordering named arguments must not change which argument supplies the ranking parameter. Duplicate names, missing names, and extra names must fail before any proof is credited. *v08 “Loop shape”; R10 decision-table checks.*   |
+| Arithmetic structure   | `10 - 3 - 2` must be 5; `10 - (3 - 2)` must be 9. `fuel - -1` and `fuel - 1 + 2` must not satisfy the decrease rule. Recognition must use expression structure, not a matching substring. *a06 “Rule”; a08 “Loop shape.”*          |
+| Named argument binding | Reordering named arguments must not change which argument supplies the ranking parameter. Duplicate names, missing names, and extra names must fail before any proof is credited. *a08 “Loop shape”; R10 decision-table checks.*   |
 | Lexical boundaries     | Strings containing `)`, `=>`, commas, or operator-looking text must remain string contents. Nested `seal` constructions must not alter test-row or argument boundaries. *R1; shipped nested constructions.*                        |
-| Entry invariants       | Exercise negative inputs through root tests, local calls, imported calls, and production exports. Also test step sizes larger than the remaining value. *v08 “Halting argument” / “Implementation.”*                               |
-| Empty payloads         | A zero-field outcome must not acquire usable fields through nesting or forwarding. Prefer a universal empty-outcome binding rule over a `state__put` special case. *Reviewer guide §8; v09 refinement backlog.*                    |
-| Script identity        | Two functions with a test called `happy` must have distinct identities when both reach one helper. The documents describe caller-name flow-through but do not fully specify its namespace. *v07 “Rule” / “Coverage.”*              |
+| Entry invariants       | Exercise negative inputs through root tests, local calls, imported calls, and production exports. Also test step sizes larger than the remaining value. *a08 “Halting argument” / “Implementation.”*                               |
+| Empty payloads         | A zero-field outcome must not acquire usable fields through nesting or forwarding. Prefer a universal empty-outcome binding rule over a `state__put` special case. *Reviewer guide §8; a09 refinement backlog.*                    |
+| Script identity        | Two functions with a test called `happy` must have distinct identities when both reach one helper. The documents describe caller-name flow-through but do not fully specify its namespace. *a07 “Rule” / “Coverage.”*              |
 
 The language-level requirement should be: **every checker reasons over the same bound, typed program structure**. This is a semantic consistency requirement, not a request to review parser implementation choices.
 
@@ -256,14 +256,14 @@ The “one squiggle” presentation should not become a language rule that conce
 
 ---
 
-## 7. Re-rating against v05
+## 7. Re-rating against a05
 
 **Overall: 7 → 8 for demonstrated, scenario-checked expressiveness.**
 
 | Area                          | Movement                  | What actually earns credit                                                                                                                                                                                            |
 | ----------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Arithmetic                    | **Up, narrowly**          | Arithmetic appears in shipped login and counter logic. No credit for exact-decimal TypeScript semantics: that claim fails above.                                                                                      |
-| Helpers                       | **Up substantially**      | Both login success paths execute one shared verifier. This directly satisfies the v05 duplication target.                                                                                                             |
+| Helpers                       | **Up substantially**      | Both login success paths execute one shared verifier. This directly satisfies the a05 duplication target.                                                                                                             |
 | Iteration                     | **Up, sandbox-qualified** | The retry example exercises immediate success, delayed success, exhaustion, and zero fuel through one recursive body. Credit the admitted loop and its restricted argument—not the false “would hang” demonstration.  |
 | State                         | **Up, scenario-local**    | `count__twice` observes two writes within one evaluation; the specification supplies fresh-store isolation between tests. Production-history correctness earns no additional credit.                                  |
 | Deferred features             | **Unchanged**             | No shipped credit for async, int-backed brands, or the other explicitly deferred capabilities.                                                                                                                        |
@@ -278,7 +278,7 @@ The following sketches are proposals unless described as existing syntax.
 ## 1. Establish one numeric semantics
 
 **Severity: soundness hole.**
-*Problem source: v06, “Eval semantics” versus “TS emit.”*  
+*Problem source: a06, “Eval semantics” versus “TS emit.”*  
 
 **Proposal:** make `int` mathematically unbounded and map it to TypeScript `bigint`; represent `dec` exactly using integer coefficient and scale. Native BigInt supplies the integer representation without a third-party dependency. Exact decimal support may require emitted support code; “dependency-free” must not mean “semantically incorrect.” ([TypeScript][1])
 
@@ -296,7 +296,7 @@ Ok(
 ## 2. Make recursion policy global, and simplify its local proof
 
 **Severity: soundness hole.**
-*Problem source: v07 “Termination”; v08 “Halting argument.”*  
+*Problem source: a07 “Termination”; a08 “Halting argument.”*  
 
 **Proposal:** inspect all ail call edges for cycles, including pinned imports. Initially allow only direct self-recursion. Simplify admission to a guarded unit decrement:
 
@@ -341,7 +341,7 @@ A script should prove “this request received this permitted response,” not m
 ## 4. Give effects stable identities, including extern authority
 
 **Severity: inconsistency and expressiveness gap.**
-*Problem source: v09 makes cells private but requires foreign-effect supersets; extern bodies remain outside the proof.*  
+*Problem source: a09 makes cells private but requires foreign-effect supersets; extern bodies remain outside the proof.*  
 
 **Proposal:** export named, revisioned capabilities rather than private storage names. Declare extern authority explicitly and propagate it through callers.
 
@@ -360,7 +360,7 @@ For state access, a public capability should map to private cells inside its def
 ## 5. Remove helper restrictions that contribute no proof
 
 **Severity: expressiveness gap.**
-*Problem source: v07 “TS emit,” especially module-wide Ok-shape agreement and exclusion of record parameters.* 
+*Problem source: a07 “TS emit,” especially module-wide Ok-shape agreement and exclusion of record parameters.* 
 
 **Proposal:** allow explicitly typed record parameters and give every function its own result shape.
 
@@ -378,7 +378,7 @@ The signature already supplies the information needed to type the call and its `
 ## 6. Consolidate evidence and binding rules
 
 **Severity: sharp edge and inconsistency.**
-*Problem source: v07’s caller-test flow-through, warning-only missing tests, and the put-specific empty-payload rule.*   
+*Problem source: a07’s caller-test flow-through, warning-only missing tests, and the put-specific empty-payload rule.*   
 
 **Proposal:** missing tests and dead script keys are errors; script keys identify their root function and test; zero-field outcomes bind only `_`.
 
@@ -397,7 +397,7 @@ The last rule removes the need for a store-specific “bound but unusable value�
 ## 7. Define revision identity over executable dependencies
 
 **Severity: inconsistency.**
-*Problem source: R4; v07’s unpinned local calls; v09’s unversioned state initialization.*   
+*Problem source: R4; a07’s unpinned local calls; a09’s unversioned state initialization.*   
 
 **Proposal:** specify that a pinned function identifies its executable dependency closure, including local helpers, captured state initialization, and imported revisions—not merely its own textual body.
 
@@ -415,7 +415,7 @@ A relevant initialization or helper change can therefore require this bump even 
 
 ## 1. Inductive state contracts plus explicit history scenarios
 
-**Motivation:** v09 proves fresh-store scenarios but excludes production histories. *Source: v09, “The isolation argument” / “Open decisions.”*  
+**Motivation:** a09 proves fresh-store scenarios but excludes production histories. *Source: a09, “The isolation argument” / “Open decisions.”*  
 
 ```ail
 state Count__total: int = 0
@@ -467,7 +467,7 @@ match call brand__check(Retry__Fuel, raw)
 
 ## 3. Compositional resource budgets
 
-**Motivation:** v08 distinguishes termination from its depth cap and explicitly does not budget production stack usage. *Source: v08, “Halting argument” / “TS emit.”*  
+**Motivation:** a08 distinguishes termination from its depth cap and explicitly does not budget production stack usage. *Source: a08, “Halting argument” / “TS emit.”*  
 
 ```ail
 fn retry__fetch(fuel: int) -> Retry__Doc rev 2
@@ -493,7 +493,7 @@ fn retry__fetch(fuel: int) -> Retry__Doc rev 2
 
 ## 4. Structured async with exhaustive joins and authority partitioning
 
-**Motivation:** async is deferred and the current store has single-threaded semantics. *Sources: v05 “Explicitly later”; v09 “The isolation argument.”*  
+**Motivation:** async is deferred and the current store has single-threaded semantics. *Sources: a05 “Explicitly later”; a09 “The isolation argument.”*  
 
 Illustrative join fragment, assuming each branch has one declared failure kind:
 
@@ -534,11 +534,11 @@ There is a source mismatch worth correcting: **the uploaded `REQUIREMENTS.md` en
 
 | Question                     | Recommendation                                                                                                                                                                                                                                                                                 | Required proof obligation                                                                                                                                                                                                                 |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Division semantics**       | Start with explicit Euclidean integer `divmod`. For decimals, offer exact division returning either an exact result, zero-divisor error, or non-terminating-decimal error. Rounding need not be mandatory: rejecting an inexact quotient is another honest choice. *v06 “Division deferred.”*  | Integer results satisfy `a = b*q + r` and `0 <= r < abs(b)`. Decimal success requires equality with the exact quotient; failure cases are declared and exhaustive. Rounded division, later, must explicitly name scale and rounding mode. |
-| **Integer model**            | Choose unbounded mathematical integers. Remove the evaluator/target split instead of adding more boundary caveats. *v06 “Eval semantics” / “Open decisions.”*                                                                                                                                  | Literal parsing, arithmetic, comparison, state storage, and target execution preserve the same integer. Host conversions are explicit checked operations. Resource exhaustion is separately modelled.                                     |
-| **Mutual recursion**         | Keep it banned for now, but enforce the ban across the whole program. Later admit explicitly annotated recursive components, not arbitrary cycles. *v08 “Open decisions.”*                                                                                                                     | Every intra-component edge strictly decreases an explicit well-founded ranking tuple. No inferred ranking function and no exemption for imported calls.                                                                                   |
-| **Production state sharing** | Keep cells private; share through accessors and exported capabilities. Add history scenarios and inductive state contracts before exposing raw cell references. *v09 “Open decisions.”*                                                                                                        | Stable capability identity, invariant establishment/preservation, and exact sequential state-transition semantics. Scenario tests cover selected histories; invariants cover all admitted transitions.                                    |
-| **Async**                    | Defer unrestricted async. Start with structured joins and explicit authority partitioning as above. *v05 “Explicitly later.”*                                                                                                                                                                  | Join completeness, exhaustive combined outcomes, absence of conflicting effects, and an explicit liveness assumption or bound for every task.                                                                                             |
+| **Division semantics**       | Start with explicit Euclidean integer `divmod`. For decimals, offer exact division returning either an exact result, zero-divisor error, or non-terminating-decimal error. Rounding need not be mandatory: rejecting an inexact quotient is another honest choice. *a06 “Division deferred.”*  | Integer results satisfy `a = b*q + r` and `0 <= r < abs(b)`. Decimal success requires equality with the exact quotient; failure cases are declared and exhaustive. Rounded division, later, must explicitly name scale and rounding mode. |
+| **Integer model**            | Choose unbounded mathematical integers. Remove the evaluator/target split instead of adding more boundary caveats. *a06 “Eval semantics” / “Open decisions.”*                                                                                                                                  | Literal parsing, arithmetic, comparison, state storage, and target execution preserve the same integer. Host conversions are explicit checked operations. Resource exhaustion is separately modelled.                                     |
+| **Mutual recursion**         | Keep it banned for now, but enforce the ban across the whole program. Later admit explicitly annotated recursive components, not arbitrary cycles. *a08 “Open decisions.”*                                                                                                                     | Every intra-component edge strictly decreases an explicit well-founded ranking tuple. No inferred ranking function and no exemption for imported calls.                                                                                   |
+| **Production state sharing** | Keep cells private; share through accessors and exported capabilities. Add history scenarios and inductive state contracts before exposing raw cell references. *a09 “Open decisions.”*                                                                                                        | Stable capability identity, invariant establishment/preservation, and exact sequential state-transition semantics. Scenario tests cover selected histories; invariants cover all admitted transitions.                                    |
+| **Async**                    | Defer unrestricted async. Start with structured joins and explicit authority partitioning as above. *a05 “Explicitly later.”*                                                                                                                                                                  | Join completeness, exhaustive combined outcomes, absence of conflicting effects, and an explicit liveness assumption or bound for every task.                                                                                             |
 | **Int-backed brands**        | Add after exact integers. Separate nominal distinctions from optional refinement invariants. *Reviewer guide §11.*                                                                                                                                                                             | Every constructor establishes the invariant; arithmetic and conversions preserve it only with evidence. Ranking projections are explicitly declared.                                                                                      |
 
 ## The actual questions at the end of Requirements

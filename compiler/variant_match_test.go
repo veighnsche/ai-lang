@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// v75: variant elimination. A value match over a variant-typed
+// a75: variant elimination. A value match over a variant-typed
 // scrutinee takes exactly one on-Case arm per case, binds payloads
 // case-specifically, and lowers to an evaluate-once tag switch.
 // Probes first: every TestVariantMatch* below fails before the slice.
