@@ -1,13 +1,13 @@
-# v65: interpreted string literals `e"..."` (chatbot verdict A)
+# v66: interpreted string literals `e"..."` (chatbot verdict A)
 
 Additive only. Ordinary `"..."` keeps raw semantics
 (pinned by `TestStrSemanticsEmit` and the
 `tail_backslash` row in `std/html/html.ail`: `"a\b"` is
 backslash+b). New `e"..."` form decodes exactly six
 escapes, once, left to right; same `str` type and runtime
-representation, no new primitive. Renumbered from the
-verdict's v62: v62/v63 are the diagnostic fixes, v64 is
-taken.
+representation, no new primitive. Numbered v66: v62/v63
+are the diagnostic fixes, v64 is taken, and the verdict's
+linked-pure runner shifts to v67.
 
 1. Scan: recognize the `e"..."` token boundary in
    `stripComment`, `braceOutsideString`,
@@ -37,7 +37,7 @@ taken.
    explicit).
 
 Out of scope: `\b \f \v \a` and numeric controls
-(deferred in writing); v66 linked-pure runner; any
+(deferred in writing); v67 linked-pure runner; any
 4107 relaxation (kept per verdict C).
 
 ## Rollback

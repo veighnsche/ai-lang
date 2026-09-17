@@ -8,11 +8,12 @@ import (
 
 // v60 B15: std__base64__decode is the public stdlib face of the
 // B14 kernel, and this slice closes the workstream with wrapper-
-// level round trips through real bodies. The foreign-caller
+// level compositions through real bodies. The foreign-caller
 // probe pins §6 callability against the REAL text.ail; the
 // round-trip probe appends composition fns to a TEMP COPY and
-// executes decode(encode(x)) = x per codec plus a cross check,
-// so fakerows prove nothing.
+// executes them (utf8: decode(encode(t)); hex and b64:
+// encode(decode(s)); plus a hex-of-base64 cross check), so
+// fakerows prove nothing.
 
 // TestBytesB15ForeignCaller pins cross-module callability,
 // both arms, the NUL byte, and non-ASCII malformed input.
@@ -56,8 +57,9 @@ fn client__go(value: str) -> Bytes__Value rev 1
 	}
 }
 
-// TestBytesB15RoundTrip executes wrapper-level round trips
-// through real bodies: decode(encode(x)) = x per codec, plus
+// TestBytesB15RoundTrip executes wrapper-level compositions
+// through real bodies: decode(encode(t)) for utf8,
+// encode(decode(s)) for hex and base64, plus
 // hex-of-b64-decoded-bytes as the cross check.
 func TestBytesB15RoundTrip(t *testing.T) {
 	raw, err := os.ReadFile("../std/text/text.ail")
