@@ -298,7 +298,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		// ordering (native target ordering is UTF-16 code units and
 		// disagrees past the BMP); string + concatenates natively
 		// and ==/!== stay exact in both runtimes.
-		if ot == "str" || e.brands[ot] != "" {
+		if ot == "str" || e.brands[ot] == "str" {
 			switch node.Op {
 			case ">=":
 				e.strOps["ge"] = true
