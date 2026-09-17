@@ -1094,6 +1094,11 @@ func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
 }
 
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
+	// Per-function temp scope: every fresh() temporary lands as a
+	// const inside this body, so numbering restarts at $ail_m1 per
+	// function. Editing one function no longer renumbers later
+	// functions' goldens.
+	e.tmp = 0
 	var params []string
 	for _, p := range fn.Params {
 		t, err := tsTypeB(p[1], e.brands, e.recs)

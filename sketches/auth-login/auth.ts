@@ -69,14 +69,14 @@ export function auth__verify(user_id: string, failed_attempts: bigint, pw: strin
     return { $ail_kind: "auth.account_locked", user_id: user_id };
   }
   else {
-    const $ail_m5: { $ail_kind: "ok" } | { $ail_kind: "auth.mismatch" } = auth__check_pw(pw, pw_hash);
-    switch ($ail_m5.$ail_kind) {
+    const $ail_m1: { $ail_kind: "ok" } | { $ail_kind: "auth.mismatch" } = auth__check_pw(pw, pw_hash);
+    switch ($ail_m1.$ail_kind) {
     case "auth.mismatch": {
-      const _ = $ail_m5;
+      const _ = $ail_m1;
       return { $ail_kind: "auth.login_failed", user_id: user_id };
     }
     case "ok": {
-      const ok = $ail_m5;
+      const ok = $ail_m1;
       return { $ail_kind: "ok", user_id: user_id, remaining_tries: (3n - failed_attempts) };
     }
     }

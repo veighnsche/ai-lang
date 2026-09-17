@@ -20,14 +20,14 @@ export function count__bump(by: bigint): CounterResult {
   }
 }
 export function count__twice(by: bigint): CounterResult {
-  const $ail_m3: CounterResult = count__bump(by);
-  switch ($ail_m3.$ail_kind) {
+  const $ail_m1: CounterResult = count__bump(by);
+  switch ($ail_m1.$ail_kind) {
   case "ok": {
-    const s = $ail_m3;
-    const $ail_m4: CounterResult = count__bump(by);
-    switch ($ail_m4.$ail_kind) {
+    const s = $ail_m1;
+    const $ail_m2: CounterResult = count__bump(by);
+    switch ($ail_m2.$ail_kind) {
     case "ok": {
-      const t = $ail_m4;
+      const t = $ail_m2;
       return { $ail_kind: "ok", total: t.total };
     }
     }

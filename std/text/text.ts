@@ -82,16 +82,16 @@ export function std__str__scalar_at(value: string, index: bigint): TextResult {
   }
 }
 export function std__str__slice_scalars(value: string, start: bigint, end: bigint): TextResult {
-  const $ail_m5 = (start >= 0n);
-  const $ail_m6 = (end >= start);
-  const $ail_m7 = (end <= (BigInt([...value].length)));
-  if ($ail_m5 && $ail_m6 && $ail_m7) {
+  const $ail_m1 = (start >= 0n);
+  const $ail_m2 = (end >= start);
+  const $ail_m3 = (end <= (BigInt([...value].length)));
+  if ($ail_m1 && $ail_m2 && $ail_m3) {
     return { $ail_kind: "ok", value: $ailStrSlice(value, start, end) };
   }
-  else if ($ail_m5 && $ail_m6 && !($ail_m7)) {
+  else if ($ail_m1 && $ail_m2 && !($ail_m3)) {
     return { $ail_kind: "text.invalid_slice", value: value, start: start, end: end };
   }
-  else if ($ail_m5 && !($ail_m6)) {
+  else if ($ail_m1 && !($ail_m2)) {
     return { $ail_kind: "text.invalid_slice", value: value, start: start, end: end };
   }
   else {
@@ -108,14 +108,14 @@ export function std__str__find_from(orig: string, value: string, pattern: string
         return { $ail_kind: "ok", value: pos };
       }
       else {
-        const $ail_m8: TextResult = std__str__find_from(orig, $ailStrSlice(value, 1n, (BigInt([...value].length))), pattern, (pos + 1n), (n - 1n));
-        switch ($ail_m8.$ail_kind) {
+        const $ail_m1: TextResult = std__str__find_from(orig, $ailStrSlice(value, 1n, (BigInt([...value].length))), pattern, (pos + 1n), (n - 1n));
+        switch ($ail_m1.$ail_kind) {
         case "text.not_found": {
-          const e = $ail_m8;
+          const e = $ail_m1;
           return { $ail_kind: "text.not_found", value: e.value, pattern: e.pattern };
         }
         case "ok": {
-          const r = $ail_m8;
+          const r = $ail_m1;
           return { $ail_kind: "ok", value: r.value };
         }
         }
@@ -131,28 +131,28 @@ export function std__str__find(value: string, pattern: string): TextResult {
     return { $ail_kind: "ok", value: 0n };
   }
   else {
-    const $ail_m9: TextResult = std__str__find_from(value, value, pattern, 0n, (BigInt([...value].length)));
-    switch ($ail_m9.$ail_kind) {
+    const $ail_m1: TextResult = std__str__find_from(value, value, pattern, 0n, (BigInt([...value].length)));
+    switch ($ail_m1.$ail_kind) {
     case "text.not_found": {
-      const e = $ail_m9;
+      const e = $ail_m1;
       return { $ail_kind: "text.not_found", value: e.value, pattern: e.pattern };
     }
     case "ok": {
-      const r = $ail_m9;
+      const r = $ail_m1;
       return { $ail_kind: "ok", value: r.value };
     }
     }
   }
 }
 export function std__str__contains(value: string, pattern: string): TextResult {
-  const $ail_m10: TextResult = std__str__find(value, pattern);
-  switch ($ail_m10.$ail_kind) {
+  const $ail_m1: TextResult = std__str__find(value, pattern);
+  switch ($ail_m1.$ail_kind) {
   case "text.not_found": {
-    const _ = $ail_m10;
+    const _ = $ail_m1;
     return { $ail_kind: "ok", value: false };
   }
   case "ok": {
-    const _ = $ail_m10;
+    const _ = $ail_m1;
     return { $ail_kind: "ok", value: true };
   }
   }
@@ -190,19 +190,19 @@ export function std__str__replace_all_from(value: string, old: string, replaceme
   else {
     if (((BigInt([...value].length)) >= (BigInt([...old].length)))) {
       if (($ailStrSlice(value, 0n, (BigInt([...old].length))) === old)) {
-        const $ail_m11: TextResult = std__str__replace_all_from($ailStrSlice(value, (BigInt([...old].length)), (BigInt([...value].length))), old, replacement, (acc + replacement), (n - 1n));
-        switch ($ail_m11.$ail_kind) {
+        const $ail_m1: TextResult = std__str__replace_all_from($ailStrSlice(value, (BigInt([...old].length)), (BigInt([...value].length))), old, replacement, (acc + replacement), (n - 1n));
+        switch ($ail_m1.$ail_kind) {
         case "ok": {
-          const r = $ail_m11;
+          const r = $ail_m1;
           return { $ail_kind: "ok", value: r.value };
         }
         }
       }
       else {
-        const $ail_m12: TextResult = std__str__replace_all_from($ailStrSlice(value, 1n, (BigInt([...value].length))), old, replacement, (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
-        switch ($ail_m12.$ail_kind) {
+        const $ail_m2: TextResult = std__str__replace_all_from($ailStrSlice(value, 1n, (BigInt([...value].length))), old, replacement, (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
+        switch ($ail_m2.$ail_kind) {
         case "ok": {
-          const r = $ail_m12;
+          const r = $ail_m2;
           return { $ail_kind: "ok", value: r.value };
         }
         }
@@ -218,10 +218,10 @@ export function std__str__replace_all(value: string, old: string, replacement: s
     return { $ail_kind: "text.empty_pattern" };
   }
   else {
-    const $ail_m13: TextResult = std__str__replace_all_from(value, old, replacement, "", (BigInt([...value].length)));
-    switch ($ail_m13.$ail_kind) {
+    const $ail_m1: TextResult = std__str__replace_all_from(value, old, replacement, "", (BigInt([...value].length)));
+    switch ($ail_m1.$ail_kind) {
     case "ok": {
-      const r = $ail_m13;
+      const r = $ail_m1;
       return { $ail_kind: "ok", value: r.value };
     }
     }
@@ -232,24 +232,24 @@ export function std__str__trim_left(value: string, n: bigint): TextResult {
     return { $ail_kind: "ok", value: value };
   }
   else {
-    const $ail_m14: TextResult = std__str__is_whitespace($ailStrAt(value, 0n));
-    switch ($ail_m14.$ail_kind) {
+    const $ail_m1: TextResult = std__str__is_whitespace($ailStrAt(value, 0n));
+    switch ($ail_m1.$ail_kind) {
     case "ok": {
-      const w = $ail_m14;
+      const w = $ail_m1;
       if (w.value) {
-        const $ail_m15: TextResult = std__str__trim_left($ailStrSlice(value, 1n, (BigInt([...value].length))), (n - 1n));
-        switch ($ail_m15.$ail_kind) {
+        const $ail_m2: TextResult = std__str__trim_left($ailStrSlice(value, 1n, (BigInt([...value].length))), (n - 1n));
+        switch ($ail_m2.$ail_kind) {
         case "ok": {
-          const r = $ail_m15;
+          const r = $ail_m2;
           return { $ail_kind: "ok", value: r.value };
         }
         }
       }
       else {
-        const $ail_m16: TextResult = std__str__trim_right(value, (BigInt([...value].length)));
-        switch ($ail_m16.$ail_kind) {
+        const $ail_m3: TextResult = std__str__trim_right(value, (BigInt([...value].length)));
+        switch ($ail_m3.$ail_kind) {
         case "ok": {
-          const r = $ail_m16;
+          const r = $ail_m3;
           return { $ail_kind: "ok", value: r.value };
         }
         }
@@ -263,15 +263,15 @@ export function std__str__trim_right(value: string, n: bigint): TextResult {
     return { $ail_kind: "ok", value: value };
   }
   else {
-    const $ail_m17: TextResult = std__str__is_whitespace($ailStrAt(value, (n - 1n)));
-    switch ($ail_m17.$ail_kind) {
+    const $ail_m1: TextResult = std__str__is_whitespace($ailStrAt(value, (n - 1n)));
+    switch ($ail_m1.$ail_kind) {
     case "ok": {
-      const w = $ail_m17;
+      const w = $ail_m1;
       if (w.value) {
-        const $ail_m18: TextResult = std__str__trim_right($ailStrSlice(value, 0n, (n - 1n)), (n - 1n));
-        switch ($ail_m18.$ail_kind) {
+        const $ail_m2: TextResult = std__str__trim_right($ailStrSlice(value, 0n, (n - 1n)), (n - 1n));
+        switch ($ail_m2.$ail_kind) {
         case "ok": {
-          const r = $ail_m18;
+          const r = $ail_m2;
           return { $ail_kind: "ok", value: r.value };
         }
         }
@@ -284,10 +284,10 @@ export function std__str__trim_right(value: string, n: bigint): TextResult {
   }
 }
 export function std__str__trim_ascii(value: string): TextResult {
-  const $ail_m19: TextResult = std__str__trim_left(value, (BigInt([...value].length)));
-  switch ($ail_m19.$ail_kind) {
+  const $ail_m1: TextResult = std__str__trim_left(value, (BigInt([...value].length)));
+  switch ($ail_m1.$ail_kind) {
   case "ok": {
-    const r = $ail_m19;
+    const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
   }
   }
@@ -297,24 +297,24 @@ export function std__str__upper_ascii_from(value: string, acc: string, n: bigint
     return { $ail_kind: "ok", value: acc };
   }
   else {
-    const $ail_m20: TextResult = std__str__find("abcdefghijklmnopqrstuvwxyz", $ailStrSlice(value, 0n, 1n));
-    switch ($ail_m20.$ail_kind) {
+    const $ail_m1: TextResult = std__str__find("abcdefghijklmnopqrstuvwxyz", $ailStrSlice(value, 0n, 1n));
+    switch ($ail_m1.$ail_kind) {
     case "ok": {
-      const f = $ail_m20;
-      const $ail_m21: TextResult = std__str__upper_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice("ABCDEFGHIJKLMNOPQRSTUVWXYZ", f.value, (f.value + 1n))), (n - 1n));
-      switch ($ail_m21.$ail_kind) {
+      const f = $ail_m1;
+      const $ail_m2: TextResult = std__str__upper_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice("ABCDEFGHIJKLMNOPQRSTUVWXYZ", f.value, (f.value + 1n))), (n - 1n));
+      switch ($ail_m2.$ail_kind) {
       case "ok": {
-        const r = $ail_m21;
+        const r = $ail_m2;
         return { $ail_kind: "ok", value: r.value };
       }
       }
     }
     case "text.not_found": {
-      const _ = $ail_m20;
-      const $ail_m22: TextResult = std__str__upper_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
-      switch ($ail_m22.$ail_kind) {
+      const _ = $ail_m1;
+      const $ail_m3: TextResult = std__str__upper_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
+      switch ($ail_m3.$ail_kind) {
       case "ok": {
-        const r = $ail_m22;
+        const r = $ail_m3;
         return { $ail_kind: "ok", value: r.value };
       }
       }
@@ -323,10 +323,10 @@ export function std__str__upper_ascii_from(value: string, acc: string, n: bigint
   }
 }
 export function std__str__upper_ascii(value: string): TextResult {
-  const $ail_m23: TextResult = std__str__upper_ascii_from(value, "", (BigInt([...value].length)));
-  switch ($ail_m23.$ail_kind) {
+  const $ail_m1: TextResult = std__str__upper_ascii_from(value, "", (BigInt([...value].length)));
+  switch ($ail_m1.$ail_kind) {
   case "ok": {
-    const r = $ail_m23;
+    const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
   }
   }
@@ -336,24 +336,24 @@ export function std__str__lower_ascii_from(value: string, acc: string, n: bigint
     return { $ail_kind: "ok", value: acc };
   }
   else {
-    const $ail_m24: TextResult = std__str__find("ABCDEFGHIJKLMNOPQRSTUVWXYZ", $ailStrSlice(value, 0n, 1n));
-    switch ($ail_m24.$ail_kind) {
+    const $ail_m1: TextResult = std__str__find("ABCDEFGHIJKLMNOPQRSTUVWXYZ", $ailStrSlice(value, 0n, 1n));
+    switch ($ail_m1.$ail_kind) {
     case "ok": {
-      const f = $ail_m24;
-      const $ail_m25: TextResult = std__str__lower_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice("abcdefghijklmnopqrstuvwxyz", f.value, (f.value + 1n))), (n - 1n));
-      switch ($ail_m25.$ail_kind) {
+      const f = $ail_m1;
+      const $ail_m2: TextResult = std__str__lower_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice("abcdefghijklmnopqrstuvwxyz", f.value, (f.value + 1n))), (n - 1n));
+      switch ($ail_m2.$ail_kind) {
       case "ok": {
-        const r = $ail_m25;
+        const r = $ail_m2;
         return { $ail_kind: "ok", value: r.value };
       }
       }
     }
     case "text.not_found": {
-      const _ = $ail_m24;
-      const $ail_m26: TextResult = std__str__lower_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
-      switch ($ail_m26.$ail_kind) {
+      const _ = $ail_m1;
+      const $ail_m3: TextResult = std__str__lower_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
+      switch ($ail_m3.$ail_kind) {
       case "ok": {
-        const r = $ail_m26;
+        const r = $ail_m3;
         return { $ail_kind: "ok", value: r.value };
       }
       }
@@ -362,10 +362,10 @@ export function std__str__lower_ascii_from(value: string, acc: string, n: bigint
   }
 }
 export function std__str__lower_ascii(value: string): TextResult {
-  const $ail_m27: TextResult = std__str__lower_ascii_from(value, "", (BigInt([...value].length)));
-  switch ($ail_m27.$ail_kind) {
+  const $ail_m1: TextResult = std__str__lower_ascii_from(value, "", (BigInt([...value].length)));
+  switch ($ail_m1.$ail_kind) {
   case "ok": {
-    const r = $ail_m27;
+    const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
   }
   }

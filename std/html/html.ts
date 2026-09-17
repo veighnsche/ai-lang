@@ -106,14 +106,14 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
   }
 }
 export function html__text__escape(raw: string): HtmlResult {
-  const $ail_m5: HtmlResult = html__text__escape_from(raw, raw, "", (BigInt([...raw].length)));
-  switch ($ail_m5.$ail_kind) {
+  const $ail_m1: HtmlResult = html__text__escape_from(raw, raw, "", (BigInt([...raw].length)));
+  switch ($ail_m1.$ail_kind) {
   case "ok": {
-    const r = $ail_m5;
+    const r = $ail_m1;
     return { $ail_kind: "ok", text: r.value };
   }
   case "html.nul_byte": {
-    const e = $ail_m5;
+    const e = $ail_m1;
     return { $ail_kind: "html.nul_byte", value: raw };
   }
   }
@@ -137,69 +137,69 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
     }
     else {
       if (($ailStrSlice(s, 0n, 1n) === "&")) {
-        const $ail_m6: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
-        switch ($ail_m6.$ail_kind) {
+        const $ail_m1: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
+        switch ($ail_m1.$ail_kind) {
         case "ok": {
-          const r = $ail_m6;
+          const r = $ail_m1;
           return { $ail_kind: "ok", value: r.value };
         }
         case "html.nul_byte": {
-          const e = $ail_m6;
+          const e = $ail_m1;
           return { $ail_kind: "html.nul_byte", value: e.value };
         }
         }
       }
       else {
         if (($ailStrSlice(s, 0n, 1n) === "<")) {
-          const $ail_m7: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
-          switch ($ail_m7.$ail_kind) {
+          const $ail_m2: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
+          switch ($ail_m2.$ail_kind) {
           case "ok": {
-            const r = $ail_m7;
+            const r = $ail_m2;
             return { $ail_kind: "ok", value: r.value };
           }
           case "html.nul_byte": {
-            const e = $ail_m7;
+            const e = $ail_m2;
             return { $ail_kind: "html.nul_byte", value: e.value };
           }
           }
         }
         else {
           if (($ailStrSlice(s, 0n, 1n) === ">")) {
-            const $ail_m8: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
-            switch ($ail_m8.$ail_kind) {
+            const $ail_m3: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
+            switch ($ail_m3.$ail_kind) {
             case "ok": {
-              const r = $ail_m8;
+              const r = $ail_m3;
               return { $ail_kind: "ok", value: r.value };
             }
             case "html.nul_byte": {
-              const e = $ail_m8;
+              const e = $ail_m3;
               return { $ail_kind: "html.nul_byte", value: e.value };
             }
             }
           }
           else {
             if (($ailStrSlice(s, 0n, 1n) === "'")) {
-              const $ail_m9: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
-              switch ($ail_m9.$ail_kind) {
+              const $ail_m4: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
+              switch ($ail_m4.$ail_kind) {
               case "ok": {
-                const r = $ail_m9;
+                const r = $ail_m4;
                 return { $ail_kind: "ok", value: r.value };
               }
               case "html.nul_byte": {
-                const e = $ail_m9;
+                const e = $ail_m4;
                 return { $ail_kind: "html.nul_byte", value: e.value };
               }
               }
             }
             else {
-              const $ail_m10: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
-              switch ($ail_m10.$ail_kind) {
+              const $ail_m5: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
+              switch ($ail_m5.$ail_kind) {
               case "ok": {
-                const r = $ail_m10;
+                const r = $ail_m5;
                 return { $ail_kind: "ok", value: r.value };
               }
               case "html.nul_byte": {
-                const e = $ail_m10;
+                const e = $ail_m5;
                 return { $ail_kind: "html.nul_byte", value: e.value };
               }
               }
@@ -214,18 +214,18 @@ export function html__attribute__spelling(name: string): HtmlResult {
   return { $ail_kind: "ok", name: name, spelling: "title" };
 }
 export function html__attribute__text(name: string, raw: string): HtmlResult {
-  const $ail_m11: HtmlResult = html__attribute__spelling(name);
-  switch ($ail_m11.$ail_kind) {
+  const $ail_m1: HtmlResult = html__attribute__spelling(name);
+  switch ($ail_m1.$ail_kind) {
   case "ok": {
-    const w = $ail_m11;
-    const $ail_m12: HtmlResult = html__attribute__value_from(raw, raw, "", (BigInt([...raw].length)));
-    switch ($ail_m12.$ail_kind) {
+    const w = $ail_m1;
+    const $ail_m2: HtmlResult = html__attribute__value_from(raw, raw, "", (BigInt([...raw].length)));
+    switch ($ail_m2.$ail_kind) {
     case "ok": {
-      const v = $ail_m12;
+      const v = $ail_m2;
       return { $ail_kind: "ok", attribute: (((w.spelling + "='") + v.value) + "'") };
     }
     case "html.nul_byte": {
-      const e = $ail_m12;
+      const e = $ail_m2;
       return { $ail_kind: "html.nul_byte", value: raw };
     }
     }
