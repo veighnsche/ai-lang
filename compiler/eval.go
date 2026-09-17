@@ -84,6 +84,14 @@ func decCmp(op string, c int) bool {
 // terminating decimals always terminate, which is why division waits
 // for its own spec).
 func evArith(op string, lv, rv *Value) (*Value, error) {
+	// v39 S4: Seq<T> + T appends immutably. The tail array is
+	// copied, never shared, so the original value is unchanged;
+	// member typing is the checker's (brands erase before values
+	// arrive here, so no runtime recheck could be exact anyway).
+	if op == "+" && lv.Kind == "seq" {
+		arr := append(append([]*Value{}, lv.Arr...), rv)
+		return &Value{Kind: "seq", Arr: arr, Elem: lv.Elem}, nil
+	}
 	// v16: + concatenates strings; every other string computation
 	// stays a loud dynamic error past the static gate, as before.
 	if lv.Kind == "str" && rv.Kind == "str" {

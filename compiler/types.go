@@ -282,6 +282,13 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		if s.Op == "+" && lok && rok && l == "str" && r == "str" {
 			return "str", true
 		}
+		// v39 S4: an append carries its sequence type outward,
+		// so outer positions check element identity once.
+		if s.Op == "+" && lok && rok {
+			if le, ok := seqElemName(l); ok && r == le {
+				return l, true
+			}
+		}
 		// v17: decimal division and remainder have no exact result;
 		// keep them untyped so parents stay silent and the value
 		// rule reports the one refusal.
@@ -487,6 +494,26 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// strings.
 			if l == r && l == "str" && s.Op == "+" {
 				return
+			}
+			// v39 S4: Seq<T> + T appends, yielding the sequence
+			// type. Seq + Seq is a separate concatenation
+			// contract (not v1) with its own diagnostic; a
+			// member on the left keeps the existing
+			// no-conversions refusal below.
+			if s.Op == "+" && lok && rok {
+				if le, ok := seqElemName(l); ok {
+					if _, rok := seqElemName(r); rok {
+						c.out = append(c.out, spanDiag(c.text, line, "error",
+							fmt.Sprintf("cannot add %s with %s: sequence concatenation is not in v1", l, r), s.Op, CodeTypeMismatch))
+						return
+					}
+					if r != le {
+						c.mismatch(line, where, r, le, s.Op)
+						return
+					}
+					s.T = l
+					return
+				}
 			}
 			// v17: 1/3 does not terminate, so decimal division and
 			// remainder are refused per operation. Integers divide

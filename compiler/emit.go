@@ -455,6 +455,14 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return fmt.Sprintf("$ailDivMod(%s, %s)[%s]", l, r, idx), nil
 		}
+		// v39 S4: sequence append lowers to spread with precise
+		// element types; the checker owns the operand rule
+		// (Seq+T only, never Seq+Seq).
+		if node.Op == "+" {
+			if _, ok := seqElemName(ot); ok {
+				return fmt.Sprintf("[...%s, %s]", l, r), nil
+			}
+		}
 		ops := map[string]string{">=": ">=", "<=": "<=", ">": ">", "<": "<", "+": "+", "-": "-", "*": "*"}
 		op, ok := ops[node.Op]
 		if !ok {
