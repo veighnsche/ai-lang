@@ -749,19 +749,25 @@ export function std__int__next_power_of_two(value: bigint): ScalarsResult {
     return { $ail_kind: "math.nonpositive_input", value: value };
   }
 }
-export function std__int__sqrt_floor_from(value: bigint, e: bigint): ScalarsResult {
-  if ((e <= 0n)) {
-    return { $ail_kind: "ok", value: 0n };
+export function std__int__sqrt_floor_search(value: bigint, lo: bigint, hi: bigint): ScalarsResult {
+  if (((hi - lo) <= 1n)) {
+    return { $ail_kind: "ok", value: lo };
   }
   else {
-    if (((e * e) <= value)) {
-      return { $ail_kind: "ok", value: e };
-    }
-    else {
-      const $ail_m16: ScalarsResult = std__int__sqrt_floor_from(value, (e - 1n));
+    if ((($ailDivMod((lo + hi), 2n)[0] * $ailDivMod((lo + hi), 2n)[0]) <= value)) {
+      const $ail_m16: ScalarsResult = std__int__sqrt_floor_search(value, $ailDivMod((lo + hi), 2n)[0], hi);
       switch ($ail_m16.$ail_kind) {
       case "ok": {
         const r = $ail_m16;
+        return { $ail_kind: "ok", value: r.value };
+      }
+      }
+    }
+    else {
+      const $ail_m17: ScalarsResult = std__int__sqrt_floor_search(value, lo, $ailDivMod((lo + hi), 2n)[0]);
+      switch ($ail_m17.$ail_kind) {
+      case "ok": {
+        const r = $ail_m17;
         return { $ail_kind: "ok", value: r.value };
       }
       }
@@ -770,10 +776,10 @@ export function std__int__sqrt_floor_from(value: bigint, e: bigint): ScalarsResu
 }
 export function std__int__sqrt_floor(value: bigint): ScalarsResult {
   if ((value >= 0n)) {
-    const $ail_m17: ScalarsResult = std__int__sqrt_floor_from(value, value);
-    switch ($ail_m17.$ail_kind) {
+    const $ail_m18: ScalarsResult = std__int__sqrt_floor_search(value, 0n, (value + 1n));
+    switch ($ail_m18.$ail_kind) {
     case "ok": {
-      const r = $ail_m17;
+      const r = $ail_m18;
       return { $ail_kind: "ok", root: r.value, remainder: (value - (r.value * r.value)) };
     }
     }
@@ -782,33 +788,17 @@ export function std__int__sqrt_floor(value: bigint): ScalarsResult {
     return { $ail_kind: "math.negative_input", value: value };
   }
 }
-export function std__int__gcd_from(x: bigint, y: bigint, e: bigint): ScalarsResult {
-  if ((e <= 0n)) {
-    return { $ail_kind: "ok", value: 1n };
+export function std__int__gcd_euclid(a: bigint, b: bigint): ScalarsResult {
+  if ((b <= 0n)) {
+    return { $ail_kind: "ok", value: a };
   }
   else {
-    if (($ailDivMod(x, (e + 1n))[1] === 0n)) {
-      if (($ailDivMod(y, (e + 1n))[1] === 0n)) {
-        return { $ail_kind: "ok", value: (e + 1n) };
-      }
-      else {
-        const $ail_m18: ScalarsResult = std__int__gcd_from(x, y, (e - 1n));
-        switch ($ail_m18.$ail_kind) {
-        case "ok": {
-          const r = $ail_m18;
-          return { $ail_kind: "ok", value: r.value };
-        }
-        }
-      }
+    const $ail_m19: ScalarsResult = std__int__gcd_euclid(b, $ailDivMod(a, b)[1]);
+    switch ($ail_m19.$ail_kind) {
+    case "ok": {
+      const r = $ail_m19;
+      return { $ail_kind: "ok", value: r.value };
     }
-    else {
-      const $ail_m19: ScalarsResult = std__int__gcd_from(x, y, (e - 1n));
-      switch ($ail_m19.$ail_kind) {
-      case "ok": {
-        const r = $ail_m19;
-        return { $ail_kind: "ok", value: r.value };
-      }
-      }
     }
   }
 }
@@ -821,22 +811,12 @@ export function std__int__gcd(left: bigint, right: bigint): ScalarsResult {
     switch ($ail_m21.$ail_kind) {
     case "ok": {
       const b = $ail_m21;
-      if ((a.value === 0n)) {
-        return { $ail_kind: "ok", value: b.value };
+      const $ail_m22: ScalarsResult = std__int__gcd_euclid(a.value, b.value);
+      switch ($ail_m22.$ail_kind) {
+      case "ok": {
+        const r = $ail_m22;
+        return { $ail_kind: "ok", value: r.value };
       }
-      else {
-        if ((b.value === 0n)) {
-          return { $ail_kind: "ok", value: a.value };
-        }
-        else {
-          const $ail_m22: ScalarsResult = std__int__gcd_from(a.value, b.value, (a.value - 1n));
-          switch ($ail_m22.$ail_kind) {
-          case "ok": {
-            const r = $ail_m22;
-            return { $ail_kind: "ok", value: r.value };
-          }
-          }
-        }
       }
     }
     }
