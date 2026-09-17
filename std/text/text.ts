@@ -1,6 +1,6 @@
 // GENERATED from text.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array };
+export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string };
 export type Str__Value = { value: string };
 export type Bool__Value = { value: boolean };
 export type Int__Value = { value: bigint };
@@ -79,6 +79,23 @@ function $ailHexEncode(value: Uint8Array): string {
     out += digits[value[i] >> 4] + digits[value[i] & 15];
   }
   return out;
+}
+function $ailHexVal(c: number): number {
+  if (c >= 48 && c <= 57) return c - 48;
+  if (c >= 65 && c <= 70) return c - 55;
+  if (c >= 97 && c <= 102) return c - 87;
+  return -1;
+}
+function $ailHexDecode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } {
+  if (value.length % 2 !== 0) return { $ail_kind: "encoding.invalid_hex", value: value };
+  const out = new Uint8Array(value.length / 2);
+  for (let i = 0; i < value.length; i += 2) {
+    const hi = $ailHexVal(value.charCodeAt(i));
+    const lo = $ailHexVal(value.charCodeAt(i + 1));
+    if (hi < 0 || lo < 0) return { $ail_kind: "encoding.invalid_hex", value: value };
+    out[i / 2] = hi * 16 + lo;
+  }
+  return { $ail_kind: "ok", value: out };
 }
 export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
   return { $ail_kind: "ok", value: (left + right) };
@@ -623,6 +640,22 @@ export function std__hex__encode(value: Uint8Array): { $ail_kind: "ok"; value: s
   case "ok": {
     const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
+  }
+  }
+}
+export function std__hex__decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } = $ailHexDecode(value);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", value: r.value };
+  }
+  case "encoding.invalid_hex": {
+    const e = $ail_m1;
+    return { $ail_kind: "encoding.invalid_hex", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }
