@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 )
 
 // Values: Kind str,int,bool,dec,rec,ok,err,seq,bytes. Field access
@@ -40,6 +41,11 @@ type Value struct {
 func recordDecl(prog *Program, name string) *TypeDecl {
 	if prog == nil {
 		return nil
+	}
+	for _, b := range builtinTypeDecls() {
+		if b.Name == name {
+			return b
+		}
 	}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
@@ -876,6 +882,33 @@ func evValueMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*V
 	return nil, fmt.Errorf("%s/%s: non-exhaustive multi-scrutinee match", owner, ctx.Test)
 }
 
+// evBytesExportOp evaluates a certified brand export (v46 S2): the
+// granted brand's string as UTF-8 bytes, NUL and BOM preserved.
+// Uncertified calls refuse loud; the refusal must never become
+// trusted script evidence (certificates issue before linkage for
+// exactly this reason).
+func evBytesExportOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if scrut.ExportBrand == "" {
+		return nil, fmt.Errorf("%s: call to %s is not authorized by a valid exports_utf8 grant", owner, bytesExportKernel)
+	}
+	if len(scrut.Args) != 1 || scrut.Args[0].HasName {
+		return nil, fmt.Errorf("%s: call to %s takes the bare granted value", owner, bytesExportKernel)
+	}
+	v, err := evSmall(scrut.Args[0].V, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "str" {
+		return nil, fmt.Errorf("%s: call to %s takes a string-backed brand", owner, bytesExportKernel)
+	}
+	if !utf8.ValidString(v.S) {
+		return nil, fmt.Errorf("%s: host string is not valid UTF-8", owner)
+	}
+	out := make([]byte, len(v.S))
+	copy(out, v.S)
+	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -895,6 +928,15 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
 			val, err := evDecPartsOp(scrut, env, ctx, owner)
+			if err != nil {
+				return nil, err
+			}
+			v = val
+		} else if isBytesExport(fname) {
+			if node.Given != nil {
+				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
+			}
+			val, err := evBytesExportOp(scrut, env, ctx, owner)
 			if err != nil {
 				return nil, err
 			}
@@ -1346,8 +1388,17 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			return
 		}
 		if n.Kind == MatchCall {
+			fname := n.Scruts[0].Fname
+			if isBytesExport(fname) {
+				// v46 S2: the export kernel's contract must exist
+				// explicitly; an absent entry is never an empty
+				// error set (no dec__parts shortcut).
+				if _, ok := prog.EmitsOf[fname]; !ok {
+					out = append(out, at(n.Line, fmt.Errorf("%s: export kernel %s has no registered contract", owner, fname)))
+				}
+			}
 			want := map[string]bool{"ok": true}
-			for _, e := range prog.EmitsOf[n.Scruts[0].Fname] {
+			for _, e := range prog.EmitsOf[fname] {
 				want[e] = true
 			}
 			got := map[string]int{}

@@ -131,6 +131,15 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			_, isFn := d.(*FnDecl)
 			_, isEx := d.(*ExternDecl)
 			if isFn || isEx {
+				if isBytesExport(name) {
+					kind := "function"
+					if isEx {
+						kind = "extern"
+					}
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						fmt.Sprintf("%s %s shadows a compiler kernel: rename the declaration", kind, name), name, CodePrimitiveShadow))
+					continue
+				}
 				if _, dup := seenFn[name]; dup {
 					if m == open {
 						emit(m, spanDiag(texts[m.ID], line, "error",
@@ -162,12 +171,18 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				if d.Name == "Bytes" {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						"type Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
+				} else if d.Name == bytesValueRecord {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						fmt.Sprintf("type %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
 				}
 				provides[d.Name] = m
 			case *BrandDecl:
 				if d.Name == "Bytes" {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						"brand Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
+				} else if d.Name == bytesValueRecord {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						fmt.Sprintf("brand %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
 				}
 				provides[d.Name] = m
 				if _, ok := prog.Brands[d.Name]; !ok {
@@ -223,6 +238,10 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			prog.Uses[base] = true
 		}
 	}
+	// v46 S2: the restricted export kernel declares its contract
+	// explicitly. The entry must exist (exhaustiveness verifies it
+	// independently); an absent entry is never an empty error set.
+	prog.EmitsOf[bytesExportKernel] = []string{}
 	return prog, out
 }
 
@@ -443,9 +462,9 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 			s := m.Scruts[0]
 			scrut[s] = true
 			fname := s.Fname
-			if isStoreOp(fname) || isDecParts(fname) {
-				continue // cells resolve in checkEffects; the kernel
-				// needs nothing; uses never applies to either
+			if isStoreOp(fname) || isDecParts(fname) || isBytesExport(fname) {
+				continue // cells resolve in checkEffects; kernels
+				// need nothing; uses never applies to any of them
 			}
 			if _, ok := prog.Fns[fname]; !ok {
 				if localExtern[fname] {
@@ -667,6 +686,13 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 			continue
 		}
 		if isDecParts(fname) {
+			if m.Given != nil {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
+			}
+			continue
+		}
+		if isBytesExport(fname) {
 			if m.Given != nil {
 				out = append(out, spanDiag(text, m.Line, "error",
 					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))

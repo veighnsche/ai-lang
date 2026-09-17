@@ -41,15 +41,20 @@ type Small struct {
 	// Elem holds the element type name for Kind seqlit
 	// (v36 S1: typed sequence literals Seq<T>[...]).
 	Elem string
-	Op    string
-	L, R  *Small
+	Op   string
+	L, R *Small
 	// Hi holds the slice end for Kind strslice (base L, start R).
-	Hi *Small
+	Hi    *Small
 	Fname string
 	Args  []Arg
 	Ctor  string
 	Items []*Small
 	Ref   []string
+	// ExportBrand names the granted brand on a certified
+	// bytes__utf8__export call node (v46 S2). Set only by
+	// certifyExports after full validation; empty means
+	// uncertified, and both evaluator and emitter refuse it.
+	ExportBrand string
 }
 
 type Pattern struct {
@@ -150,6 +155,19 @@ type FnDecl struct {
 }
 
 func (d *FnDecl) declKind() string { return "fn" }
+
+// Utf8ExportDecl authorizes one function revision to disclose one
+// brand's representation as UTF-8 Bytes (v46 S2). It defines no value
+// or function: certifyExports validates it whole-program and annotates
+// the exact permitted call site. Never in provides.
+type Utf8ExportDecl struct {
+	Brand    string
+	Function string
+	Revision int
+	Line     int
+}
+
+func (d *Utf8ExportDecl) declKind() string { return "export" }
 
 // BrandDecl is a nominal string wrapper: brand Name is str rev N.
 // An optional seals_from [B, ...] clause authorizes explicit one-way
@@ -984,23 +1002,24 @@ func at(line int, err error) error {
 }
 
 var (
-	reHdrLine   = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
-	reError     = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
-	reType      = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
-	reBrand     = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
-	reExtern    = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reFn        = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reField     = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
-	reTest      = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
-	reGiven     = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
-	reArm       = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
+	reHdrLine         = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
+	reError           = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
+	reType            = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
+	reBrand           = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
+	reExtern          = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reFn              = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reExport          = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
+	reField           = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
+	reTest            = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
+	reGiven           = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
+	reArm             = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
 	reDecreases       = regexp.MustCompile(`^decreases\s+(\w+)$`)
 	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+)\s*,\s*(\w+)\s+by\s+(euclid|narrowing)$`)
-	reEffects   = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
-	reState     = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+)\s*=\s*(.+)$`)
-	reRevWord   = regexp.MustCompile(`\brev\b`)
-	rePatVar    = regexp.MustCompile(`^([\w.]+)\s+(\w+)$`)
-	rePatWild   = regexp.MustCompile(`^([\w.]+)\s+_$`)
+	reEffects         = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
+	reState           = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+)\s*=\s*(.+)$`)
+	reRevWord         = regexp.MustCompile(`\brev\b`)
+	rePatVar          = regexp.MustCompile(`^([\w.]+)\s+(\w+)$`)
+	rePatWild         = regexp.MustCompile(`^([\w.]+)\s+_$`)
 )
 
 func parseFields(s, what string) ([][2]string, error) {
@@ -1150,6 +1169,20 @@ func parseModuleText(name, text string) (*Module, error) {
 				}
 			}
 			mod.Decls = append(mod.Decls, &BrandDecl{Name: m[1], Under: m[2], Rev: rev, SealsFrom: from, Line: declLine})
+			i++
+		case strings.HasPrefix(code, "exports_utf8 "):
+			m := reExport.FindStringSubmatch(code)
+			if m == nil {
+				if !strings.Contains(code, "@") {
+					return nil, at(declLine, fmt.Errorf("missing rev N: versioning is mandatory"))
+				}
+				return nil, at(declLine, fmt.Errorf("bad exports_utf8 decl: %s", code))
+			}
+			rev, err := strconv.Atoi(m[3])
+			if err != nil {
+				return nil, at(declLine, fmt.Errorf("bad exports_utf8 decl: rev out of range: %s", m[3]))
+			}
+			mod.Decls = append(mod.Decls, &Utf8ExportDecl{Brand: m[1], Function: m[2], Revision: rev, Line: declLine})
 			i++
 		case strings.HasPrefix(code, "state "):
 			m := reState.FindStringSubmatch(code)

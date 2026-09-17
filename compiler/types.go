@@ -51,6 +51,9 @@ func newTycker(prog *Program, text, fn string) *tycker {
 		brandFiles: map[string]string{},
 		brandSeals: map[string][]string{},
 		cells:      map[string]string{}}
+	for _, b := range builtinTypeDecls() {
+		c.recs[b.Name] = b.Fields
+	}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
 			switch d := d.(type) {

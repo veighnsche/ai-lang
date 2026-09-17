@@ -6,7 +6,11 @@ Generic UTF-8 and Render both preserve NUL; each decoder's grammar is explicit.
 
 History: v1 (workflow synthesis) → verdict (request changes; slices
 rebracketed, NUL withdrawn, Gap2/Gap9 closed as stale) → v2 → this
-resolution. Prior docs: [bytes-workstream.md](/Users/vince/Projects/ai-lang/docs/bytes-workstream.md),
+resolution → B2 pre-implementation review folded (certificate lifecycle
+barrier, registration/identity/shape corrections, order-independence
+fixtures). Reviewer caveat: it saw v1/v2 + prompt only (v3 and the B1
+doc failed to retrieve on its side; both exist locally) — its cited
+anchors were re-verified here against `de82756` before folding. Prior docs: [bytes-workstream.md](/Users/vince/Projects/ai-lang/docs/bytes-workstream.md),
 [bytes-plan-review-prompt.md](/Users/vince/Projects/ai-lang/docs/bytes-plan-review-prompt.md),
 [bytes-open-items-prompt.md](/Users/vince/Projects/ai-lang/docs/bytes-open-items-prompt.md).
 
@@ -72,6 +76,37 @@ export-call node); evaluator and emitter reject restricted export calls
 without it. Never implement as `underlyingType == "str"` or
 `callerFile == brandFile` alone.
 
+Certificate lifecycle barrier (B2 review correction — verified hole):
+`checkProgram` loops modules through `checkSem`, which runs
+`checkScriptConsistency` before `checkTypes`, and `contradictScriptOk`
+trusts on any provider evaluation error (`compiler/main.go:317–348`;
+`compiler/lsp.go:270,272`; `compiler/check.go:763–810`). Issuing
+certificates during per-function type checking would let a consumer
+checked before its exporter pass on trusted script evidence, with the
+exporter certified only later. Required order: resolve declarations
+and identities → reject ambiguous grants/targets → check export
+shapes and relevant types for all modules → issue certificates for
+this program → run linkage evaluation and decision tables → emit with
+those same certificates. Certificates bind program + declaration
+identities + revision + parameter + call site; grant removal,
+signature, or body changes invalidate even when `fn@rev` is unchanged.
+Invalid/missing export authority must never become trusted evidence
+through the linkage fallback — distinguish it from ordinary sandbox
+modeling failure. Exhaustiveness, coverage, and test-data seals
+cannot manufacture a certificate.
+
+Grant registration: separate pass over `Module.Decls` retaining the
+owning module — never inside the `buildWorld` switch, which skips
+empty-name declarations (`compiler/check.go:113–150`). Grants are not
+provided symbols (no `provides` obligation, no double-definition).
+Identity invariant: same validated module identity in this program,
+not three matching strings; reject empty/duplicate identities and
+ambiguous targets before certification (no first-wins for brands).
+Loader note: normal CLI `parsePaths` preserves full paths and rejects
+duplicate identities (`compiler/main.go:233–258`); legacy `parseModule`
+strips to basename (`compiler/parse.go:1022–1040`) but is currently
+uncalled — the invariant covers it if that changes.
+
 Legal Render example (additions to the HTML module; add function to
 `provides`; `Bytes__Value` per item 9; `Html__Safe` stays an
 ordinary-child-fragment brand — no script/style/attribute/URL authority;
@@ -92,10 +127,30 @@ fn html__render__utf8(document: Html__Safe) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
 ```
 
+Body shape is an exact AST predicate, not "find an export call": `IsMatch`,
+`Kind == MatchCall`, exactly one scrutinee naming `bytes__utf8__export` with
+exactly one positional argument that is the bare parameter reference
+(`isBareRef`, not a field or expression); `Given == nil` (reject even an
+empty table); exactly one arm, a bound `Ok` variant whose non-match RHS is
+`Ok` with exactly one named field `value` holding `Ref[ok-binder, "value"]`.
+Count arms, not outcome kinds — exhaustiveness maps and coverage are not
+authorization. Ordinary callers of the public exporter stay legal. Caveat:
+the parser overwrites repeated `emits`/`effects` metadata
+(`compiler/parse.go:1190–1260`), so the rule governs effective AST metadata,
+not source-line uniqueness.
+
+Export input type is call-site-specific: the descriptor holds result shape,
+explicit empty emits, and dispatch policy, but the permitted nominal input
+comes from the certificate for the current owner and call node — never a
+global signature, `underlying == str`, or last-registered exporter. Positive
+test: two independently granted brands in one program, both module orders,
+plus a third ungranted brand still rejected.
+
 Secret path stays closed — generic kernel parameter is exactly `str`, so
 `Vault__Secret → bytes__utf8__encode` fails `AIL6003` at the argument
 (anchors `compiler/types.go:350–630,630–650`); no decoder repairs the missing
-edge. Required rejection fixtures: generic encode of `Vault__Secret` then
+edge. Only the first forbidden edge must fail — downstream correctly-typed
+edges need no invented diagnostic. Required rejection fixtures: generic encode of `Vault__Secret` then
 decode (`AIL6003` at encoder); ungranted-function export then decode
 (authority diagnostic); `Vault__Secret` to public Render (`AIL6003`);
 cross-module grant (authority diagnostic); granted function returning `str` /
@@ -276,7 +331,9 @@ functions (normal `uses`/foreign-call rules for callers). Invariant: a kernel
 is callable only with parameter contract + result declaration + explicit
 emits entry + evaluator + emitter all installed. Every decoder gets
 missing-arm and stale-arm rejections — none inherits `dec__parts`' absent
-entry (its comment depends on totality).
+entry (its comment depends on totality). The exhaustiveness loop treats
+absent and empty `EmitsOf` alike, so B2 must verify the export kernel's
+contract exists independently of its empty error set.
 
 ## 7. Type-checking registration: ordinary composition, no implicit conversions
 
@@ -431,7 +488,7 @@ consumers. Each slice closes item-12 gates before the next lands.
 | Slice | Single capability | Slice-specific acceptance |
 | ----- | ----------------- | ------------------------- |
 | B1 | Value admission + literal construction | Five-case matrix; all value positions; empty/nonempty/order/repeats; `Seq<Bytes>` composition; nested structural `==`; normalization; wrong-result `AIL3110`/`AIL4200`; direct-operator + state rejection; emitter numeric-literal pins. |
-| B2 | Owner-authorized typed UTF-8 export | Grant declaration + exact exporter shape; branded export rows; unrelated-brand denials; same-basename/different-owner rejection; no string-returning or helper-forwarding exporter; no real HTML consumer yet. |
+| B2 | Owner-authorized typed UTF-8 export | Grant declaration (separate registration pass) + exact AST exporter shape; lifecycle barrier (certificates before any linkage evaluation); branded export rows incl. own byte-correctness (empty/ASCII/non-ASCII/supplementary/NUL/BOM); unrelated-brand denials; same-basename/different-owner rejection via both loader routes; no string-returning or helper-forwarding exporter; explicit `EmitsOf` entry with independent existence check; two-grant both-orders test; sink controls (allowed route / denied route / real-decoder repeat); order-independence: `AIL3110` for wrong scripted export bytes under both module orders; grant-removal invalidation control; no real HTML consumer yet. |
 | B3 | Generic UTF-8 encode kernel | Strict `str` admission; NUL/BOM/Unicode vectors; no brand acceptance; empty `EmitsOf`; deterministic no-`given` rule. |
 | B4 | `html__render__utf8` consumer | HTML-owned grant + function; empty/entity/Unicode/NUL-position rows; exact serialization; unchanged `Html__Safe`, promotion, escaping. |
 | B5 | `std__utf8__encode` wrapper | Declared Bytes wrapper result; computed encoding rows; inventories + artifacts updated. |

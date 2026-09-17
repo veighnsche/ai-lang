@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/big"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -21,6 +22,9 @@ func tsType(t string) (string, error) {
 // wins across modules, matching the checker and the evaluator.
 func recordShapes(mods []*Module) map[string][][2]string {
 	recs := map[string][][2]string{}
+	for _, b := range builtinTypeDecls() {
+		recs[b.Name] = b.Fields
+	}
 	for _, m := range mods {
 		for _, d := range m.Decls {
 			if td, ok := d.(*TypeDecl); ok {
@@ -113,6 +117,11 @@ func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]s
 // implementation; this is the contract ailc proves against.
 func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	var td *TypeDecl
+	for _, b := range builtinTypeDecls() {
+		if b.Name == ex.Ret {
+			td = b
+		}
+	}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
 			if t, ok := d.(*TypeDecl); ok && t.Name == ex.Ret {
@@ -1103,6 +1112,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if isDecParts(scrut.Fname) {
 		return e.stmtDecParts(node, scrut, out)
 	}
+	if isBytesExport(scrut.Fname) {
+		return e.stmtBytesExport(node, scrut, out)
+	}
 	union, ok := e.fnUnions[scrut.Fname]
 	if !ok {
 		return fmt.Errorf("no Result type for callee %s", scrut.Fname)
@@ -1381,6 +1393,42 @@ func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
 	return nil
 }
 
+// stmtBytesExport lowers a certified brand export (v46 S2): the
+// granted string through TextEncoder into an Ok record of Uint8Array.
+// The certificate annotation is required; uncertified nodes fail loud
+// and never fall through to the ordinary call path.
+func (e *emitter) stmtBytesExport(node *Node, scrut *Small, out *[]string) error {
+	if scrut.ExportBrand == "" {
+		return fmt.Errorf("cannot emit %s: no valid exports_utf8 grant certified this call", scrut.Fname)
+	}
+	if len(scrut.Args) != 1 {
+		return fmt.Errorf("cannot emit %s: want one value", scrut.Fname)
+	}
+	v, err := e.emitValue(scrut.Args[0].V)
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: Uint8Array } = { "+tsTag+": \"ok\", value: new TextEncoder().encode(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	for _, arm := range node.Arms {
+		pat := arm.Pats[0]
+		if pat.Kind != "variant" || pat.Name != "Ok" {
+			return fmt.Errorf("bytes__utf8__export match arm must be Ok")
+		}
+		*out = append(*out, `case "ok": {`)
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+		if err != nil {
+			return err
+		}
+		*out = append(*out, indent(lines)...)
+		*out = append(*out, "}")
+	}
+	*out = append(*out, "}")
+	return nil
+}
+
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	// Per-function temp scope: every fresh() temporary lands as a
 	// const inside this body, so numbering restarts at $ail_m1 per
@@ -1637,5 +1685,25 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		L = append(L, divModHelper...)
 	}
 	L = append(L, fnLines...)
+	// v46 S2: compiler-owned record definitions, emitted exactly when
+	// referenced. References reach the output only through tsTypeB,
+	// but at too many call sites to track explicitly; the
+	// word-boundary scan cannot miss a spelling and cannot
+	// false-positive on longer identifiers (__ has no boundary).
+	joined := strings.Join(L, "\n")
+	for _, b := range builtinTypeDecls() {
+		if !regexp.MustCompile(`\b` + b.Name + `\b`).MatchString(joined) {
+			continue
+		}
+		var fs []string
+		for _, f := range b.Fields {
+			t, err := tsTypeB(f[1], em.brands, recs)
+			if err != nil {
+				return "", err
+			}
+			fs = append(fs, f[0]+": "+t)
+		}
+		L = append(L, fmt.Sprintf("export type %s = { %s };", b.Name, strings.Join(fs, "; ")))
+	}
 	return strings.Join(L, "\n") + "\n", nil
 }

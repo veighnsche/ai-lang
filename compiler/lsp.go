@@ -192,6 +192,9 @@ func diagnose(dir, name, text string) []Diag {
 		sortDiags(out)
 		return withFile(out, name)
 	}
+	// v46 S2 barrier: same whole-program certification as the CLI, so
+	// "no squiggles" and "compiles" cannot diverge on authority.
+	out = append(out, certifyExports(all, prog, texts)...)
 
 	for _, err := range verifyExhaustiveAll([]*Module{open}, prog) {
 		out = append(out, proofDiag(text, err))
