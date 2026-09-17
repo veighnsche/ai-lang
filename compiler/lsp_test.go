@@ -237,7 +237,7 @@ func TestDiagnoseBadStub(t *testing.T) {
 // (v12): a wrong request value, a wrong request name, or a row
 // without an exchange all fail loudly.
 func TestExchangeArgMismatch(t *testing.T) {
-	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok(id = "u")]`, `ok => [exchange args (id = "x") outcome Ok(id = "u")]`, 1)
+	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok(id = "u")]`, `ok => [exchange args (id = "x") outcome db.down()]`, 1)
 	dir := writeLSPDir(t, map[string]string{"db.ail": lspDB, "auth.ail": bad})
 	diags := diagnose(dir, "auth.ail", bad)
 	if !hasDiag(diags, "error", "arg id mismatch") {

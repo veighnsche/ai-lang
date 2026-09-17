@@ -264,6 +264,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 			out = append(out, checkDecreases(fn, prog, text)...)
 			out = append(out, checkEffects(fn, prog, text)...)
 			out = append(out, checkGiven(fn, prog, text)...)
+			out = append(out, checkScriptConsistency(fn, prog, text)...)
 			out = append(out, checkEmits(fn, prog, text)...)
 			out = append(out, checkTypes(fn, prog, text)...)
 			out = append(out, checkUnusedParams(fn, text)...)
@@ -285,14 +286,15 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 	// before running anything. Open termination proofs (bad, stale,
 	// or unproven decreases, unguarded recursion, cross-file cycles),
 	// ill-formed script evidence (outcome-only rows, malformed
-	// outcomes), and unproven authority (effects) block the same way:
+	// outcomes, Ok claims the provider body contradicts), and unproven
+	// authority (effects) block the same way:
 	// the gate is prove-first, run-after.
 	blocked := extBlocked
 	for _, d := range out {
 		if d.Sev == "error" && (d.Code == CodeLocalCycle ||
 			d.Code == CodeBadDecreases || d.Code == CodeStaleDecreases ||
 			d.Code == CodeNoDecrease || d.Code == CodeNoGuard ||
-			d.Code == CodeNoExchange || d.Code == CodeBadStub ||
+			d.Code == CodeNoExchange || d.Code == CodeBadStub || d.Code == CodeInconsistentScript ||
 			d.Code == CodeUndeclaredEffect || d.Code == CodeStaleEffect) {
 			blocked = true
 		}

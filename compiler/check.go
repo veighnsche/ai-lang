@@ -530,6 +530,111 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 	return out
 }
 
+// checkScriptConsistency proves v18 linkage (issue #1): a scripted Ok
+// outcome is a claim about what the provider computes, so when the
+// provider body evaluates on the script args the claim must match.
+// Scripted errors stay trusted: emits is an upper bound that admits
+// unrealized entries (v12), and failure injection is what scripts are
+// for. Anything the sandbox cannot evaluate (a foreign call needing
+// its own script, unreachable state, depth exhaustion, uncomparable
+// values) is trusted, never failed: a proof attempt that cannot run
+// proves nothing, and a check must never fail a build it cannot model.
+func checkScriptConsistency(fn *FnDecl, prog *Program, text string) []Diag {
+	var out []Diag
+	here := prog.FnFile[fn.Name]
+	for _, m := range matchNodes(fn.Body) {
+		if m.Scrut == nil || m.Scrut.Kind != "call" {
+			continue
+		}
+		fname := m.Scrut.Fname
+		if isStoreOp(fname) || localCallee(prog, fn.Name, fname) != nil {
+			continue
+		}
+		callee, ok := prog.Fns[fname]
+		if !ok || prog.FnFile[fname] == here {
+			continue // extern, unknown, or local: owned elsewhere
+		}
+		if m.Given == nil {
+			continue // checkGiven owns the missing table
+		}
+		for key, entry := range m.Given {
+			if entry == nil {
+				continue
+			}
+			items := []*Small{entry}
+			if entry.Kind == "list" {
+				items = entry.Items
+			}
+			for _, item := range items {
+				if item == nil || item.Kind != "exchange" || item.Outcome == nil {
+					continue // outcome-only rows: CodeNoExchange owns
+				}
+				if item.Outcome.Kind != "ctor" || item.Outcome.Ctor != "Ok" {
+					continue // errors are failure injection: trusted
+				}
+				computed, scripted, bad := contradictScriptOk(callee, item, key, prog)
+				if !bad {
+					continue
+				}
+				entryLine := locateLineFrom(text, key+" =>", m.Line, m.Line)
+				out = append(out, spanDiag(text, entryLine, "error",
+					fmt.Sprintf("script %s contradicts %s: provider computes %s, script says %s", key, fname, computed, scripted), key, CodeInconsistentScript))
+			}
+		}
+	}
+	return out
+}
+
+// contradictScriptOk evaluates the provider body on the script's own
+// exchange args and compares the result with the scripted Ok outcome.
+// It reports false (trusted) whenever the provider cannot be modeled:
+// unbound args, a param the script never supplies, any evaluation
+// error, or values vEq cannot compare. A panic inside the evaluator
+// is a modeling failure too, never a build failure: the sandbox
+// recovers and trusts.
+func contradictScriptOk(callee *FnDecl, item *Small, test string, prog *Program) (computed, scripted string, bad bool) {
+	defer func() {
+		if recover() != nil {
+			computed, scripted, bad = "", "", false
+		}
+	}()
+	sandbox := &Ctx{Prog: prog, Test: test, Scripts: map[*Node]map[string][]*Small{}}
+	store, err := freshStore(prog)
+	if err != nil {
+		return "", "", false
+	}
+	sandbox.Store = store
+	argVals := map[string]*Value{}
+	for _, a := range item.Args {
+		v, err := evSmall(a.V, map[string]*Value{}, sandbox, callee.Name)
+		if err != nil {
+			return "", "", false
+		}
+		argVals[a.Name] = v
+	}
+	env := map[string]*Value{}
+	for _, p := range callee.Params {
+		v, ok := argVals[p[0]]
+		if !ok {
+			return "", "", false
+		}
+		env[p[0]] = v
+	}
+	got, err := evNode(callee.Body, env, sandbox, callee.Name)
+	if err != nil {
+		return "", "", false
+	}
+	want, err := evSmall(item.Outcome, env, sandbox, callee.Name)
+	if err != nil {
+		return "", "", false
+	}
+	eq, err := vEq(got, want)
+	if err != nil || eq {
+		return "", "", false
+	}
+	return normalizeValue(got), normalizeValue(want), true
+}
+
 // checkLocalCycles bans recursive helpers: compile-time tests run
 // helper bodies inline, so a local call cycle would hang the build
 // before any proof runs. Edges cover every same-file call,

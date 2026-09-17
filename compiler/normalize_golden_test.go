@@ -20,15 +20,16 @@ func TestGoldenNormalize(t *testing.T) {
 auth.auth__login/down => err(auth.unavailable(reason = "db down twice"))
 auth.auth__login/flaky => Ok(remaining_tries = 3, user_id = "u_01")
 auth.auth__login/happy => Ok(remaining_tries = 3, user_id = "u_01")
-auth.auth__login/locked => err(auth.account_locked(user_id = "u_01"))
+auth.auth__login/locked => err(auth.account_locked(user_id = "u_02"))
 auth.auth__login/missing => err(auth.login_failed(user_id = "u_99"))
 auth.auth__login/retry_badpw => err(auth.login_failed(user_id = "u_01"))
-auth.auth__login/retry_locked => err(auth.account_locked(user_id = "u_01"))
+auth.auth__login/retry_locked => err(auth.account_locked(user_id = "u_02"))
 auth.auth__login/retry_missing => err(auth.login_failed(user_id = "u_99"))
 auth.auth__verify/vh_bad => err(auth.login_failed(user_id = "u_01"))
 auth.auth__verify/vh_locked => err(auth.account_locked(user_id = "u_01"))
 auth.auth__verify/vh_ok => Ok(remaining_tries = 3, user_id = "u_01")
 db.db__get_user/known_user => Ok(failed_attempts = 0, id = "u_01", pw_hash = "secret")
+db.db__get_user/locked_user => Ok(failed_attempts = 5, id = "u_02", pw_hash = "second")
 db.db__get_user/unknown_user => err(db.user_not_found(id = "u_99"))
 `
 	if got := buf.String(); got != want {
