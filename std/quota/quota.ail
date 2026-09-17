@@ -67,13 +67,11 @@ fn std__validate__int_range(value: int, lower: int, upper: int) -> Int__Value re
     above(value = 11, lower = 0, upper = 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
     bad_bounds(value = 5, lower = 10, upper = 0) => validation.invalid_bounds(lower = 10, upper = 0)
 =
-  match lower <= upper
-    true => match value >= lower
-      true => match value <= upper
-        true => Ok(value = value)
-        false => validation.out_of_range(value = value, lower = lower, upper = upper)
-      false => validation.out_of_range(value = value, lower = lower, upper = upper)
-    false => validation.invalid_bounds(lower = lower, upper = upper)
+  match lower <= upper, value >= lower, value <= upper
+    true, true, true => Ok(value = value)
+    true, true, false => validation.out_of_range(value = value, lower = lower, upper = upper)
+    true, false, _ => validation.out_of_range(value = value, lower = lower, upper = upper)
+    false, _, _ => validation.invalid_bounds(lower = lower, upper = upper)
 
 fn std__validate__int_nonnegative(value: int) -> Int__Value rev 1
   emits [validation.negative_value]
@@ -107,13 +105,11 @@ fn std__validate__dec_range(value: dec, lower: dec, upper: dec) -> Dec__Value re
     above(value = d"10.5", lower = d"0.0", upper = d"10.0") => validation.dec_out_of_range(value = d"10.5", lower = d"0.0", upper = d"10.0")
     bad_bounds(value = d"5.0", lower = d"10.0", upper = d"0.0") => validation.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
 =
-  match lower <= upper
-    true => match value >= lower
-      true => match value <= upper
-        true => Ok(value = value)
-        false => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
-      false => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
-    false => validation.dec_invalid_bounds(lower = lower, upper = upper)
+  match lower <= upper, value >= lower, value <= upper
+    true, true, true => Ok(value = value)
+    true, true, false => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
+    true, false, _ => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
+    false, _, _ => validation.dec_invalid_bounds(lower = lower, upper = upper)
 
 fn std__validate__dec_positive(value: dec) -> Dec__Value rev 1
   emits [validation.dec_not_positive]
@@ -147,13 +143,11 @@ fn std__validate__str_length(value: str, minimum: int, maximum: int) -> Str__Val
     length_long(value = "abcdef", minimum = 1, maximum = 5) => validation.invalid_length(value = "abcdef", minimum = 1, maximum = 5)
     length_bad_bounds(value = "abc", minimum = 5, maximum = 1) => validation.invalid_bounds(lower = 5, upper = 1)
 =
-  match minimum <= maximum
-    true => match #value >= minimum
-      true => match #value <= maximum
-        true => Ok(value = value)
-        false => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
-      false => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
-    false => validation.invalid_bounds(lower = minimum, upper = maximum)
+  match minimum <= maximum, #value >= minimum, #value <= maximum
+    true, true, true => Ok(value = value)
+    true, true, false => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
+    true, false, _ => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
+    false, _, _ => validation.invalid_bounds(lower = minimum, upper = maximum)
 
 fn std__validate__str_nonempty(value: str) -> Str__Value rev 1
   emits [validation.empty_value]
@@ -173,13 +167,11 @@ fn std__validate__exclusive_pair(left: bool, right: bool) -> Validate__Pass rev 
     right_only(left = false, right = true) => Ok()
     both(left = true, right = true) => validation.exclusive_choice()
 =
-  match left
-    true => match right
-      true => validation.exclusive_choice()
-      false => Ok()
-    false => match right
-      true => Ok()
-      false => validation.exclusive_choice()
+  match left, right
+    true, true => validation.exclusive_choice()
+    true, false => Ok()
+    false, true => Ok()
+    false, false => validation.exclusive_choice()
 
 fn quota__consume(amount: int, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]

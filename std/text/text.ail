@@ -70,15 +70,12 @@ fn std__str__is_whitespace(scalar: int) -> Bool__Value rev 1
     letter(scalar = 65) => Ok(value = false)
     nul(scalar = 0) => Ok(value = false)
 =
-  match scalar == 32
-    true => Ok(value = true)
-    false => match scalar == 9
-      true => Ok(value = true)
-      false => match scalar == 10
-        true => Ok(value = true)
-        false => match scalar == 13
-          true => Ok(value = true)
-          false => Ok(value = false)
+  match scalar == 32, scalar == 9, scalar == 10, scalar == 13
+    true, _, _, _ => Ok(value = true)
+    false, true, _, _ => Ok(value = true)
+    false, false, true, _ => Ok(value = true)
+    false, false, false, true => Ok(value = true)
+    false, false, false, false => Ok(value = false)
 
 fn std__str__length_scalars(value: str) -> Int__Value rev 1
   emits []
@@ -116,13 +113,11 @@ fn std__str__slice_scalars(value: str, start: int, end: int) -> Str__Value rev 1
     inverted(value = "abc", start = 2, end = 1) => text.invalid_slice(value = "abc", start = 2, end = 1)
     past_end(value = "abc", start = 0, end = 4) => text.invalid_slice(value = "abc", start = 0, end = 4)
 =
-  match start >= 0
-    true => match end >= start
-      true => match end <= #value
-        true => Ok(value = value[start:end])
-        false => text.invalid_slice(value = value, start = start, end = end)
-      false => text.invalid_slice(value = value, start = start, end = end)
-    false => text.invalid_slice(value = value, start = start, end = end)
+  match start >= 0, end >= start, end <= #value
+    true, true, true => Ok(value = value[start:end])
+    true, true, false => text.invalid_slice(value = value, start = start, end = end)
+    true, false, _ => text.invalid_slice(value = value, start = start, end = end)
+    false, _, _ => text.invalid_slice(value = value, start = start, end = end)
 
 fn std__str__find_from(orig: str, value: str, pattern: str, pos: int, n: int) -> Int__Value rev 1
   decreases n
