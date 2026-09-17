@@ -73,3 +73,27 @@ aspiration.
   against their `.ail` extern decls (a signature
   change today rots its stub silently until a human
   notices the mismatch).
+
+## Checker upgrade (2026-09-18 note; history above untouched)
+
+- Pin moved `5.9.2` -> `7.0.2` (native `tsgo`; bin still
+  `tsc`, workflow command unchanged). Upgrade run as a
+  rev-pin bump, VS Code playbook: 5.9 gate green at
+  baseline, 7.0 gate green after, zero diagnostic diff
+  on the goldens, negative control confirmed (broken
+  copy fails `TS2322`, intact copy passes).
+- One config change, checker-mandated: TS 7 removed
+  `moduleResolution: node` (`TS5108`), so `tsconfig`
+  now reads `bundler` — the mode that keeps resolving
+  the emit's extensionless relative imports (`./db`).
+  `node16`/`nodenext` would demand `.js` extensions
+  the settled emit shape does not produce. No `.ts`
+  file changed; gate semantics unchanged.
+- Same pass: workflow actions `checkout`/`setup-node`
+  `v4` -> `v6` (Node 20 runner runtime removed
+  2026-09-16; v4 ran on it), extension client
+  `vscode-languageclient` `9.0.1` -> `10.1.1`
+  (API-compatible for the 37-line stdio client;
+  `engines.vscode` floor `1.85` -> `1.91` per the
+  dep's requirement), both VS Code deps exact-pinned
+  to match `tscheck/`.

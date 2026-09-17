@@ -3,6 +3,6 @@
   "private": true,
   "description": "Pinned TypeScript for the v14/v70 tsc gate over committed goldens.",
   "devDependencies": {
-    "typescript": "5.9.2"
+    "typescript": "7.0.2"
   }
 }
