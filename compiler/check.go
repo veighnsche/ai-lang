@@ -546,6 +546,39 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 	return out
 }
 
+// calleeUnknown reports whether fname resolves to nothing the
+// checker can reason about: no function body, no extern
+// declaration in any module, and no builtin op. checkCalls owns
+// the AIL3001 for these; given, proof, and execution stay
+// silent downstream so one root cause yields one diagnostic.
+// Declared externs (module-local or otherwise) keep full
+// checking: their emits make given/proof meaningful.
+func calleeUnknown(prog *Program, fname string) bool {
+	if _, ok := prog.Fns[fname]; ok {
+		return false
+	}
+	if prog.Externs[fname] != nil {
+		return false
+	}
+	if isStoreOp(fname) || isDecParts(fname) || isBytesKernel(fname) {
+		return false
+	}
+	return true
+}
+
+// UnknownCallError marks a row failure caused solely by calling
+// a function that resolves nowhere. checkSem suppresses the
+// AIL4200 for it (checkCalls already reported the AIL3001) but
+// still marks the function failed so coverage stays silent.
+type UnknownCallError struct {
+	Owner string
+	Fname string
+}
+
+func (e *UnknownCallError) Error() string {
+	return fmt.Sprintf("%s: %s not in uses", e.Owner, e.Fname)
+}
+
 // checkEagerScrutinee warns where a multi-scrutinee value match can
 // fail before dispatch: every scrutinee evaluates eagerly, left to
 // right, so a trapping operation (string index or slice, division or
@@ -698,6 +731,9 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 		}
 		ms := m.Scruts[0]
 		fname := ms.Fname
+		if calleeUnknown(prog, fname) {
+			continue // checkCalls owns the unknown-callee error
+		}
 		if isStoreOp(fname) {
 			if m.Given != nil {
 				out = append(out, spanDiag(text, m.Line, "error",

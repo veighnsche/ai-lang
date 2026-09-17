@@ -1215,6 +1215,9 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 		} else {
 			// Externs are module-local foreign imports: no uses pin, but
 			// still scripted through given tables like ail calls.
+			if calleeUnknown(ctx.Prog, fname) {
+				return nil, &UnknownCallError{Owner: owner, Fname: fname}
+			}
 			if !ctx.Prog.Uses[fname] && ctx.Prog.Externs[fname] == nil {
 				return nil, fmt.Errorf("%s: %s not in uses", owner, fname)
 			}
@@ -1642,10 +1645,30 @@ func verifyExhaustive(mods []*Module, prog *Program) error {
 	return nil
 }
 
+// matchMissing is one enclosing call-match's line and the outcome
+// kinds it is missing: a stale arm for one of those kinds nested
+// inside it is almost always an arm attached to the wrong match,
+// so the stale report points at the enclosing line (v63).
+type matchMissing struct {
+	line    int
+	missing map[string]bool
+}
+
+// enclosingMissing returns the nearest enclosing match line that
+// is missing kind, or 0 when no ancestor misses it.
+func enclosingMissing(anc []matchMissing, kind string) int {
+	for i := len(anc) - 1; i >= 0; i-- {
+		if anc[i].missing[kind] {
+			return anc[i].line
+		}
+	}
+	return 0
+}
+
 func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 	var out []error
-	var walk func(n *Node, owner string)
-	walk = func(n *Node, owner string) {
+	var walk func(n *Node, owner string, anc []matchMissing)
+	walk = func(n *Node, owner string, anc []matchMissing) {
 		if n == nil || !n.IsMatch {
 			return
 		}
@@ -1658,6 +1681,15 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 				if _, ok := prog.EmitsOf[fname]; !ok {
 					out = append(out, at(n.Line, fmt.Errorf("%s: bytes kernel %s has no registered contract", owner, fname)))
 				}
+			}
+			if calleeUnknown(prog, fname) {
+				// v62: the call resolves nowhere (checkCalls
+				// owns the AIL3001); prove nothing about its
+				// outcomes, but still prove nested matches.
+				for _, a := range n.Arms {
+					walk(a.Rhs, owner, anc)
+				}
+				return
 			}
 			want := map[string]bool{"ok": true}
 			for _, e := range prog.EmitsOf[fname] {
@@ -1677,30 +1709,43 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 				default:
 					out = append(out, at(a.Line, fmt.Errorf("%s: call-match arm must be an error kind or Ok", owner)))
 				}
-				walk(a.Rhs, owner)
+			}
+			missing := map[string]bool{}
+			for k := range want {
+				if _, ok := got[k]; !ok {
+					missing[k] = true
+				}
+			}
+			next := append(append([]matchMissing{}, anc...), matchMissing{line: n.Line, missing: missing})
+			for _, a := range n.Arms {
+				walk(a.Rhs, owner, next)
 			}
 			for _, k := range sortedKeys(want) {
-				if _, ok := got[k]; !ok {
+				if missing[k] {
 					out = append(out, at(n.Line, fmt.Errorf("%s: non-exhaustive match, missing %s", owner, k)))
 				}
 			}
 			for _, k := range sortedKeys(got) {
 				if !want[k] {
-					out = append(out, at(got[k], fmt.Errorf("%s: stale match arm %s", owner, k)))
+					msg := fmt.Sprintf("%s: stale match arm %s", owner, k)
+					if al := enclosingMissing(anc, k); al > 0 {
+						msg += fmt.Sprintf("; enclosing match at line %d is missing this outcome: check that this on-arm is attached to the intended match", al)
+					}
+					out = append(out, at(got[k], fmt.Errorf("%s", msg)))
 				}
 			}
 			return
 		}
 		out = append(out, verifyValueMatch(n, owner)...)
 		for _, a := range n.Arms {
-			walk(a.Rhs, owner)
+			walk(a.Rhs, owner, anc)
 		}
 		return
 	}
 	for _, m := range mods {
 		for _, d := range m.Decls {
 			if fn, ok := d.(*FnDecl); ok {
-				walk(fn.Body, fn.Name)
+				walk(fn.Body, fn.Name, nil)
 			}
 		}
 	}

@@ -333,6 +333,16 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 			for _, t := range fn.Tests {
 				tc := map[*Node]map[int]bool{}
 				if err := runTest(fn, t, prog, tc); err != nil {
+					var uce *UnknownCallError
+					if errors.As(err, &uce) && calleeUnknown(prog, uce.Fname) {
+						// v62: the row can only fail on the
+						// unknown call checkCalls already
+						// reported; suppress the AIL4200 but
+						// mark the fn failed so coverage
+						// stays silent too.
+						failed[fn.Name] = true
+						continue
+					}
 					failed[fn.Name] = true
 					out = append(out, spanDiag(text, t.Line, "error",
 						fmt.Sprintf("test %s fails: %s", t.Name, stripLinePrefix(err)), t.Name, CodeTestFailed))
@@ -509,7 +519,13 @@ func proofDiag(text string, err error) Diag {
 	line := diagLine(err, 1)
 	msg := stripLinePrefix(err)
 	if i := strings.Index(msg, "stale match arm "); i >= 0 {
-		return spanDiag(text, line, "error", msg, strings.TrimSpace(msg[i+len("stale match arm "):]), CodeStaleArm)
+		// v63: the kind is the first field after the marker;
+		// a nesting hint may follow it (see verifyExhaustiveAll).
+		kind := strings.TrimSpace(msg[i+len("stale match arm "):])
+		if j := strings.IndexAny(kind, " ;"); j >= 0 {
+			kind = kind[:j]
+		}
+		return spanDiag(text, line, "error", msg, kind, CodeStaleArm)
 	}
 	code := CodeProofOther
 	switch {
