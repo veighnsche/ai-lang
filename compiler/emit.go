@@ -602,6 +602,12 @@ var decRuntimeOps = []struct {
 		"  return $ailDecMant(A, s) < $ailDecMant(B, s);",
 		"}",
 	}},
+	{"parts", []string{
+		"function $ailDecParts(d: string): { coefficient: bigint; scale: bigint } {",
+		"  const p = $ailDecSplit(d);",
+		"  return { coefficient: $ailDecMant(p, p.fp.length), scale: BigInt(p.fp.length) };",
+		"}",
+	}},
 }
 
 // strRuntimeShared compares strings by UTF-8 bytes: Go orders strings
@@ -810,6 +816,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if scrut.Kind == "call" && isStoreOp(scrut.Fname) {
 		return e.stmtStoreOp(node, scrut, out)
 	}
+	if scrut.Kind == "call" && isDecParts(scrut.Fname) {
+		return e.stmtDecParts(node, scrut, out)
+	}
 	if scrut.Kind == "call" {
 		union, ok := e.fnUnions[scrut.Fname]
 		if !ok {
@@ -954,6 +963,40 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 		pat := arm.Pat
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("store match arm must be Ok")
+		}
+		*out = append(*out, `case "ok": {`)
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+		if err != nil {
+			return err
+		}
+		*out = append(*out, indent(lines)...)
+		*out = append(*out, "}")
+	}
+	*out = append(*out, "}")
+	return nil
+}
+
+// stmtDecParts emits a dec-observation match: the operand evaluates
+// once through $ailDecParts into an ok-tagged pair, then the single
+// Ok arm binds it like any other payload. Only Ok-variant arms are
+// legal past the exhaustiveness gate.
+func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
+	if len(scrut.Args) != 1 {
+		return fmt.Errorf("cannot emit %s: want one value", scrut.Fname)
+	}
+	v, err := e.emitValue(scrut.Args[0].V)
+	if err != nil {
+		return err
+	}
+	e.decOps["parts"] = true
+	tmp := e.fresh()
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", coefficient: bigint, scale: bigint } = { "+tsTag+": \"ok\", ...$ailDecParts(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	for _, arm := range node.Arms {
+		pat := arm.Pat
+		if pat.Kind != "variant" || pat.Name != "Ok" {
+			return fmt.Errorf("dec__parts match arm must be Ok")
 		}
 		*out = append(*out, `case "ok": {`)
 		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))

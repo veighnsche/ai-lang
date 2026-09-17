@@ -1,8 +1,9 @@
 // std/scalars/scalars.ail — row 2 of the standard-library program.
 // Monomorphic boolean logic, three-way comparisons, selection,
-// predicates, integer and decimal fundamentals, bounded arithmetic,
-// exact power and recurrence helpers, the pure NOW conversions, and a
-// bounded backoff delay that reuses the power helper.
+// predicates, integer and decimal fundamentals, decimal observation
+// (parts), bounded arithmetic, exact power and recurrence helpers,
+// the pure NOW conversions, and a bounded backoff delay that reuses
+// the power helper.
 // Every function returns a named success record. Bool answers use
 // Bool__Value, three-way comparisons use Int__Value with exactly -1,
 // 0, or 1, and false compares before true. Names follow the brief
@@ -11,7 +12,7 @@
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts]
   uses []
   emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding, convert.invalid_integer, convert.invalid_decimal]
 
@@ -49,6 +50,11 @@ type Bool__Value rev 1 (
 type Int__Root rev 1 (
   root: int
   remainder: int
+)
+
+type Dec__Parts rev 1 (
+  coefficient: int
+  scale: int
 )
 
 fn std__bool__not(value: bool) -> Bool__Value rev 1
@@ -936,6 +942,21 @@ fn std__dec__from_parts(coefficient: int, scale: int) -> Dec__Value rev 1
       on Ok whole => match call std__dec__scale_by_power_of_ten(whole.value, 0 - scale)
         on Ok moved => Ok(value = moved.value)
     false => math.negative_scale(scale = scale)
+
+fn std__dec__parts(value: dec) -> Dec__Parts rev 1
+  emits []
+  tests
+    parts_whole(value = d"7.0") => Ok(coefficient = 70, scale = 1)
+    parts_cents(value = d"0.25") => Ok(coefficient = 25, scale = 2)
+    parts_neg(value = d"-0.5") => Ok(coefficient = -5, scale = 1)
+    parts_trailing(value = d"12.340") => Ok(coefficient = 1234, scale = 2)
+    parts_zero(value = d"0.00") => Ok(coefficient = 0, scale = 1)
+    parts_neg_zero(value = d"-0.0") => Ok(coefficient = 0, scale = 1)
+    parts_hundreds(value = d"100.0") => Ok(coefficient = 1000, scale = 1)
+    parts_big(value = d"123456789.123456789") => Ok(coefficient = 123456789123456789, scale = 9)
+=
+  match call dec__parts(value)
+    on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)
 
 fn std__convert__bool_to_str(value: bool) -> Str__Value rev 1
   emits []

@@ -131,6 +131,14 @@ func (c *tycker) resolveRef(ref []string, env map[string]string) (string, bool) 
 		}
 		return "", false
 	}
+	if t == "parts" {
+		// Synthetic observation payload: exactly .coefficient and
+		// .scale, both int. Lowercase, so no declared type collides.
+		if len(ref) == 2 && (ref[1] == "coefficient" || ref[1] == "scale") {
+			return "int", true
+		}
+		return "", false
+	}
 	for _, f := range ref[1:] {
 		var fields [][2]string
 		if strings.HasPrefix(t, "err:") {
@@ -462,6 +470,10 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.checkStoreOp(s, line, env)
 			return
 		}
+		if isDecParts(s.Fname) {
+			c.checkDecParts(s, line, env)
+			return
+		}
 		sig := c.callee(s.Fname)
 		if sig == nil {
 			return
@@ -539,6 +551,29 @@ func (c *tycker) checkStoreOp(s *Small, line int, env map[string]string) {
 	}
 }
 
+// checkDecParts validates the decimal observation kernel: positional
+// args only (one spelling), exactly one arg, and a dec operand.
+// Anything else is AIL6003, the operand-rule family.
+func (c *tycker) checkDecParts(s *Small, line int, env map[string]string) {
+	for _, a := range s.Args {
+		if a.HasName {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("call %s takes positional args", s.Fname), s.Fname, CodeTypeMismatch))
+			return
+		}
+	}
+	if len(s.Args) != 1 {
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("call %s takes 1 arg", s.Fname), s.Fname, CodeTypeMismatch))
+		return
+	}
+	label := fmt.Sprintf("call %s value", s.Fname)
+	c.value(s.Args[0].V, "", line, env, label)
+	if got, ok := c.typeOf(s.Args[0].V, env); ok && got != "dec" {
+		c.mismatch(line, label, got, "dec", tokenOf(s.Args[0].V))
+	}
+}
+
 // nodeStoreArms types a store-op match: a get payload binds its var
 // to the cell type through the synthetic value field; a put yields
 // empty Ok, so its var binds nothing checkable. The cell type flows
@@ -563,6 +598,28 @@ func (c *tycker) nodeStoreArms(n *Node, env map[string]string, want string) {
 			} else {
 				env2[a.Pat.Var] = ""
 			}
+			armWant = want
+		}
+		if a.Pat.Kind == "variantWild" && a.Pat.Name == "Ok" {
+			armWant = want
+		}
+		c.node(a.Rhs, env2, armWant)
+	}
+}
+
+// nodePartsArms types a dec-observation match: the Ok payload binds
+// its var to the synthetic parts shape, whose only fields are the
+// int coefficient and scale. The shape is fixed by the kernel, never
+// by inference, so no declared record is consulted.
+func (c *tycker) nodePartsArms(n *Node, env map[string]string, want string) {
+	for _, a := range n.Arms {
+		env2 := map[string]string{}
+		for k, v := range env {
+			env2[k] = v
+		}
+		armWant := ""
+		if a.Pat.Kind == "variant" && a.Pat.Name == "Ok" && a.Pat.Var != "" {
+			env2[a.Pat.Var] = "parts"
 			armWant = want
 		}
 		if a.Pat.Kind == "variantWild" && a.Pat.Name == "Ok" {
@@ -671,6 +728,10 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 	if n.Scrut != nil && n.Scrut.Kind == "call" {
 		if isStoreOp(n.Scrut.Fname) {
 			c.nodeStoreArms(n, env, want)
+			return
+		}
+		if isDecParts(n.Scrut.Fname) {
+			c.nodePartsArms(n, env, want)
 			return
 		}
 		sig := c.callee(n.Scrut.Fname)

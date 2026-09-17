@@ -658,6 +658,33 @@ func evStoreOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Va
 	return &Value{Kind: "ok", Dict: map[string]*Value{}}, nil
 }
 
+// evDecPartsOp evaluates the decimal observation kernel: one
+// positional dec operand in, Ok(coefficient, scale) out. Canonical
+// digits read straight through parseDecParts — literals and
+// arithmetic results are canonical by construction, and the sign
+// rides on the coefficient. The static gate owns operand misuse, so
+// anything else here is loud, never a value.
+func evDecPartsOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if len(scrut.Args) != 1 || scrut.Args[0].HasName {
+		return nil, fmt.Errorf("%s: call dec__parts takes one value", owner)
+	}
+	v, err := evSmall(scrut.Args[0].V, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "dec" {
+		return nil, fmt.Errorf("bad dec__parts operand")
+	}
+	mant, scale, err := parseDecParts(v.D)
+	if err != nil {
+		return nil, err
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{
+		"coefficient": {Kind: "int", N: mant},
+		"scale":       {Kind: "int", N: big.NewInt(int64(scale))},
+	}}, nil
+}
+
 func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	var v *Value
 	if scrut := node.Scrut; scrut.Kind == "call" {
@@ -667,6 +694,15 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
 			val, err := evStoreOp(scrut, env, ctx, owner)
+			if err != nil {
+				return nil, err
+			}
+			v = val
+		} else if isDecParts(fname) {
+			if node.Given != nil {
+				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
+			}
+			val, err := evDecPartsOp(scrut, env, ctx, owner)
 			if err != nil {
 				return nil, err
 			}

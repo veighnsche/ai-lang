@@ -434,8 +434,9 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 		if m.Scrut != nil && m.Scrut.Kind == "call" {
 			scrut[m.Scrut] = true
 			fname := m.Scrut.Fname
-			if isStoreOp(fname) {
-				continue // cells resolve in checkEffects; uses never applies
+			if isStoreOp(fname) || isDecParts(fname) {
+				continue // cells resolve in checkEffects; the kernel
+				// needs nothing; uses never applies to either
 			}
 			if _, ok := prog.Fns[fname]; !ok {
 				if localExtern[fname] {
@@ -581,6 +582,13 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 			}
 			continue
 		}
+		if isDecParts(fname) {
+			if m.Given != nil {
+				out = append(out, spanDiag(text, m.Line, "error",
+					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
+			}
+			continue
+		}
 		if localCallee(prog, fn.Name, fname) != nil {
 			if m.Given != nil {
 				out = append(out, spanDiag(text, m.Line, "error",
@@ -637,7 +645,7 @@ func checkScriptConsistency(fn *FnDecl, prog *Program, text string) []Diag {
 			continue
 		}
 		fname := m.Scrut.Fname
-		if isStoreOp(fname) || localCallee(prog, fn.Name, fname) != nil {
+		if isStoreOp(fname) || isDecParts(fname) || localCallee(prog, fn.Name, fname) != nil {
 			continue
 		}
 		callee, ok := prog.Fns[fname]
@@ -1245,6 +1253,17 @@ func isGuardScrut(s *Small, p string) bool {
 // (stubbed) nor local (executed), but deterministic per test.
 func isStoreOp(fname string) bool {
 	return fname == "state__get" || fname == "state__put"
+}
+
+// isDecParts reports the blessed decimal observation kernel: neither
+// foreign (stubbed) nor local (executed), but a total deterministic
+// observation of its dec operand. Like the store ops it needs no
+// uses entry and takes no given table; unlike them it needs no
+// effects and emits nothing (v21). Totality is load-bearing below:
+// verifyExhaustive wants exactly {ok} through the absent EmitsOf
+// entry, so a future emits registration here must revisit that gate.
+func isDecParts(fname string) bool {
+	return fname == "dec__parts"
 }
 
 // storeCellName extracts the cell a store-op scrutinee names: the

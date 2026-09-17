@@ -5,12 +5,13 @@
   already-computed values, int/dec predicates, int/dec
   fundamentals (abs, negate, sign, min, max, clamp, distance,
   square, power, bounded add/subtract/multiply, factorial, sum),
-  the pure NOW conversions between bool, int, dec, and str, and a
-  bounded backoff delay with zero, negative, saturated, and
-  large-attempt cases. Every function returns a named success
-  record; fallible recursion splits into a total `decreases`
-  helper plus a checked entry, so no error arm is unreachable.
-  String order is byte order, documented in the file.
+  decimal observation (`std__dec__parts` over the `dec__parts`
+  kernel: coefficient plus scale, total), the pure NOW conversions
+  between bool, int, dec, and str, and a bounded backoff delay with
+  zero, negative, saturated, and large-attempt cases. Every function
+  returns a named success record; fallible recursion splits into a
+  total `decreases` helper plus a checked entry, so no error arm is
+  unreachable. String order is byte order, documented in the file.
 - `scalars.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
   std/scalars std/scalars/scalars.ail`;
