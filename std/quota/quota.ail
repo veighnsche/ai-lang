@@ -1,0 +1,142 @@
+// std/quota/quota.ail — row 1 of the standard-library program.
+// Monomorphic scalar validation plus a quota counter that reuses it.
+// Every helper here is a same-file local, so every call below executes
+// its body. Cross-file reuse stays scripted until the Order 0 linkage
+// amendment lands, which is why the validators live in this file
+// instead of being imported. See docs/v13-stdlib.md.
+// A validator returns the accepted value or a producer-owned typed
+// error. It never clamps, trims, or supplies a default.
+
+mod quota
+  provides [quota__consume, quota__usage, validate__require, validate__int_range, validate__int_nonnegative, validate__str_nonempty, validate__exclusive_pair, Quota__Usage, Validate__Pass, Int__Value, Str__Value]
+  uses []
+  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.negative_value, validation.empty_value, validation.exclusive_choice]
+
+state Quota__used: int = 0
+
+error validation.failed(field: str, rule: str)
+error validation.invalid_bounds(lower: int, upper: int)
+error validation.out_of_range(value: int, lower: int, upper: int)
+error validation.negative_value(value: int)
+error validation.empty_value(value: str)
+error validation.exclusive_choice()
+
+type Quota__Usage rev 1 (
+  used: int
+  remaining: int
+)
+
+type Validate__Pass rev 1 (
+)
+
+type Int__Value rev 1 (
+  value: int
+)
+
+type Str__Value rev 1 (
+  value: str
+)
+
+fn validate__require(condition: bool, field: str, rule: str) -> Validate__Pass rev 1
+  emits [validation.failed]
+  tests
+    pass(condition = true, field = "quota", rule = "nonnegative") => Ok()
+    fail(condition = false, field = "quota", rule = "nonnegative") => validation.failed(field = "quota", rule = "nonnegative")
+=
+  match condition
+    true => Ok()
+    false => validation.failed(field = field, rule = rule)
+
+fn validate__int_range(value: int, lower: int, upper: int) -> Int__Value rev 1
+  emits [validation.invalid_bounds, validation.out_of_range]
+  tests
+    inside(value = 5, lower = 0, upper = 10) => Ok(value = 5)
+    at_lower(value = 0, lower = 0, upper = 10) => Ok(value = 0)
+    at_upper(value = 10, lower = 0, upper = 10) => Ok(value = 10)
+    below(value = -1, lower = 0, upper = 10) => validation.out_of_range(value = -1, lower = 0, upper = 10)
+    above(value = 11, lower = 0, upper = 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
+    bad_bounds(value = 5, lower = 10, upper = 0) => validation.invalid_bounds(lower = 10, upper = 0)
+=
+  match lower <= upper
+    true => match value >= lower
+      true => match value <= upper
+        true => Ok(value = value)
+        false => validation.out_of_range(value = value, lower = lower, upper = upper)
+      false => validation.out_of_range(value = value, lower = lower, upper = upper)
+    false => validation.invalid_bounds(lower = lower, upper = upper)
+
+fn validate__int_nonnegative(value: int) -> Int__Value rev 1
+  emits [validation.negative_value]
+  tests
+    zero(value = 0) => Ok(value = 0)
+    positive(value = 4) => Ok(value = 4)
+    negative(value = -1) => validation.negative_value(value = -1)
+=
+  match value >= 0
+    true => Ok(value = value)
+    false => validation.negative_value(value = value)
+
+fn validate__str_nonempty(value: str) -> Str__Value rev 1
+  emits [validation.empty_value]
+  tests
+    nonempty(value = "u_01") => Ok(value = "u_01")
+    empty(value = "") => validation.empty_value(value = "")
+=
+  match value
+    "" => validation.empty_value(value = value)
+    _ => Ok(value = value)
+
+fn validate__exclusive_pair(left: bool, right: bool) -> Validate__Pass rev 1
+  emits [validation.exclusive_choice]
+  tests
+    neither(left = false, right = false) => validation.exclusive_choice()
+    left_only(left = true, right = false) => Ok()
+    right_only(left = false, right = true) => Ok()
+    both(left = true, right = true) => validation.exclusive_choice()
+=
+  match left
+    true => match right
+      true => validation.exclusive_choice()
+      false => Ok()
+    false => match right
+      true => Ok()
+      false => validation.exclusive_choice()
+
+fn quota__consume(amount: int, quota: int) -> Quota__Usage rev 1
+  effects [Quota__used.read, Quota__used.write]
+  emits [validation.negative_value, validation.invalid_bounds, validation.out_of_range]
+  tests
+    first(amount = 3, quota = 10) => Ok(used = 3, remaining = 7)
+    exact(amount = 10, quota = 10) => Ok(used = 10, remaining = 0)
+    over(amount = 11, quota = 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
+    negative(amount = -2, quota = 10) => validation.negative_value(value = -2)
+    bad_quota(amount = 1, quota = -1) => validation.invalid_bounds(lower = 0, upper = -1)
+=
+  match call state__get(Quota__used)
+    on Ok s => match call validate__int_nonnegative(amount)
+      on validation.negative_value _ => validation.negative_value(value = amount)
+      on Ok _ => match call validate__int_range(s.value + amount, 0, quota)
+        on validation.invalid_bounds _ => validation.invalid_bounds(lower = 0, upper = quota)
+        on validation.out_of_range _ => validation.out_of_range(value = s.value + amount, lower = 0, upper = quota)
+        on Ok checked => match call state__put(Quota__used, checked.value)
+          on Ok _ => Ok(used = checked.value, remaining = quota - checked.value)
+
+fn quota__usage(quota: int) -> Quota__Usage rev 1
+  effects [Quota__used.read]
+  emits [validation.negative_value]
+  tests
+    fresh(quota = 10) => Ok(used = 0, remaining = 10)
+    negative_quota(quota = -1) => validation.negative_value(value = -1)
+=
+  match call state__get(Quota__used)
+    on Ok s => match call validate__int_nonnegative(quota)
+      on validation.negative_value _ => validation.negative_value(value = quota)
+      on Ok _ => Ok(used = s.value, remaining = quota - s.value)
+
+// Shape notes, kept with the program, not in a second file.
+// 1. Validators take values and return them. Callers keep ownership of
+//    the policy: quota__consume checks the exact new total, so a stored
+//    total can never drift past quota without failing closed.
+// 2. Every test starts from init, so first and exact agree on nothing:
+//    each row builds used from zero, which the tables show directly.
+// 3. Bounds are inclusive and reversed bounds fail. No silent swap.

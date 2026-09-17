@@ -85,3 +85,56 @@ func TestGoldenCounter(t *testing.T) {
 		}
 	}
 }
+
+// TestGoldenQuotaCounter freezes row 1 of the stdlib program: the
+// validation module plus its quota counter must transpile
+// byte-identical, so validator payloads and the multi-shape ok union
+// can never silently rot.
+func TestGoldenQuotaCounter(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../std/quota/quota.ail",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"quota.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../std/quota", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+		}
+	}
+}
+
+// TestGoldenStdScalars freezes row 2 of the stdlib program: the
+// monomorphic scalar catalog must transpile byte-identical, so its
+// decision tables and exact-decimal emit can never silently rot.
+func TestGoldenStdScalars(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../std/scalars/scalars.ail",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"scalars.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../std/scalars", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+		}
+	}
+}

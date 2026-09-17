@@ -1,0 +1,155 @@
+[
+  {
+    "kind": "convert.invalid_boolean",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.convert__str_to_bool"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.convert__str_to_bool/s2b_bogus"
+    ]
+  },
+  {
+    "kind": "convert.invalid_boolean_encoding",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.convert__int_to_bool"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.convert__int_to_bool/i2b_two"
+    ]
+  },
+  {
+    "kind": "convert.invalid_dec_encoding",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.convert__dec_to_bool"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.convert__dec_to_bool/d2b_two"
+    ]
+  },
+  {
+    "kind": "math.dec_invalid_bounds",
+    "fields": [
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.dec__clamp",
+      "scalars.dec__in_closed_range",
+      "scalars.dec__in_open_range"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.dec__clamp/dec_clamp_bad",
+      "scalars.dec__in_closed_range/dec_closed_bad",
+      "scalars.dec__in_open_range/dec_open_bad"
+    ]
+  },
+  {
+    "kind": "math.dec_out_of_range",
+    "fields": [
+      "value",
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.dec__lerp"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.dec__lerp/lerp_above",
+      "scalars.dec__lerp/lerp_below"
+    ]
+  },
+  {
+    "kind": "math.invalid_bounds",
+    "fields": [
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.int__add_bounded",
+      "scalars.int__clamp",
+      "scalars.int__in_closed_range",
+      "scalars.int__in_open_range",
+      "scalars.int__multiply_bounded",
+      "scalars.int__subtract_bounded"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.int__add_bounded/add_bad",
+      "scalars.int__clamp/clamp_bad",
+      "scalars.int__in_closed_range/closed_bad",
+      "scalars.int__in_open_range/open_bad",
+      "scalars.int__multiply_bounded/mul_bad",
+      "scalars.int__subtract_bounded/sub_bad"
+    ]
+  },
+  {
+    "kind": "math.negative_exponent",
+    "fields": [
+      "exponent"
+    ],
+    "raised_by": [
+      "scalars.dec__pow",
+      "scalars.int__pow"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.dec__pow/dec_pow_neg",
+      "scalars.int__pow/pow_neg"
+    ]
+  },
+  {
+    "kind": "math.negative_input",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.backoff__delay",
+      "scalars.int__factorial",
+      "scalars.int__sum_to"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.backoff__delay/backoff_negative_attempt",
+      "scalars.backoff__delay/backoff_negative_base",
+      "scalars.backoff__delay/backoff_negative_cap",
+      "scalars.int__factorial/fact_neg",
+      "scalars.int__sum_to/sum_neg"
+    ]
+  },
+  {
+    "kind": "math.out_of_range",
+    "fields": [
+      "value",
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.int__add_bounded",
+      "scalars.int__multiply_bounded",
+      "scalars.int__subtract_bounded"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.int__add_bounded/add_high",
+      "scalars.int__add_bounded/add_low",
+      "scalars.int__multiply_bounded/mul_high",
+      "scalars.int__multiply_bounded/mul_low",
+      "scalars.int__subtract_bounded/sub_high",
+      "scalars.int__subtract_bounded/sub_low"
+    ]
+  }
+]

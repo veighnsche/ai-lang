@@ -293,7 +293,7 @@ func main() {
 		fmt.Println(" -", err)
 		os.Exit(1)
 	}
-	roots := []string{filepath.Join(root, "sketches")}
+	roots := []string{filepath.Join(root, "sketches"), filepath.Join(root, "std")}
 	for _, name := range examples {
 		if st, err := os.Stat(filepath.Join(root, "sketches", name)); err == nil && st.IsDir() {
 			roots = append(roots, filepath.Join(root, "sketches", name))
