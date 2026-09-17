@@ -30,6 +30,9 @@ type tycker struct {
 	recs   map[string][][2]string
 	errs   map[string][][2]string
 	brands map[string]bool
+	// variants holds declared variant names (v73): payloads
+	// may name variants, but never sequences of them.
+	variants map[string]bool
 	// brandFiles maps brand name to declaring file (first wins).
 	brandFiles map[string]string
 	// brandSeals maps brand name to its declared promotion sources
@@ -47,6 +50,7 @@ func newTycker(prog *Program, text, fn string) *tycker {
 	c := &tycker{prog: prog, text: text, fn: fn,
 		recs:       map[string][][2]string{},
 		errs:       map[string][][2]string{},
+		variants:   map[string]bool{},
 		brands:     map[string]bool{},
 		brandFiles: map[string]string{},
 		brandSeals: map[string][]string{},
@@ -64,6 +68,8 @@ func newTycker(prog *Program, text, fn string) *tycker {
 				if _, ok := c.recs[d.Name]; !ok {
 					c.recs[d.Name] = d.Fields
 				}
+			case *VariantDecl:
+				c.variants[d.Name] = true
 			case *ErrorDecl:
 				if _, ok := c.errs[d.Name]; !ok {
 					c.errs[d.Name] = d.Fields
@@ -125,6 +131,9 @@ func (c *tycker) knownType(t string) bool {
 		return c.knownType(elem)
 	}
 	if _, ok := c.recs[t]; ok {
+		return true
+	}
+	if c.variants[t] {
 		return true
 	}
 	return c.brands[t]
@@ -1236,6 +1245,14 @@ func checkDeclFields(name string, fields [][2]string, line int, prog *Program, t
 	c := newTycker(prog, text, name)
 	var out []Diag
 	for _, f := range fields {
+		if elem, ok := seqElemName(f[1]); ok && c.variants[elem] {
+			// Decision 6: variant sequences are deferred.
+			// No existing source can contain one (variants
+			// are new), so this rejects new surface only.
+			out = append(out, spanDiag(text, line, "error",
+				fmt.Sprintf("Seq<%s> is deferred in this cut: variant sequences are not admitted", elem), f[0], CodeUnknownType))
+			continue
+		}
 		if !c.knownType(f[1]) {
 			out = append(out, spanDiag(text, line, "error",
 				fmt.Sprintf("unknown type %s in field %s", f[1], f[0]), f[0], CodeUnknownType))

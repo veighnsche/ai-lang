@@ -283,6 +283,12 @@ type Program struct {
 	EmitsOf   map[string][]string
 	Uses      map[string]bool
 	Modules   []*Module
+	// Variants maps variant name to its declaration (v73);
+	// Cases maps a qualified case name to its parent
+	// variant. Case identities are globally unique by
+	// construction (v73 registry rejects collisions).
+	Variants map[string]*VariantDecl
+	Cases    map[string]string
 }
 
 func vField(v *Value, field string) (*Value, error) {
@@ -1626,6 +1632,11 @@ func checkNaming(m *Module, text string) []Diag {
 			if !typeNameRe.MatchString(d.Name) {
 				out = append(out, spanDiag(text, d.Line, "error",
 					fmt.Sprintf("type name %q must match Domain__Name", d.Name), d.Name, CodeTypeNaming))
+			}
+		case *VariantDecl:
+			if !typeNameRe.MatchString(d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("variant name %q must match Domain__Name", d.Name), d.Name, CodeTypeNaming))
 			}
 		case *BrandDecl:
 			if !typeNameRe.MatchString(d.Name) {

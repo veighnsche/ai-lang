@@ -29,6 +29,8 @@ const (
 	CodeUsesRev              = "AIL2103"
 	CodeDupFn                = "AIL2201"
 	CodeDupSibling           = "AIL2202"
+	CodeDupVariant           = "AIL2203"
+	CodeCaseCollision        = "AIL2204"
 	CodeProvidesMiss         = "AIL2301"
 	CodeProvidesGhost        = "AIL2302"
 	CodeUnknownCall          = "AIL3001"
@@ -95,7 +97,7 @@ var allCodes = []string{
 	CodeFnNaming, CodeTypeNaming,
 	CodeUsesPin, CodeUsesResolve, CodeUsesRev,
 	CodeModuleCollision,
-	CodeDupFn, CodeDupSibling,
+	CodeDupFn, CodeDupSibling, CodeDupVariant, CodeCaseCollision,
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
 	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding,

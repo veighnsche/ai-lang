@@ -81,6 +81,39 @@ type ContractArm struct {
 	Line    int
 }
 
+// VariantCase is one case row of a variant declaration
+// (v73): the short name as written plus payload fields.
+// The qualified constructor name is elaborated by
+// qualifyCase, never written in the declaration.
+type VariantCase struct {
+	Short  string
+	Fields [][2]string
+	Line   int
+}
+
+// VariantDecl is a closed tagged union declaration
+// (v73): a nominal parent with a fixed case set.
+// Registry foundation only; construction, patterns,
+// proof, and emit arrive in later slices.
+type VariantDecl struct {
+	Name  string
+	Rev   int
+	Cases []VariantCase
+	Line  int
+}
+
+// qualifyCase elaborates a declaration-row short name to
+// its globally unambiguous qualified constructor: the
+// variant's domain (name before its first "__") plus the
+// short name. One documented rule, applied everywhere.
+func qualifyCase(variant, short string) string {
+	domain := variant
+	if i := strings.Index(variant, "__"); i >= 0 {
+		domain = variant[:i]
+	}
+	return domain + "__" + short
+}
+
 type Arm struct {
 	// Pats holds the arm's patterns, one per match scrutinee: exactly
 	// one entry for single-scrutinee arms, two or more for
@@ -145,7 +178,8 @@ type TypeDecl struct {
 	Line   int
 }
 
-func (d *TypeDecl) declKind() string { return "type" }
+func (d *TypeDecl) declKind() string    { return "type" }
+func (d *VariantDecl) declKind() string { return "variant" }
 
 type FnDecl struct {
 	Name     string
@@ -1126,14 +1160,18 @@ var (
 	reHdrLine = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
 	reError   = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
 	reType    = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
-	reBrand   = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
-	reExtern  = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reFn      = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reExport  = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
-	reField   = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
-	reTest    = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
-	reGiven   = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
-	reArm     = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
+	// reVariant mirrors reType; reVariantCase heads a case row
+	// with kwargs payload fields (empty parens = nullary).
+	reVariant     = regexp.MustCompile(`^variant\s+(\w+)\s+rev\s+(\d+)\s*\($`)
+	reVariantCase = regexp.MustCompile(`^case\s+(\w+)\((.*)\)$`)
+	reBrand       = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
+	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reFn          = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reExport      = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
+	reField       = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
+	reTest        = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
+	reGiven       = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
+	reArm         = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
 	// reContractArm heads an ensures arm: outcome plus bound name,
 	// no => (predicates follow as rows). v69 owns the shape.
 	reContractArm     = regexp.MustCompile(`^on\s+([A-Za-z][\w.]*)\s+(\w+)$`)
@@ -1272,6 +1310,40 @@ func parseModuleText(name, text string) (*Module, error) {
 			}
 			if i >= len(rows) || rows[i].code != ")" {
 				return nil, at(declLine, fmt.Errorf("type %s missing closing )", decl.Name))
+			}
+			i++
+			mod.Decls = append(mod.Decls, decl)
+		case strings.HasPrefix(code, "variant "):
+			m := reVariant.FindStringSubmatch(code)
+			if m == nil {
+				if !reRevWord.MatchString(code) {
+					return nil, at(declLine, fmt.Errorf("missing rev N: versioning is mandatory"))
+				}
+				return nil, at(declLine, fmt.Errorf("bad variant decl: %s", code))
+			}
+			rev, _ := strconv.Atoi(m[2])
+			decl := &VariantDecl{Name: m[1], Rev: rev, Line: declLine}
+			i++
+			for i < len(rows) && rows[i].indent > 0 {
+				cm := reVariantCase.FindStringSubmatch(strings.TrimSuffix(rows[i].code, ","))
+				if cm == nil {
+					return nil, at(rows[i].line, fmt.Errorf("bad variant case: %s", rows[i].code))
+				}
+				if strings.Contains(cm[1], "__") {
+					return nil, at(rows[i].line, fmt.Errorf("write the short case name, not %q: qualification is elaborated", cm[1]))
+				}
+				fs, err := parseFields(cm[2], "case")
+				if err != nil {
+					return nil, at(rows[i].line, err)
+				}
+				decl.Cases = append(decl.Cases, VariantCase{Short: cm[1], Fields: fs, Line: rows[i].line})
+				i++
+			}
+			if len(decl.Cases) == 0 {
+				return nil, at(declLine, fmt.Errorf("variant %s declares no cases: at least one case is required", decl.Name))
+			}
+			if i >= len(rows) || rows[i].code != ")" {
+				return nil, at(declLine, fmt.Errorf("variant %s missing closing )", decl.Name))
 			}
 			i++
 			mod.Decls = append(mod.Decls, decl)

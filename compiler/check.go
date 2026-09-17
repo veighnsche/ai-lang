@@ -79,6 +79,10 @@ func declaredRev(owner *Module, base string) (int, bool) {
 			if d.Name == base {
 				return d.Rev, true
 			}
+		case *VariantDecl:
+			if d.Name == base {
+				return d.Rev, true
+			}
 		case *BrandDecl:
 			if d.Name == base {
 				return d.Rev, true
@@ -102,14 +106,31 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 		Errors:  map[string][]string{},
 		EmitsOf: map[string][]string{}, Uses: map[string]bool{},
 		Modules: mods, FnFile: map[string]string{}, BrandFile: map[string]string{},
+		Variants: map[string]*VariantDecl{}, Cases: map[string]string{},
 	}
 	provides := map[string]*Module{}
 	emit := func(m *Module, d Diag) {
 		d.File = qualifiedFile(mods, m)
 		out = append(out, d)
 	}
+	// recordNames seeds the case-identity collision check (v73):
+	// a qualified case name must not equal any record type name.
+	// Builtins plus every declared record, collected up front so
+	// declaration order never matters.
+	recordNames := map[string]bool{}
+	for _, b := range builtinTypeDecls() {
+		recordNames[b.Name] = true
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if td, ok := d.(*TypeDecl); ok {
+				recordNames[td.Name] = true
+			}
+		}
+	}
 	seenFn := map[string]*Module{}
 	seenOther := map[string]bool{}
+	seenVariant := map[string]*Module{}
 	for _, m := range mods {
 		for _, d := range m.Decls {
 			name, line := declNameLine(d)
@@ -130,7 +151,23 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			// double definition, or calls could not resolve.
 			_, isFn := d.(*FnDecl)
 			_, isEx := d.(*ExternDecl)
-			if isFn || isEx {
+			_, isVar := d.(*VariantDecl)
+			if isVar {
+				// Variants collide loudly (decision 8): the case
+				// set affects proofs, so silent first-wins would
+				// prove consumers against the wrong cases.
+				if _, dup := seenVariant[name]; dup {
+					if m == open {
+						emit(m, spanDiag(texts[m.ID], line, "error",
+							fmt.Sprintf("double definition: variant %s", name), name, CodeDupVariant))
+					} else {
+						emit(m, spanDiag(texts[open.ID], 1, "error",
+							fmt.Sprintf("sibling %s also declares variant %s (double definition)", qualifiedFile(mods, m), name), m.File, CodeDupVariant))
+					}
+					continue
+				}
+				seenVariant[name] = m
+			} else if isFn || isEx {
 				if isBytesKernel(name) {
 					kind := "function"
 					if isEx {
@@ -176,6 +213,35 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 						fmt.Sprintf("type %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
 				}
 				provides[d.Name] = m
+			case *VariantDecl:
+				if d.Name == "Bytes" {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						"variant Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
+				} else if isBuiltinRecord(d.Name) {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						fmt.Sprintf("variant %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
+				}
+				provides[d.Name] = m
+				prog.Variants[d.Name] = d
+				for _, c := range d.Cases {
+					q := qualifyCase(d.Name, c.Short)
+					if owner, dup := prog.Cases[q]; dup {
+						if owner == d.Name {
+							emit(m, spanDiag(texts[m.ID], c.Line, "error",
+								fmt.Sprintf("duplicate case %s in variant %s", q, d.Name), c.Short, CodeCaseCollision))
+						} else {
+							emit(m, spanDiag(texts[m.ID], c.Line, "error",
+								fmt.Sprintf("case identity collision: %s declared by both %s and %s", q, owner, d.Name), c.Short, CodeCaseCollision))
+						}
+						continue
+					}
+					if recordNames[q] {
+						emit(m, spanDiag(texts[m.ID], c.Line, "error",
+							fmt.Sprintf("case identity collision: %s collides with record type %s", q, q), c.Short, CodeCaseCollision))
+						continue
+					}
+					prog.Cases[q] = d.Name
+				}
 			case *BrandDecl:
 				if d.Name == "Bytes" {
 					emit(m, spanDiag(texts[m.ID], line, "error",
@@ -272,6 +338,8 @@ func declNameLine(d Decl) (string, int) {
 	case *ExternDecl:
 		return d.Name, d.Line
 	case *TypeDecl:
+		return d.Name, d.Line
+	case *VariantDecl:
 		return d.Name, d.Line
 	case *BrandDecl:
 		return d.Name, d.Line
@@ -395,6 +463,12 @@ func checkModIntegrity(m *Module, text string) []Diag {
 					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
 			}
 		case *TypeDecl:
+			defined[d.Name] = true
+			if !hasHdr(m.Hdr["provides"], d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
+			}
+		case *VariantDecl:
 			defined[d.Name] = true
 			if !hasHdr(m.Hdr["provides"], d.Name) {
 				out = append(out, spanDiag(text, d.Line, "error",
@@ -1000,16 +1074,33 @@ func checkRecordCycles(mods []*Module, texts map[string]string) []Diag {
 	fieldsOf := map[string][][2]string{}
 	declLine := map[string]int{}
 	declFile := map[string]string{}
+	isVariant := map[string]bool{}
 	for _, m := range mods {
 		for _, d := range m.Decls {
-			td, ok := d.(*TypeDecl)
-			if !ok {
-				continue
-			}
-			if _, seen := fieldsOf[td.Name]; !seen {
-				fieldsOf[td.Name] = td.Fields
-				declLine[td.Name] = td.Line
-				declFile[td.Name] = m.ID
+			switch d := d.(type) {
+			case *TypeDecl:
+				if _, seen := fieldsOf[d.Name]; !seen {
+					fieldsOf[d.Name] = d.Fields
+					declLine[d.Name] = d.Line
+					declFile[d.Name] = m.ID
+				}
+			case *VariantDecl:
+				// Decision 6: cycle validation traverses the
+				// combined record/variant graph, so a
+				// variant→record→variant loop fails even
+				// though the variant never names itself.
+				// A variant's edges are the union of its
+				// case payload types.
+				if _, seen := fieldsOf[d.Name]; !seen {
+					var fs [][2]string
+					for _, c := range d.Cases {
+						fs = append(fs, c.Fields...)
+					}
+					fieldsOf[d.Name] = fs
+					declLine[d.Name] = d.Line
+					declFile[d.Name] = m.ID
+					isVariant[d.Name] = true
+				}
 			}
 		}
 	}
@@ -1050,8 +1141,15 @@ func checkRecordCycles(mods []*Module, texts map[string]string) []Diag {
 				if !reported[key] {
 					reported[key] = true
 					text := texts[declFile[rot[0]]]
+					kind := "record"
+					for _, n := range rot {
+						if isVariant[n] {
+							kind = "variant"
+							break
+						}
+					}
 					out = append(out, spanDiag(text, declLine[rot[0]], "error",
-						fmt.Sprintf("record type cycle: %s reaches itself through field types", strings.Join(rot, " -> ")),
+						fmt.Sprintf("%s type cycle: %s reaches itself through field types", kind, strings.Join(rot, " -> ")),
 						rot[0], CodeRecordCycle))
 				}
 				continue
