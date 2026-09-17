@@ -27,7 +27,6 @@ var (
 	externRe   = regexp.MustCompile(`extern\s+fn\s+(\w+)`)
 	pinRe      = regexp.MustCompile(`@\d+$`)
 	externsRe  = regexp.MustCompile(`(?m)^\s*externals\s*:`)
-	bracesRe   = regexp.MustCompile(`[{}]`)
 	testsRe    = regexp.MustCompile(`(?m)^\s*tests\s*$`)
 	eqRe       = regexp.MustCompile(`^=\s*$`)
 	caseRe     = regexp.MustCompile(`^\s*(\w+)\(`)
@@ -35,6 +34,44 @@ var (
 	givenKeyRe = regexp.MustCompile(`(?m)^\s*(\w+)\s*=>`)
 	demoRe     = regexp.MustCompile(`(?m)^\s*//\s*DEMO-EXPECTS:\s*(.+?)\s*$`)
 )
+
+// braceOutsideString mirrors ailc's R1 (v45) scan: braces inside
+// "..." literals are data, never delimiters; braces in code or
+// comments stay banned. String tracking matches the compiler:
+// " opens, \ skips the next byte, " closes, and // outside a
+// string starts a comment whose quotes never toggle string state.
+func braceOutsideString(line string) bool {
+	inStr := false
+	for i := 0; i < len(line); {
+		ch := line[i]
+		if inStr {
+			if ch == '\\' && i+1 < len(line) {
+				i++
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else {
+			if ch == '"' {
+				inStr = true
+			} else if ch == '/' && i+1 < len(line) && line[i+1] == '/' {
+				return strings.ContainsAny(line[i:], "{}")
+			} else if ch == '{' || ch == '}' {
+				return true
+			}
+		}
+		i++
+	}
+	return false
+}
+
+func hasBraceOutsideString(body string) bool {
+	for _, line := range strings.Split(body, "\n") {
+		if braceOutsideString(line) {
+			return true
+		}
+	}
+	return false
+}
 
 func names(raw string) []string {
 	var out []string
@@ -188,7 +225,7 @@ func checkGroup(files []string, keyOf func(string) string) (current, skipped int
 		if externsRe.MatchString(body) {
 			add(base, "externals section is gone, use call-site given")
 		}
-		if bracesRe.MatchString(body) {
+		if hasBraceOutsideString(body) {
 			add(base, "curly braces are banned, use () records")
 		}
 		testNames := map[string]bool{}

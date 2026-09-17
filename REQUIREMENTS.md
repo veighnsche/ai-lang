@@ -32,7 +32,10 @@ specification must rule out the constant function, not merely bless examples.
 
 ## R1 — Delimiters
 
-- No curly braces anywhere, including comments.
+- No curly braces outside string literals, including comments.
+  (v45: `{`/`}` inside `"..."` literals are data — JSON, CSS,
+  templates — never delimiters. The ban scans string-aware; quotes
+  inside comments never open a string.)
 - `()` = application and records: calls `db__get_user(id)`, construction
   `Ok(id = "u_01")`, empty record `db.down()`, grouping.
 - `[]` = enumerations only: mod lists, `given` outcome sequences.

@@ -122,6 +122,23 @@ func TestBracesBanned(t *testing.T) {
 	}
 }
 
+// R1 (v45): braces inside string literals are data, so a fixture
+// carrying "{u}" in a test row passes; a brace in code still fails.
+func TestBracesInStringsAllowed(t *testing.T) {
+	withBraces := strings.Replace(goodDB,
+		"    ok(id = \"u\") => Ok(id = \"u\")\n",
+		"    ok(id = \"u\") => Ok(id = \"u\")\n    braced(id = \"{u}\") => db.down()\n", 1)
+	dir := writeFixtures(t, map[string]string{"db.ail": withBraces, "auth.ail": goodAuth})
+	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
+		t.Fatalf("expected braces in strings to pass, got %v", errs)
+	}
+	bad := withBraces + "  { stray }\n"
+	dir = writeFixtures(t, map[string]string{"db.ail": bad, "auth.ail": goodAuth})
+	if _, _, _, errs := check([]string{dir}); !contains(errs, "curly braces are banned") {
+		t.Fatalf("expected braces error, got %v", errs)
+	}
+}
+
 func TestExternSectionGone(t *testing.T) {
 	bad := strings.Replace(goodAuth, "  tests", "  externals:\n  tests", 1)
 	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})

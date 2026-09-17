@@ -205,6 +205,37 @@ type Module struct {
 }
 
 // ---------------------------------------------------------- scanning -------
+// braceOutsideString reports whether line carries { or } outside a
+// string literal. Braces inside "..." are data (JSON, CSS, templates),
+// never delimiters; braces in code or comments stay banned (R1).
+// String tracking matches stripComment: " opens, \ escapes the next
+// byte, " closes, and // outside a string starts a comment whose
+// quotes never toggle string state.
+func braceOutsideString(line string) bool {
+	inStr := false
+	for i := 0; i < len(line); {
+		ch := line[i]
+		if inStr {
+			if ch == '\\' && i+1 < len(line) {
+				i++
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else {
+			if ch == '"' {
+				inStr = true
+			} else if ch == '/' && i+1 < len(line) && line[i+1] == '/' {
+				rest := line[i:]
+				return strings.ContainsAny(rest, "{}")
+			} else if ch == '{' || ch == '}' {
+				return true
+			}
+		}
+		i++
+	}
+	return false
+}
+
 func stripComment(line string) string {
 	var out strings.Builder
 	inStr := false
@@ -1017,15 +1048,13 @@ func parseModuleText(name, text string) (*Module, error) {
 	if !utf8.ValidString(text) {
 		return nil, at(1, fmt.Errorf("source is not valid UTF-8: decode the file as UTF-8 before compiling"))
 	}
-	if strings.ContainsAny(text, "{}") {
-		line := 1
-		for n, raw := range strings.Split(text, "\n") {
-			if strings.ContainsAny(raw, "{}") {
-				line = n + 1
-				break
-			}
+	// R1 (v45): braces are delimiters nowhere, but data inside
+	// string literals is not delimiters either, so the ban scans
+	// string-aware. Comments stay banned.
+	for n, raw := range strings.Split(text, "\n") {
+		if braceOutsideString(raw) {
+			return nil, at(n+1, fmt.Errorf("curly braces are banned outside string literals, use () records"))
 		}
-		return nil, at(line, fmt.Errorf("curly braces are banned, use () records"))
 	}
 	var rows []row
 	for n, raw := range strings.Split(text, "\n") {
