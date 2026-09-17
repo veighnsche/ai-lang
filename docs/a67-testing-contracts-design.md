@@ -277,16 +277,22 @@ callee summaries. Contract identity/revision design
 enforcement mechanism must be specified before
 verifier implementation.
 
-1. a68: `runLinkedPure` (§1.3), probe-first with the
-   verdict falsifier + control.
-2. a69+: contracts, sliced after this design lands:
-   `requires`/`ensures` grammar + AST, verifier core
-   (§2.2 logic), revision-review hook (§2.3), stdlib
-   pilot (borrow-doc `max`/validator shapes as rows,
-   not new semantics). Detailed per-slice docs at
-   that time; no multi-slice singletons.
-3. Closed tagged unions (borrow #3) and everything
-   downstream are unaffected by this doc.
+1. a68: `runLinkedPure` (§1.3) — shipped.
+2. a69: `requires`/`ensures` grammar + AST — shipped
+   (parse and store; proves nothing).
+3. a73–a76: closed tagged unions (borrow #3) — shipped.
+4. a77: revision identity enforcement (§2.3) — shipped
+   (AIL6013; proof caching explicitly out of scope).
+5. Verifier core (§2.2 logic), now unblocked, sliced
+   probe-first per the §2.2 verdict: a80 admission /
+   well-formedness (no solver), then obligation
+   generation + solver boundary, modular-call
+   handling, evidence reporting, and pilots
+   (max/validator/composition). No verifier slice
+   reopens identity enforcement.
+6. Stdlib contract pilots land after the verifier
+   proves them; unsupported contract-bearing
+   interfaces do not ship as accepted source.
 
 Each slice: failing probes first, existing `.ail`
 untouched except additive rows, committed

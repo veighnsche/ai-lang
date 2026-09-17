@@ -45,6 +45,21 @@ var explainDocs = map[string]explainEntry{
 		violate: `adding a case to a variant without bumping its revision.`,
 		fix:     "Restore the accepted interface, or publish a reviewed new revision and explicitly update affected pins. Never regenerate the baseline to silence the finding: generation is not acceptance.",
 	},
+	CodeContractMalformed: {
+		rule:    "A contract must be well-formed before it can be proved: every predicate is Boolean over the arm binder and the function params, every declared outcome has exactly one arm, and ensures matches are Boolean case expressions.",
+		violate: `requires 1, or an ensures arm missing for a declared emits kind.`,
+		fix:     "Correct the declaration or clause structure. The diagnostic names the offending clause (found) and the shape the rule wanted (expected).",
+	},
+	CodeContractUnsupported: {
+		rule:    "The first proof cut covers mathematical integers, Booleans, and finite records of those sorts, with total bodies free of externs, kernels, state, and recursion. Anything outside is rejected, never partially proved or assumed.",
+		violate: `result.value == x * x, or a contracted body calling an extern.`,
+		fix:     "Use supported logic and body structure, or defer that contract-bearing interface. The diagnostic names the exact operator, sort, or dependency (found).",
+	},
+	CodeContractUnverifiedDep: {
+		rule:    "A contract is an obligation first: no caller may reason from a callee summary until that callee is verified in the proving run. Presence in the source, an accepted revision, and passing examples are not verification.",
+		violate: `a contracted function calling another contracted function before any prover ran.`,
+		fix:     "Verify the source callee and its closure in the proving run; do not treat its declaration as proof. The diagnostic names the caller and the unavailable callee.",
+	},
 }
 
 // explainFamily describes each code family for codes

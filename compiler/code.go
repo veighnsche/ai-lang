@@ -89,6 +89,9 @@ const (
 	CodeBytesExportShape     = "AIL6011"
 	CodePrimitiveShadow      = "AIL6012"
 	CodeRevisionIdentity     = "AIL6013"
+	CodeContractMalformed    = "AIL4301"
+	CodeContractUnsupported  = "AIL4302"
+	CodeContractUnverifiedDep = "AIL4303"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -108,6 +111,7 @@ var allCodes = []string{
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee,
+	CodeContractMalformed, CodeContractUnsupported, CodeContractUnverifiedDep,
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
