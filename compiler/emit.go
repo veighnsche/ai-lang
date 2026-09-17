@@ -229,12 +229,9 @@ func leafType(s *Small) string {
 	return ""
 }
 
-// emitEquality lowers ==/!= by resolved operand type. Scalars and
-// brands compare natively (exact in both runtimes). Records and error
-// payloads compare field-by-field over their declared shape, ignoring
-// the outcome envelope; cell wrappers compare their .value payloads.
-// Unknown or unsupported operand types fail (AIL5005) instead of
-// falling back to object identity.
+// isScalar reports whether an operand type compares exactly with
+// native identity: base types (bigint by value, canonical dec
+// strings, strings, booleans) and str-backed brands.
 func (e *emitter) isScalar(ot string) bool {
 	if _, ok := tsBase[ot]; ok {
 		return true
@@ -242,6 +239,12 @@ func (e *emitter) isScalar(ot string) bool {
 	return e.brands[ot] == "str"
 }
 
+// emitEquality lowers ==/!= by resolved operand type. Scalars and
+// brands compare natively; records and error payloads compare
+// field-by-field over their declared shape, ignoring the outcome
+// envelope; cell wrappers compare their .value payloads. Unknown or
+// unsupported operand types fail (AIL5005) instead of falling back to
+// object identity.
 func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 	ll, rr, shape := l, r, ot
 	if strings.HasPrefix(shape, "cell:") {
