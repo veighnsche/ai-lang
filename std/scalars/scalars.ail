@@ -11,7 +11,7 @@
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_from, std__int__gcd, std__int__gcd_from, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root]
   uses []
   emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding]
 
@@ -687,19 +687,20 @@ fn std__int__next_power_of_two(value: int) -> Int__Value rev 1
       on Ok r => Ok(value = r.value)
     false => math.nonpositive_input(value = value)
 
-fn std__int__sqrt_floor_from(value: int, e: int) -> Int__Value rev 1
-  decreases e
+fn std__int__sqrt_floor_search(value: int, lo: int, hi: int) -> Int__Value rev 1
+  decreases lo, hi by narrowing
   emits []
   tests
-    sqrt_from_zero(value = 0, e = 0) => Ok(value = 0)
-    sqrt_from_ten(value = 10, e = 10) => Ok(value = 3)
-    sqrt_from_nine(value = 9, e = 9) => Ok(value = 3)
+    search_ten(value = 10, lo = 0, hi = 11) => Ok(value = 3)
+    search_exact(value = 9, lo = 3, hi = 4) => Ok(value = 3)
+    search_nine(value = 9, lo = 0, hi = 10) => Ok(value = 3)
 =
-  match e <= 0
-    true => Ok(value = 0)
-    false => match e * e <= value
-      true => Ok(value = e)
-      false => match call std__int__sqrt_floor_from(value, e - 1)
+  match (hi - lo) <= 1
+    true => Ok(value = lo)
+    false => match ((lo + hi) / 2) * ((lo + hi) / 2) <= value
+      true => match call std__int__sqrt_floor_search(value, (lo + hi) / 2, hi)
+        on Ok r => Ok(value = r.value)
+      false => match call std__int__sqrt_floor_search(value, lo, (lo + hi) / 2)
         on Ok r => Ok(value = r.value)
 
 fn std__int__sqrt_floor(value: int) -> Int__Root rev 1
@@ -712,27 +713,22 @@ fn std__int__sqrt_floor(value: int) -> Int__Root rev 1
     sqrt_neg(value = -4) => math.negative_input(value = -4)
 =
   match value >= 0
-    true => match call std__int__sqrt_floor_from(value, value)
+    true => match call std__int__sqrt_floor_search(value, 0, value + 1)
       on Ok r => Ok(root = r.value, remainder = value - r.value * r.value)
     false => math.negative_input(value = value)
 
-fn std__int__gcd_from(x: int, y: int, e: int) -> Int__Value rev 1
-  decreases e
+fn std__int__gcd_euclid(a: int, b: int) -> Int__Value rev 1
+  decreases a, b by euclid
   emits []
   tests
-    gcd_from_coprime(x = 8, y = 9, e = 0) => Ok(value = 1)
-    gcd_from_found(x = 12, y = 8, e = 3) => Ok(value = 4)
-    gcd_from_skip(x = 12, y = 8, e = 5) => Ok(value = 4)
+    euclid_basic(a = 12, b = 8) => Ok(value = 4)
+    euclid_coprime(a = 8, b = 9) => Ok(value = 1)
+    euclid_zero_b(a = 5, b = 0) => Ok(value = 5)
 =
-  match e <= 0
-    true => Ok(value = 1)
-    false => match x % (e + 1) == 0
-      true => match y % (e + 1) == 0
-        true => Ok(value = e + 1)
-        false => match call std__int__gcd_from(x, y, e - 1)
-          on Ok r => Ok(value = r.value)
-      false => match call std__int__gcd_from(x, y, e - 1)
-        on Ok r => Ok(value = r.value)
+  match b <= 0
+    true => Ok(value = a)
+    false => match call std__int__gcd_euclid(b, a % b)
+      on Ok r => Ok(value = r.value)
 
 fn std__int__gcd(left: int, right: int) -> Int__Value rev 1
   emits []
@@ -747,12 +743,8 @@ fn std__int__gcd(left: int, right: int) -> Int__Value rev 1
 =
   match call std__int__abs(left)
     on Ok a => match call std__int__abs(right)
-      on Ok b => match a.value == 0
-        true => Ok(value = b.value)
-        false => match b.value == 0
-          true => Ok(value = a.value)
-          false => match call std__int__gcd_from(a.value, b.value, a.value - 1)
-            on Ok r => Ok(value = r.value)
+      on Ok b => match call std__int__gcd_euclid(a.value, b.value)
+        on Ok r => Ok(value = r.value)
 
 fn std__int__lcm(left: int, right: int) -> Int__Value rev 1
   emits []

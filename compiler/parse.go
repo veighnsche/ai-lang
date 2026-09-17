@@ -107,9 +107,14 @@ type FnDecl struct {
 	// Effects lists the cell capabilities this function may use,
 	// e.g. Count__total.read. Set from the effects metadata line.
 	Effects []string
-	// Decreases names the int param proven to shrink on every
-	// self-call ("", none). Set from the decreases metadata line.
-	Decreases string
+	// DecNames names the params proven to shrink on every self-call
+	// (empty, none), and DecSchema names the admitted recursion shape:
+	// "" is the unit loop (site passes p - 1), "euclid" is the
+	// Euclidean step (site passes (b, a % b)), "narrowing" is binary
+	// search (site passes (lo, mid) or (mid, hi) with mid (lo+hi)/2).
+	// Set from the decreases metadata line; v19 owns the theorems.
+	DecNames  []string
+	DecSchema string
 	Line      int
 }
 
@@ -625,7 +630,8 @@ var (
 	reTest      = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
 	reGiven     = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
 	reArm       = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
-	reDecreases = regexp.MustCompile(`^decreases\s+(\w+)$`)
+	reDecreases       = regexp.MustCompile(`^decreases\s+(\w+)$`)
+	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+),\s*(\w+)\s+by\s+(euclid|narrowing)$`)
 	reEffects   = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
 	reState     = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+)\s*=\s*(.+)$`)
 	reRevWord   = regexp.MustCompile(`\brev\b`)
@@ -830,15 +836,21 @@ func parseModuleText(name, text string) (*Module, error) {
 					fn.Emits = splitTop(mm[1], ',')
 					i++
 				case strings.HasPrefix(c, "decreases"):
-					mm := reDecreases.FindStringSubmatch(c)
-					if mm == nil {
-						return nil, at(metaLine, fmt.Errorf("bad decreases line: %s", c))
-					}
-					if fn.Decreases != "" {
+					if fn.DecNames != nil {
 						return nil, at(metaLine, fmt.Errorf("duplicate decreases line"))
 					}
-					fn.Decreases = mm[1]
-					i++
+					if mm := reDecreases.FindStringSubmatch(c); mm != nil {
+						fn.DecNames = []string{mm[1]}
+						i++
+						break
+					}
+					if mm := reDecreasesSchema.FindStringSubmatch(c); mm != nil {
+						fn.DecNames = []string{mm[1], mm[2]}
+						fn.DecSchema = mm[3]
+						i++
+						break
+					}
+					return nil, at(metaLine, fmt.Errorf("bad decreases line: %s", c))
 				case strings.HasPrefix(c, "effects "):
 					mm := reEffects.FindStringSubmatch(c)
 					if mm == nil {

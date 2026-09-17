@@ -753,14 +753,14 @@ func checkLocalCycles(m *Module, prog *Program, text string) []Diag {
 			if localCallee(prog, fn.Name, n.Scrut.Fname) == nil {
 				continue
 			}
-			if n.Scrut.Fname == fn.Name && fn.Decreases != "" {
+			if n.Scrut.Fname == fn.Name && len(fn.DecNames) > 0 {
 				continue // proven self-recursion: checkDecreases owns it
 			}
 			add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line)
 		}
 		bodySmalls(fn.Body, func(s *Small, line int) {
 			if s.Kind == "call" && localCallee(prog, fn.Name, s.Fname) != nil {
-				if s.Fname == fn.Name && fn.Decreases != "" {
+				if s.Fname == fn.Name && len(fn.DecNames) > 0 {
 					return // proven self-recursion: checkDecreases owns it
 				}
 				add(fn.Name, s.Fname, s.Fname, locateUseLine(text, s.Fname+"(", 1))
@@ -1041,31 +1041,31 @@ func isDecrease(scrut *Small, pidx int, p string) bool {
 }
 
 // checkDecreases proves termination for self-recursion before anything
-// runs: decreases must name an int param, must guard a real self-call,
-// every self-call site must pass p - 1 (v11: unit step only), and every
-// self-call site must sit under the positive branch of the p <= 0 guard
-// (v11: negative entries then take the base arm, so the proof promises
-// a returned outcome, not a loud fault). Sites with the wrong arity
-// belong to the arity rule and are skipped here, so one mistake yields
-// one error family.
+// runs: decreases must name int params, must guard a real self-call,
+// and every self-call site must take the schema's canonical step
+// under its canonical guard (v11 unit loop, v19 blessed schemas), so
+// the proof promises a returned outcome, not a loud fault. Sites with
+// the wrong arity belong to the arity rule and are skipped here, so
+// one mistake yields one error family.
 func checkDecreases(fn *FnDecl, prog *Program, text string) []Diag {
-	if fn.Decreases == "" {
+	if len(fn.DecNames) == 0 {
 		return nil
 	}
-	p := fn.Decreases
-	pidx, ptype := -1, ""
+	idx := map[string]int{}
+	typ := map[string]string{}
 	for i, pr := range fn.Params {
-		if pr[0] == p {
-			pidx, ptype = i, pr[1]
+		idx[pr[0]] = i
+		typ[pr[0]] = pr[1]
+	}
+	for _, p := range fn.DecNames {
+		if _, ok := idx[p]; !ok {
+			return []Diag{spanDiag(text, fn.Line, "error",
+				fmt.Sprintf("%s decreases %s: no such param", fn.Name, p), p, CodeBadDecreases)}
 		}
-	}
-	if pidx < 0 {
-		return []Diag{spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s decreases %s: no such param", fn.Name, p), p, CodeBadDecreases)}
-	}
-	if ptype != "int" {
-		return []Diag{spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s decreases %s: must be an int param, got %s", fn.Name, p, ptype), p, CodeBadDecreases)}
+		if typ[p] != "int" {
+			return []Diag{spanDiag(text, fn.Line, "error",
+				fmt.Sprintf("%s decreases %s: must be an int param, got %s", fn.Name, p, typ[p]), p, CodeBadDecreases)}
+		}
 	}
 	selfAny := false
 	for _, c := range walkCalls(fn.Body) {
@@ -1076,16 +1076,39 @@ func checkDecreases(fn *FnDecl, prog *Program, text string) []Diag {
 	}
 	if !selfAny {
 		return []Diag{spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s decreases %s but never calls itself", fn.Name, p), p, CodeStaleDecreases)}
+			fmt.Sprintf("%s decreases %s but never calls itself", fn.Name, strings.Join(fn.DecNames, ", ")), strings.Join(fn.DecNames, ", "), CodeStaleDecreases)}
+	}
+	// Each schema pairs one canonical step with one canonical guard.
+	// The params never rebind, so a site reached under a false guard
+	// entered with the guard's negation true, and every chain lands
+	// on the base arm. The guard is load-bearing, not stylistic.
+	isStep := func(m *Small) bool { return false }
+	isGuard := func(s *Small) bool { return false }
+	stepMsg, guardMsg := "", ""
+	switch fn.DecSchema {
+	case "euclid":
+		a, b := fn.DecNames[0], fn.DecNames[1]
+		ai, bi := idx[a], idx[b]
+		isStep = func(m *Small) bool { return isEuclidStep(m, ai, bi, a, b) }
+		isGuard = func(s *Small) bool { return isGuardScrut(s, b) }
+		stepMsg = fmt.Sprintf("%s calls itself without a euclid step: pass (%s, %s %% %s)", fn.Name, b, a, b)
+		guardMsg = fmt.Sprintf("%s recurses outside the positive branch: self-calls must sit under the false arm of %s <= 0", fn.Name, b)
+	case "narrowing":
+		lo, hi := fn.DecNames[0], fn.DecNames[1]
+		loi, hii := idx[lo], idx[hi]
+		isStep = func(m *Small) bool { return isNarrowStep(m, loi, hii, lo, hi) }
+		isGuard = func(s *Small) bool { return isNarrowGuard(s, lo, hi) }
+		stepMsg = fmt.Sprintf("%s calls itself without a narrowing step: pass (%s, mid) or (mid, %s) with mid (%s+%s)/2", fn.Name, lo, hi, lo, hi)
+		guardMsg = fmt.Sprintf("%s recurses outside the search branch: self-calls must sit under the false arm of (%s - %s) <= 1", fn.Name, hi, lo)
+	default:
+		p := fn.DecNames[0]
+		pidx := idx[p]
+		isStep = func(m *Small) bool { return isDecrease(m, pidx, p) }
+		isGuard = func(s *Small) bool { return isGuardScrut(s, p) }
+		stepMsg = fmt.Sprintf("%s calls itself without decreasing %s by one: pass %s - 1", fn.Name, p, p)
+		guardMsg = fmt.Sprintf("%s recurses outside the positive branch: self-calls must sit under the false arm of %s <= 0", fn.Name, p)
 	}
 	var out []Diag
-	// Guarded walk: a self-call site is admitted only under the
-	// positive branch — the false arm of the canonical p <= 0 guard.
-	// The param never rebinds (no statements, no rebinding), so a site
-	// reached under a false guard entered with p >= 1, stepped to
-	// p - 1 >= 0, and every chain lands on the base arm. Sites in the
-	// true arm would diverge (each entry steps further negative), so
-	// the guard is load-bearing, not stylistic.
 	var walk func(n *Node, guarded bool)
 	walk = func(n *Node, guarded bool) {
 		if n == nil || !n.IsMatch {
@@ -1093,16 +1116,16 @@ func checkDecreases(fn *FnDecl, prog *Program, text string) []Diag {
 		}
 		if m := n.Scrut; m != nil && m.Kind == "call" && m.Fname == fn.Name {
 			if localCallee(prog, fn.Name, m.Fname) != nil && len(m.Args) == len(fn.Params) {
-				if !isDecrease(m, pidx, p) {
+				if !isStep(m) {
 					out = append(out, spanDiag(text, n.Line, "error",
-						fmt.Sprintf("%s calls itself without decreasing %s by one: pass %s - 1", fn.Name, p, p), fn.Name, CodeNoDecrease))
+						stepMsg, fn.Name, CodeNoDecrease))
 				} else if !guarded {
 					out = append(out, spanDiag(text, n.Line, "error",
-						fmt.Sprintf("%s recurses outside the positive branch: self-calls must sit under the false arm of %s <= 0", fn.Name, p), fn.Name, CodeNoGuard))
+						guardMsg, fn.Name, CodeNoGuard))
 				}
 			}
 		}
-		g := isGuardScrut(n.Scrut, p)
+		g := isGuard(n.Scrut)
 		for _, a := range n.Arms {
 			ag := guarded
 			if g {
@@ -1113,6 +1136,91 @@ func checkDecreases(fn *FnDecl, prog *Program, text string) []Diag {
 	}
 	walk(fn.Body, false)
 	return out
+}
+
+// isBareRef reports a lone param reference: exactly [name].
+func isBareRef(s *Small, name string) bool {
+	return s != nil && s.Kind == "ref" && len(s.Ref) == 1 && s.Ref[0] == name
+}
+
+// siteArg extracts one self-call argument: a named arg wins by name,
+// else the positional arg at the param's index (nil when absent).
+func siteArg(m *Small, pidx int, p string) *Small {
+	var v *Small
+	for i, a := range m.Args {
+		if a.HasName && a.Name == p {
+			return a.V
+		}
+		if !a.HasName && i == pidx && v == nil {
+			v = a.V
+		}
+	}
+	return v
+}
+
+// isEuclidStep reports the one Euclidean shape: the site passes
+// exactly (b, a % b). Under a b <= 0 false guard b is positive, and
+// Euclidean % lands the new b in [0, b), so the second component
+// walks a natural chain into the base arm (v19).
+func isEuclidStep(m *Small, aidx, bidx int, a, b string) bool {
+	if !isBareRef(siteArg(m, aidx, a), b) {
+		return false
+	}
+	mod := siteArg(m, bidx, b)
+	if mod == nil || mod.Kind != "binop" || mod.Op != "%" {
+		return false
+	}
+	return isBareRef(mod.L, a) && isBareRef(mod.R, b)
+}
+
+// isMid reports the one canonical midpoint: (lo + hi) / 2, exact
+// Euclidean integer division (ints are unbounded, so lo + hi cannot
+// overflow the proof).
+func isMid(v *Small, lo, hi string) bool {
+	if v == nil || v.Kind != "binop" || v.Op != "/" {
+		return false
+	}
+	if v.R.Kind != "int" || v.R.Num.Cmp(big.NewInt(2)) != 0 {
+		return false
+	}
+	s := v.L
+	if s == nil || s.Kind != "binop" || s.Op != "+" {
+		return false
+	}
+	return isBareRef(s.L, lo) && isBareRef(s.R, hi)
+}
+
+// isNarrowStep reports the two binary-search shapes: (lo, mid) or
+// (mid, hi). With hi - lo >= 2 the midpoint sits strictly inside,
+// so the bound gap strictly shrinks every site (v19).
+func isNarrowStep(m *Small, loidx, hiidx int, lo, hi string) bool {
+	lv := siteArg(m, loidx, lo)
+	hv := siteArg(m, hiidx, hi)
+	if lv == nil || hv == nil {
+		return false
+	}
+	if isBareRef(lv, lo) && isMid(hv, lo, hi) {
+		return true
+	}
+	return isMid(lv, lo, hi) && isBareRef(hv, hi)
+}
+
+// isNarrowGuard recognizes the one canonical search guard:
+// (hi - lo) <= 1. The search is over when at most one integer
+// remains between the bounds; degenerate entries (hi <= lo) take
+// the base arm immediately.
+func isNarrowGuard(s *Small, lo, hi string) bool {
+	if s == nil || s.Kind != "binop" || s.Op != "<=" {
+		return false
+	}
+	if s.R.Kind != "int" || s.R.Num.Cmp(big.NewInt(1)) != 0 {
+		return false
+	}
+	d := s.L
+	if d == nil || d.Kind != "binop" || d.Op != "-" {
+		return false
+	}
+	return isBareRef(d.L, hi) && isBareRef(d.R, lo)
 }
 
 // isGuardScrut recognizes the one canonical bound guard: p <= 0. One

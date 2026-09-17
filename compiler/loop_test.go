@@ -152,6 +152,135 @@ func TestLoopStrictGuardRefused(t *testing.T) {
 	}
 }
 
+// Blessed schemas (v19, issue #41): euclid and narrowing admit
+// efficient recursion the unit step cannot spell. Each pairs one
+// canonical step with one canonical guard; anything else is refused
+// with the same code families as the unit loop.
+const loopEuclid = `mod m
+  provides [m__gcd, M__S]
+  uses []
+  emits []
+
+type M__S rev 1 (
+  n: int
+)
+
+fn m__gcd(a: int, b: int) -> M__S rev 1
+  decreases a, b by euclid
+  emits []
+  tests
+    basic(a = 12, b = 8) => Ok(n = 4)
+    coprime(a = 8, b = 9) => Ok(n = 1)
+    zero_b(a = 5, b = 0) => Ok(n = 5)
+=
+  match b <= 0
+    true => Ok(n = a)
+    false => match call m__gcd(b, a % b)
+      on Ok r => Ok(n = r.n)
+`
+
+func TestLoopEuclidClean(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.ail": loopEuclid})
+	if diags := diagnose(dir, "m.ail", loopEuclid); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+func TestLoopEuclidBadStep(t *testing.T) {
+	for _, site := range []string{"match call m__gcd(a - 1, b)", "match call m__gcd(b, a - b)"} {
+		bad := strings.Replace(loopEuclid, "match call m__gcd(b, a % b)", site, 1)
+		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
+		diags := diagnose(dir, "m.ail", bad)
+		if !hasDiag(diags, "error", "without a euclid step") {
+			t.Fatalf("%s: expected euclid-step error, got %v", site, diags)
+		}
+	}
+}
+
+func TestLoopEuclidUnguarded(t *testing.T) {
+	trueArm := strings.Replace(loopEuclid,
+		"    true => Ok(n = a)\n    false => match call m__gcd(b, a % b)\n      on Ok r => Ok(n = r.n)",
+		"    true => match call m__gcd(b, a % b)\n      on Ok r => Ok(n = r.n)\n    false => Ok(n = a)", 1)
+	dir := writeLSPDir(t, map[string]string{"m.ail": trueArm})
+	diags := diagnose(dir, "m.ail", trueArm)
+	if !hasDiag(diags, "error", "must sit under the false arm of b <= 0") {
+		t.Fatalf("expected euclid-guard error, got %v", diags)
+	}
+}
+
+const loopNarrow = `mod m
+  provides [m__sqrt, M__S]
+  uses []
+  emits []
+
+type M__S rev 1 (
+  n: int
+)
+
+fn m__sqrt(value: int, lo: int, hi: int) -> M__S rev 1
+  decreases lo, hi by narrowing
+  emits []
+  tests
+    ten(value = 10, lo = 0, hi = 11) => Ok(n = 3)
+    exact(value = 9, lo = 3, hi = 4) => Ok(n = 3)
+    nine(value = 9, lo = 0, hi = 10) => Ok(n = 3)
+=
+  match (hi - lo) <= 1
+    true => Ok(n = lo)
+    false => match ((lo + hi) / 2) * ((lo + hi) / 2) <= value
+      true => match call m__sqrt(value, (lo + hi) / 2, hi)
+        on Ok r => Ok(n = r.n)
+      false => match call m__sqrt(value, lo, (lo + hi) / 2)
+        on Ok r => Ok(n = r.n)
+`
+
+func TestLoopNarrowingClean(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.ail": loopNarrow})
+	if diags := diagnose(dir, "m.ail", loopNarrow); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+func TestLoopNarrowingBadStep(t *testing.T) {
+	bad := strings.Replace(loopNarrow,
+		"match call m__sqrt(value, (lo + hi) / 2, hi)",
+		"match call m__sqrt(value, lo, hi - 1)", 1)
+	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
+	diags := diagnose(dir, "m.ail", bad)
+	if !hasDiag(diags, "error", "without a narrowing step") {
+		t.Fatalf("expected narrowing-step error, got %v", diags)
+	}
+}
+
+func TestLoopNarrowingBadGuard(t *testing.T) {
+	bad := strings.Replace(loopNarrow, "match (hi - lo) <= 1", "match hi <= lo", 1)
+	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
+	diags := diagnose(dir, "m.ail", bad)
+	if !hasDiag(diags, "error", "must sit under the false arm of (hi - lo) <= 1") {
+		t.Fatalf("expected narrowing-guard error, got %v", diags)
+	}
+}
+
+func TestLoopBadSchemaLine(t *testing.T) {
+	for _, line := range []string{"decreases a, b by half", "decreases a by euclid", "decreases a, b, c by euclid"} {
+		bad := strings.Replace(loopEuclid, "decreases a, b by euclid", line, 1)
+		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
+		diags := diagnose(dir, "m.ail", bad)
+		if !hasDiag(diags, "error", "bad decreases line") {
+			t.Fatalf("%s: expected bad-line error, got %v", line, diags)
+		}
+	}
+}
+
+func TestLoopSchemaNonInt(t *testing.T) {
+	bad := strings.Replace(loopEuclid, "fn m__gcd(a: int, b: int)", "fn m__gcd(a: int, b: str)", 1)
+	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
+	diags := diagnose(dir, "m.ail", bad)
+	if !hasDiag(diags, "error", "must be an int param") {
+		t.Fatalf("expected int-param error, got %v", diags)
+	}
+}
+
 func TestLoopNamedNoDecrease(t *testing.T) {
 	bad := strings.Replace(loopPoll,
 		"match call m__poll(n - 1)", "match call m__poll(n = n)", 1)
