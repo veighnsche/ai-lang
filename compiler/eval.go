@@ -73,6 +73,25 @@ func evArith(op string, lv, rv *Value) (*Value, error) {
 		}
 		return &Value{Kind: "dec", D: d}, nil
 	}
+	// v17: / and % are exact Euclidean integer division through
+	// big.Int.DivMod (verified: a == b*q + r with 0 <= r < |b| on
+	// every sign combination). A zero divisor is loud, never silent.
+	// Non-int operands are loud too: direct evaluator callers bypass
+	// the static gate, so this must error, never panic on nil.
+	if op == "/" || op == "%" {
+		if lv.Kind != "int" || rv.Kind != "int" {
+			return nil, fmt.Errorf("bad %s operands", op)
+		}
+		if rv.N.Sign() == 0 {
+			return nil, fmt.Errorf("int division by zero")
+		}
+		q, m := new(big.Int), new(big.Int)
+		q.DivMod(lv.N, rv.N, m)
+		if op == "/" {
+			return &Value{Kind: "int", N: q}, nil
+		}
+		return &Value{Kind: "int", N: m}, nil
+	}
 	r := new(big.Int)
 	switch op {
 	case "+":
@@ -138,9 +157,14 @@ func decArith(op, l, r string) (string, error) {
 			s = rs
 		}
 		m.Sub(new(big.Int).Mul(lm, pow10(s-ls)), new(big.Int).Mul(rm, pow10(s-rs)))
-	default:
+	case "*":
 		s = ls + rs
 		m.Mul(lm, rm)
+	default:
+		// Unreachable past the static gate (dec / and % are
+		// refused in checkSem); loud here so a direct caller can
+		// never mistake silence for a quotient.
+		return "", fmt.Errorf("bad dec %s operands", op)
 	}
 	neg := ""
 	if m.Sign() < 0 {
@@ -303,7 +327,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			return &Value{Kind: "bool", B: eq}, err
 		}
 		switch node.Op {
-		case "+", "-", "*":
+		case "+", "-", "*", "/", "%":
 			return evArith(node.Op, lv, rv)
 		}
 		if lv.Kind != rv.Kind || (lv.Kind != "int" && lv.Kind != "str" && lv.Kind != "dec") {

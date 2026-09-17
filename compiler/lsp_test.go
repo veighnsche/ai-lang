@@ -897,11 +897,29 @@ func TestDiagnoseStrConcatClean(t *testing.T) {
 	}
 }
 
+const typeIntDiv = `mod m
+  provides [m__div, M__Out]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  q: int
+)
+
+fn m__div(a: int, b: int) -> M__Out rev 1
+  emits []
+  tests
+    t(a = 7, b = 3) => Ok(q = 2)
+=
+  Ok(q = a / b)
+`
+
 func TestDiagnoseDivisionDeferred(t *testing.T) {
-	bad := strings.Replace(typeArith, "Ok(n = a - b - c)", "Ok(n = a / b)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
-	if !hasDiag(diags, "error", "cannot parse expression") {
-		t.Fatalf("expected division to stay ungrammatical, got %v", diags)
+	// v17 discharges the v06 deferral for integers: / is exact
+	// Euclidean division with a loud zero divisor. What stays
+	// deferred is decimal division (AIL6005, pinned separately).
+	dir := writeLSPDir(t, map[string]string{"m.ail": typeIntDiv})
+	if diags := diagnose(dir, "m.ail", typeIntDiv); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }

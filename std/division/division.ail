@@ -1,0 +1,105 @@
+// std/division/division.ail — row 4 of the standard-library program,
+// first cut. Exact Euclidean integer division: every input satisfies
+// dividend = divisor * quotient + remainder with
+// 0 <= remainder < abs(divisor), on every sign combination. A zero
+// divisor fails loud instead of pretending. Decimal division stays
+// refused (AIL6005 lives in checkSem: 1/3 does not terminate).
+// See docs/v17-division.md.
+
+mod division
+  provides [std__int__divmod, std__int__mod, std__int__is_multiple, std__int__is_even, std__int__is_odd, Int__DivMod, Int__Value, Bool__Value]
+  uses []
+  emits [math.zero_divisor]
+
+error math.zero_divisor(divisor: int)
+
+type Int__DivMod rev 1 (
+  quotient: int
+  remainder: int
+)
+
+type Int__Value rev 1 (
+  value: int
+)
+
+type Bool__Value rev 1 (
+  value: bool
+)
+
+fn std__int__divmod(dividend: int, divisor: int) -> Int__DivMod rev 1
+  emits [math.zero_divisor]
+  tests
+    divmod_pos_pos(dividend = 7, divisor = 3) => Ok(quotient = 2, remainder = 1)
+    divmod_neg_pos(dividend = -7, divisor = 3) => Ok(quotient = -3, remainder = 2)
+    divmod_pos_neg(dividend = 7, divisor = -3) => Ok(quotient = -2, remainder = 1)
+    divmod_neg_neg(dividend = -7, divisor = -3) => Ok(quotient = 3, remainder = 2)
+    divmod_zero_dividend(dividend = 0, divisor = 5) => Ok(quotient = 0, remainder = 0)
+    divmod_zero_divisor(dividend = 5, divisor = 0) => math.zero_divisor(divisor = 0)
+=
+  match divisor == 0
+    true => math.zero_divisor(divisor = divisor)
+    false => Ok(quotient = dividend / divisor, remainder = dividend % divisor)
+
+fn std__int__mod(value: int, modulus: int) -> Int__Value rev 1
+  emits [math.zero_divisor]
+  tests
+    mod_pos(value = 7, modulus = 3) => Ok(value = 1)
+    mod_neg(value = -7, modulus = 3) => Ok(value = 2)
+    mod_neg_modulus(value = 7, modulus = -3) => Ok(value = 1)
+    mod_zero(value = 0, modulus = 5) => Ok(value = 0)
+    mod_zero_modulus(value = 5, modulus = 0) => math.zero_divisor(divisor = 0)
+=
+  match modulus == 0
+    true => math.zero_divisor(divisor = modulus)
+    false => Ok(value = value % modulus)
+
+fn std__int__is_multiple(value: int, divisor: int) -> Bool__Value rev 1
+  emits [math.zero_divisor]
+  tests
+    multiple_yes(value = 6, divisor = 3) => Ok(value = true)
+    multiple_no(value = 7, divisor = 3) => Ok(value = false)
+    multiple_zero(value = 0, divisor = 5) => Ok(value = true)
+    multiple_zero_divisor(value = 5, divisor = 0) => math.zero_divisor(divisor = 0)
+=
+  match divisor == 0
+    true => math.zero_divisor(divisor = divisor)
+    false => match value % divisor == 0
+      true => Ok(value = true)
+      false => Ok(value = false)
+
+fn std__int__is_even(value: int) -> Bool__Value rev 1
+  emits []
+  tests
+    even_pos(value = 4) => Ok(value = true)
+    even_neg(value = -4) => Ok(value = true)
+    even_odd_pos(value = 3) => Ok(value = false)
+    even_odd_neg(value = -3) => Ok(value = false)
+    even_zero(value = 0) => Ok(value = true)
+=
+  match value % 2 == 0
+    true => Ok(value = true)
+    false => Ok(value = false)
+
+fn std__int__is_odd(value: int) -> Bool__Value rev 1
+  emits []
+  tests
+    odd_pos(value = 3) => Ok(value = true)
+    odd_neg(value = -3) => Ok(value = true)
+    odd_even_pos(value = 4) => Ok(value = false)
+    odd_even_neg(value = -4) => Ok(value = false)
+    odd_zero(value = 0) => Ok(value = false)
+=
+  match value % 2 == 0
+    true => Ok(value = false)
+    false => Ok(value = true)
+
+// Shape notes, kept with the program, not in a second file.
+// 1. The remainder is always non-negative: -3 is odd because
+//    -3 % 2 is 1, not -1. Any truncated-remainder intuition from
+//    other languages is wrong here by contract.
+// 2. is_odd tests the false arm for odd inputs instead of testing
+//    value % 2 == 1, which would hide the Euclidean guarantee
+//    inside a passing test.
+// 3. gcd, lcm, sqrt_floor, and primality wait on fuel-pattern
+//    recursion: the decreases rule admits only exact p - 1 steps,
+//    and a Euclidean mod step is not one.

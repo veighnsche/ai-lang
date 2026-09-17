@@ -289,8 +289,19 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return "", fmt.Errorf("cannot emit op %s", node.Op)
 		}
-		// Ints are bigints (native ops exact); strings and brands
-		// compare lexicographically, matching the evaluator.
+		// Ints are bigints (native ops exact, except / and %: BigInt
+		// truncates toward zero, so Euclidean division rides the
+		// $ailDivMod helper, emitted inline only when used). Strings
+		// and brands compare lexicographically, matching the
+		// evaluator; string + concatenates natively.
+		if ot == "int" && (node.Op == "/" || node.Op == "%") {
+			e.divmod = true
+			idx := "0"
+			if node.Op == "%" {
+				idx = "1"
+			}
+			return fmt.Sprintf("$ailDivMod(%s, %s)[%s]", l, r, idx), nil
+		}
 		ops := map[string]string{">=": ">=", "<=": "<=", "+": "+", "-": "-", "*": "*"}
 		op, ok := ops[node.Op]
 		if !ok {
@@ -448,6 +459,25 @@ type emitter struct {
 	cellTypes map[string]string // cell -> TS type, this module only
 	tailUnion string
 	decOps    map[string]bool // exact-decimal helpers used by this module
+	divmod    bool            // Euclidean division helper used by this module
+}
+
+// divModHelper renders the Euclidean integer-division runtime: BigInt
+// / and % truncate toward zero, so a negative truncated remainder is
+// adjusted into 0 <= r < |b| (property-checked in node against the
+// contract on 20k random inputs plus fixed sign vectors).
+var divModHelper = []string{
+	"// Euclidean integer division (v17): quotient and remainder with",
+	"// 0 <= r < |b| on every sign combination.",
+	"function $ailDivMod(a: bigint, b: bigint): [bigint, bigint] {",
+	"  let q: bigint = a / b;",
+	"  let r: bigint = a - b * q;",
+	"  if (r < 0n) {",
+	"    q += b > 0n ? -1n : 1n;",
+	"    r = a - b * q;",
+	"  }",
+	"  return [q, r];",
+	"}",
 }
 
 func (e *emitter) fresh() string {
@@ -805,7 +835,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// decl literal. Tests prove per-scenario behavior from init;
 	// prod shares the cell across calls (documented boundary).
 	cellTypes := map[string]string{}
-	em := &emitter{fnUnions: fnUnions, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}}
+	em := &emitter{fnUnions: fnUnions, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
@@ -840,6 +870,9 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// spell, so user code can never collide with them.
 	if len(em.decOps) > 0 {
 		L = append(L, decHelpers(em.decOps)...)
+	}
+	if em.divmod {
+		L = append(L, divModHelper...)
 	}
 	L = append(L, fnLines...)
 	return strings.Join(L, "\n") + "\n", nil

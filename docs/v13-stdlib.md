@@ -92,13 +92,12 @@ Pinned by `TestMultiShapeEmit` and
 
 ## Deferred with blockers (not silently dropped)
 
-- Integer division family (`divmod`, `mod`, `is_multiple`,
-  `is_even`, `is_odd`, `gcd`, `lcm`, `sqrt_floor`,
-  `is_prime`, `next_power_of_two`, `binomial`): NOW† is not
-  permission. Unit-step scans hit the 1024 evaluation-depth
-  backstop on ordinary inputs, so the honest work is an
-  efficient kernel proposal, not a guarded loop. `binomial`
-  additionally needs division.
+- Integer division family: the kernel landed as
+  `docs/v17-division.md` (`/`, `%`, `divmod`, `mod`,
+  `is_multiple`, `is_even`, `is_odd`). `binomial` still needs
+  its fuel-pattern home, and `gcd`, `lcm`, `sqrt_floor`,
+  `is_prime`, `next_power_of_two` wait on fuel-pattern
+  recursion. Issue 4 stays open.
 - `int_to_dec` (NOW†): integer-controlled accumulation needs a
   digit-extraction kernel that does not exist without
   division. `dec_to_int_exact`, `int_to_str`, `str_to_int`,
