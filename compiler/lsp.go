@@ -5,7 +5,10 @@
 // keystroke re-runs the full diagnosis (parse, naming, uses resolution,
 // exhaustiveness proof, signature tests) and publishes diagnostics.
 //
-// Run: ailc lsp   (editors connect stdout/stdin with Content-Length framing)
+// Run: ailc lsp [--baseline BASE.json]   (editors connect stdout/stdin
+// with Content-Length framing). With --baseline, every diagnosis also
+// runs revision-identity enforcement (a79): the same AIL6013 findings
+// the CLI reports, as editor squiggles.
 package main
 
 import (
@@ -143,7 +146,18 @@ func locateLineFrom(text, sub string, fromLine, fallback int) int {
 
 // diagnose runs every check on the open file (sibling .ail files in dir
 // provide the uses/provides world) and returns sorted diagnostics.
+// Without a baseline no identity findings report: the editor stays
+// quiet exactly as before.
 func diagnose(dir, name, text string) []Diag {
+	return diagnoseWith(dir, name, text, nil)
+}
+
+// diagnoseWith threads an accepted revision baseline through the
+// same pipeline: when the world otherwise checks clean, identity
+// drift against the baseline appends AIL6013 findings, mirroring
+// the CLI's firstError gate so broken programs never gain drift
+// noise on top of their real errors.
+func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	var out []Diag
 	var open *Module
 	entries, _ := os.ReadDir(dir)
@@ -215,6 +229,9 @@ func diagnose(dir, name, text string) []Diag {
 	recCycles := checkRecordCycles(all, texts)
 	out = append(out, recCycles...)
 	out = append(out, checkSem(open, text, prog, nil, hasErrors(global) || hasErrors(recCycles))...)
+	if base != nil && !hasErrors(out) {
+		out = append(out, CheckRevisionIdentity(prog, texts, base)...)
+	}
 	sortDiags(out)
 	return withFile(out, name)
 }
@@ -646,7 +663,41 @@ func publishDiagnostics(w *bufio.Writer, uri, text string, diags []Diag) error {
 	})
 }
 
-func runLSP() int {
+// parseLSPArgs takes the flags after `lsp`: only --baseline PATH.
+// Bare means unenforced; anything else is a usage error.
+func parseLSPArgs(argv []string) (string, error) {
+	var baseline string
+	for i := 0; i < len(argv); {
+		if argv[i] == "--baseline" && i+1 < len(argv) {
+			baseline = argv[i+1]
+			i += 2
+		} else {
+			return "", fmt.Errorf("usage: ailc lsp [--baseline BASE.json]")
+		}
+	}
+	return baseline, nil
+}
+
+func runLSP(argv []string) int {
+	baselinePath, err := parseLSPArgs(argv)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	// The baseline loads once at startup: per-keystroke reloads
+	// would re-read the file on every edit, and a mid-session
+	// baseline change takes effect on editor restart. A missing
+	// or unreadable baseline warns and runs unenforced: a bad
+	// flag must not brick editing, and the CLI stays the
+	// authority (it fails hard on the same input).
+	var base *RevisionBaseline
+	if baselinePath != "" {
+		base, err = LoadBaseline(baselinePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ailc lsp: cannot load baseline, revision enforcement off: %v\n", err)
+			base = nil
+		}
+	}
 	in := bufio.NewReader(os.Stdin)
 	out := bufio.NewWriter(os.Stdout)
 	docs := map[string]string{}
@@ -700,7 +751,7 @@ func runLSP() int {
 			}
 			docs[p.TextDocument.URI] = p.TextDocument.Text
 			path := pathFromURI(p.TextDocument.URI)
-			diags := diagnose(filepath.Dir(path), filepath.Base(path), p.TextDocument.Text)
+			diags := diagnoseWith(filepath.Dir(path), filepath.Base(path), p.TextDocument.Text, base)
 			publishDiagnostics(out, p.TextDocument.URI, p.TextDocument.Text, diags)
 		case "textDocument/didChange":
 			var p struct {
@@ -715,7 +766,7 @@ func runLSP() int {
 			text := p.Changes[len(p.Changes)-1].Text
 			docs[p.TextDocument.URI] = text
 			path := pathFromURI(p.TextDocument.URI)
-			diags := diagnose(filepath.Dir(path), filepath.Base(path), text)
+			diags := diagnoseWith(filepath.Dir(path), filepath.Base(path), text, base)
 			publishDiagnostics(out, p.TextDocument.URI, text, diags)
 		case "shutdown":
 			respond(msg.ID, nil)

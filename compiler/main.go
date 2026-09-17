@@ -36,7 +36,7 @@ func run(argv []string) int {
 		return 0
 	}
 	if len(argv) > 0 && argv[0] == "lsp" {
-		return runLSP()
+		return runLSP(argv[1:])
 	}
 	if len(argv) > 0 && argv[0] == "explain" {
 		return runExplain(os.Stdout, argv[1:])
