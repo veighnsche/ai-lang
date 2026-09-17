@@ -124,9 +124,16 @@ row: `[id-empty, id='a']` → `"id='a'"`.)
   `"id='a'"`), `dup_title`, `dup_id_nonadjacent`,
   `dup_disabled`, `dup_after_skip`, `dup_first_repeated`
   (`[id, title, title, id]` reports `title`).
-- Finding (non-blocking): AIL4107 does not flag untaken
-  error-propagation relay arms in call matches — removing
-  `dup_after_skip` (the only row propagating a duplicate
-  through a skip level) still compiles clean. The arm is
-  exercised at runtime by the kept row; coverage law may want
-  a follow-up for relay arms.
+- Correction to the earlier finding: the untaken-relay
+  exemption is deliberate design, not a hole — the
+  identity-relay certificate (`relayStatus` in `compiler/lsp.go`)
+  exempts a bound error arm of a local call whose body is
+  exactly the same-kind reconstruction with unchanged fields.
+  Three interlocking checks make it sound: exhaustiveness
+  (`verifyExhaustiveAll`) forces the arm to exist exactly when
+  the callee emits the kind (missing/stale arms are errors),
+  the certificate proves transparency, and shadowed or foreign
+  relays stay under the execution law (4107). Pinned by
+  `TestDiagnoseValidRelayExempt`. `dup_after_skip` is kept as
+  a semantic pin (skip+dup interaction, first-repeat through a
+  skip), not a coverage requirement.

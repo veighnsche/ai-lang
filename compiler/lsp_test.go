@@ -717,6 +717,18 @@ func TestDiagnoseInvalidRelayUnexpected(t *testing.T) {
 	}
 }
 
+// A valid identity relay over a local call is exempt from execution
+// coverage by structural certificate: relayMathTwo's relay arm never
+// executes (fail raises before any call; pos unwinds through Ok), yet
+// the fixture must diagnose clean — same shape as the v44 skip-level
+// relay arm, which compiles without a dedicated row.
+func TestDiagnoseValidRelayExempt(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"math2.ail": relayMathTwo})
+	if diags := diagnose(dir, "math2.ail", relayMathTwo); len(diags) != 0 {
+		t.Fatalf("expected no diags for a certified relay, got %v", diags)
+	}
+}
+
 // Row 3 (D1): a shadowed arm is never certified, even relay-shaped.
 // The second copy is dead — structural evidence cannot substitute
 // for the execution the shadowing removed — so it stays under the
