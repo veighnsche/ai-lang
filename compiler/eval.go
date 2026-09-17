@@ -237,6 +237,11 @@ type Ctx struct {
 	Depth int
 	// match node -> test -> remaining outcome nodes (nil entry = "-")
 	Scripts map[*Node]map[string][]*Small
+	// Linked selects v68 linked-pure execution: foreign calls
+	// dispatch to real bodies across modules and given tables
+	// are never consulted. Set only by runLinkedPure; ordinary
+	// unit runs always execute with scripts.
+	Linked bool
 	// match node -> taken arm indexes, shared across a function's tests
 	// for branch coverage. Nil means untracked.
 	Cov map[*Node]map[int]bool
@@ -1217,6 +1222,20 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			// still scripted through given tables like ail calls.
 			if calleeUnknown(ctx.Prog, fname) {
 				return nil, &UnknownCallError{Owner: owner, Fname: fname}
+			}
+			if ctx.Linked {
+				// v68: linked-pure execution dispatches to the
+				// real body with module identity preserved
+				// (evLocalCall is file-agnostic; FnFile is
+				// never rewritten). Given tables are not
+				// consulted and there is no script fallback;
+				// admission (checkLinkedGraph) excluded
+				// externs, state, effects, and unresolved
+				// calls beforehand.
+				if callee, ok := ctx.Prog.Fns[fname]; ok {
+					return evLocalCall(callee, scrut, env, ctx, owner)
+				}
+				return nil, fmt.Errorf("%s: linked execution refused: %s resolves to no body", owner, fname)
 			}
 			if !ctx.Prog.Uses[fname] && ctx.Prog.Externs[fname] == nil {
 				return nil, fmt.Errorf("%s: %s not in uses", owner, fname)
