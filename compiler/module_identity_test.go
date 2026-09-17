@@ -164,7 +164,7 @@ func TestDuplicateIdentityIsAIL5007(t *testing.T) {
 	if err := os.WriteFile(f, []byte(identProvider), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	mods, texts, collected, err := parsePaths([]string{f, f})
+	_, _, collected, err := parsePaths([]string{f, f})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,8 +186,6 @@ func TestDuplicateIdentityIsAIL5007(t *testing.T) {
 			t.Fatalf("collision wrote an artifact: %s", e.Name())
 		}
 	}
-	_ = mods
-	_ = texts
 }
 
 func TestAssignStems(t *testing.T) {
