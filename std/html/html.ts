@@ -957,3 +957,6 @@ export function html__attribute__src(url: string): { $ail_kind: "ok"; attribute:
   }
   }
 }
+export function html__fragment__empty(): { $ail_kind: "ok"; safe: string } {
+  return { $ail_kind: "ok", safe: "" };
+}

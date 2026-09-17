@@ -46,6 +46,8 @@
   raw input: no `Html__Url` brand exists yet because no
   consumer could serialize one. New errors `html.invalid_url`,
   `html.disallowed_scheme`. See `docs/v32-url-attributes.md`.
+- `html__fragment__empty` seals `""` as the zero `Html__Safe`
+  fragment. See `docs/v33-empty-fragment.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html
@@ -55,4 +57,5 @@ Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
 `docs/v26-html-node.md`, `docs/v27-attribute-name.md`,
 `docs/v29-attribute-value.md`, `docs/v30-boolean-attribute.md`,
 `docs/v31-identifier-attribute.md`, `docs/v32-url-attributes.md`,
+`docs/v33-empty-fragment.md`,
 `docs/encoder-nul-policy.md`, brand scope: `docs/v15-brands.md`.
