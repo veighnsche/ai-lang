@@ -74,7 +74,10 @@ not event-handler, not style" an incomplete definition.
 
 ## Still scheduled (not silently dropped)
 
-v28 owns the attribute-value encoder and the fate of the specified
+Note: the v28 number went to parallel multi-scrutinee-match
+research, so this work shipped as v29 (`docs/v29-attribute-value.md`).
+
+v29 owns the attribute-value encoder and the fate of the specified
 `invalid_attribute_value`: with names arriving as brands and the
 value encoder total, the error is dropped with a v25-style
 justification unless a witnessable value-side reject is found. One

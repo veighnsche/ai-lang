@@ -1,10 +1,13 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
 export type Html__NameResult = { name: string };
+export type Html__ValueEscaped = { value: string };
+export type Html__NamedSpelling = { name: string; spelling: string };
+export type Html__AttributeResult = { attribute: string };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -123,4 +126,109 @@ export function html__attribute__name(value: string): HtmlResult {
     return { $ail_kind: "ok", name: "title" };
   }
   return { $ail_kind: "html.invalid_attribute_name", value: value };
+}
+export function html__attribute__value_from(orig: string, s: string, acc: string, n: bigint): HtmlResult {
+  if ((n <= 0n)) {
+    return { $ail_kind: "ok", value: acc };
+  }
+  else {
+    if (($ailStrAt(s, 0n) === 0n)) {
+      return { $ail_kind: "html.nul_byte", value: orig };
+    }
+    else {
+      if (($ailStrSlice(s, 0n, 1n) === "&")) {
+        const $ail_m6: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
+        switch ($ail_m6.$ail_kind) {
+        case "ok": {
+          const r = $ail_m6;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        case "html.nul_byte": {
+          const e = $ail_m6;
+          return { $ail_kind: "html.nul_byte", value: e.value };
+        }
+        }
+      }
+      else {
+        if (($ailStrSlice(s, 0n, 1n) === "<")) {
+          const $ail_m7: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
+          switch ($ail_m7.$ail_kind) {
+          case "ok": {
+            const r = $ail_m7;
+            return { $ail_kind: "ok", value: r.value };
+          }
+          case "html.nul_byte": {
+            const e = $ail_m7;
+            return { $ail_kind: "html.nul_byte", value: e.value };
+          }
+          }
+        }
+        else {
+          if (($ailStrSlice(s, 0n, 1n) === ">")) {
+            const $ail_m8: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
+            switch ($ail_m8.$ail_kind) {
+            case "ok": {
+              const r = $ail_m8;
+              return { $ail_kind: "ok", value: r.value };
+            }
+            case "html.nul_byte": {
+              const e = $ail_m8;
+              return { $ail_kind: "html.nul_byte", value: e.value };
+            }
+            }
+          }
+          else {
+            if (($ailStrSlice(s, 0n, 1n) === "'")) {
+              const $ail_m9: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
+              switch ($ail_m9.$ail_kind) {
+              case "ok": {
+                const r = $ail_m9;
+                return { $ail_kind: "ok", value: r.value };
+              }
+              case "html.nul_byte": {
+                const e = $ail_m9;
+                return { $ail_kind: "html.nul_byte", value: e.value };
+              }
+              }
+            }
+            else {
+              const $ail_m10: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
+              switch ($ail_m10.$ail_kind) {
+              case "ok": {
+                const r = $ail_m10;
+                return { $ail_kind: "ok", value: r.value };
+              }
+              case "html.nul_byte": {
+                const e = $ail_m10;
+                return { $ail_kind: "html.nul_byte", value: e.value };
+              }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+export function html__attribute__spelling(name: string): HtmlResult {
+  return { $ail_kind: "ok", name: name, spelling: "title" };
+}
+export function html__attribute__text(name: string, raw: string): HtmlResult {
+  const $ail_m11: HtmlResult = html__attribute__spelling(name);
+  switch ($ail_m11.$ail_kind) {
+  case "ok": {
+    const w = $ail_m11;
+    const $ail_m12: HtmlResult = html__attribute__value_from(raw, raw, "", (BigInt([...raw].length)));
+    switch ($ail_m12.$ail_kind) {
+    case "ok": {
+      const v = $ail_m12;
+      return { $ail_kind: "ok", attribute: (((w.spelling + "='") + v.value) + "'") };
+    }
+    case "html.nul_byte": {
+      const e = $ail_m12;
+      return { $ail_kind: "html.nul_byte", value: raw };
+    }
+    }
+  }
+  }
 }
