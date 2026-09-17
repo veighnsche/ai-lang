@@ -65,47 +65,61 @@ export function std__validate__exclusive_pair(left: boolean, right: boolean): Qu
   }
 }
 export function quota__consume(amount: bigint, quota: bigint): QuotaResult {
-  const _m1: { kind: "ok", value: bigint } = { kind: "ok", value: Quota__used };
-  switch (_m1.kind) {
-  case "ok":
-    const s = _m1;
-    const _m2: QuotaResult = std__validate__int_nonnegative(amount);
-    switch (_m2.kind) {
-    case "validation.negative_value":
+  const $ail_m1: { kind: "ok", value: bigint } = { kind: "ok", value: Quota__used };
+  switch ($ail_m1.kind) {
+  case "ok": {
+    const s = $ail_m1;
+    const $ail_m2: QuotaResult = std__validate__int_nonnegative(amount);
+    switch ($ail_m2.kind) {
+    case "validation.negative_value": {
+      const _ = $ail_m2;
       return { kind: "validation.negative_value", value: amount };
-    case "ok":
-      const _ = _m2;
-      const _m3: QuotaResult = std__validate__int_range((s.value + amount), 0n, quota);
-      switch (_m3.kind) {
-      case "validation.invalid_bounds":
+    }
+    case "ok": {
+      const _ = $ail_m2;
+      const $ail_m3: QuotaResult = std__validate__int_range((s.value + amount), 0n, quota);
+      switch ($ail_m3.kind) {
+      case "validation.invalid_bounds": {
+        const _ = $ail_m3;
         return { kind: "validation.invalid_bounds", lower: 0n, upper: quota };
-      case "validation.out_of_range":
+      }
+      case "validation.out_of_range": {
+        const _ = $ail_m3;
         return { kind: "validation.out_of_range", value: (s.value + amount), lower: 0n, upper: quota };
-      case "ok":
-        const checked = _m3;
+      }
+      case "ok": {
+        const checked = $ail_m3;
         Quota__used = checked.value;
-        const _m4: { kind: "ok" } = { kind: "ok" };
-        switch (_m4.kind) {
-        case "ok":
-          const _ = _m4;
+        const $ail_m4: { kind: "ok" } = { kind: "ok" };
+        switch ($ail_m4.kind) {
+        case "ok": {
+          const _ = $ail_m4;
           return { kind: "ok", used: checked.value, remaining: (quota - checked.value) };
         }
+        }
+      }
       }
     }
+    }
+  }
   }
 }
 export function quota__usage(quota: bigint): QuotaResult {
-  const _m5: { kind: "ok", value: bigint } = { kind: "ok", value: Quota__used };
-  switch (_m5.kind) {
-  case "ok":
-    const s = _m5;
-    const _m6: QuotaResult = std__validate__int_nonnegative(quota);
-    switch (_m6.kind) {
-    case "validation.negative_value":
+  const $ail_m5: { kind: "ok", value: bigint } = { kind: "ok", value: Quota__used };
+  switch ($ail_m5.kind) {
+  case "ok": {
+    const s = $ail_m5;
+    const $ail_m6: QuotaResult = std__validate__int_nonnegative(quota);
+    switch ($ail_m6.kind) {
+    case "validation.negative_value": {
+      const _ = $ail_m6;
       return { kind: "validation.negative_value", value: quota };
-    case "ok":
-      const _ = _m6;
+    }
+    case "ok": {
+      const _ = $ail_m6;
       return { kind: "ok", used: s.value, remaining: (quota - s.value) };
     }
+    }
+  }
   }
 }

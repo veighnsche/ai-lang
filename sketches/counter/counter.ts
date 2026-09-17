@@ -4,29 +4,33 @@ export type CounterResult = { kind: "ok"; total: bigint };
 export type Count__Tally = { total: bigint };
 let Count__total: bigint = 0n;
 export function count__bump(by: bigint): CounterResult {
-  const _m1: { kind: "ok", value: bigint } = { kind: "ok", value: Count__total };
-  switch (_m1.kind) {
-  case "ok":
-    const c = _m1;
+  const $ail_m1: { kind: "ok", value: bigint } = { kind: "ok", value: Count__total };
+  switch ($ail_m1.kind) {
+  case "ok": {
+    const c = $ail_m1;
     Count__total = (c.value + by);
-    const _m2: { kind: "ok" } = { kind: "ok" };
-    switch (_m2.kind) {
-    case "ok":
-      const _ = _m2;
+    const $ail_m2: { kind: "ok" } = { kind: "ok" };
+    switch ($ail_m2.kind) {
+    case "ok": {
+      const _ = $ail_m2;
       return { kind: "ok", total: (c.value + by) };
     }
+    }
+  }
   }
 }
 export function count__twice(by: bigint): CounterResult {
-  const _m3: CounterResult = count__bump(by);
-  switch (_m3.kind) {
-  case "ok":
-    const s = _m3;
-    const _m4: CounterResult = count__bump(by);
-    switch (_m4.kind) {
-    case "ok":
-      const t = _m4;
+  const $ail_m3: CounterResult = count__bump(by);
+  switch ($ail_m3.kind) {
+  case "ok": {
+    const s = $ail_m3;
+    const $ail_m4: CounterResult = count__bump(by);
+    switch ($ail_m4.kind) {
+    case "ok": {
+      const t = $ail_m4;
       return { kind: "ok", total: t.total };
     }
+    }
+  }
   }
 }

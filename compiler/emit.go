@@ -505,7 +505,10 @@ var divModHelper = []string{
 
 func (e *emitter) fresh() string {
 	e.tmp++
-	return fmt.Sprintf("_m%d", e.tmp)
+	// Unspellable in ail (identifiers match \w+, so $ never appears in
+	// source): generated temporaries can never collide with source
+	// bindings such as a parameter named _m1.
+	return fmt.Sprintf("$ail_m%d", e.tmp)
 }
 
 func (e *emitter) retLines(rhs *Node, env map[string]string) ([]string, error) {
@@ -550,29 +553,37 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 		*out = append(*out, fmt.Sprintf("switch (%s.kind) {", tmp))
 		for _, arm := range node.Arms {
 			pat := arm.Pat
+			// Every arm body is block-scoped: the same binder name in
+			// two arms (or a binder shadowing an outer one) must not
+			// collide, and success and error binders lower uniformly
+			// as one const bound to the matched union value.
 			switch {
 			case pat.Kind == "variantWild":
-				*out = append(*out, fmt.Sprintf("case \"%s\":", pat.Name))
+				*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
 				lines, err := e.retLines(arm.Rhs, nil)
 				if err != nil {
 					return err
 				}
 				*out = append(*out, indent(lines)...)
+				*out = append(*out, "}")
 			case pat.Kind == "variant" && pat.Name != "Ok":
-				*out = append(*out, fmt.Sprintf("case \"%s\":", pat.Name))
-				lines, err := e.retLines(arm.Rhs, nil)
-				if err != nil {
-					return err
-				}
-				*out = append(*out, indent(lines)...)
-			case pat.Kind == "variant" && pat.Name == "Ok":
-				*out = append(*out, `case "ok":`)
+				*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
 				*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
 				lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
 				if err != nil {
 					return err
 				}
 				*out = append(*out, indent(lines)...)
+				*out = append(*out, "}")
+			case pat.Kind == "variant" && pat.Name == "Ok":
+				*out = append(*out, `case "ok": {`)
+				*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+				lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+				if err != nil {
+					return err
+				}
+				*out = append(*out, indent(lines)...)
+				*out = append(*out, "}")
 			default:
 				return fmt.Errorf("call-match arm must be an error kind or Ok")
 			}
@@ -673,13 +684,14 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("store match arm must be Ok")
 		}
-		*out = append(*out, `case "ok":`)
+		*out = append(*out, `case "ok": {`)
 		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
 		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
 		if err != nil {
 			return err
 		}
 		*out = append(*out, indent(lines)...)
+		*out = append(*out, "}")
 	}
 	*out = append(*out, "}")
 	return nil
