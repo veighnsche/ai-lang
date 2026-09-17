@@ -88,6 +88,7 @@ const (
 	CodeBytesExportAuthority = "AIL6010"
 	CodeBytesExportShape     = "AIL6011"
 	CodePrimitiveShadow      = "AIL6012"
+	CodeRevisionIdentity     = "AIL6013"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -110,5 +111,5 @@ var allCodes = []string{
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
-	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodePrimitiveShadow,
+	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodePrimitiveShadow, CodeRevisionIdentity,
 }

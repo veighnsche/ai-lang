@@ -40,6 +40,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `a match on a failable call without an on <kind> arm.`,
 		fix:     "Add the missing arm. The diagnostic names the kind (expected).",
 	},
+	CodeRevisionIdentity: {
+		rule:    "One revision owns one reviewed interface: a changed fingerprint at the same revision is drift, removals and additions are explicit, and only an accepted baseline counts.",
+		violate: `adding a case to a variant without bumping its revision.`,
+		fix:     "Restore the accepted interface, or publish a reviewed new revision and explicitly update affected pins. Never regenerate the baseline to silence the finding: generation is not acceptance.",
+	},
 }
 
 // explainFamily describes each code family for codes

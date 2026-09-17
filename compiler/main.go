@@ -41,6 +41,9 @@ func run(argv []string) int {
 	if len(argv) > 0 && argv[0] == "explain" {
 		return runExplain(os.Stdout, argv[1:])
 	}
+	if len(argv) > 0 && argv[0] == "baseline" {
+		return runBaseline(argv[1:])
+	}
 	if len(argv) > 0 && argv[0] == "normalize" {
 		if err := runNormalize(os.Stdout, argv[1:]); err != nil {
 			fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
@@ -48,7 +51,7 @@ func run(argv []string) int {
 		}
 		return 0
 	}
-	var out, format string
+	var out, format, baseline string
 	var args []string
 	for i := 0; i < len(argv); {
 		if argv[i] == "--out" && i+1 < len(argv) {
@@ -57,23 +60,70 @@ func run(argv []string) int {
 		} else if argv[i] == "--format" && i+1 < len(argv) {
 			format = argv[i+1]
 			i += 2
+		} else if argv[i] == "--baseline" && i+1 < len(argv) {
+			baseline = argv[i+1]
+			i += 2
 		} else {
 			args = append(args, argv[i])
 			i++
 		}
 	}
 	if out == "" || len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: ailc [--format json] --out OUT_DIR file.ail [...]")
+		fmt.Fprintln(os.Stderr, "usage: ailc [--format json] [--baseline BASE.json] --out OUT_DIR file.ail [...]")
 		return 2
 	}
 	if format != "" && format != "json" {
 		fmt.Fprintf(os.Stderr, "ailc: unknown --format %q (want json)\n", format)
 		return 2
 	}
-	if err := compileEx(out, args, format == "json"); err != nil {
+	if err := compileAll(out, args, format == "json", baseline); err != nil {
 		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
 		return 1
 	}
+	return 0
+}
+
+// runBaseline generates a candidate (unaccepted) revision baseline
+// from clean sources: `ailc baseline --out base.json [--origin ID]
+// files...`. Generation refuses broken programs; acceptance happens
+// by committing an accepted file, never by regenerating.
+func runBaseline(argv []string) int {
+	var out, origin string
+	var args []string
+	for i := 0; i < len(argv); {
+		if argv[i] == "--out" && i+1 < len(argv) {
+			out = argv[i+1]
+			i += 2
+		} else if argv[i] == "--origin" && i+1 < len(argv) {
+			origin = argv[i+1]
+			i += 2
+		} else {
+			args = append(args, argv[i])
+			i++
+		}
+	}
+	if out == "" || len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: ailc baseline --out BASE.json [--origin ID] file.ail [...]")
+		return 2
+	}
+	mods, texts, collected, err := parsePaths(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		return 1
+	}
+	prog, collected := checkProgram(mods, texts, collected, nil)
+	if err := firstError(collected); err != nil {
+		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		return 1
+	}
+	if origin == "" {
+		origin = "candidate"
+	}
+	if err := WriteBaseline(out, prog, origin); err != nil {
+		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		return 1
+	}
+	fmt.Printf("ailc: candidate baseline for %d declarations written to %s (unaccepted)\n", len(FingerprintProgram(prog)), out)
 	return 0
 }
 
@@ -87,6 +137,18 @@ func compile(out string, paths []string) error {
 // returning the first error; json mode prints every diagnostic as one
 // JSON object per line on stdout and stays silent on success.
 func compileEx(out string, paths []string, jsonOut bool) error {
+	return compileAll(out, paths, jsonOut, "")
+}
+
+// compileBaselined runs the full suite with revision-identity
+// enforcement (a77): after the ordinary gate passes, the accepted
+// baseline is compared and drift, removals, and additions fail the
+// build. An empty baseline path selects no enforcement.
+func compileBaselined(out string, paths []string, jsonOut bool, baselinePath string) error {
+	return compileAll(out, paths, jsonOut, baselinePath)
+}
+
+func compileAll(out string, paths []string, jsonOut bool, baselinePath string) error {
 	mods, texts, collected, err := parsePaths(paths)
 	if err != nil {
 		return err
@@ -100,6 +162,21 @@ func compileEx(out string, paths []string, jsonOut bool) error {
 	prog, collected := checkProgram(mods, texts, collected, pass)
 	if err := firstError(collected); err != nil {
 		return failDiags(collected, jsonOut)
+	}
+	if baselinePath != "" {
+		base, err := LoadBaseline(baselinePath)
+		if err != nil {
+			return fmt.Errorf("ailc: cannot load baseline: %v", err)
+		}
+		if idDiags := CheckRevisionIdentity(prog, texts, base); len(idDiags) > 0 {
+			for _, d := range idDiags {
+				if d.File == "" {
+					d.File = mods[0].File
+				}
+			}
+			collected = append(collected, idDiags...)
+			return failDiags(collected, jsonOut)
+		}
 	}
 	for _, m := range mods {
 		for _, d := range m.Decls {
