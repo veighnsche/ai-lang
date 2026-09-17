@@ -1,6 +1,6 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -17,6 +17,8 @@ export type Html__Authority = { value: string; tail: string; n: bigint };
 export type Html__UrlTail = { value: string };
 export type Html__CheckedUrl = { value: string; len: bigint };
 export type Html__Children = { items: string[] };
+export type Html__NamedAttribute = { name: string; attribute: string };
+export type Html__NamedAttributeResult = { item: Html__NamedAttribute };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -1029,6 +1031,111 @@ export function html__fragment__join(children: Html__Children): { $ail_kind: "ok
       throw new Error("unreachable");
     }
     }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__named_text(name: string, raw: string): { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__text(name, raw);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const a = $ail_m1;
+    return { $ail_kind: "ok", item: { name: name, attribute: a.attribute } };
+  }
+  case "html.nul_byte": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.nul_byte", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__named_boolean(name: string, present: boolean): { $ail_kind: "ok"; item: Html__NamedAttribute } {
+  const $ail_m1: { $ail_kind: "ok"; attribute: string } = html__attribute__boolean(name, present);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const a = $ail_m1;
+    const $ail_m2: { $ail_kind: "ok"; name: string; spelling: string } = html__attribute__boolean_spelling(name);
+    switch ($ail_m2.$ail_kind) {
+    case "ok": {
+      const w = $ail_m2;
+      return { $ail_kind: "ok", item: { name: w.spelling, attribute: a.attribute } };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__named_id(value: string): { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__id(value);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const a = $ail_m1;
+    return { $ail_kind: "ok", item: { name: "id", attribute: a.attribute } };
+  }
+  case "html.invalid_identifier": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.invalid_identifier", value: e.value };
+  }
+  case "html.nul_byte": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.nul_byte", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__named_href(url: string): { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__href(url);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const a = $ail_m1;
+    return { $ail_kind: "ok", item: { name: "href", attribute: a.attribute } };
+  }
+  case "html.invalid_url": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.invalid_url", value: e.value };
+  }
+  case "html.disallowed_scheme": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.disallowed_scheme", value: e.value };
+  }
+  case "html.nul_byte": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.nul_byte", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__named_src(url: string): { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__src(url);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const a = $ail_m1;
+    return { $ail_kind: "ok", item: { name: "src", attribute: a.attribute } };
+  }
+  case "html.invalid_url": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.invalid_url", value: e.value };
+  }
+  case "html.disallowed_scheme": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.disallowed_scheme", value: e.value };
+  }
+  case "html.nul_byte": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.nul_byte", value: e.value };
   }
   default: {
     throw new Error("unreachable");

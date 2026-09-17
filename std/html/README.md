@@ -54,6 +54,10 @@
   assembly, seeded from `fragment__empty`: composition has the
   empty fragment as identity. Order, empties, and spacing
   preserved exactly. See `docs/v42-fragment-join.md`.
+- `Html__NamedAttribute` pairs a minted attribute with its name
+  by construction; `named_text`/`named_boolean`/`named_id`/
+  `named_href`/`named_src` relay the five makers (errors
+  forwarded unchanged). See `docs/v43-named-attributes.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html

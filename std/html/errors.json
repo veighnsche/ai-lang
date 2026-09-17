@@ -6,6 +6,8 @@
     ],
     "raised_by": [
       "html.html__attribute__href",
+      "html.html__attribute__named_href",
+      "html.html__attribute__named_src",
       "html.html__attribute__src",
       "html.html__url__admit",
       "html.html__url__check"
@@ -13,6 +15,14 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__href",
+        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_href",
+        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_src",
         "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
       },
       {
@@ -26,6 +36,7 @@
     ],
     "hit_by_tests": [
       "html.html__attribute__href/href_scheme",
+      "html.html__attribute__named_src/named_src_scheme",
       "html.html__attribute__src/src_scheme",
       "html.html__url__admit/admit_token_short",
       "html.html__url__check/check_http",
@@ -82,7 +93,8 @@
     ],
     "raised_by": [
       "html.html__attribute__id",
-      "html.html__attribute__id_check"
+      "html.html__attribute__id_check",
+      "html.html__attribute__named_id"
     ],
     "handled_by": [
       {
@@ -92,6 +104,10 @@
       {
         "fn": "html.html__attribute__id_check",
         "arm": "on html.invalid_identifier e =\u003e html.invalid_identifier(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_id",
+        "arm": "on html.invalid_identifier e =\u003e html.invalid_identifier(value = e.value)"
       }
     ],
     "hit_by_tests": [
@@ -99,7 +115,8 @@
       "html.html__attribute__id/id_space",
       "html.html__attribute__id_check/idcheck_ff",
       "html.html__attribute__id_check/idcheck_space",
-      "html.html__attribute__id_check/idcheck_tab"
+      "html.html__attribute__id_check/idcheck_tab",
+      "html.html__attribute__named_id/named_id_empty"
     ]
   },
   {
@@ -109,6 +126,8 @@
     ],
     "raised_by": [
       "html.html__attribute__href",
+      "html.html__attribute__named_href",
+      "html.html__attribute__named_src",
       "html.html__attribute__src",
       "html.html__url__absolute",
       "html.html__url__admit",
@@ -119,6 +138,14 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__href",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_href",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_src",
         "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
       },
       {
@@ -148,6 +175,7 @@
     ],
     "hit_by_tests": [
       "html.html__attribute__href/href_relative",
+      "html.html__attribute__named_href/named_href_relative",
       "html.html__attribute__src/src_relative",
       "html.html__url__absolute/absolute_empty_host",
       "html.html__url__absolute/absolute_ipv6",
@@ -197,6 +225,10 @@
     "raised_by": [
       "html.html__attribute__href",
       "html.html__attribute__id",
+      "html.html__attribute__named_href",
+      "html.html__attribute__named_id",
+      "html.html__attribute__named_src",
+      "html.html__attribute__named_text",
       "html.html__attribute__src",
       "html.html__attribute__text",
       "html.html__attribute__value_from",
@@ -211,6 +243,22 @@
       {
         "fn": "html.html__attribute__id",
         "arm": "on html.nul_byte e =\u003e html.nul_byte(value = value)"
+      },
+      {
+        "fn": "html.html__attribute__named_href",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_id",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_src",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__named_text",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
       },
       {
         "fn": "html.html__attribute__src",
@@ -236,6 +284,10 @@
     "hit_by_tests": [
       "html.html__attribute__href/href_nul",
       "html.html__attribute__id/id_nul",
+      "html.html__attribute__named_href/named_href_nul",
+      "html.html__attribute__named_id/named_id_nul",
+      "html.html__attribute__named_src/named_src_nul",
+      "html.html__attribute__named_text/named_nul_byte",
       "html.html__attribute__src/src_nul",
       "html.html__attribute__text/attr_title_nul",
       "html.html__attribute__value_from/avalue_from_nul_amp",
