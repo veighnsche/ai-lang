@@ -861,11 +861,40 @@ func TestDiagnoseArithMixed(t *testing.T) {
 }
 
 func TestDiagnoseArithStr(t *testing.T) {
+	// v16: + concatenates strings, so the refused string operation
+	// is now -. The contract under test is unchanged: strings do
+	// no arithmetic besides explicit construction.
 	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(a = 10, b = 3, c = 2) => Ok(n = 5)\n=\n  Ok(n = a - b - c)",
-		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(a = \"x\", b = \"y\", c = 2) => Ok(n = 5)\n=\n  Ok(n = a + b)", 1)
+		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(a = \"x\", b = \"y\", c = 2) => Ok(n = 5)\n=\n  Ok(n = a - b)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
 	diags := diagnose(dir, "m.ail", bad)
-	checkSpan(t, bad, diags, "cannot add str with str", "+", expectLine(t, bad, "Ok(n = a + b)"))
+	checkSpan(t, bad, diags, "cannot subtract str with str", "-", expectLine(t, bad, "Ok(n = a - b)"))
+}
+
+const typeConcat = `mod m
+  provides [m__cat, M__Cat]
+  uses []
+  emits []
+
+type M__Cat rev 1 (
+  s: str
+)
+
+fn m__cat(left: str, right: str) -> M__Cat rev 1
+  emits []
+  tests
+    basic(left = "x", right = "y") => Ok(s = "xy")
+    empty(left = "", right = "y") => Ok(s = "y")
+=
+  Ok(s = left + right)
+`
+
+func TestDiagnoseStrConcatClean(t *testing.T) {
+	// v16: str + str is explicit construction, not a mismatch.
+	dir := writeLSPDir(t, map[string]string{"m.ail": typeConcat})
+	if diags := diagnose(dir, "m.ail", typeConcat); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
 }
 
 func TestDiagnoseDivisionDeferred(t *testing.T) {

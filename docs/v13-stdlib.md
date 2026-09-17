@@ -103,9 +103,10 @@ Pinned by `TestMultiShapeEmit` and
   digit-extraction kernel that does not exist without
   division. `dec_to_int_exact`, `int_to_str`, `str_to_int`,
   `dec_to_str`, `str_to_dec`: need the Numeric/Text layers.
-- Text operations: strings are opaque today (equality and order
-  only, no concat, length, or slicing), so every `std__str__*`
-  entry waits on specified indexing and Unicode semantics.
+- Text operations: concatenation landed as `docs/v16-text.md`
+  (`+` on strings, `std__str__concat` blessed); measurement and
+  indexing wait on the scalar-access surface decision recorded
+  there. Issue 3 stays open.
 - Constructor-controlled brands: landed as `docs/v15-brands.md`.
   Bodies seal only their own module's brands (AIL6004); tests and
   scripts may name any declared brand. `Html__Safe` and its sibling

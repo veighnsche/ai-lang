@@ -55,6 +55,14 @@ func decCmp(op string, c int) bool {
 // terminating decimals always terminate, which is why division waits
 // for its own spec).
 func evArith(op string, lv, rv *Value) (*Value, error) {
+	// v16: + concatenates strings; every other string computation
+	// stays a loud dynamic error past the static gate, as before.
+	if lv.Kind == "str" && rv.Kind == "str" {
+		if op != "+" {
+			return nil, fmt.Errorf("bad %s operands", op)
+		}
+		return &Value{Kind: "str", S: lv.S + rv.S}, nil
+	}
 	if lv.Kind != rv.Kind || (lv.Kind != "int" && lv.Kind != "dec") {
 		return nil, fmt.Errorf("bad %s operands", op)
 	}
