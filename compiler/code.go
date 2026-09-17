@@ -26,6 +26,7 @@ const (
 	CodeTypeNaming         = "AIL2002"
 	CodeUsesPin            = "AIL2101"
 	CodeUsesResolve        = "AIL2102"
+	CodeUsesRev            = "AIL2103"
 	CodeDupFn              = "AIL2201"
 	CodeDupSibling         = "AIL2202"
 	CodeProvidesMiss       = "AIL2301"
@@ -81,7 +82,7 @@ const (
 var allCodes = []string{
 	CodeParse,
 	CodeFnNaming, CodeTypeNaming,
-	CodeUsesPin, CodeUsesResolve,
+	CodeUsesPin, CodeUsesResolve, CodeUsesRev,
 	CodeDupFn, CodeDupSibling,
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,

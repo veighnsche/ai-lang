@@ -13,8 +13,55 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
 	"strings"
 )
+
+// parsePinRev splits a uses entry into its requested revision:
+// name@N yields N. ok=false when the entry carries no trailing @N,
+// in which case the existing pin/resolve diagnostics own the entry.
+// An all-digit pin outside int range yields -1: declared revs are
+// int-parsed themselves, so no declaration can equal it and the pin
+// still fails instead of resolving by bare name.
+func parsePinRev(u string) (rev int, ok bool) {
+	i := strings.LastIndex(u, "@")
+	if i < 0 {
+		return 0, false
+	}
+	if n, err := strconv.Atoi(u[i+1:]); err == nil {
+		return n, true
+	}
+	if pinRe.MatchString(u) {
+		return -1, true
+	}
+	return 0, false
+}
+
+// declaredRev reports the revision the owning module declares for a
+// provided function, extern, record, or brand.
+func declaredRev(owner *Module, base string) (int, bool) {
+	for _, d := range owner.Decls {
+		switch d := d.(type) {
+		case *FnDecl:
+			if d.Name == base {
+				return d.Rev, true
+			}
+		case *ExternDecl:
+			if d.Name == base {
+				return d.Rev, true
+			}
+		case *TypeDecl:
+			if d.Name == base {
+				return d.Rev, true
+			}
+		case *BrandDecl:
+			if d.Name == base {
+				return d.Rev, true
+			}
+		}
+	}
+	return 0, false
+}
 
 // buildWorld is buildProgram for the editor: best-effort Program plus one
 // diagnostic per broken world item, each on its own line. Double
@@ -126,6 +173,19 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				emit(m, spanDiag(spanText, line, "error",
 					fmt.Sprintf("%s: uses %s resolves nowhere", m.File, u), base, CodeUsesResolve))
 				continue
+			}
+			// Exact revision resolution (R4): the pin names the
+			// revision the provider actually declares. A bare-name
+			// hit is not enough — @999, @0, or a stale @1 against a
+			// rev-2 provider all fail here, before execution or
+			// emission. No historical storage: unavailable revisions
+			// fail explicitly.
+			if want, ok := parsePinRev(u); ok {
+				if got, found := declaredRev(owner, base); found && got != want {
+					emit(m, spanDiag(spanText, line, "error",
+						fmt.Sprintf("%s: uses %s pins rev %d, but %s declares rev %d", m.File, u, want, base, got), u, CodeUsesRev))
+					continue
+				}
 			}
 			prog.Uses[base] = true
 		}
