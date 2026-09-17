@@ -30,7 +30,8 @@
   closed admitted domain, not extracted from the brand. See
   `docs/v29-attribute-value.md`.
 - `html__attribute__boolean_name` gates
-  `Html__BooleanAttributeName` (currently `disabled` only);
+  `Html__BooleanAttributeName` (currently `disabled`,
+  `readonly`, `required`, `checked`);
   `html__attribute__boolean` serializes presence as the spelling
   and absence as the empty contribution. Syntactic guarantee
   only — never inertness, never element applicability. See
@@ -57,5 +58,5 @@ Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
 `docs/v26-html-node.md`, `docs/v27-attribute-name.md`,
 `docs/v29-attribute-value.md`, `docs/v30-boolean-attribute.md`,
 `docs/v31-identifier-attribute.md`, `docs/v32-url-attributes.md`,
-`docs/v33-empty-fragment.md`,
+`docs/v33-empty-fragment.md`, `docs/v34-boolean-names.md`,
 `docs/encoder-nul-policy.md`, brand scope: `docs/v15-brands.md`.

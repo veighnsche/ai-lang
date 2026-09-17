@@ -282,10 +282,34 @@ export function html__attribute__boolean_name(value: string): { $ail_kind: "ok";
   if (value === "disabled") {
     return { $ail_kind: "ok", name: "disabled" };
   }
+  else if (value === "readonly") {
+    return { $ail_kind: "ok", name: "readonly" };
+  }
+  else if (value === "required") {
+    return { $ail_kind: "ok", name: "required" };
+  }
+  else if (value === "checked") {
+    return { $ail_kind: "ok", name: "checked" };
+  }
   return { $ail_kind: "html.invalid_attribute_name", value: value };
 }
 export function html__attribute__boolean_spelling(name: string): { $ail_kind: "ok"; name: string; spelling: string } {
-  return { $ail_kind: "ok", name: name, spelling: "disabled" };
+  if ((name === "disabled")) {
+    return { $ail_kind: "ok", name: name, spelling: "disabled" };
+  }
+  else {
+    if ((name === "readonly")) {
+      return { $ail_kind: "ok", name: name, spelling: "readonly" };
+    }
+    else {
+      if ((name === "required")) {
+        return { $ail_kind: "ok", name: name, spelling: "required" };
+      }
+      else {
+        return { $ail_kind: "ok", name: name, spelling: "checked" };
+      }
+    }
+  }
 }
 export function html__attribute__boolean(name: string, present: boolean): { $ail_kind: "ok"; attribute: string } {
   const $ail_m1: { $ail_kind: "ok"; name: string; spelling: string } = html__attribute__boolean_spelling(name);
