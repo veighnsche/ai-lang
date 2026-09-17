@@ -1,6 +1,6 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string } | { $ail_kind: "html.invalid_class_token"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -21,6 +21,8 @@ export type Html__NamedAttribute = { name: string; attribute: string };
 export type Html__NamedAttributeResult = { item: Html__NamedAttribute };
 export type Html__AttributesResult = { attributes: string };
 export type Html__ContainsResult = { value: boolean };
+export type Html__ClassesChecked = { value: string };
+export type Html__ClassesJoined = { value: string };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -1269,6 +1271,149 @@ export function html__attributes__make(items: Html__NamedAttribute[]): { $ail_ki
   case "ok": {
     const r = $ail_m1;
     return { $ail_kind: "ok", attributes: r.attributes };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attribute__classes_check(orig: string, s: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } {
+  if ((n <= 0n)) {
+    return { $ail_kind: "ok", value: orig };
+  }
+  else {
+    const $ail_m1: { $ail_kind: "ok"; ws: boolean } = html__attribute__id_ws($ailStrAt(s, 0n));
+    switch ($ail_m1.$ail_kind) {
+    case "ok": {
+      const c = $ail_m1;
+      if (c.ws) {
+        return { $ail_kind: "html.invalid_class_token", value: orig };
+      }
+      else {
+        const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } = html__attribute__classes_check(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n));
+        switch ($ail_m2.$ail_kind) {
+        case "ok": {
+          const r = $ail_m2;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        case "html.invalid_class_token": {
+          const e = $ail_m2;
+          return { $ail_kind: "html.invalid_class_token", value: e.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}
+export function html__attribute__classes_from(tokens: string[], position: bigint, fuel: bigint, acc: string): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", value: acc };
+  }
+  else {
+    if ((position < (BigInt([...tokens].length)))) {
+      if (($ailSeqAt(tokens, position) === "")) {
+        return { $ail_kind: "html.invalid_class_token", value: $ailSeqAt(tokens, position) };
+      }
+      else {
+        const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } = html__attribute__classes_check($ailSeqAt(tokens, position), $ailSeqAt(tokens, position), (BigInt([...$ailSeqAt(tokens, position)].length)));
+        switch ($ail_m1.$ail_kind) {
+        case "html.invalid_class_token": {
+          const e = $ail_m1;
+          return { $ail_kind: "html.invalid_class_token", value: e.value };
+        }
+        case "ok": {
+          const v = $ail_m1;
+          const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from($ailSeqAt(tokens, position), v.value, "", (BigInt([...$ailSeqAt(tokens, position)].length)));
+          switch ($ail_m2.$ail_kind) {
+          case "html.nul_byte": {
+            const e2 = $ail_m2;
+            return { $ail_kind: "html.nul_byte", value: e2.value };
+          }
+          case "ok": {
+            const w = $ail_m2;
+            if ((position === 0n)) {
+              const $ail_m3: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__classes_from(tokens, (position + 1n), (fuel - 1n), (acc + w.value));
+              switch ($ail_m3.$ail_kind) {
+              case "html.invalid_class_token": {
+                const e3 = $ail_m3;
+                return { $ail_kind: "html.invalid_class_token", value: e3.value };
+              }
+              case "html.nul_byte": {
+                const e4 = $ail_m3;
+                return { $ail_kind: "html.nul_byte", value: e4.value };
+              }
+              case "ok": {
+                const r = $ail_m3;
+                return { $ail_kind: "ok", value: r.value };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else {
+              const $ail_m4: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__classes_from(tokens, (position + 1n), (fuel - 1n), ((acc + " ") + w.value));
+              switch ($ail_m4.$ail_kind) {
+              case "html.invalid_class_token": {
+                const e3 = $ail_m4;
+                return { $ail_kind: "html.invalid_class_token", value: e3.value };
+              }
+              case "html.nul_byte": {
+                const e4 = $ail_m4;
+                return { $ail_kind: "html.nul_byte", value: e4.value };
+              }
+              case "ok": {
+                const r = $ail_m4;
+                return { $ail_kind: "ok", value: r.value };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $ail_kind: "ok", value: acc };
+    }
+  }
+}
+export function html__attribute__classes(tokens: string[]): { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__classes_from(tokens, 0n, ((BigInt([...tokens].length)) + 1n), "");
+  switch ($ail_m1.$ail_kind) {
+  case "html.invalid_class_token": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.invalid_class_token", value: e.value };
+  }
+  case "html.nul_byte": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.nul_byte", value: e.value };
+  }
+  case "ok": {
+    const j = $ail_m1;
+    if ((j.value === "")) {
+      return { $ail_kind: "ok", attribute: "" };
+    }
+    else {
+      return { $ail_kind: "ok", attribute: (("class='" + j.value) + "'") };
+    }
   }
   default: {
     throw new Error("unreachable");

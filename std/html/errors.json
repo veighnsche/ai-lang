@@ -114,6 +114,44 @@
     ]
   },
   {
+    "kind": "html.invalid_class_token",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "html.html__attribute__classes",
+      "html.html__attribute__classes_check",
+      "html.html__attribute__classes_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "html.html__attribute__classes",
+        "arm": "on html.invalid_class_token e =\u003e html.invalid_class_token(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__classes_check",
+        "arm": "on html.invalid_class_token e =\u003e html.invalid_class_token(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__classes_from",
+        "arm": "on html.invalid_class_token e =\u003e html.invalid_class_token(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__classes_from",
+        "arm": "on html.invalid_class_token e3 =\u003e html.invalid_class_token(value = e3.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "html.html__attribute__classes/bad",
+      "html.html__attribute__classes/empty_tok",
+      "html.html__attribute__classes_check/classcheck_space",
+      "html.html__attribute__classes_check/classcheck_tab",
+      "html.html__attribute__classes_from/empty_reject",
+      "html.html__attribute__classes_from/tab_reject",
+      "html.html__attribute__classes_from/ws_reject"
+    ]
+  },
+  {
     "kind": "html.invalid_identifier",
     "fields": [
       "value"
@@ -250,6 +288,8 @@
       "value"
     ],
     "raised_by": [
+      "html.html__attribute__classes",
+      "html.html__attribute__classes_from",
       "html.html__attribute__href",
       "html.html__attribute__id",
       "html.html__attribute__named_href",
@@ -263,6 +303,18 @@
       "html.html__text__escape_from"
     ],
     "handled_by": [
+      {
+        "fn": "html.html__attribute__classes",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__classes_from",
+        "arm": "on html.nul_byte e2 =\u003e html.nul_byte(value = e2.value)"
+      },
+      {
+        "fn": "html.html__attribute__classes_from",
+        "arm": "on html.nul_byte e4 =\u003e html.nul_byte(value = e4.value)"
+      },
       {
         "fn": "html.html__attribute__href",
         "arm": "on html.nul_byte e =\u003e html.nul_byte(value = u.value)"
@@ -309,6 +361,8 @@
       }
     ],
     "hit_by_tests": [
+      "html.html__attribute__classes/nul",
+      "html.html__attribute__classes_from/nul_token",
       "html.html__attribute__href/href_nul",
       "html.html__attribute__id/id_nul",
       "html.html__attribute__named_href/named_href_nul",
