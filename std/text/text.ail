@@ -11,12 +11,12 @@
 // scalars (as s[i] yields) and pins all four arms directly.
 // Grammars: find locates the empty pattern at 0 (indexOf rule);
 // replace rejects it (text.empty_pattern); conversions live in
-// scalars.ail beside their kernels; split/join wait on Seq,
-// graphemes/casefold/normalize on pinned data, hex/base64/utf8 on
-// Bytes (see #42).
+// scalars.ail beside their kernels; join rides Seq (v40), split
+// is next, graphemes/casefold/normalize wait on pinned data,
+// hex/base64/utf8 on Bytes (see #42).
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, Str__Value, Bool__Value, Int__Value]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, Str__Value, Bool__Value, Int__Value]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -323,4 +323,37 @@ fn std__str__lower_ascii(value: str) -> Str__Value rev 1
     lower_empty(value = "") => Ok(value = "")
 =
   match call std__str__lower_ascii_from(value, "", #value)
+    on Ok r => Ok(value = r.value)
+
+fn std__str__join_from(values: Seq<str>, separator: str, position: int, fuel: int, acc: str) -> Str__Value rev 1
+  decreases fuel
+  emits []
+  tests
+    zero_budget(values = Seq<str>["x"], separator = "/", position = 0, fuel = 0, acc = "kept") => Ok(value = "kept")
+    empty(values = Seq<str>[], separator = "/", position = 0, fuel = 1, acc = "") => Ok(value = "")
+    singleton_empty(values = Seq<str>[""], separator = "/", position = 0, fuel = 2, acc = "") => Ok(value = "")
+    two_empties(values = Seq<str>["", ""], separator = "/", position = 0, fuel = 3, acc = "") => Ok(value = "/")
+    middle_empty(values = Seq<str>["b", "", "a"], separator = "/", position = 0, fuel = 4, acc = "") => Ok(value = "b//a")
+    empty_separator(values = Seq<str>["a", "", "b"], separator = "", position = 0, fuel = 4, acc = "") => Ok(value = "ab")
+=
+  match fuel <= 0
+    true => Ok(value = acc)
+    false => match position < #values
+      true => match position == 0
+        true => match call std__str__join_from(values = values, separator = separator, position = position + 1, fuel = fuel - 1, acc = acc + values[position])
+          on Ok r => Ok(value = r.value)
+        false => match call std__str__join_from(values = values, separator = separator, position = position + 1, fuel = fuel - 1, acc = acc + separator + values[position])
+          on Ok r => Ok(value = r.value)
+      false => Ok(value = acc)
+
+fn std__str__join(values: Seq<str>, separator: str) -> Str__Value rev 1
+  emits []
+  tests
+    empty(values = Seq<str>[], separator = "/") => Ok(value = "")
+    singleton_empty(values = Seq<str>[""], separator = "/") => Ok(value = "")
+    two_empties(values = Seq<str>["", ""], separator = "/") => Ok(value = "/")
+    middle_empty(values = Seq<str>["b", "", "a"], separator = "/") => Ok(value = "b//a")
+    empty_separator(values = Seq<str>["a", "", "b"], separator = "") => Ok(value = "ab")
+=
+  match call std__str__join_from(values = values, separator = separator, position = 0, fuel = #values + 1, acc = "")
     on Ok r => Ok(value = r.value)

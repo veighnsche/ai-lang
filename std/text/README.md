@@ -10,8 +10,10 @@
   (`_from` workers over alphabet literals via same-file `find`).
   Concat preserves every scalar; safety lives in context
   encoders, never here. `find` locates the empty pattern at 0;
-  `replace` rejects it. Split/join wait on Seq, graphemes/
-  casefold/normalize on pinned data, hex/base64/utf8 on Bytes.
+  `replace` rejects it. `join`/`join_from` walk `Seq<str>`
+  positionally (first-element test is `position == 0`, never
+  `acc == ""`). Split is next; graphemes/casefold/normalize wait
+  on pinned data, hex/base64/utf8 on Bytes.
 - `text.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
   std/text std/text/text.ail`; verify: `go test ./...`.

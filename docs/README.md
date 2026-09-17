@@ -29,6 +29,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v37-seq-length.md` | Shipped (S2) | `#` counts sequence elements; `std__seq__length` realized by `#`, no second spelling |
 | `v38-seq-access.md` | Shipped (S3) | `xs[i]` over `Seq<T>` yields `T`; bounded traversal under existing `decreases`; `std/seq` deferred |
 | `v39-seq-append.md` | Shipped (S4) | `Seq<T> + T` copy-on-append; concat refused; compiler complete, customers next |
+| `v40-str-join.md` | Shipped (customer 1) | `std__str__join` preserves order; positional first-element test; split next |
 
 ## Reading order for a reviewer
 

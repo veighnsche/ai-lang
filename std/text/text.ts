@@ -35,6 +35,13 @@ function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   if (lo > hi || hi > cps.length) throw new Error("str slice out of range");
   return cps.slice(lo, hi).join("");
 }
+// Sequence indexing (v38 S3): bounds throw, matching Go.
+function $ailSeqAt<T>(a: T[], i: bigint): T {
+  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("seq index out of range");
+  const k = Number(i);
+  if (k >= a.length) throw new Error("seq index out of range");
+  return a[k];
+}
 export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
   return { $ail_kind: "ok", value: (left + right) };
 }
@@ -422,6 +429,54 @@ export function std__str__lower_ascii_from(value: string, acc: string, n: bigint
 }
 export function std__str__lower_ascii(value: string): { $ail_kind: "ok"; value: string } {
   const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__lower_ascii_from(value, "", (BigInt([...value].length)));
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__str__join_from(values: string[], separator: string, position: bigint, fuel: bigint, acc: string): { $ail_kind: "ok"; value: string } {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", value: acc };
+  }
+  else {
+    if ((position < (BigInt([...values].length)))) {
+      if ((position === 0n)) {
+        const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__join_from(values, separator, (position + 1n), (fuel - 1n), (acc + $ailSeqAt(values, position)));
+        switch ($ail_m1.$ail_kind) {
+        case "ok": {
+          const r = $ail_m1;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else {
+        const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__join_from(values, separator, (position + 1n), (fuel - 1n), ((acc + separator) + $ailSeqAt(values, position)));
+        switch ($ail_m2.$ail_kind) {
+        case "ok": {
+          const r = $ail_m2;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $ail_kind: "ok", value: acc };
+    }
+  }
+}
+export function std__str__join(values: string[], separator: string): { $ail_kind: "ok"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__join_from(values, separator, 0n, ((BigInt([...values].length)) + 1n), "");
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const r = $ail_m1;
