@@ -841,7 +841,7 @@ func TestDiagnoseStrictMixedCompare(t *testing.T) {
 }
 
 const typeTextOps = `mod m
-  provides [m__len, m__at, m__at_str, m__slice, M__Out, M__Str]
+  provides [m__len, m__at, m__at_str, m__slice, m__slice_str, M__Out, M__Str]
   uses []
   emits []
 
@@ -880,6 +880,13 @@ fn m__slice(v: int, a: int, b: int) -> M__Str rev 1
     t(v = 1, a = 0, b = 1) => Ok(s = "x")
 =
   Ok(s = v[a:b])
+
+fn m__slice_str(v: str, a: str, b: int) -> M__Str rev 1
+  emits []
+  tests
+    t(v = "ab", a = "x", b = 1) => Ok(s = "x")
+=
+  Ok(s = v[a:b])
 `
 
 func TestDiagnoseTextOpsMismatch(t *testing.T) {
@@ -890,6 +897,7 @@ func TestDiagnoseTextOpsMismatch(t *testing.T) {
 		"cannot index into int",
 		"cannot index with str",
 		"cannot slice int",
+		"cannot slice with str",
 	} {
 		if !hasDiag(diags, "error", want) {
 			t.Fatalf("expected %q, got %v", want, diags)

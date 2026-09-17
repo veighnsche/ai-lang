@@ -55,8 +55,11 @@ Both runtimes count Unicode scalar values: Go over runes, TS over
 spread code points (exact for every valid string, including the
 astral plane). Inputs are scalar sequences — literals, concat of
 literals, and slices thereof. Behavior on non-scalar input (lone
-surrogates, invalid bytes) is outside the contract; where a
-runtime detects it, it fails loud.
+surrogates, invalid bytes) is outside the contract: Go substitutes
+U+FFFD per bad byte while TS yields lone-surrogate code points,
+so counts and scalar values diverge there, silently on both
+sides. Stay inside valid Unicode; the contract covers exactly
+what literals, concat, and slices can produce.
 
 ## Proof costs
 

@@ -1138,6 +1138,8 @@ fn std__convert__str_to_dec(value: str) -> Dec__Value rev 1
     s2d_neg(value = "-7") => Ok(value = d"-7.0")
     s2d_frac(value = "1.5") => Ok(value = d"1.5")
     s2d_neg_frac(value = "-0.5") => Ok(value = d"-0.5")
+    s2d_lead_dot(value = ".5") => Ok(value = d"0.5")
+    s2d_lead_dot_neg(value = "-.5") => Ok(value = d"-0.5")
     s2d_empty(value = "") => convert.invalid_decimal(value = "")
     s2d_bare_minus(value = "-") => convert.invalid_decimal(value = "-")
     s2d_double_dot(value = "1.2.3") => convert.invalid_decimal(value = "1.2.3")
