@@ -1,0 +1,59 @@
+// html/text: the first constructor-controlled brand. Raw strings
+// enter Html__Text only through html__text__escape, one explicit
+// gate; the brand erases to string at runtime and flows opaquely
+// (never inspected, only passed to brand-typed params). The worker
+// consumes from the front (upper_ascii precedent): no index
+// arithmetic, no out-of-range shape past the n bound.
+
+mod html
+  provides [html__text__escape_from, html__text__escape, Html__Text, Html__Escaped, Html__TextResult]
+  uses []
+  emits []
+
+brand Html__Text is str rev 1
+
+type Html__Escaped rev 1 (
+  value: str
+)
+
+type Html__TextResult rev 1 (
+  text: Html__Text
+)
+
+fn html__text__escape_from(s: str, acc: str, n: int) -> Html__Escaped rev 1
+  decreases n
+  emits []
+  tests
+    escape_from_empty(s = "", acc = "q", n = 0) => Ok(value = "q")
+    escape_from_plain(s = "hi", acc = "", n = 2) => Ok(value = "hi")
+    escape_from_amp(s = "a&b", acc = "", n = 3) => Ok(value = "a&amp;b")
+    escape_from_lt(s = "<p>", acc = "", n = 3) => Ok(value = "&lt;p&gt;")
+    escape_from_all(s = "<>&", acc = ">", n = 3) => Ok(value = ">&lt;&gt;&amp;")
+    escape_from_astral(s = "𝌆x", acc = "", n = 2) => Ok(value = "𝌆x")
+=
+  match n <= 0
+    true => Ok(value = acc)
+    false => match s[0:1] == "&"
+      true => match call html__text__escape_from(s[1:#s], acc + "&amp;", n - 1)
+        on Ok r => Ok(value = r.value)
+      false => match s[0:1] == "<"
+        true => match call html__text__escape_from(s[1:#s], acc + "&lt;", n - 1)
+          on Ok r => Ok(value = r.value)
+        false => match s[0:1] == ">"
+          true => match call html__text__escape_from(s[1:#s], acc + "&gt;", n - 1)
+            on Ok r => Ok(value = r.value)
+          false => match call html__text__escape_from(s[1:#s], acc + s[0:1], n - 1)
+            on Ok r => Ok(value = r.value)
+
+fn html__text__escape(raw: str) -> Html__TextResult rev 1
+  emits []
+  tests
+    escape_plain(raw = "hi") => Ok(text = seal Html__Text("hi"))
+    escape_empty(raw = "") => Ok(text = seal Html__Text(""))
+    escape_amp(raw = "a&b") => Ok(text = seal Html__Text("a&amp;b"))
+    escape_tags(raw = "<p>") => Ok(text = seal Html__Text("&lt;p&gt;"))
+    escape_mixed(raw = "a<b&c>d") => Ok(text = seal Html__Text("a&lt;b&amp;c&gt;d"))
+    escape_astral(raw = "𝌆") => Ok(text = seal Html__Text("𝌆"))
+=
+  match call html__text__escape_from(raw, "", #raw)
+    on Ok r => Ok(text = seal Html__Text(r.value))

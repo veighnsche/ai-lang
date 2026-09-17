@@ -916,18 +916,28 @@ type M__Out rev 1 (
   echo: str
 )
 
-fn m__seal(pw: str) -> M__Out rev 1
+fn m__seal(pw: str, n: int) -> M__Out rev 1
   emits []
   tests
-    t(pw = "s") => Ok(echo = "s")
+    t(pw = "s", n = 0) => Ok(echo = "s")
 =
   Ok(echo = seal M__B(pw))
 `
 
-func TestDiagnoseSealLiteral(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": typeSeal})
-	diags := diagnose(dir, "m.ail", typeSeal)
-	checkSpan(t, typeSeal, diags, "takes a string literal", "M__B", expectLine(t, typeSeal, "seal M__B(pw)"))
+// v25 supersedes the literal-only seal rule: seals take string
+// literals or string-typed refs and fields, so decision-tabled
+// constructors can mint computed brands. What stays rejected is
+// anything not statically a string — int literals and int refs.
+func TestDiagnoseSealString(t *testing.T) {
+	badLit := strings.Replace(typeSeal, "Ok(echo = seal M__B(pw))", "Ok(echo = seal M__B(7))", 1)
+	dir := writeLSPDir(t, map[string]string{"m.ail": badLit})
+	diags := diagnose(dir, "m.ail", badLit)
+	checkSpan(t, badLit, diags, "seal M__B takes a string", "M__B", expectLine(t, badLit, "seal M__B(7)"))
+
+	badRef := strings.Replace(typeSeal, "Ok(echo = seal M__B(pw))", "Ok(echo = seal M__B(n))", 1)
+	dir2 := writeLSPDir(t, map[string]string{"m.ail": badRef})
+	diags2 := diagnose(dir2, "m.ail", badRef)
+	checkSpan(t, badRef, diags2, "seal M__B takes a string", "M__B", expectLine(t, badRef, "seal M__B(n)"))
 }
 
 func TestDiagnoseUnknownType(t *testing.T) {

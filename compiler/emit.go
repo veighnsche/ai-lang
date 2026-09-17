@@ -281,9 +281,10 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 	case "dec":
 		return strconv.Quote(node.Dec), nil
 	case "seal":
-		// Sealed values emit as their string: brands erase.
-		if len(node.Args) != 1 || node.Args[0].V.Kind != "str" {
-			return "", fmt.Errorf("cannot emit non-literal seal")
+		// Sealed values emit as their string: brands erase. The
+		// checker owns the one-string-operand rule (v25).
+		if len(node.Args) != 1 {
+			return "", fmt.Errorf("cannot emit seal: want one value")
 		}
 		return e.emitValue(node.Args[0].V)
 	case "bool":

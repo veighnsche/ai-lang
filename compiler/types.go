@@ -332,9 +332,21 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 		// v10: brands erase to strings at runtime; emit reads T.
 		s.T = s.Seal
-		if len(s.Args) != 1 || s.Args[0].V.Kind != "str" {
+		// v25: seals take string literals or string-typed refs and
+		// fields, so decision-tabled constructors can mint computed
+		// brands. The file-ownership rule above stays the audit;
+		// anything else is still AIL6003, and brands never seal
+		// brands (fail closed: only "str" passes).
+		if len(s.Args) != 1 {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("seal %s takes a string literal", s.Seal), s.Seal, CodeTypeMismatch))
+				fmt.Sprintf("seal %s takes one value", s.Seal), s.Seal, CodeTypeMismatch))
+			return
+		}
+		slabel := fmt.Sprintf("seal %s value", s.Seal)
+		c.value(s.Args[0].V, "", line, env, slabel)
+		if got, ok := c.typeOf(s.Args[0].V, env); !ok || got != "str" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("seal %s takes a string", s.Seal), s.Seal, CodeTypeMismatch))
 			return
 		}
 		if want != "" && want != s.Seal {

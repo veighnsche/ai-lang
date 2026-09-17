@@ -331,7 +331,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			return nil, err
 		}
 		if v.Kind != "str" {
-			return nil, fmt.Errorf("seal takes a string literal")
+			return nil, fmt.Errorf("seal takes a string")
 		}
 		return &Value{Kind: "str", S: v.S}, nil
 	case "wild":
