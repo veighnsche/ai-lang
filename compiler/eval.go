@@ -30,12 +30,41 @@ type Value struct {
 	// Rec names the record constructor for rec values built in value
 	// positions; empty for Ok payloads (which render as Ok).
 	Rec string
+	// Tag names the qualified case for variant values built in
+	// value positions (v74). The carrier shares the tagged-payload
+	// shape with errors, but Kind stays "variant": a case is data
+	// and never enters error paths (emits, catalogs, on e.kind).
+	Tag string
 	// Arr holds the ordered members of a seq value (v36 S1);
 	// Elem names the checked element type. Brands erase at runtime,
 	// so branded members arrive here as their strings: Elem keeps
 	// the static identity vEq compares.
 	Arr  []*Value
 	Elem string
+}
+
+// variantCaseDecl finds a case declaration by qualified name,
+// first wins across modules, matching the checker and the emitter
+// (v74). Collisions are rejected at the registry, so first wins is
+// deterministic, exactly like records.
+func variantCaseDecl(prog *Program, qualified string) *VariantCase {
+	if prog == nil {
+		return nil
+	}
+	parent, ok := prog.Cases[qualified]
+	if !ok {
+		return nil
+	}
+	vd, ok := prog.Variants[parent]
+	if !ok {
+		return nil
+	}
+	for i := range vd.Cases {
+		if qualifyCase(parent, vd.Cases[i].Short) == qualified {
+			return &vd.Cases[i]
+		}
+	}
+	return nil
 }
 
 // recordDecl finds a record declaration by name, first wins across
@@ -339,6 +368,15 @@ func vEq(a, b *Value) (bool, error) {
 			return false, nil
 		}
 		return vEq(&Value{Kind: "rec", Dict: a.Dict}, &Value{Kind: "rec", Dict: b.Dict})
+	case "variant":
+		// Nominal case equality (v74): the qualified tag leads,
+		// so same-shape cases of different identity never match.
+		// A variant never equals an error, a record, or Ok: the
+		// Kind gate above already separates those.
+		if a.Tag != b.Tag {
+			return false, nil
+		}
+		return vEq(&Value{Kind: "rec", Dict: a.Dict}, &Value{Kind: "rec", Dict: b.Dict})
 	case "seq":
 		// Structural sequence comparison for the test evaluator
 		// only (v36 S1): same element type, same length, ordered
@@ -603,6 +641,29 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 				}
 			}
 			return &Value{Kind: "err", ErrKind: node.Ctor, Dict: fields}, nil
+		}
+		// Declared variant cases in value positions (v74): exact
+		// named fields with explicit declared types (checked
+		// statically; re-verified here so execution never invents
+		// a shape the declaration does not name). The carrier is
+		// tagged-payload like errors, but Kind stays "variant": a
+		// case is data and never enters error paths.
+		if decl := variantCaseDecl(ctx.Prog, node.Ctor); decl != nil {
+			want := map[string]bool{}
+			for _, f := range decl.Fields {
+				want[f[0]] = true
+			}
+			for f := range fields {
+				if !want[f] {
+					return nil, fmt.Errorf("%s: %s has unknown field %s", owner, node.Ctor, f)
+				}
+			}
+			for f := range want {
+				if _, ok := fields[f]; !ok {
+					return nil, fmt.Errorf("%s: %s missing field %s", owner, node.Ctor, f)
+				}
+			}
+			return &Value{Kind: "variant", Tag: node.Ctor, Dict: fields}, nil
 		}
 		// Declared finite monomorphic records in value positions:
 		// exact named fields with explicit declared types (checked
@@ -1346,6 +1407,11 @@ func describe(v *Value) string {
 	if v.Kind == "err" {
 		return "err(" + v.ErrKind + ")"
 	}
+	// v74: a variant describes by its qualified tag, never its
+	// bare kind: mismatch messages must name the case.
+	if v.Kind == "variant" {
+		return "variant(" + v.Tag + ")"
+	}
 	return v.Kind
 }
 
@@ -1437,6 +1503,20 @@ func normalizeValue(v *Value) string {
 			parts = append(parts, k+" = "+normalizeValue(v.Dict[k]))
 		}
 		return "err(" + v.ErrKind + "(" + strings.Join(parts, ", ") + "))"
+	case "variant":
+		// Canonical case form (v74): the qualified tag names the
+		// value, payload fields sort like records. Never err(..):
+		// the carrier is data, and the rendering must show it.
+		keys := make([]string, 0, len(v.Dict))
+		for k := range v.Dict {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		parts := make([]string, 0, len(keys))
+		for _, k := range keys {
+			parts = append(parts, k+" = "+normalizeValue(v.Dict[k]))
+		}
+		return v.Tag + "(" + strings.Join(parts, ", ") + ")"
 	default:
 		return "<unknown>"
 	}

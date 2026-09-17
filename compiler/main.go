@@ -153,6 +153,11 @@ func compileEx(out string, paths []string, jsonOut bool) error {
 				fnUnions[d.Name] = u
 			case *TypeDecl:
 				stemOf[d.Name] = m.Stem
+			case *VariantDecl:
+				// v74: variant parents join the stem table like
+				// records, so cross-module type references import
+				// the union from the provider stem.
+				stemOf[d.Name] = m.Stem
 			}
 		}
 	}

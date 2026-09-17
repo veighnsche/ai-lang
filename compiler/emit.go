@@ -15,7 +15,7 @@ import (
 var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string", "Bytes": "Uint8Array"}
 
 func tsType(t string) (string, error) {
-	return tsTypeB(t, nil, nil)
+	return tsTypeB(t, nil, nil, nil)
 }
 
 // recordShapes indexes declared record fields by type name, first
@@ -35,6 +35,24 @@ func recordShapes(mods []*Module) map[string][][2]string {
 		}
 	}
 	return recs
+}
+
+// variantShapes indexes declared variants by parent name, first
+// wins across modules, matching the checker and the evaluator
+// (v74). Collisions are rejected at the registry, so first wins is
+// deterministic, exactly like records.
+func variantShapes(mods []*Module) map[string]*VariantDecl {
+	variants := map[string]*VariantDecl{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if vd, ok := d.(*VariantDecl); ok {
+				if _, seen := variants[vd.Name]; !seen {
+					variants[vd.Name] = vd
+				}
+			}
+		}
+	}
+	return variants
 }
 
 // errorShapes indexes declared error fields by kind name, first wins
@@ -59,7 +77,9 @@ func errorShapes(mods []*Module) map[string][][2]string {
 // tsTypeB maps an ail annotation to TS, erasing brands to their
 // underlying type. Branding is proof, not runtime: the emit forgets it.
 // Declared record names map to their emitted TS type of the same name.
-func tsTypeB(t string, brands map[string]string, recs map[string][][2]string) (string, error) {
+// Declared variant parents (v74) map to their emitted union type of
+// the same name, so variant-typed fields and params reference it.
+func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
 	if out, ok := tsBase[t]; ok {
 		return out, nil
 	}
@@ -67,7 +87,7 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string) (s
 	// type. Brands erase through the same rule as scalars, so
 	// Seq<M__B> is string[] without hard-coding brand names here.
 	if elem, ok := seqElemName(t); ok {
-		inner, err := tsTypeB(elem, brands, recs)
+		inner, err := tsTypeB(elem, brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -79,6 +99,9 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string) (s
 		}
 	}
 	if _, ok := recs[t]; ok {
+		return t, nil
+	}
+	if _, ok := variants[t]; ok {
 		return t, nil
 	}
 	return "", fmt.Errorf("cannot map ail type to TS: %s", t)
@@ -103,16 +126,34 @@ func tsField(name, value string) string {
 }
 
 // tsErrMember renders one error kind as a TS union member.
-func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]string) (string, error) {
+func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
 	fs := ""
 	for _, f := range ed.Fields {
-		t, err := tsTypeB(f[1], brands, recs)
+		t, err := tsTypeB(f[1], brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
 		fs += "; " + f[0] + ": " + t
 	}
 	return fmt.Sprintf("{ %s: \"%s\"%s }", tsTag, ed.Name, fs), nil
+}
+
+// tsVariantMember renders one variant case as a TS union member
+// (v74): the qualified case name is the discriminant tag, payload
+// fields map through their declared types. Nullary cases carry the
+// tag only. The shape mirrors tsErrMember; the checker guarantees
+// exact fields, so emit trusts the declaration.
+func tsVariantMember(parent string, vc VariantCase, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
+	tag := qualifyCase(parent, vc.Short)
+	fs := ""
+	for _, f := range vc.Fields {
+		t, err := tsTypeB(f[1], brands, recs, variants)
+		if err != nil {
+			return "", err
+		}
+		fs += "; " + f[0] + ": " + t
+	}
+	return fmt.Sprintf("{ %s: \"%s\"%s }", tsTag, tag, fs), nil
 }
 
 // builtinErrorLookup finds an error declaration by kind: compiler-owned
@@ -158,8 +199,9 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	}
 	fs := ""
 	recs := recordShapes(prog.Modules)
+	variants := variantShapes(prog.Modules)
 	for _, f := range td.Fields {
-		t, err := tsTypeB(f[1], prog.Brands, recs)
+		t, err := tsTypeB(f[1], prog.Brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -171,7 +213,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 		if ed == nil {
 			return "", fmt.Errorf("extern %s emits unknown error %s", ex.Name, e)
 		}
-		mem, err := tsErrMember(ed, prog.Brands, recs)
+		mem, err := tsErrMember(ed, prog.Brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -204,12 +246,13 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 	}
 	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
 	recs := recordShapes(prog.Modules)
+	variants := variantShapes(prog.Modules)
 	for _, e := range fn.Emits {
 		ed := builtinErrorLookup(e, prog.Modules)
 		if ed == nil {
 			return "", fmt.Errorf("%s emits unknown error %s", fn.Name, e)
 		}
-		mem, err := tsErrMember(ed, prog.Brands, recs)
+		mem, err := tsErrMember(ed, prog.Brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -227,13 +270,14 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 // referenced payloads need no literal witness.
 func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
 	recs := recordShapes(prog.Modules)
+	variants := variantShapes(prog.Modules)
 	fields, ok := recs[fn.Ret]
 	if !ok {
 		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
 	shape := map[string]string{}
 	for _, f := range fields {
-		t, err := tsTypeB(f[1], prog.Brands, recs)
+		t, err := tsTypeB(f[1], prog.Brands, recs, variants)
 		if err != nil {
 			return nil, err
 		}
@@ -613,6 +657,16 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return `{ ` + tsTag + `: "ok", ` + inner + ` }`, nil
 		}
 		if strings.Contains(node.Ctor, ".") {
+			if inner == "" {
+				return `{ ` + tsTag + `: "` + node.Ctor + `" }`, nil
+			}
+			return `{ ` + tsTag + `: "` + node.Ctor + `", ` + inner + ` }`, nil
+		}
+		// Declared variant cases in value positions (v74) are
+		// tagged data objects like errors: the qualified tag
+		// names the case, payload fields follow. Emit runs only
+		// after checkSem, so exact fields are guaranteed here.
+		if _, ok := e.cases[node.Ctor]; ok {
 			if inner == "" {
 				return `{ ` + tsTag + `: "` + node.Ctor + `" }`, nil
 			}
@@ -1008,20 +1062,22 @@ type emitter struct {
 	brands    map[string]string      // brand -> underlying, for erasure
 	cellTypes map[string]string      // cell -> TS type, this module only
 	tailUnion string
-	decOps    map[string]bool        // exact-decimal helpers used by this module
-	strOps    map[string]bool        // byte-order string helpers used by this module
-	seqOps    map[string]bool        // sequence helpers used by this module (v38 S3)
-	recEq     bool                   // structural record comparison used by this module
-	bytesEq   bool                   // compared shapes can contain Bytes (v45 S1)
-	recs      map[string][][2]string // record name -> declared fields
-	errFields map[string][]string    // error kind -> declared field names
-	errTypes  map[string][][2]string // error kind -> declared typed fields
-	divmod    bool                   // Euclidean division helper used by this module
-	utf8dec   bool                   // strict UTF-8 decode helper used by this module (v50 B6)
-	hexenc    bool                   // hex encode helper used by this module (v52 B8)
-	hexdec    bool                   // strict hex decode helper used by this module (v55 B10)
-	b64enc    bool                   // base64 encode helper used by this module (v58 B12)
-	b64dec    bool                   // strict base64 decode helper used by this module (v59 B14)
+	decOps    map[string]bool         // exact-decimal helpers used by this module
+	strOps    map[string]bool         // byte-order string helpers used by this module
+	seqOps    map[string]bool         // sequence helpers used by this module (v38 S3)
+	recEq     bool                    // structural record comparison used by this module
+	bytesEq   bool                    // compared shapes can contain Bytes (v45 S1)
+	recs      map[string][][2]string  // record name -> declared fields
+	errFields map[string][]string     // error kind -> declared field names
+	errTypes  map[string][][2]string  // error kind -> declared typed fields
+	variants  map[string]*VariantDecl // variant parent -> declaration (v74)
+	cases     map[string]string       // qualified case -> parent variant (v74)
+	divmod    bool                    // Euclidean division helper used by this module
+	utf8dec   bool                    // strict UTF-8 decode helper used by this module (v50 B6)
+	hexenc    bool                    // hex encode helper used by this module (v52 B8)
+	hexdec    bool                    // strict hex decode helper used by this module (v55 B10)
+	b64enc    bool                    // base64 encode helper used by this module (v58 B12)
+	b64dec    bool                    // strict base64 decode helper used by this module (v59 B14)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1642,7 +1698,7 @@ func (e *emitter) stmtBytesEncode(node *Node, scrut *Small, out *[]string) error
 // carrying the kernel's return record plus one member per emitted
 // error. The kernel name selects the descriptor; an unknown name
 // fails instead of falling back to another kernel's contract.
-func decodeResultUnion(kernel string, brands map[string]string, recs map[string][][2]string) (string, error) {
+func decodeResultUnion(kernel string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
 	k, ok := bytesKernels[kernel]
 	if !ok {
 		return "", fmt.Errorf("no fallible contract for %s", kernel)
@@ -1658,7 +1714,7 @@ func decodeResultUnion(kernel string, brands map[string]string, recs map[string]
 	}
 	fs := ""
 	for _, f := range td.Fields {
-		t, err := tsTypeB(f[1], brands, recs)
+		t, err := tsTypeB(f[1], brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -1670,7 +1726,7 @@ func decodeResultUnion(kernel string, brands map[string]string, recs map[string]
 		if ed == nil {
 			return "", fmt.Errorf("decode kernel %s emits unknown error %s", kernel, e)
 		}
-		mem, err := tsErrMember(ed, brands, recs)
+		mem, err := tsErrMember(ed, brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -1714,7 +1770,7 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 	default:
 		return fmt.Errorf("no fallible lowering for %s", scrut.Fname)
 	}
-	union, err := decodeResultUnion(scrut.Fname, e.brands, e.recs)
+	union, err := decodeResultUnion(scrut.Fname, e.brands, e.recs, e.variants)
 	if err != nil {
 		return err
 	}
@@ -1812,7 +1868,7 @@ func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	e.tmp = 0
 	var params []string
 	for _, p := range fn.Params {
-		t, err := tsTypeB(p[1], e.brands, e.recs)
+		t, err := tsTypeB(p[1], e.brands, e.recs, e.variants)
 		if err != nil {
 			return nil, err
 		}
@@ -1841,8 +1897,10 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	L = append(L, fmt.Sprintf("// GENERATED from %s by ailc v0.0.0. DO NOT EDIT.", mod.File))
 	L = append(L, "// Prod emit: tests + given stripped.")
 	// Declared records resolve to their emitted TS type of the same
-	// name throughout this module.
+	// name throughout this module. Declared variant parents (v74)
+	// resolve to their emitted union type the same way.
 	recs := recordShapes(prog.Modules)
+	variants := variantShapes(prog.Modules)
 	need := map[string]map[string]bool{}
 	for _, d := range mod.Decls {
 		fn, ok := d.(*FnDecl)
@@ -1855,6 +1913,66 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 					need[stemOf[c.Fname]] = map[string]bool{}
 				}
 				need[stemOf[c.Fname]][c.Fname] = true
+			}
+		}
+	}
+	// Foreign type references (v74): a field, case payload,
+	// param, or Ret-record shape naming a type from another stem
+	// imports that stem's type. Previously only called functions
+	// (plus the Result type) were imported, so a cross-module
+	// named type reference emitted unbound and failed strict tsc.
+	// Same-stem names, bases, brands, and sequences thereof need
+	// nothing: bases lower natively, brands erase, Seq unwraps.
+	typeRefs := func(t string) {
+		base := t
+		if elem, ok := seqElemName(base); ok {
+			base = elem
+		}
+		if _, ok := tsBase[base]; ok {
+			return
+		}
+		stem, ok := stemOf[base]
+		if !ok || stem == mod.Stem {
+			return
+		}
+		if need[stem] == nil {
+			need[stem] = map[string]bool{}
+		}
+		need[stem]["type "+base] = true
+	}
+	for _, d := range mod.Decls {
+		switch d := d.(type) {
+		case *TypeDecl:
+			for _, f := range d.Fields {
+				typeRefs(f[1])
+			}
+		case *ErrorDecl:
+			for _, f := range d.Fields {
+				typeRefs(f[1])
+			}
+		case *VariantDecl:
+			for _, vc := range d.Cases {
+				for _, f := range vc.Fields {
+					typeRefs(f[1])
+				}
+			}
+		case *FnDecl:
+			for _, p := range d.Params {
+				typeRefs(p[1])
+			}
+			if fs, ok := recs[d.Ret]; ok {
+				for _, f := range fs {
+					typeRefs(f[1])
+				}
+			}
+		case *ExternDecl:
+			for _, p := range d.Params {
+				typeRefs(p[1])
+			}
+			if fs, ok := recs[d.Ret]; ok {
+				for _, f := range fs {
+					typeRefs(f[1])
+				}
 			}
 		}
 	}
@@ -1904,7 +2022,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !ok {
 			continue
 		}
-		mem, err := tsErrMember(ed, prog.Brands, recs)
+		mem, err := tsErrMember(ed, prog.Brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -1935,7 +2053,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !needed {
 			continue
 		}
-		mem, err := tsErrMember(b, prog.Brands, recs)
+		mem, err := tsErrMember(b, prog.Brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -2001,7 +2119,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		var fs []string
 		for _, f := range td.Fields {
-			t, err := tsTypeB(f[1], prog.Brands, recs)
+			t, err := tsTypeB(f[1], prog.Brands, recs, variants)
 			if err != nil {
 				return "", err
 			}
@@ -2012,6 +2130,25 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		} else {
 			L = append(L, fmt.Sprintf("export type %s = { %s };", td.Name, strings.Join(fs, "; ")))
 		}
+	}
+	// Variant unions (v74): one exported union type per variant
+	// parent, one member per case in declaration order, qualified
+	// tags as discriminants. Payload field types map through the
+	// same rule as records, so nested variants resolve.
+	for _, d := range mod.Decls {
+		vd, ok := d.(*VariantDecl)
+		if !ok {
+			continue
+		}
+		var members []string
+		for _, vc := range vd.Cases {
+			mem, err := tsVariantMember(vd.Name, vc, prog.Brands, recs, variants)
+			if err != nil {
+				return "", err
+			}
+			members = append(members, mem)
+		}
+		L = append(L, fmt.Sprintf("export type %s = %s;", vd.Name, strings.Join(members, " | ")))
 	}
 	// Module state: one mutable let per cell, initialized from the
 	// decl literal. Tests prove per-scenario behavior from init;
@@ -2024,13 +2161,13 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), divmod: false}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), variants: variants, cases: prog.Cases, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
 			continue
 		}
-		t, err := tsTypeB(sd.Type, prog.Brands, recs)
+		t, err := tsTypeB(sd.Type, prog.Brands, recs, variants)
 		if err != nil {
 			return "", err
 		}
@@ -2129,7 +2266,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		var fs []string
 		for _, f := range b.Fields {
-			t, err := tsTypeB(f[1], em.brands, recs)
+			t, err := tsTypeB(f[1], em.brands, recs, em.variants)
 			if err != nil {
 				return "", err
 			}

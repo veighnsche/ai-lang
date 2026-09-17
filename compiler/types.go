@@ -33,6 +33,10 @@ type tycker struct {
 	// variants holds declared variant names (v73): payloads
 	// may name variants, but never sequences of them.
 	variants map[string]bool
+	// cases maps a qualified case name to its check shape
+	// (v74): the parent variant is the constructor's nominal
+	// type, the fields its exact construction contract.
+	cases map[string]variantCase
 	// brandFiles maps brand name to declaring file (first wins).
 	brandFiles map[string]string
 	// brandSeals maps brand name to its declared promotion sources
@@ -51,6 +55,7 @@ func newTycker(prog *Program, text, fn string) *tycker {
 		recs:       map[string][][2]string{},
 		errs:       map[string][][2]string{},
 		variants:   map[string]bool{},
+		cases:      map[string]variantCase{},
 		brands:     map[string]bool{},
 		brandFiles: map[string]string{},
 		brandSeals: map[string][]string{},
@@ -70,6 +75,16 @@ func newTycker(prog *Program, text, fn string) *tycker {
 				}
 			case *VariantDecl:
 				c.variants[d.Name] = true
+				// v74: qualified cases enter the construction
+				// table with their parent and exact fields.
+				// Collisions are rejected at the registry, so
+				// first wins here exactly like records.
+				for _, vc := range d.Cases {
+					q := qualifyCase(d.Name, vc.Short)
+					if _, ok := c.cases[q]; !ok {
+						c.cases[q] = variantCase{parent: d.Name, fields: vc.Fields}
+					}
+				}
 			case *ErrorDecl:
 				if _, ok := c.errs[d.Name]; !ok {
 					c.errs[d.Name] = d.Fields
@@ -100,6 +115,13 @@ func newTycker(prog *Program, text, fn string) *tycker {
 		}
 	}
 	return c
+}
+
+// variantCase is one qualified case's check shape (v74): the
+// parent variant it constructs, and the exact declared fields.
+type variantCase struct {
+	parent string
+	fields [][2]string
 }
 
 // seqElemName splits a sequence annotation Seq<T> into its element
@@ -277,6 +299,13 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			}
 			if _, ok := c.recs[s.Ctor]; ok {
 				return s.Ctor, true
+			}
+			// v74: a qualified case constructor carries its
+			// parent variant outward, so outer positions check
+			// the nominal identity, never the payload shape.
+			// checkCtor owns the undeclared-case diagnostic.
+			if cc, ok := c.cases[s.Ctor]; ok {
+				return cc.parent, true
 			}
 		}
 		return "", false
@@ -590,6 +619,16 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// evaluator (vEq) only, so expectations still verify.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: sequence equality is not in v1", l, r), s.Op, CodeTypeMismatch))
+		} else if c.variants[l] {
+			// v74: cases compare by matching (v75), never by ==.
+			// The refusal lands here so no variant operand sails
+			// through to a loud emit failure. Structural
+			// comparison lives in the test evaluator (vEq) only,
+			// so expectations over variant payloads still verify.
+			// A future slice may amend this explicitly if it
+			// carries its own comparison convention.
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot compare %s with %s: variant equality is not in v1", l, r), s.Op, CodeTypeMismatch))
 		}
 	case "strlen":
 		c.value(s.L, "", line, env, "length")
@@ -924,6 +963,16 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 			c.mismatch(line, where, "Bytes", want, name)
 		}
 		return
+	} else if cc, ok := c.cases[name]; ok {
+		// v74: a qualified case constructs its parent variant
+		// with exactly the declared case fields. The shared
+		// field loop below checks unknown, repeated, missing,
+		// and mistyped fields; the constructor's nominal type
+		// is the parent, never the payload shape.
+		fields, label = cc.fields, name
+		if want != "" && want != cc.parent {
+			c.mismatch(line, where, cc.parent, want, name)
+		}
 	} else {
 		rec, ok := c.recs[name]
 		if !ok {
@@ -1135,6 +1184,14 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 	if fn.Ret == "Bytes" {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns Bytes: bare-Bytes returns are unsupported, return a record", fn.Name), fn.Ret, CodeTypeMismatch))
+	}
+	// v74: bare-variant returns are unsupported, like bare-brand,
+	// bare-Seq, and bare-Bytes returns. Entries return wrapper
+	// records; the case constructor's parent type is data, not a
+	// function result shape.
+	if c.variants[fn.Ret] {
+		c.out = append(c.out, spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s returns %s: bare-variant returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
 	}
 	env := map[string]string{}
 	for _, p := range fn.Params {

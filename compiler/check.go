@@ -220,6 +220,16 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				} else if isBuiltinRecord(d.Name) {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						fmt.Sprintf("variant %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
+				} else if recordNames[d.Name] {
+					// v74: a variant parent shares its TS type
+					// name with a record of the same name, so a
+					// silent collision would map one name to two
+					// shapes at emit. Reject like case/record
+					// collisions (decision 8); §2.3 will narrow
+					// the global rule.
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						fmt.Sprintf("variant identity collision: %s collides with record type %s", d.Name, d.Name), d.Name, CodeCaseCollision))
+					continue
 				}
 				provides[d.Name] = m
 				prog.Variants[d.Name] = d
