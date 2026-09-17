@@ -1,6 +1,6 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -10,6 +10,8 @@ export type Html__NamedSpelling = { name: string; spelling: string };
 export type Html__AttributeResult = { attribute: string };
 export type Html__BooleanNameResult = { name: string };
 export type Html__BooleanSpelling = { name: string; spelling: string };
+export type Html__WsVerdict = { ws: boolean };
+export type Html__IdValid = { value: string };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -296,5 +298,102 @@ export function html__attribute__boolean(name: string, present: boolean): { $ail
   default: {
     throw new Error("unreachable");
   }
+  }
+}
+export function html__attribute__id_ws(code: bigint): { $ail_kind: "ok"; ws: boolean } {
+  if ((code === 9n)) {
+    return { $ail_kind: "ok", ws: true };
+  }
+  else {
+    if ((code === 10n)) {
+      return { $ail_kind: "ok", ws: true };
+    }
+    else {
+      if ((code === 12n)) {
+        return { $ail_kind: "ok", ws: true };
+      }
+      else {
+        if ((code === 13n)) {
+          return { $ail_kind: "ok", ws: true };
+        }
+        else {
+          if ((code === 32n)) {
+            return { $ail_kind: "ok", ws: true };
+          }
+          else {
+            return { $ail_kind: "ok", ws: false };
+          }
+        }
+      }
+    }
+  }
+}
+export function html__attribute__id_check(orig: string, s: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } {
+  if ((n <= 0n)) {
+    return { $ail_kind: "ok", value: orig };
+  }
+  else {
+    const $ail_m1: { $ail_kind: "ok"; ws: boolean } = html__attribute__id_ws($ailStrAt(s, 0n));
+    switch ($ail_m1.$ail_kind) {
+    case "ok": {
+      const c = $ail_m1;
+      if (c.ws) {
+        return { $ail_kind: "html.invalid_identifier", value: orig };
+      }
+      else {
+        const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } = html__attribute__id_check(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n));
+        switch ($ail_m2.$ail_kind) {
+        case "ok": {
+          const r = $ail_m2;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        case "html.invalid_identifier": {
+          const e = $ail_m2;
+          return { $ail_kind: "html.invalid_identifier", value: e.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}
+export function html__attribute__id(value: string): { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  if (((BigInt([...value].length)) === 0n)) {
+    return { $ail_kind: "html.invalid_identifier", value: value };
+  }
+  else {
+    const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } = html__attribute__id_check(value, value, (BigInt([...value].length)));
+    switch ($ail_m1.$ail_kind) {
+    case "ok": {
+      const c = $ail_m1;
+      const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(value, value, "", (BigInt([...value].length)));
+      switch ($ail_m2.$ail_kind) {
+      case "ok": {
+        const v = $ail_m2;
+        return { $ail_kind: "ok", attribute: (("id='" + v.value) + "'") };
+      }
+      case "html.nul_byte": {
+        const e = $ail_m2;
+        return { $ail_kind: "html.nul_byte", value: value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    case "html.invalid_identifier": {
+      const e = $ail_m1;
+      return { $ail_kind: "html.invalid_identifier", value: e.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
   }
 }

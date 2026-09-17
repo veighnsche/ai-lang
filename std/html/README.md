@@ -35,6 +35,11 @@
   and absence as the empty contribution. Syntactic guarantee
   only — never inertness, never element applicability. See
   `docs/v30-boolean-attribute.md`.
+- `html__attribute__id` validates an identifier (nonempty, no
+  ASCII whitespace) and serializes it as `id='...'`, reusing the
+  shared value worker. Uniqueness needs a tree and stays out.
+  New error `html.invalid_identifier`. See
+  `docs/v31-identifier-attribute.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html
@@ -43,4 +48,5 @@
 Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
 `docs/v26-html-node.md`, `docs/v27-attribute-name.md`,
 `docs/v29-attribute-value.md`, `docs/v30-boolean-attribute.md`,
+`docs/v31-identifier-attribute.md`,
 `docs/encoder-nul-policy.md`, brand scope: `docs/v15-brands.md`.
