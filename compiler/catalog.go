@@ -59,7 +59,12 @@ func stubKindsOf(sm *Small, kinds map[string]bool) {
 // records every call-match arm patterning a dotted kind with its source
 // row; hit_by_tests records stub references plus expectation references
 // as mod.fn/test. Arrays are sorted, kinds are sorted: byte-identical
-// reruns or it is a bug.
+// reruns or it is a bug. hit_by_tests records references, not
+// executions: a certified-but-unexecuted relay arm contributes nothing
+// (no fabricated hits), and a declared-but-unrealized error is listed
+// with empty lists (conservative upper bound) — see
+// TestCatalogNoPhantomHits. Consumers must not read hits as proof a
+// kind was observed escaping.
 func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []catalogEntry {
 	raisedBy := map[string]map[string]bool{}
 	var handled []handledArm

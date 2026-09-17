@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -713,6 +714,188 @@ func TestDiagnoseInvalidRelayUnexpected(t *testing.T) {
 	}
 	if findDiag(diags, "rebuilds unexpected field z") == nil {
 		t.Fatalf("expected the unexpected-field reason, got %v", diags)
+	}
+}
+
+// Row 3 (D1): a shadowed arm is never certified, even relay-shaped.
+// The second copy is dead — structural evidence cannot substitute
+// for the execution the shadowing removed — so it stays under the
+// execution law like every other duplicate (TestDiagnoseShadowedArm).
+const relayDup = `mod dup
+  provides [dup__go, dup__help, Dup__Out, Dup__Val]
+  uses []
+  emits [dup.bad]
+
+error dup.bad(value: int)
+
+type Dup__Val rev 1 (
+  value: int
+)
+
+type Dup__Out rev 1 (
+  value: int
+)
+
+fn dup__help(x: int) -> Dup__Val rev 1
+  emits [dup.bad]
+  tests
+    go(x = 1) => Ok(value = 1)
+=
+  Ok(value = x)
+
+fn dup__go(x: int) -> Dup__Out rev 1
+  emits [dup.bad]
+  tests
+    go(x = 1) => Ok(value = 1)
+=
+  match call dup__help(x)
+    on Ok r => Ok(value = r.value)
+    on dup.bad e => dup.bad(value = e.value)
+    on dup.bad e2 => dup.bad(value = e2.value)
+`
+
+func TestDiagnoseShadowedRelay(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"dup.ail": relayDup})
+	diags := diagnose(dir, "dup.ail", relayDup)
+	if !hasCode(diags, "AIL4107") {
+		t.Fatalf("expected AIL4107 for the shadowed relay arm, got %v", diags)
+	}
+	if findDiag(diags, "no test takes on dup.bad e2") == nil {
+		t.Fatalf("expected the duplicate arm named, got %v", diags)
+	}
+	if hasCode(diags, "AIL4108") {
+		t.Fatalf("shadowed arm must not reach the relay check, got %v", diags)
+	}
+}
+
+// Row 3 (D1): certificates are owner-local. A relay-shaped arm over
+// a foreign call must not certify — the untaken arm stays under the
+// execution law even when the reconstruction is field-perfect.
+const relayForeignLib = `mod lib
+  provides [lib__get, Lib__Out]
+  uses []
+  emits [lib.bad]
+
+error lib.bad(value: int)
+
+type Lib__Out rev 1 (
+  value: int
+)
+
+fn lib__get() -> Lib__Out rev 1
+  emits [lib.bad]
+  tests
+    go() => Ok(value = 1)
+=
+  Ok(value = 1)
+`
+
+const relayForeignApp = `mod app
+  provides [app__go, App__Out]
+  uses [lib__get@1]
+  emits [lib.bad]
+
+type App__Out rev 1 (
+  value: int
+)
+
+fn app__go() -> App__Out rev 1
+  emits [lib.bad]
+  tests
+    go() => Ok(value = 1)
+=
+  match call lib__get()
+    given
+      go => [exchange args () outcome Ok(value = 1)]
+    on Ok r => Ok(value = r.value)
+    on lib.bad e => lib.bad(value = e.value)
+`
+
+func TestDiagnoseForeignRelayUntaken(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"lib.ail": relayForeignLib, "app.ail": relayForeignApp})
+	diags := diagnose(dir, "app.ail", relayForeignApp)
+	if !hasCode(diags, "AIL4107") {
+		t.Fatalf("expected AIL4107 for the unscripted foreign arm, got %v", diags)
+	}
+	if hasCode(diags, "AIL4108") {
+		t.Fatalf("foreign arm must not reach the relay check, got %v", diags)
+	}
+}
+
+// Row 3 (D1): the catalog records references, not executions. A
+// certified-but-unexecuted relay arm manufactures no hit, and a
+// declared-but-unrealized error compiles with empty lists — the
+// conservative upper bound, pinned against regression either way.
+func TestCatalogNoPhantomHits(t *testing.T) {
+	const catSrc = `mod cat
+  provides [cat__go, cat__help, Cat__Out, Cat__Val]
+  uses []
+  emits [cat.used, cat.free]
+
+error cat.used(value: int)
+error cat.free(value: int)
+
+type Cat__Val rev 1 (
+  value: int
+)
+
+type Cat__Out rev 1 (
+  value: int
+)
+
+fn cat__help(x: int) -> Cat__Val rev 1
+  emits [cat.used]
+  tests
+    go(x = 1) => Ok(value = 1)
+=
+  Ok(value = x)
+
+fn cat__go(x: int) -> Cat__Out rev 1
+  emits [cat.used, cat.free]
+  tests
+    go(x = 1) => Ok(value = 1)
+=
+  match call cat__help(x)
+    on Ok r => Ok(value = r.value)
+    on cat.used e => cat.used(value = e.value)
+`
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "cat.ail")
+	if err := os.WriteFile(srcPath, []byte(catSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+	if err := compileEx(out, []string{srcPath}, true); err != nil {
+		t.Fatalf("unrealized entries must compile: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(out, "errors.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var entries []catalogEntry
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		t.Fatal(err)
+	}
+	byKind := map[string]catalogEntry{}
+	for _, e := range entries {
+		byKind[e.Kind] = e
+	}
+	used, ok := byKind["cat.used"]
+	if !ok {
+		t.Fatalf("catalog omits cat.used, got %v", entries)
+	}
+	if len(used.HitByTests) != 0 {
+		t.Fatalf("certified arm must manufacture no hits, got %v", used.HitByTests)
+	}
+	if len(used.HandledBy) != 1 {
+		t.Fatalf("relay arm is a handling site, got %v", used.HandledBy)
+	}
+	free, ok := byKind["cat.free"]
+	if !ok {
+		t.Fatalf("catalog omits unrealized cat.free, got %v", entries)
+	}
+	if len(free.RaisedBy) != 0 || len(free.HitByTests) != 0 {
+		t.Fatalf("unrealized entry must stay empty, got %+v", free)
 	}
 }
 

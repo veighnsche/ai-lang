@@ -371,7 +371,7 @@ func checkCoverage(fn *FnDecl, prog *Program, text string, cov map[*Node]map[int
 				continue
 			}
 			desc, tok := patDesc(a.Pat)
-			if ok, reason := relayStatus(prog, fn.Name, n, a); ok {
+			if ok, reason := relayStatus(prog, fn.Name, n, n.Arms, i); ok {
 				if reason == "" {
 					continue
 				}
@@ -392,17 +392,26 @@ func checkCoverage(fn *FnDecl, prog *Program, text string, cov map[*Node]map[int
 // execution law). For a relay shape it returns ok=true with reason=""
 // when the certificate verifies (same kind, complete fields, unchanged
 // bound values, no other content), or ok=true with a reason naming the
-// defect when the certificate is invalid.
-func relayStatus(prog *Program, owner string, n *Node, a Arm) (bool, string) {
+// defect when the certificate is invalid. A shadowed arm is never
+// certified: an earlier arm matching the same error kind already
+// consumes every value this one could take, so structural evidence
+// cannot substitute for the execution the shadowing removed.
+func relayStatus(prog *Program, owner string, n *Node, arms []Arm, idx int) (bool, string) {
 	if n.Scrut == nil || n.Scrut.Kind != "call" {
 		return false, ""
 	}
 	if localCallee(prog, owner, n.Scrut.Fname) == nil {
 		return false, ""
 	}
+	a := arms[idx]
 	pat := a.Pat
 	if pat.Kind != "variant" || pat.Name == "Ok" {
 		return false, ""
+	}
+	for _, prev := range arms[:idx] {
+		if (prev.Pat.Kind == "variant" || prev.Pat.Kind == "variantWild") && prev.Pat.Name == pat.Name {
+			return false, ""
+		}
 	}
 	fields, known := prog.Errors[pat.Name]
 	if !known {
