@@ -587,6 +587,9 @@ func TestDiagnoseShadowedArm(t *testing.T) {
 	}
 }
 
+// relayMath exercises the identity-relay certificate: no test takes the
+// relay arm (pos recurses 3->2->1->0 through the Ok arm only, neg and
+// zero never enter the call match), so silence proves the certificate.
 const relayMath = `mod math
   provides [math__sum_to, Int__Value]
   uses []
@@ -654,6 +657,62 @@ func TestDiagnoseInvalidRelayKind(t *testing.T) {
 	}
 	if findDiag(diags, "reconstructs math.other instead of math.negative_input") == nil {
 		t.Fatalf("expected the kind reason, got %v", diags)
+	}
+}
+
+const relayMathTwo = `mod math2
+  provides [math2__go, Int__Value]
+  uses []
+  emits [math2.fail]
+
+error math2.fail(a: int, b: int)
+
+type Int__Value rev 1 (
+  value: int
+)
+
+fn math2__go(n: int) -> Int__Value rev 1
+  decreases n
+  emits [math2.fail]
+  tests
+    fail(n = -1) => math2.fail(a = 1, b = 2)
+    zero(n = 0) => Ok(value = 0)
+    pos(n = 2) => Ok(value = 3)
+=
+  match n <= 0
+    true => match n == 0
+      true => Ok(value = 0)
+      false => math2.fail(a = 1, b = 2)
+    false => match call math2__go(n = n - 1)
+      on math2.fail e => math2.fail(a = e.a, b = e.b)
+      on Ok r => Ok(value = n + r.value)
+`
+
+func TestDiagnoseInvalidRelayDrops(t *testing.T) {
+	bad := strings.Replace(relayMathTwo,
+		"on math2.fail e => math2.fail(a = e.a, b = e.b)",
+		"on math2.fail e => math2.fail(a = e.a)", 1)
+	dir := writeLSPDir(t, map[string]string{"math2.ail": bad})
+	diags := diagnose(dir, "math2.ail", bad)
+	if !hasCode(diags, "AIL4108") {
+		t.Fatalf("expected AIL4108 for a field-dropping relay, got %v", diags)
+	}
+	if findDiag(diags, "drops field b") == nil {
+		t.Fatalf("expected the drops reason, got %v", diags)
+	}
+}
+
+func TestDiagnoseInvalidRelayUnexpected(t *testing.T) {
+	bad := strings.Replace(relayMathTwo,
+		"on math2.fail e => math2.fail(a = e.a, b = e.b)",
+		"on math2.fail e => math2.fail(a = e.a, b = e.b, z = e.a)", 1)
+	dir := writeLSPDir(t, map[string]string{"math2.ail": bad})
+	diags := diagnose(dir, "math2.ail", bad)
+	if !hasCode(diags, "AIL4108") {
+		t.Fatalf("expected AIL4108 for an extra-field relay, got %v", diags)
+	}
+	if findDiag(diags, "rebuilds unexpected field z") == nil {
+		t.Fatalf("expected the unexpected-field reason, got %v", diags)
 	}
 }
 
