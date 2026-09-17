@@ -347,7 +347,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 			continue
 		}
 		if !failed[fn.Name] && !blocked && len(fn.Tests) > 0 {
-			out = append(out, checkCoverage(fn, text, shared)...)
+			out = append(out, checkCoverage(fn, prog, text, shared)...)
 		}
 	}
 	return withFile(out, open.File)
@@ -356,7 +356,14 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 // checkCoverage enforces the test-per-arm law: every match arm must
 // execute at least once across the function's decision-table run.
 // Untaken arms are dead code or missing tests, both compile errors.
-func checkCoverage(fn *FnDecl, text string, cov map[*Node]map[int]bool) []Diag {
+// The one exception is a checked identity relay: a bound error arm of
+// a local call whose body is exactly the same-kind reconstruction
+// with every payload field unchanged. Such an arm is a total,
+// transparent re-raise — no behavior remains to witness — so it
+// carries a structural certificate instead of an execution one. A
+// relay-shaped arm that fails the check (wrong kind, dropped field,
+// changed value) is an invalid certificate, not an uncovered arm.
+func checkCoverage(fn *FnDecl, prog *Program, text string, cov map[*Node]map[int]bool) []Diag {
 	var out []Diag
 	for _, n := range matchNodes(fn.Body) {
 		for i, a := range n.Arms {
@@ -364,11 +371,75 @@ func checkCoverage(fn *FnDecl, text string, cov map[*Node]map[int]bool) []Diag {
 				continue
 			}
 			desc, tok := patDesc(a.Pat)
+			if ok, reason := relayStatus(prog, fn.Name, n, a); ok {
+				if reason == "" {
+					continue
+				}
+				out = append(out, spanDiag(text, a.Line, "error",
+					fmt.Sprintf("invalid identity relay %s in %s: %s", desc, fn.Name, reason), tok, CodeInvalidRelay))
+				continue
+			}
 			out = append(out, spanDiag(text, a.Line, "error",
 				fmt.Sprintf("no test takes %s in %s", desc, fn.Name), tok, CodeArmUntaken))
 		}
 	}
 	return out
+}
+
+// relayStatus checks an untaken arm for the identity-relay shape: a
+// bound error arm of a local call whose body rebuilds an error.
+// It returns ok=false for anything else (the arm stays under the
+// execution law). For a relay shape it returns ok=true with reason=""
+// when the certificate verifies (same kind, complete fields, unchanged
+// bound values, no other content), or ok=true with a reason naming the
+// defect when the certificate is invalid.
+func relayStatus(prog *Program, owner string, n *Node, a Arm) (bool, string) {
+	if n.Scrut == nil || n.Scrut.Kind != "call" {
+		return false, ""
+	}
+	if localCallee(prog, owner, n.Scrut.Fname) == nil {
+		return false, ""
+	}
+	pat := a.Pat
+	if pat.Kind != "variant" || pat.Name == "Ok" {
+		return false, ""
+	}
+	fields, known := prog.Errors[pat.Name]
+	if !known {
+		return false, ""
+	}
+	rhs := a.Rhs
+	if rhs == nil || rhs.IsMatch || rhs.Small == nil || rhs.Small.Kind != "ctor" {
+		return false, ""
+	}
+	s := rhs.Small
+	if !strings.Contains(s.Ctor, ".") {
+		return false, ""
+	}
+	if s.Ctor != pat.Name {
+		return true, fmt.Sprintf("reconstructs %s instead of %s", s.Ctor, pat.Name)
+	}
+	want := map[string]bool{}
+	for _, f := range fields {
+		want[f] = true
+	}
+	seen := map[string]bool{}
+	for _, arg := range s.Args {
+		if !want[arg.Name] {
+			return true, fmt.Sprintf("rebuilds unexpected field %s", arg.Name)
+		}
+		seen[arg.Name] = true
+		v := arg.V
+		if v == nil || v.Kind != "ref" || len(v.Ref) != 2 || v.Ref[0] != pat.Var || v.Ref[1] != arg.Name {
+			return true, fmt.Sprintf("field %s is not %s.%s", arg.Name, pat.Var, arg.Name)
+		}
+	}
+	for _, f := range fields {
+		if !seen[f] {
+			return true, fmt.Sprintf("drops field %s", f)
+		}
+	}
+	return true, ""
 }
 
 // patDesc renders a pattern the way its arm row reads it, plus the token
