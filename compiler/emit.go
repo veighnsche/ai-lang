@@ -813,116 +813,146 @@ func indent(lines []string) []string {
 }
 
 func (e *emitter) stmtMatch(node *Node, out *[]string) error {
-	scrut := node.Scrut
-	if scrut.Kind == "call" && isStoreOp(scrut.Fname) {
+	if node.Kind != MatchCall {
+		return e.emitValueMatch(node, out)
+	}
+	scrut := node.Scruts[0]
+	if isStoreOp(scrut.Fname) {
 		return e.stmtStoreOp(node, scrut, out)
 	}
-	if scrut.Kind == "call" && isDecParts(scrut.Fname) {
+	if isDecParts(scrut.Fname) {
 		return e.stmtDecParts(node, scrut, out)
 	}
-	if scrut.Kind == "call" {
-		union, ok := e.fnUnions[scrut.Fname]
-		if !ok {
-			return fmt.Errorf("no Result type for callee %s", scrut.Fname)
-		}
-		tmp := e.fresh()
-		call, err := e.emitValue(scrut)
-		if err != nil {
-			return err
-		}
-		*out = append(*out, fmt.Sprintf("const %s: %s = %s;", tmp, union, call))
-		*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
-		for _, arm := range node.Arms {
-			pat := arm.Pat
-			// Every arm body is block-scoped: the same binder name in
-			// two arms (or a binder shadowing an outer one) must not
-			// collide, and success and error binders lower uniformly
-			// as one const bound to the matched union value.
-			switch {
-			case pat.Kind == "variantWild":
-				*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
-				lines, err := e.retLines(arm.Rhs, nil)
-				if err != nil {
-					return err
-				}
-				*out = append(*out, indent(lines)...)
-				*out = append(*out, "}")
-			case pat.Kind == "variant" && pat.Name != "Ok":
-				*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
-				*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
-				lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
-				if err != nil {
-					return err
-				}
-				*out = append(*out, indent(lines)...)
-				*out = append(*out, "}")
-			case pat.Kind == "variant" && pat.Name == "Ok":
-				*out = append(*out, `case "ok": {`)
-				*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
-				lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
-				if err != nil {
-					return err
-				}
-				*out = append(*out, indent(lines)...)
-				*out = append(*out, "}")
-			default:
-				return fmt.Errorf("call-match arm must be an error kind or Ok")
-			}
-		}
-		*out = append(*out, "}")
-		return nil
+	union, ok := e.fnUnions[scrut.Fname]
+	if !ok {
+		return fmt.Errorf("no Result type for callee %s", scrut.Fname)
 	}
-	sv, err := e.emitValue(scrut)
+	tmp := e.fresh()
+	call, err := e.emitValue(scrut)
 	if err != nil {
 		return err
 	}
+	*out = append(*out, fmt.Sprintf("const %s: %s = %s;", tmp, union, call))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
-		k := arm.Pat.Kind
-		if k != "bool" && k != "str" && k != "wild" {
-			return fmt.Errorf("variant pattern on a non-call match")
+		pat := arm.Pats[0]
+		// Every arm body is block-scoped: the same binder name in
+		// two arms (or a binder shadowing an outer one) must not
+		// collide, and success and error binders lower uniformly
+		// as one const bound to the matched union value.
+		switch {
+		case pat.Kind == "variantWild":
+			*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
+			lines, err := e.retLines(arm.Rhs, nil)
+			if err != nil {
+				return err
+			}
+			*out = append(*out, indent(lines)...)
+			*out = append(*out, "}")
+		case pat.Kind == "variant" && pat.Name != "Ok":
+			*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
+			*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+			lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+			if err != nil {
+				return err
+			}
+			*out = append(*out, indent(lines)...)
+			*out = append(*out, "}")
+		case pat.Kind == "variant" && pat.Name == "Ok":
+			*out = append(*out, `case "ok": {`)
+			*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+			lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+			if err != nil {
+				return err
+			}
+			*out = append(*out, indent(lines)...)
+			*out = append(*out, "}")
+		default:
+			return fmt.Errorf("call-match arm must be an error kind or Ok")
 		}
 	}
-	hasStr, hasWild := false, false
-	var bools []bool
+	*out = append(*out, "}")
+	return nil
+}
+
+// emitValueMatch emits a value table of any arity 1..N: one arm loop
+// for every shape. Scrutinee references preserve the legacy layout
+// exactly — the single expression inline (no temporary, golden bytes),
+// one $ail_mN temporary per slot past arity 1 — so the only
+// arity-dependent choice is output formatting, never match semantics.
+// A conditionless arm owns its whole residual: trailing lines mid-chain
+// with later arms dead (the historical wild shape, kept for arity-1
+// wild arms too), a bare else at the end. A proved-total final arm
+// reads the checker's bit, never a recomputed proof; anything else is a
+// tested condition. Exhaustiveness already proven; emit assumes it.
+func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
+	nslot := len(node.Scruts)
 	for _, arm := range node.Arms {
-		switch arm.Pat.Kind {
-		case "str":
-			hasStr = true
-		case "wild":
-			hasWild = true
-		case "bool":
-			bools = append(bools, arm.Pat.B)
+		if len(arm.Pats) != nslot {
+			return fmt.Errorf("match arm has %d patterns; this match has %d scrutinees", len(arm.Pats), nslot)
+		}
+		for _, p := range arm.Pats {
+			if k := p.Kind; k != "bool" && k != "str" && k != "wild" {
+				return fmt.Errorf("variant pattern on a non-call match")
+			}
 		}
 	}
-	// Exhaustiveness already proven by verifyExhaustive; emit assumes it.
-	boolTotal := !hasStr && !hasWild && len(bools) == 2 &&
-		((bools[0] && !bools[1]) || (!bools[0] && bools[1]))
+	refs := make([]string, nslot)
+	if nslot == 1 {
+		sv, err := e.emitValue(node.Scruts[0])
+		if err != nil {
+			return err
+		}
+		refs[0] = sv
+	} else {
+		for i, s := range node.Scruts {
+			v, err := e.emitValue(s)
+			if err != nil {
+				return err
+			}
+			t := e.fresh()
+			*out = append(*out, fmt.Sprintf("const %s = %s;", t, v))
+			refs[i] = t
+		}
+	}
+	finalElse := false
+	if node.analysis != nil {
+		finalElse = node.analysis.emitFinalElse
+	}
+	known := make([]*bool, nslot)
 	for n, arm := range node.Arms {
-		pat := arm.Pat
+		last := n == len(node.Arms)-1
+		conds, learn, contradiction := e.valueConds(arm, refs, known)
 		kw := "if"
 		if n > 0 {
 			kw = "else if"
 		}
-		last := n == len(node.Arms)-1
-		if boolTotal && last {
+		switch {
+		case len(conds) == 0 && last && (nslot > 1 || !allWild(arm)):
+			// Whole residual at the end: bare else. (Arity-1 wild
+			// arms keep the historical trailing-lines shape below.)
 			*out = append(*out, "else {")
-		} else {
-			switch pat.Kind {
-			case "wild":
-				lines, err := e.retLines(arm.Rhs, nil)
-				if err != nil {
-					return err
-				}
-				*out = append(*out, lines...)
-				return nil
-			case "bool":
-				cond := sv
-				if !pat.B {
-					cond = "!(" + sv + ")"
-				}
-				*out = append(*out, fmt.Sprintf("%s (%s) {", kw, cond))
-			case "str":
-				*out = append(*out, fmt.Sprintf("%s (%s === %s) {", kw, sv, normStr(pat.Str)))
+		case len(conds) == 0:
+			// Whole residual mid-chain with later arms dead (the
+			// historical wild shape): trailing lines, chain ends.
+			lines, err := e.retLines(arm.Rhs, nil)
+			if err != nil {
+				return err
+			}
+			*out = append(*out, lines...)
+			return nil
+		case last && finalElse:
+			*out = append(*out, "else {")
+		default:
+			if contradiction {
+				// Static duplicate past the proof: the raw
+				// conjunction keeps the chain total; never reached.
+				conds, _, _ = e.valueConds(arm, refs, nil)
+			}
+			*out = append(*out, fmt.Sprintf("%s (%s) {", kw, strings.Join(conds, " && ")))
+			if learn >= 0 {
+				nb := !arm.Pats[learn].B
+				known[learn] = &nb
 			}
 		}
 		lines, err := e.retLines(arm.Rhs, nil)
@@ -933,6 +963,57 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 		*out = append(*out, "}")
 	}
 	return nil
+}
+
+// allWild reports whether every slot pattern is a wildcard.
+func allWild(arm Arm) bool {
+	for _, p := range arm.Pats {
+		if p.Kind != "wild" {
+			return false
+		}
+	}
+	return true
+}
+
+// valueConds renders one arm's test conjunction over the scrutinee
+// references (inline expression or temporaries), dropping bool checks
+// implied by failed earlier arms (known). Reports the slot when the
+// conjunction is exactly one fresh bool test (its failure fixes that
+// slot for later arms), and whether the arm contradicts known facts (a
+// static duplicate: raw conditions still render, so the chain stays
+// total).
+func (e *emitter) valueConds(arm Arm, refs []string, known []*bool) (conds []string, learn int, contradiction bool) {
+	learn = -1
+	for i, p := range arm.Pats {
+		switch p.Kind {
+		case "wild":
+		case "bool":
+			if known != nil && known[i] != nil {
+				if *known[i] == p.B {
+					continue
+				}
+				contradiction = true
+			}
+			c := refs[i]
+			if !p.B {
+				c = "!(" + refs[i] + ")"
+			}
+			conds = append(conds, c)
+			if known != nil && known[i] == nil && len(conds) == 1 {
+				learn = i
+			} else {
+				learn = -1
+			}
+		case "str":
+			conds = append(conds, fmt.Sprintf("%s === %s", refs[i], normStr(p.Str)))
+			learn = -1
+		default:
+			// Variant slots never survive the proof; render nothing so
+			// the arm reads total rather than crashing the emitter.
+			learn = -1
+		}
+	}
+	return conds, learn, contradiction
 }
 
 // stmtStoreOp emits a cell operation as plain module state access: a
@@ -961,7 +1042,7 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 	}
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
-		pat := arm.Pat
+		pat := arm.Pats[0]
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("store match arm must be Ok")
 		}
@@ -995,7 +1076,7 @@ func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
 	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", coefficient: bigint, scale: bigint } = { "+tsTag+": \"ok\", ...$ailDecParts(%s) };", tmp, v))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
-		pat := arm.Pat
+		pat := arm.Pats[0]
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("dec__parts match arm must be Ok")
 		}

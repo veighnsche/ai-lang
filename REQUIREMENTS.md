@@ -101,7 +101,13 @@ specification must rule out the constant function, not merely bless examples.
   execution like an open termination proof.
 - Bodies are single expressions. No statements, no `return`.
 - `match` is always exhaustive; a missing arm is a compile error, not a
-  coverage warning.
+  coverage warning. A value match may take several scrutinees at once
+  (v28) (`match x, y`, arms `p1, p2 => …`): one `bool`/`"str"`/`_`
+  pattern per slot, same arity on every arm, exhaustiveness proven over
+  the product space. Arms win top-to-bottom; scrutinees evaluate exactly
+  once, left to right. Call matches keep a single `call` scrutinee;
+  multi matches take no `given`. Coverage stays one obligation per
+  reachable source arm, not per product cell.
 
 ## R7 — Compile-time tests
 

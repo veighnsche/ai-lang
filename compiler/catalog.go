@@ -87,15 +87,16 @@ func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []cata
 			rows := strings.Split(texts[m.ID], "\n")
 			calls := []*Node{}
 			for _, n := range matchNodes(fn.Body) {
-				if n.Scrut == nil || n.Scrut.Kind != "call" {
+				if n.Kind != MatchCall {
 					continue
 				}
 				calls = append(calls, n)
 				for _, a := range n.Arms {
-					if a.Pat.Kind != "variant" && a.Pat.Kind != "variantWild" {
+					p := a.Pats[0]
+					if p.Kind != "variant" && p.Kind != "variantWild" {
 						continue
 					}
-					if !strings.Contains(a.Pat.Name, ".") {
+					if !strings.Contains(p.Name, ".") {
 						continue
 					}
 					row := ""
@@ -106,10 +107,10 @@ func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []cata
 					// (the retry pair) are one handling site each in
 					// spirit, and listing the same row twice reads as a
 					// catalog bug, not extra information.
-					key := who + "\x00" + a.Pat.Name + "\x00" + row
+					key := who + "\x00" + p.Name + "\x00" + row
 					if !handledSeen[key] {
 						handledSeen[key] = true
-						handled = append(handled, handledArm{a.Pat.Name, who, row})
+						handled = append(handled, handledArm{p.Name, who, row})
 					}
 				}
 			}

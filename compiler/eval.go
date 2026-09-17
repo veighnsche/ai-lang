@@ -685,9 +685,93 @@ func evDecPartsOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (
 	}}, nil
 }
 
+// matchSlot tests one value against one pattern, binding a variant
+// payload into bind. The per-slot semantics are the historical single
+// arm semantics, so arity 1 behaves exactly as the old shared loop.
+func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
+	switch p.Kind {
+	case "wild":
+		return true
+	case "bool":
+		return v.Kind == "bool" && v.B == p.B
+	case "str":
+		return v.Kind == "str" && v.S == p.Str
+	case "variantWild":
+		return v.Kind == "err" && v.ErrKind == p.Name
+	case "variant":
+		if p.Name == "Ok" && v.Kind == "ok" {
+			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
+			return true
+		}
+		if v.Kind == "err" && v.ErrKind == p.Name {
+			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
 func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if node.Kind == MatchCall {
+		return evCallMatch(node, env, ctx, owner)
+	}
+	return evValueMatch(node, env, ctx, owner)
+}
+
+// evValueMatch evaluates a value table of any arity 1..N (docs/v28):
+// every scrutinee evaluates exactly once, left to right, then the
+// first arm whose every slot matches wins, binding variant payloads
+// exactly as the old single loop did. A call scrutinee is a shape
+// error owned by the checker; here it fails closed instead of
+// evaluating. An empty hit is unreachable past the exhaustiveness
+// proof and errors the same way.
+func evValueMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	vals := make([]*Value, 0, len(node.Scruts))
+	for _, s := range node.Scruts {
+		if s.Kind == "call" {
+			return nil, fmt.Errorf("%s: multi-scrutinee match over call %s is not supported: match a single call per match", owner, s.Fname)
+		}
+		v, err := evSmall(s, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, v)
+	}
+	for i, arm := range node.Arms {
+		if len(arm.Pats) != len(vals) {
+			continue // owned by the arity rule; unmatchable here
+		}
+		rhsEnv := env
+		bound := false
+		hit := true
+		for j, p := range arm.Pats {
+			if p.Kind == "variant" && !bound {
+				rhsEnv = copyEnv(env)
+				bound = true
+			}
+			if !matchSlot(vals[j], p, rhsEnv) {
+				hit = false
+				break
+			}
+		}
+		if hit {
+			markTaken(ctx, node, i)
+			return evNode(arm.Rhs, rhsEnv, ctx, owner)
+		}
+	}
+	// Legacy rendering for arity 1 is byte-pinned; tuples name themselves.
+	if len(vals) == 1 {
+		return nil, fmt.Errorf("%s/%s: non-exhaustive match on %s", owner, ctx.Test, vals[0].Kind)
+	}
+	return nil, fmt.Errorf("%s/%s: non-exhaustive multi-scrutinee match", owner, ctx.Test)
+}
+
+func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	scrut := node.Scruts[0]
 	var v *Value
-	if scrut := node.Scrut; scrut.Kind == "call" {
+	if scrut.Kind == "call" {
 		fname := scrut.Fname
 		if isStoreOp(fname) {
 			if node.Given != nil {
@@ -748,10 +832,10 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 			if item.Kind != "exchange" {
 				return nil, fmt.Errorf("%s/%s: script row must be an exchange with args and outcome", owner, ctx.Test)
 			}
-			if err := checkExchangeArgs(node.Scrut, item, ctx.Prog, env, ctx, owner); err != nil {
+			if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
 				return nil, err
 			}
-			if err := checkExchangeArgs(node.Scrut, item, ctx.Prog, env, ctx, owner); err != nil {
+			if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
 				return nil, err
 			}
 			val, err := evSmall(item.Outcome, env, ctx, owner)
@@ -774,14 +858,12 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 			v = val
 		}
 	} else {
-		val, err := evSmall(node.Scrut, env, ctx, owner)
-		if err != nil {
-			return nil, err
-		}
-		v = val
+		// Parser-impossible: MatchCall always carries one call. Fail
+		// closed rather than evaluating a non-call as an outcome.
+		return nil, fmt.Errorf("%s: call match without a call scrutinee", owner)
 	}
 	for i, arm := range node.Arms {
-		pat := arm.Pat
+		pat := arm.Pats[0]
 		switch pat.Kind {
 		case "wild":
 			markTaken(ctx, node, i)
@@ -1143,18 +1225,18 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 		if n == nil || !n.IsMatch {
 			return
 		}
-		if n.Scrut.Kind == "call" {
+		if n.Kind == MatchCall {
 			want := map[string]bool{"ok": true}
-			for _, e := range prog.EmitsOf[n.Scrut.Fname] {
+			for _, e := range prog.EmitsOf[n.Scruts[0].Fname] {
 				want[e] = true
 			}
 			got := map[string]int{}
 			for _, a := range n.Arms {
-				switch a.Pat.Kind {
+				switch p := a.Pats[0]; p.Kind {
 				case "variantWild":
-					got[a.Pat.Name] = a.Line
+					got[p.Name] = a.Line
 				case "variant":
-					k := a.Pat.Name
+					k := p.Name
 					if k == "Ok" {
 						k = "ok"
 					}
@@ -1176,26 +1258,9 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			}
 			return
 		}
-		bools := map[bool]bool{}
-		hasStr, hasWild := false, false
+		out = append(out, verifyValueMatch(n, owner)...)
 		for _, a := range n.Arms {
-			switch a.Pat.Kind {
-			case "bool":
-				bools[a.Pat.B] = true
-			case "str":
-				hasStr = true
-			case "wild":
-				hasWild = true
-			default:
-				out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match", owner)))
-			}
 			walk(a.Rhs, owner)
-		}
-		if len(bools) > 0 && (len(bools) != 2 || hasStr || hasWild) {
-			out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false", owner)))
-		}
-		if hasStr && !hasWild {
-			out = append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive", owner)))
 		}
 		return
 	}
@@ -1206,6 +1271,303 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			}
 		}
 	}
+	return out
+}
+
+// valueAtom is one symbolic inhabitant of a match slot's domain: a bool
+// literal, a mentioned string literal, the open string remainder (OTHER),
+// or the whole domain of an all-wildcard slot (ANY, rendered as _).
+type valueAtom struct {
+	render string
+	other  bool
+}
+
+// armCover is one arm as covered atom indices per slot.
+type armCover struct{ slots [][]int }
+
+func containsAtom(xs []int, v int) bool {
+	for _, x := range xs {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}
+
+// otherWitness picks a concrete string outside the mentioned literals,
+// so an uncovered open remainder renders as a real counterexample like
+// (true, "") rather than a diagnostic-only pattern.
+func otherWitness(lits []string) string {
+	mentioned := map[string]bool{}
+	for _, l := range lits {
+		mentioned[l] = true
+	}
+	if !mentioned[""] {
+		return ""
+	}
+	for i := 1; ; i++ {
+		s := strings.Repeat("a", i)
+		if !mentioned[s] {
+			return s
+		}
+	}
+}
+
+// witnessSearch finds one tuple covered by none of arms, or nil when the
+// arms cover the whole domain product. Depth-first descent prunes covered
+// prefixes slot by slot, so the product is never materialized. Returns
+// per-slot atom indices plus their renders.
+func witnessSearch(arms []armCover, nslot int, domains [][]valueAtom) (idx []int, render []string) {
+	var pi []int
+	var pr []string
+	var rec func(slot int, live []armCover) bool
+	rec = func(slot int, live []armCover) bool {
+		if slot == nslot {
+			return len(live) == 0
+		}
+		for ai, a := range domains[slot] {
+			var next []armCover
+			for _, arm := range live {
+				if containsAtom(arm.slots[slot], ai) {
+					next = append(next, arm)
+				}
+			}
+			pi = append(pi, ai)
+			pr = append(pr, a.render)
+			if rec(slot+1, next) {
+				return true
+			}
+			pi = pi[:len(pi)-1]
+			pr = pr[:len(pr)-1]
+		}
+		return false
+	}
+	if !rec(0, arms) {
+		return nil, nil
+	}
+	return append([]int{}, pi...), append([]string{}, pr...)
+}
+
+// valueCoverOf builds the symbolic slot domains and arm covers for a
+// multi-scrutinee match: mentioned string literals plus the open
+// remainder, both bool literals, or a single whole-domain atom for
+// all-wild slots. Shared by the exhaustiveness proof and the emitter's
+// residual check. Requires one pattern per slot on every arm (callers
+// establish arity first). Bool renders ("true"/"false") and normStr
+// renders never collide, and OTHER's concrete witness is chosen outside
+// the mentioned literals, so render-keyed lookup is unambiguous.
+// Returns the first 1-based slot mixing bool and string literals, or 0.
+func valueCoverOf(n *Node, hasBool []bool, strLits [][]string) (domains [][]valueAtom, covers []armCover, atomIndex []map[string]int, mixed int) {
+	nslot := len(n.Scruts)
+	domains = make([][]valueAtom, nslot)
+	for i := 0; i < nslot; i++ {
+		switch {
+		case len(strLits[i]) > 0 && hasBool[i]:
+			return nil, nil, nil, i + 1
+		case len(strLits[i]) > 0:
+			for _, l := range strLits[i] {
+				domains[i] = append(domains[i], valueAtom{render: normStr(l)})
+			}
+			domains[i] = append(domains[i], valueAtom{render: normStr(otherWitness(strLits[i])), other: true})
+		case hasBool[i]:
+			domains[i] = []valueAtom{{render: "true"}, {render: "false"}}
+		default:
+			domains[i] = []valueAtom{{render: "_"}}
+		}
+	}
+	atomIndex = make([]map[string]int, nslot)
+	for i, d := range domains {
+		atomIndex[i] = map[string]int{}
+		for ai := range d {
+			atomIndex[i][d[ai].render] = ai
+		}
+	}
+	covers = make([]armCover, 0, len(n.Arms))
+	for _, a := range n.Arms {
+		c := armCover{slots: make([][]int, nslot)}
+		for i, p := range a.Pats {
+			switch p.Kind {
+			case "wild":
+				for ai := range domains[i] {
+					c.slots[i] = append(c.slots[i], ai)
+				}
+			case "bool":
+				if p.B {
+					c.slots[i] = []int{atomIndex[i]["true"]}
+				} else {
+					c.slots[i] = []int{atomIndex[i]["false"]}
+				}
+			case "str":
+				c.slots[i] = []int{atomIndex[i][normStr(p.Str)]}
+			}
+		}
+		covers = append(covers, c)
+	}
+	return domains, covers, atomIndex, 0
+}
+
+// valueMatchAnalysis is the proven-table fact emit consumes: whether the
+// last arm owns the whole residual, so a bare else is sound. Set only
+// for proven tables (nil otherwise); the emitter never recomputes it.
+type valueMatchAnalysis struct {
+	emitFinalElse bool
+}
+
+// residualInLast reports whether every tuple outside the prior arms'
+// covers lies inside the last arm's. Bounded: an enormous residual
+// stays a tested condition instead. Proof logic lives here, with the
+// checker — never in the emitter.
+func residualInLast(prior []armCover, last armCover, nslot int, domains [][]valueAtom) bool {
+	live := append([]armCover{}, prior...)
+	for i := 0; i < 256; i++ {
+		idx, _ := witnessSearch(live, nslot, domains)
+		if idx == nil {
+			return true
+		}
+		for s, a := range idx {
+			if !containsAtom(last.slots[s], a) {
+				return false
+			}
+		}
+		lit := armCover{slots: make([][]int, nslot)}
+		for s, a := range idx {
+			lit.slots[s] = []int{a}
+		}
+		live = append(live, lit)
+	}
+	return false
+}
+
+// verifyValueMatch proves a value table of any arity 1..N total
+// (docs/v28): no call scrutinees, one pattern per slot on every arm,
+// bool and string literals never mixed in one slot, and the arms'
+// product spaces covering the total space. Arity 1 keeps the historical
+// single policy verbatim (AIL4103/AIL4104 byte-pinned; the product
+// engine would accept more, and that language change is parked, not
+// smuggled in). Diagnostics reuse the single-match codes, tuple-rendered
+// past arity 1 and anchored by the same message shapes proofDiag matches
+// on. Proven tables record the emit bit; anything else leaves analysis
+// nil, which the emitter reads as "test the last arm".
+func verifyValueMatch(n *Node, owner string) []error {
+	var out []error
+	nslot := len(n.Scruts)
+	for _, s := range n.Scruts {
+		if s.Kind == "call" {
+			out = append(out, at(n.Line, fmt.Errorf("%s: multi-scrutinee match over call %s is not supported: match a single call per match", owner, s.Fname)))
+		}
+	}
+	// Per-slot pattern inventory across arms.
+	hasBool := make([]bool, nslot)
+	strLits := make([][]string, nslot)
+	seenLit := make([]map[string]bool, nslot)
+	for i := range seenLit {
+		seenLit[i] = map[string]bool{}
+	}
+	shapeOK := true
+	for _, a := range n.Arms {
+		if len(a.Pats) != nslot {
+			out = append(out, at(a.Line, fmt.Errorf("%s: match arm has %d patterns; this match has %d scrutinees", owner, len(a.Pats), nslot)))
+			shapeOK = false
+			continue
+		}
+		for i, p := range a.Pats {
+			switch p.Kind {
+			case "bool":
+				hasBool[i] = true
+			case "str":
+				if !seenLit[i][p.Str] {
+					seenLit[i][p.Str] = true
+					strLits[i] = append(strLits[i], p.Str)
+				}
+			case "wild":
+			default:
+				if nslot == 1 {
+					out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match", owner)))
+				} else {
+					out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match (slot %d)", owner, i+1)))
+				}
+				shapeOK = false
+			}
+		}
+	}
+	if !shapeOK {
+		return out
+	}
+	if nslot == 1 {
+		return verifySinglePolicy(n, owner, out, hasBool, strLits)
+	}
+	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits)
+	if mixed > 0 {
+		out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
+		return out
+	}
+	// Collect up to three missing witnesses, feeding each back as a
+	// literal arm so the next search finds a new cell.
+	var wits []string
+	otherSlot := 0
+	live := covers
+	for len(wits) < 3 {
+		idx, renders := witnessSearch(live, nslot, domains)
+		if idx == nil {
+			break
+		}
+		wits = append(wits, "("+strings.Join(renders, ", ")+")")
+		lit := armCover{slots: make([][]int, nslot)}
+		for s, a := range idx {
+			lit.slots[s] = []int{a}
+			if domains[s][a].other && otherSlot == 0 {
+				otherSlot = s + 1
+			}
+		}
+		live = append(live, lit)
+	}
+	if len(wits) == 0 {
+		n.analysis = &valueMatchAnalysis{emitFinalElse: residualInLast(covers[:len(covers)-1], covers[len(covers)-1], nslot, domains)}
+		return out
+	}
+	// An uncovered open string remainder dominates: infinitely many
+	// cells are missing, so the _-coverage rule fires instead of a
+	// finite missing-cell list.
+	if otherSlot > 0 {
+		out = append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
+		return out
+	}
+	out = append(out, at(n.Line, fmt.Errorf("%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
+	return out
+}
+
+// verifySinglePolicy enforces the historical arity-1 value rules
+// verbatim: bool slots take exactly true+false with no wildcards or
+// strings, string tables need _. Anything else keeps its legacy
+// message and code. On success records the emit bit like the multi
+// path, so the unified emitter reads one fact for every arity.
+func verifySinglePolicy(n *Node, owner string, out []error, hasBool []bool, strLits [][]string) []error {
+	bools := map[bool]bool{}
+	hasStr, hasWild := false, false
+	for _, a := range n.Arms {
+		switch a.Pats[0].Kind {
+		case "bool":
+			bools[a.Pats[0].B] = true
+		case "str":
+			hasStr = true
+		case "wild":
+			hasWild = true
+		}
+	}
+	if len(bools) > 0 && (len(bools) != 2 || hasStr || hasWild) {
+		return append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false", owner)))
+	}
+	if hasStr && !hasWild {
+		return append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive", owner)))
+	}
+	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits)
+	if mixed > 0 {
+		// Unreachable through the legacy gates above (any bool
+		// presence with a string mix fails the first rule), kept for
+		// hand-built ASTs that bypass them.
+		return append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false", owner)))
+	}
+	n.analysis = &valueMatchAnalysis{emitFinalElse: residualInLast(covers[:len(covers)-1], covers[len(covers)-1], 1, domains)}
 	return out
 }
 
@@ -1254,7 +1616,9 @@ func walkCalls(node *Node) []*Small {
 			return
 		}
 		if n.IsMatch {
-			walkSmall(n.Scrut)
+			for _, s := range n.Scruts {
+				walkSmall(s)
+			}
 			for _, a := range n.Arms {
 				walk(a.Rhs)
 			}

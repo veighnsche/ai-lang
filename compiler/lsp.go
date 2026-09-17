@@ -370,7 +370,8 @@ func checkCoverage(fn *FnDecl, prog *Program, text string, cov map[*Node]map[int
 			if cov[n][i] {
 				continue
 			}
-			desc, tok := patDesc(a.Pat)
+			// First slot describes the arm.
+			desc, tok := patDesc(a.Pats[0])
 			if ok, reason := relayStatus(prog, fn.Name, n, n.Arms, i); ok {
 				if reason == "" {
 					continue
@@ -397,19 +398,20 @@ func checkCoverage(fn *FnDecl, prog *Program, text string, cov map[*Node]map[int
 // consumes every value this one could take, so structural evidence
 // cannot substitute for the execution the shadowing removed.
 func relayStatus(prog *Program, owner string, n *Node, arms []Arm, idx int) (bool, string) {
-	if n.Scrut == nil || n.Scrut.Kind != "call" {
+	if n.Kind != MatchCall {
 		return false, ""
 	}
-	if localCallee(prog, owner, n.Scrut.Fname) == nil {
+	if localCallee(prog, owner, n.Scruts[0].Fname) == nil {
 		return false, ""
 	}
 	a := arms[idx]
-	pat := a.Pat
+	pat := a.Pats[0]
 	if pat.Kind != "variant" || pat.Name == "Ok" {
 		return false, ""
 	}
 	for _, prev := range arms[:idx] {
-		if (prev.Pat.Kind == "variant" || prev.Pat.Kind == "variantWild") && prev.Pat.Name == pat.Name {
+		pp := prev.Pats[0]
+		if (pp.Kind == "variant" || pp.Kind == "variantWild") && pp.Name == pat.Name {
 			return false, ""
 		}
 	}
@@ -514,6 +516,8 @@ func proofDiag(text string, err error) Diag {
 	case strings.Contains(msg, "value match without _ "):
 		code = CodeValueNoWild
 	case strings.Contains(msg, "call-match arm must be "):
+		code = CodeBadArmKind
+	case strings.Contains(msg, "patterns; this match has "):
 		code = CodeBadArmKind
 	case strings.Contains(msg, "variant pattern on a non-call "):
 		code = CodeVariantOnVal

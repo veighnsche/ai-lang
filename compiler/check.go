@@ -431,9 +431,10 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 	var out []Diag
 	scrut := map[*Small]bool{}
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut != nil && m.Scrut.Kind == "call" {
-			scrut[m.Scrut] = true
-			fname := m.Scrut.Fname
+		if m.Kind == MatchCall {
+			s := m.Scruts[0]
+			scrut[s] = true
+			fname := s.Fname
 			if isStoreOp(fname) || isDecParts(fname) {
 				continue // cells resolve in checkEffects; the kernel
 				// needs nothing; uses never applies to either
@@ -468,22 +469,28 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 		}
 	})
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut == nil || m.Scrut.Kind == "call" {
+		if m.Kind == MatchCall {
 			continue
 		}
-		walkSmallTrees(m.Scrut, func(s *Small) {
-			if s.Kind == "call" {
-				out = append(out, spanDiag(text, m.Line, "error",
-					fmt.Sprintf("call to %s outside a match scrutinee is outside the v0 subset", s.Fname), s.Fname, CodeCallOutside))
+		for _, ms := range m.Scruts {
+			if ms.Kind == "call" {
+				continue // owned by the multi-match shape rule
 			}
-		})
+			walkSmallTrees(ms, func(s *Small) {
+				if s.Kind == "call" {
+					out = append(out, spanDiag(text, m.Line, "error",
+						fmt.Sprintf("call to %s outside a match scrutinee is outside the v0 subset", s.Fname), s.Fname, CodeCallOutside))
+				}
+			})
+		}
 	}
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut == nil || m.Scrut.Kind != "call" {
+		if m.Kind != MatchCall {
 			continue
 		}
-		walkSmallTrees(m.Scrut, func(s *Small) {
-			if s.Kind == "call" && s != m.Scrut {
+		ms := m.Scruts[0]
+		walkSmallTrees(ms, func(s *Small) {
+			if s.Kind == "call" && s != ms {
 				out = append(out, spanDiag(text, m.Line, "error",
 					fmt.Sprintf("nested call to %s inside a scrutinee is outside the v0 subset", s.Fname), s.Fname, CodeCallNested))
 			}
@@ -571,10 +578,15 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 	var out []Diag
 	valid := fileTests(prog, fn.Name)
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut == nil || m.Scrut.Kind != "call" {
+		if m.Kind == MatchValue && m.Given != nil {
+			out = append(out, spanDiag(text, m.Line, "error",
+				fmt.Sprintf("multi-scrutinee match takes no given table: only a single call match takes given"), "given", CodeGivenOnLocal))
+		}
+		if m.Kind != MatchCall {
 			continue
 		}
-		fname := m.Scrut.Fname
+		ms := m.Scruts[0]
+		fname := ms.Fname
 		if isStoreOp(fname) {
 			if m.Given != nil {
 				out = append(out, spanDiag(text, m.Line, "error",
@@ -641,10 +653,11 @@ func checkScriptConsistency(fn *FnDecl, prog *Program, text string) []Diag {
 	var out []Diag
 	here := prog.FnFile[fn.Name]
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut == nil || m.Scrut.Kind != "call" {
+		if m.Kind != MatchCall {
 			continue
 		}
-		fname := m.Scrut.Fname
+		ms := m.Scruts[0]
+		fname := ms.Fname
 		if isStoreOp(fname) || isDecParts(fname) || localCallee(prog, fn.Name, fname) != nil {
 			continue
 		}
@@ -760,16 +773,17 @@ func checkLocalCycles(m *Module, prog *Program, text string) []Diag {
 			continue
 		}
 		for _, n := range matchNodes(fn.Body) {
-			if n.Scrut == nil || n.Scrut.Kind != "call" {
+			if n.Kind != MatchCall {
 				continue
 			}
-			if localCallee(prog, fn.Name, n.Scrut.Fname) == nil {
+			ns := n.Scruts[0]
+			if localCallee(prog, fn.Name, ns.Fname) == nil {
 				continue
 			}
-			if n.Scrut.Fname == fn.Name && len(fn.DecNames) > 0 {
+			if ns.Fname == fn.Name && len(fn.DecNames) > 0 {
 				continue // proven self-recursion: checkDecreases owns it
 			}
-			add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line)
+			add(fn.Name, ns.Fname, ns.Fname, n.Line)
 		}
 		bodySmalls(fn.Body, func(s *Small, line int) {
 			if s.Kind == "call" && localCallee(prog, fn.Name, s.Fname) != nil {
@@ -934,16 +948,17 @@ func checkGlobalCycles(mods []*Module, texts map[string]string, prog *Program) [
 				continue
 			}
 			for _, n := range matchNodes(fn.Body) {
-				if n.Scrut == nil || n.Scrut.Kind != "call" {
+				if n.Kind != MatchCall {
 					continue
 				}
-				if _, isEx := prog.Externs[n.Scrut.Fname]; isEx {
+				ns := n.Scruts[0]
+				if _, isEx := prog.Externs[ns.Fname]; isEx {
 					continue
 				}
-				if _, ok := prog.Fns[n.Scrut.Fname]; !ok {
+				if _, ok := prog.Fns[ns.Fname]; !ok {
 					continue
 				}
-				add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line, m.ID)
+				add(fn.Name, ns.Fname, ns.Fname, n.Line, m.ID)
 			}
 			bodySmalls(fn.Body, func(s *Small, line int) {
 				if s.Kind != "call" {
@@ -1127,22 +1142,36 @@ func checkDecreases(fn *FnDecl, prog *Program, text string) []Diag {
 		if n == nil || !n.IsMatch {
 			return
 		}
-		if m := n.Scrut; m != nil && m.Kind == "call" && m.Fname == fn.Name {
-			if localCallee(prog, fn.Name, m.Fname) != nil && len(m.Args) == len(fn.Params) {
-				if !isStep(m) {
-					out = append(out, spanDiag(text, n.Line, "error",
-						stepMsg, fn.Name, CodeNoDecrease))
-				} else if !guarded {
-					out = append(out, spanDiag(text, n.Line, "error",
-						guardMsg, fn.Name, CodeNoGuard))
+		if n.Kind == MatchCall {
+			m := n.Scruts[0]
+			if m.Fname == fn.Name {
+				if localCallee(prog, fn.Name, m.Fname) != nil && len(m.Args) == len(fn.Params) {
+					if !isStep(m) {
+						out = append(out, spanDiag(text, n.Line, "error",
+							stepMsg, fn.Name, CodeNoDecrease))
+					} else if !guarded {
+						out = append(out, spanDiag(text, n.Line, "error",
+							guardMsg, fn.Name, CodeNoGuard))
+					}
 				}
 			}
 		}
-		g := isGuard(n.Scrut)
+		// Arity-1 matches guard on their one scrutinee, exactly as
+		// before; wider tables never carried a guard, and their arms
+		// stay unguarded here too.
+		var gs *Small
+		if len(n.Scruts) == 1 {
+			gs = n.Scruts[0]
+		}
+		g := isGuard(gs)
 		for _, a := range n.Arms {
 			ag := guarded
 			if g {
-				ag = a.Pat.Kind == "bool" && !a.Pat.B
+				if len(a.Pats) == 1 {
+					ag = a.Pats[0].Kind == "bool" && !a.Pats[0].B
+				} else {
+					ag = false
+				}
 			}
 			walk(a.Rhs, ag)
 		}
@@ -1319,8 +1348,8 @@ type callSite struct {
 func callSites(body *Node) []callSite {
 	var out []callSite
 	for _, m := range matchNodes(body) {
-		if m.Scrut != nil && m.Scrut.Kind == "call" {
-			out = append(out, callSite{m.Scrut.Fname, m.Line})
+		if m.Kind == MatchCall {
+			out = append(out, callSite{m.Scruts[0].Fname, m.Line})
 		}
 	}
 	return out
@@ -1374,15 +1403,19 @@ func requiredEffects(fn *FnDecl, prog *Program) map[string]effectNeed {
 	addDirect := func(target *FnDecl, line int, via string) {
 		file := prog.FnFile[target.Name]
 		for _, m := range matchNodes(target.Body) {
-			if m.Scrut == nil || m.Scrut.Kind != "call" || !isStoreOp(m.Scrut.Fname) {
+			if m.Kind != MatchCall {
 				continue
 			}
-			cell, ok := storeCellLenient(m.Scrut)
+			ms := m.Scruts[0]
+			if !isStoreOp(ms.Fname) {
+				continue
+			}
+			cell, ok := storeCellLenient(ms)
 			if !ok || cellInFile(prog, file, cell) == nil {
 				continue
 			}
 			cap := cell + ".read"
-			if m.Scrut.Fname == "state__put" {
+			if ms.Fname == "state__put" {
 				cap = cell + ".write"
 			}
 			ln := m.Line
@@ -1453,16 +1486,20 @@ func checkEffects(fn *FnDecl, prog *Program, text string) []Diag {
 	var out []Diag
 	file := prog.FnFile[fn.Name]
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut == nil || m.Scrut.Kind != "call" || !isStoreOp(m.Scrut.Fname) {
+		if m.Kind != MatchCall {
 			continue
 		}
-		cell, ok := storeCellName(m.Scrut)
+		ms := m.Scruts[0]
+		if !isStoreOp(ms.Fname) {
+			continue
+		}
+		cell, ok := storeCellName(ms)
 		if !ok {
 			continue // cell shape belongs to the type rule
 		}
 		if cellInFile(prog, file, cell) == nil {
 			out = append(out, spanDiag(text, m.Line, "error",
-				fmt.Sprintf("%s names unknown cell %s", m.Scrut.Fname, cell), cell, CodeUnknownCall))
+				fmt.Sprintf("%s names unknown cell %s", ms.Fname, cell), cell, CodeUnknownCall))
 		}
 	}
 	declared := map[string]bool{}
@@ -1617,12 +1654,17 @@ func eachRaise(fn *FnDecl, f func(kind string, line int)) {
 		if x.IsMatch {
 			for _, a := range x.Arms {
 				inner := bound
-				if a.Pat.Kind == "variant" && a.Pat.Var != "" && strings.Contains(a.Pat.Name, ".") {
-					inner = map[string]string{}
-					for k, v := range bound {
-						inner[k] = v
+				// Call arms carry exactly one pattern; wider value
+				// tables never bind error kinds here, so only
+				// arity-1 arms bind.
+				if len(a.Pats) == 1 {
+					if p := a.Pats[0]; p.Kind == "variant" && p.Var != "" && strings.Contains(p.Name, ".") {
+						inner = map[string]string{}
+						for k, v := range bound {
+							inner[k] = v
+						}
+						inner[p.Var] = p.Name
 					}
-					inner[a.Pat.Var] = a.Pat.Name
 				}
 				walk(a.Rhs, a.Line, inner)
 			}
@@ -1641,8 +1683,11 @@ func eachRaise(fn *FnDecl, f func(kind string, line int)) {
 	}
 	walk(fn.Body, fn.Line, map[string]string{})
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut != nil && m.Scrut.Kind != "call" {
-			walkSmallTrees(m.Scrut, func(s *Small) {
+		for _, ms := range m.Scruts {
+			if ms.Kind == "call" {
+				continue
+			}
+			walkSmallTrees(ms, func(s *Small) {
 				if s.Kind == "ctor" && strings.Contains(s.Ctor, ".") {
 					f(s.Ctor, m.Line)
 				}
@@ -1685,8 +1730,8 @@ func calledFns(fn *FnDecl) map[string]bool {
 		}
 	})
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut != nil && m.Scrut.Kind == "call" {
-			out[m.Scrut.Fname] = true
+		if m.Kind == MatchCall {
+			out[m.Scruts[0].Fname] = true
 		}
 	}
 	return out
@@ -1723,8 +1768,8 @@ func checkUnusedParams(fn *FnDecl, text string) []Diag {
 	}
 	bodySmalls(fn.Body, func(s *Small, line int) { mark(s) })
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut != nil {
-			mark(m.Scrut)
+		for _, ms := range m.Scruts {
+			mark(ms)
 		}
 		for _, sm := range m.Given {
 			mark(sm)

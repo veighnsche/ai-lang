@@ -58,18 +58,43 @@ type Pattern struct {
 }
 
 type Arm struct {
-	Pat  Pattern
+	// Pats holds the arm's patterns, one per match scrutinee: exactly
+	// one entry for single-scrutinee arms, two or more for
+	// multi-scrutinee value arms (docs/v28, slots bool/str/wild).
+	// Always non-empty; the parser rejects empty slots.
+	Pats []Pattern
 	Rhs  *Node
 	Line int
 }
 
+type MatchKind uint8
+
+const (
+	// MatchValue discriminates ordinary values: one or more scrutinees,
+	// per-slot bool/str/wild patterns, no given table.
+	MatchValue MatchKind = iota
+	// MatchCall discriminates one call's outcome: Ok or emitted error
+	// variants, scripted through given. Always a single scrutinee.
+	MatchCall
+)
+
 type Node struct {
 	IsMatch bool
-	Scrut   *Small
-	Arms    []Arm
-	Given   map[string]*Small // nil value node = "-" unreachable
-	Small   *Small
-	Line    int
+	// Kind names the match family, decided once at parse: call outcome
+	// vs value table. Downstream phases switch on Kind, never on
+	// arity or scrutinee shape.
+	Kind MatchKind
+	// Scruts holds the match scrutinees: exactly one for MatchCall,
+	// one or more for MatchValue.
+	Scruts []*Small
+	Arms   []Arm
+	Given  map[string]*Small // nil value node = "-" unreachable
+	Small  *Small
+	Line   int
+	// analysis carries the value-table proof from verification to
+	// emit (nil until verifyValueMatch proves the table). Unexported:
+	// invisible to any serialization, meaningful only post-proof.
+	analysis *valueMatchAnalysis
 }
 
 type Test struct {
@@ -206,6 +231,13 @@ func stripComment(line string) string {
 }
 
 func splitTop(s string, sep rune) []string {
+	return splitTopInner(s, sep, false)
+}
+
+// splitTopInner is splitTop with an empty-slot policy: drop trims and
+// drops empties (argument lists, where trailing commas are tolerated),
+// keep preserves every slot so callers can reject them.
+func splitTopInner(s string, sep rune, keepEmpty bool) []string {
 	var parts []string
 	var cur strings.Builder
 	var stack []byte
@@ -241,11 +273,29 @@ func splitTop(s string, sep rune) []string {
 	parts = append(parts, cur.String())
 	var keep []string
 	for _, p := range parts {
-		if strings.TrimSpace(p) != "" {
+		if keepEmpty || strings.TrimSpace(p) != "" {
 			keep = append(keep, strings.TrimSpace(p))
 		}
 	}
 	return keep
+}
+
+// splitMatchList splits a top-level comma list from a match line or arm,
+// rejecting empty slots: `match x,` and `true,, false` are malformed
+// syntax, not short rows. String- and paren-aware like splitTop.
+func splitMatchList(s string) ([]string, error) {
+	raw := splitTopInner(s, ',', true)
+	out := make([]string, 0, len(raw))
+	for _, p := range raw {
+		if p == "" {
+			return nil, fmt.Errorf("empty slot in match list: %q", s)
+		}
+		out = append(out, p)
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("match with no scrutinee")
+	}
+	return out, nil
 }
 
 // findTop returns the index and matched op of the first top-level occurrence.
@@ -1129,11 +1179,11 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 		return nil, i, at(mline, fmt.Errorf("expected expression, found dedent: %s", code))
 	}
 	if strings.HasPrefix(code, "match ") {
-		scrut, err := parseSmall(strings.TrimSpace(code[len("match "):]))
+		scruts, err := parseScrutList(strings.TrimSpace(code[len("match "):]))
 		if err != nil {
 			return nil, i, at(mline, err)
 		}
-		node, next, err := parseMatchArms(rows, i+1, indent, mline, scrut)
+		node, next, err := parseMatchArms(rows, i+1, indent, mline, scruts)
 		if err != nil {
 			return nil, next, err
 		}
@@ -1147,8 +1197,32 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 	return &Node{Small: sm, Line: mline}, i + 1, nil
 }
 
-func parseMatchArms(rows []row, i, indent, mline int, scrut *Small) (*Node, int, error) {
-	node := &Node{IsMatch: true, Scrut: scrut, Line: mline}
+// parseScrutList parses a match scrutinee list: one value/call expression,
+// or several comma-separated value expressions (docs/v28). Arity and
+// call-in-multi rules belong to the checker (proper diagnostic codes);
+// only malformed slots fail here.
+func parseScrutList(s string) ([]*Small, error) {
+	parts, err := splitMatchList(s)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*Small, 0, len(parts))
+	for _, p := range parts {
+		sm, err := parseSmall(p)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, sm)
+	}
+	return out, nil
+}
+
+func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, int, error) {
+	kind := MatchValue
+	if len(scruts) == 1 && scruts[0].Kind == "call" {
+		kind = MatchCall
+	}
+	node := &Node{IsMatch: true, Kind: kind, Scruts: scruts, Line: mline}
 	for i < len(rows) && rows[i].indent > indent {
 		ind, c := rows[i].indent, rows[i].code
 		aline := rows[i].line
@@ -1182,16 +1256,24 @@ func parseMatchArms(rows []row, i, indent, mline int, scrut *Small) (*Node, int,
 		if m == nil {
 			return nil, i, at(aline, fmt.Errorf("bad match arm: %s", c))
 		}
-		pat, err := parsePattern(m[1])
+		patParts, err := splitMatchList(m[1])
 		if err != nil {
 			return nil, i, at(aline, err)
+		}
+		pats := make([]Pattern, 0, len(patParts))
+		for _, p := range patParts {
+			pat, err := parsePattern(p)
+			if err != nil {
+				return nil, i, at(aline, err)
+			}
+			pats = append(pats, pat)
 		}
 		rest := strings.TrimSpace(m[2])
 		i++
 		var rhs *Node
 		switch {
 		case strings.HasPrefix(rest, "match "):
-			sub, err := parseSmall(strings.TrimSpace(rest[len("match "):]))
+			sub, err := parseScrutList(strings.TrimSpace(rest[len("match "):]))
 			if err != nil {
 				return nil, i, at(aline, err)
 			}
@@ -1211,12 +1293,15 @@ func parseMatchArms(rows []row, i, indent, mline int, scrut *Small) (*Node, int,
 				return nil, i, err
 			}
 		}
-		node.Arms = append(node.Arms, Arm{Pat: pat, Rhs: rhs, Line: aline})
+		node.Arms = append(node.Arms, Arm{Pats: pats, Rhs: rhs, Line: aline})
 	}
 	if len(node.Arms) == 0 {
 		return nil, i, at(indent, fmt.Errorf("match with no arms"))
 	}
-	if node.Given != nil && scrut.Kind != "call" {
+	// Single non-call matches take no given table. Multi matches with a
+	// given table parse and fail in checkGiven with CodeGivenOnLocal, so
+	// the diagnostic names the rule instead of a coarse parse error.
+	if node.Given != nil && len(node.Scruts) == 1 && node.Scruts[0].Kind != "call" {
 		return nil, i, at(node.Line, fmt.Errorf("given table on a non-call match"))
 	}
 	return node, i, nil

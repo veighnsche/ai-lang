@@ -614,28 +614,29 @@ func (c *tycker) checkDecParts(s *Small, line int, env map[string]string) {
 // empty Ok, so its var binds nothing checkable. The cell type flows
 // from the declaration, never from inference.
 func (c *tycker) nodeStoreArms(n *Node, env map[string]string, want string) {
-	cell, ok := storeCellName(n.Scrut)
+	cell, ok := storeCellName(n.Scruts[0])
 	t, known := "", false
 	if ok {
 		t, known = c.cells[cell]
 	}
 	for _, a := range n.Arms {
+		p := a.Pats[0]
 		env2 := map[string]string{}
 		for k, v := range env {
 			env2[k] = v
 		}
 		armWant := ""
-		if a.Pat.Kind == "variant" && a.Pat.Name == "Ok" && a.Pat.Var != "" {
-			if n.Scrut.Fname == "state__get" && known {
-				env2[a.Pat.Var] = "cell:" + t
-			} else if n.Scrut.Fname == "state__put" {
-				env2[a.Pat.Var] = "empty-ok"
+		if p.Kind == "variant" && p.Name == "Ok" && p.Var != "" {
+			if n.Scruts[0].Fname == "state__get" && known {
+				env2[p.Var] = "cell:" + t
+			} else if n.Scruts[0].Fname == "state__put" {
+				env2[p.Var] = "empty-ok"
 			} else {
-				env2[a.Pat.Var] = ""
+				env2[p.Var] = ""
 			}
 			armWant = want
 		}
-		if a.Pat.Kind == "variantWild" && a.Pat.Name == "Ok" {
+		if p.Kind == "variantWild" && p.Name == "Ok" {
 			armWant = want
 		}
 		c.node(a.Rhs, env2, armWant)
@@ -648,16 +649,17 @@ func (c *tycker) nodeStoreArms(n *Node, env map[string]string, want string) {
 // by inference, so no declared record is consulted.
 func (c *tycker) nodePartsArms(n *Node, env map[string]string, want string) {
 	for _, a := range n.Arms {
+		p := a.Pats[0]
 		env2 := map[string]string{}
 		for k, v := range env {
 			env2[k] = v
 		}
 		armWant := ""
-		if a.Pat.Kind == "variant" && a.Pat.Name == "Ok" && a.Pat.Var != "" {
-			env2[a.Pat.Var] = "parts"
+		if p.Kind == "variant" && p.Name == "Ok" && p.Var != "" {
+			env2[p.Var] = "parts"
 			armWant = want
 		}
-		if a.Pat.Kind == "variantWild" && a.Pat.Name == "Ok" {
+		if p.Kind == "variantWild" && p.Name == "Ok" {
 			armWant = want
 		}
 		c.node(a.Rhs, env2, armWant)
@@ -759,38 +761,45 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		c.value(n.Small, want, n.Line, env, "returns")
 		return
 	}
-	c.value(n.Scrut, "", n.Line, env, "match scrutinee")
-	if n.Scrut != nil && n.Scrut.Kind == "call" {
-		if isStoreOp(n.Scrut.Fname) {
+	// Every scrutinee is valued, so a bad reference in any slot is
+	// caught here exactly as it is at runtime. Only call matches take
+	// arm bindings, and they always carry one scrutinee.
+	for _, s := range n.Scruts {
+		c.value(s, "", n.Line, env, "match scrutinee")
+	}
+	if n.Kind == MatchCall {
+		ns := n.Scruts[0]
+		if isStoreOp(ns.Fname) {
 			c.nodeStoreArms(n, env, want)
 			return
 		}
-		if isDecParts(n.Scrut.Fname) {
+		if isDecParts(ns.Fname) {
 			c.nodePartsArms(n, env, want)
 			return
 		}
-		sig := c.callee(n.Scrut.Fname)
+		sig := c.callee(ns.Fname)
 		for _, a := range n.Arms {
+			p := a.Pats[0]
 			env2 := map[string]string{}
 			for k, v := range env {
 				env2[k] = v
 			}
 			armWant := ""
-			if a.Pat.Kind == "variant" && a.Pat.Var != "" {
-				if a.Pat.Name == "Ok" {
+			if p.Kind == "variant" && p.Var != "" {
+				if p.Name == "Ok" {
 					if sig != nil && c.knownType(sig.ret) {
-						env2[a.Pat.Var] = sig.ret
+						env2[p.Var] = sig.ret
 					} else {
-						env2[a.Pat.Var] = ""
+						env2[p.Var] = ""
 					}
 					armWant = want
-				} else if _, ok := c.errs[a.Pat.Name]; ok {
-					env2[a.Pat.Var] = "err:" + a.Pat.Name
+				} else if _, ok := c.errs[p.Name]; ok {
+					env2[p.Var] = "err:" + p.Name
 				} else {
-					env2[a.Pat.Var] = ""
+					env2[p.Var] = ""
 				}
 			}
-			if a.Pat.Kind == "variantWild" && a.Pat.Name == "Ok" {
+			if p.Kind == "variantWild" && p.Name == "Ok" {
 				armWant = want
 			}
 			c.node(a.Rhs, env2, armWant)
@@ -809,10 +818,11 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 // resolve here exactly as they do at runtime.
 func (c *tycker) checkStubs(fn *FnDecl, text string, env map[string]string) {
 	for _, m := range matchNodes(fn.Body) {
-		if m.Scrut == nil || m.Scrut.Kind != "call" || m.Given == nil {
+		if m.Kind != MatchCall || m.Given == nil {
 			continue
 		}
-		sig := c.callee(m.Scrut.Fname)
+		ms := m.Scruts[0]
+		sig := c.callee(ms.Fname)
 		if sig == nil {
 			continue
 		}
@@ -821,7 +831,7 @@ func (c *tycker) checkStubs(fn *FnDecl, text string, env map[string]string) {
 				continue
 			}
 			line := locateLineFrom(text, key+" =>", m.Line, m.Line)
-			where := fmt.Sprintf("script %s for %s", key, m.Scrut.Fname)
+			where := fmt.Sprintf("script %s for %s", key, ms.Fname)
 			var items []*Small
 			if sm.Kind == "list" {
 				items = sm.Items
@@ -841,7 +851,7 @@ func (c *tycker) checkStubs(fn *FnDecl, text string, env map[string]string) {
 				// args type against function params. Names themselves
 				// are proven dynamically at each hit.
 				for _, a := range it.Args {
-					c.value(a.V, "", line, env, "exchange arg "+a.Name+" for "+m.Scrut.Fname)
+					c.value(a.V, "", line, env, "exchange arg "+a.Name+" for "+ms.Fname)
 					want := ""
 					for _, p := range sig.params {
 						if p[0] == a.Name {
@@ -850,7 +860,7 @@ func (c *tycker) checkStubs(fn *FnDecl, text string, env map[string]string) {
 					}
 					if want != "" && c.knownType(want) {
 						if got, ok := c.typeOf(a.V, env); ok && got != want {
-							c.mismatch(line, "exchange arg "+a.Name+" for "+m.Scrut.Fname, got, want, tokenOf(a.V))
+							c.mismatch(line, "exchange arg "+a.Name+" for "+ms.Fname, got, want, tokenOf(a.V))
 						}
 					}
 				}
