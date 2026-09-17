@@ -75,6 +75,24 @@ function $ailDecLe(a: string, b: string): boolean {
   const s = Math.max(A.fp.length, B.fp.length);
   return $ailDecMant(A, s) <= $ailDecMant(B, s);
 }
+// Byte-order string comparison: UTF-8 bytes, matching Go.
+function $ailStrCmp(a: string, b: string): number {
+  const A = new TextEncoder().encode(a);
+  const B = new TextEncoder().encode(b);
+  const n = Math.min(A.length, B.length);
+  for (let i = 0; i < n; i++) {
+    if (A[i] !== B[i]) {
+      return A[i] < B[i] ? -1 : 1;
+    }
+  }
+  if (A.length === B.length) {
+    return 0;
+  }
+  return A.length < B.length ? -1 : 1;
+}
+function $ailStrGe(a: string, b: string): boolean {
+  return $ailStrCmp(a, b) >= 0;
+}
 export function std__bool__not(value: boolean): ScalarsResult {
   if (value) {
     return { kind: "ok", value: false };
@@ -189,7 +207,7 @@ export function std__compare__str(left: string, right: string): ScalarsResult {
     return { kind: "ok", value: 0n };
   }
   else {
-    if ((left >= right)) {
+    if ($ailStrGe(left, right)) {
       return { kind: "ok", value: 1n };
     }
     else {
