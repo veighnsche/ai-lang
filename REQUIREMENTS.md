@@ -16,6 +16,9 @@ Core thesis: tests and business logic are the same artifact, not two files.
 Every function ships its decision table (`tests`) and its branch evidence
 (`given` at each `call`); writing the behavior and proving it are one act
 (see R7, R8). There is no separate test suite to forget, drift, or infer.
+A decision table anchors intended behavior but cannot constrain all admitted
+behavior: a weak table is satisfied by a wrong implementation, so the
+specification must rule out the constant function, not merely bless examples.
 
 ## Non-goals (explicit outs)
 
