@@ -40,6 +40,12 @@
   shared value worker. Uniqueness needs a tree and stays out.
   New error `html.invalid_identifier`. See
   `docs/v31-identifier-attribute.md`.
+- `html__attribute__href` / `html__attribute__src` validate
+  absolute-`https` URLs under a restricted ASCII authority
+  profile and serialize them reusing the shared worker. Fused
+  raw input: no `Html__Url` brand exists yet because no
+  consumer could serialize one. New errors `html.invalid_url`,
+  `html.disallowed_scheme`. See `docs/v32-url-attributes.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html
@@ -48,5 +54,5 @@
 Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
 `docs/v26-html-node.md`, `docs/v27-attribute-name.md`,
 `docs/v29-attribute-value.md`, `docs/v30-boolean-attribute.md`,
-`docs/v31-identifier-attribute.md`,
+`docs/v31-identifier-attribute.md`, `docs/v32-url-attributes.md`,
 `docs/encoder-nul-policy.md`, brand scope: `docs/v15-brands.md`.

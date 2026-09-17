@@ -1,5 +1,41 @@
 [
   {
+    "kind": "html.disallowed_scheme",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "html.html__attribute__href",
+      "html.html__attribute__src",
+      "html.html__url__admit",
+      "html.html__url__check"
+    ],
+    "handled_by": [
+      {
+        "fn": "html.html__attribute__href",
+        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__src",
+        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+      },
+      {
+        "fn": "html.html__url__check",
+        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "html.html__attribute__href/href_scheme",
+      "html.html__attribute__src/src_scheme",
+      "html.html__url__admit/admit_token_short",
+      "html.html__url__check/check_http",
+      "html.html__url__check/check_long_scheme",
+      "html.html__url__check/check_short_scheme",
+      "html.html__url__check/check_upper_first",
+      "html.html__url__check/check_upper_scheme"
+    ]
+  },
+  {
     "kind": "html.invalid_attribute_name",
     "fields": [
       "value"
@@ -66,12 +102,101 @@
     ]
   },
   {
+    "kind": "html.invalid_url",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "html.html__attribute__href",
+      "html.html__attribute__src",
+      "html.html__url__absolute",
+      "html.html__url__admit",
+      "html.html__url__authority",
+      "html.html__url__check",
+      "html.html__url__tail"
+    ],
+    "handled_by": [
+      {
+        "fn": "html.html__attribute__href",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__attribute__src",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__url__absolute",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__url__admit",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__url__check",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      },
+      {
+        "fn": "html.html__url__tail",
+        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "html.html__attribute__href/href_relative",
+      "html.html__attribute__src/src_relative",
+      "html.html__url__absolute/absolute_empty_host",
+      "html.html__url__absolute/absolute_ipv6",
+      "html.html__url__absolute/absolute_pct_host",
+      "html.html__url__absolute/absolute_port",
+      "html.html__url__absolute/absolute_prefix",
+      "html.html__url__absolute/absolute_short",
+      "html.html__url__absolute/absolute_space",
+      "html.html__url__absolute/absolute_tail_space",
+      "html.html__url__admit/admit_no_token",
+      "html.html__url__authority/auth_del",
+      "html.html__url__authority/auth_digit_bad",
+      "html.html__url__authority/auth_doubledot",
+      "html.html__url__authority/auth_empty",
+      "html.html__url__authority/auth_hyphen_frag",
+      "html.html__url__authority/auth_hyphen_query",
+      "html.html__url__authority/auth_hyphen_slash",
+      "html.html__url__authority/auth_ipv6",
+      "html.html__url__authority/auth_leading_dot",
+      "html.html__url__authority/auth_leading_hyphen",
+      "html.html__url__authority/auth_nul_bad",
+      "html.html__url__authority/auth_percent",
+      "html.html__url__authority/auth_port",
+      "html.html__url__authority/auth_space",
+      "html.html__url__authority/auth_trailing_hyphen",
+      "html.html__url__authority/auth_upper_bad",
+      "html.html__url__authority/auth_userinfo",
+      "html.html__url__check/check_bare",
+      "html.html__url__check/check_bare_prefix",
+      "html.html__url__check/check_del_first",
+      "html.html__url__check/check_digit_first",
+      "html.html__url__check/check_empty",
+      "html.html__url__check/check_query_colon",
+      "html.html__url__check/check_relative",
+      "html.html__url__check/check_single",
+      "html.html__url__check/check_symbol_first",
+      "html.html__url__check/check_upper_bare",
+      "html.html__url__tail/tail_backslash",
+      "html.html__url__tail/tail_space"
+    ]
+  },
+  {
     "kind": "html.nul_byte",
     "fields": [
       "value"
     ],
     "raised_by": [
+      "html.html__attribute__href",
       "html.html__attribute__id",
+      "html.html__attribute__src",
       "html.html__attribute__text",
       "html.html__attribute__value_from",
       "html.html__text__escape",
@@ -79,8 +204,16 @@
     ],
     "handled_by": [
       {
+        "fn": "html.html__attribute__href",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = u.value)"
+      },
+      {
         "fn": "html.html__attribute__id",
         "arm": "on html.nul_byte e =\u003e html.nul_byte(value = value)"
+      },
+      {
+        "fn": "html.html__attribute__src",
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = u.value)"
       },
       {
         "fn": "html.html__attribute__text",
@@ -100,7 +233,9 @@
       }
     ],
     "hit_by_tests": [
+      "html.html__attribute__href/href_nul",
       "html.html__attribute__id/id_nul",
+      "html.html__attribute__src/src_nul",
       "html.html__attribute__text/attr_title_nul",
       "html.html__attribute__value_from/avalue_from_nul_amp",
       "html.html__attribute__value_from/avalue_from_nul_first",
