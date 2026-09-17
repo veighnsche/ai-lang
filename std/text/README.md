@@ -15,8 +15,9 @@
   `acc == ""`). `split`/`split_from` return `Split__Result`,
   retain empty fields, go leftmost on overlaps, and mint
   `text.empty_separator`. Graphemes/casefold/normalize wait on
-  pinned data, hex/base64 on Bytes (`utf8` via
-  `std__utf8__encode`/`std__utf8__decode`).
+  pinned data, base64 on Bytes (`utf8` via
+  `std__utf8__encode`/`std__utf8__decode`, `hex` via
+  `std__hex__encode`).
 - `text.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
   std/text std/text/text.ail`; verify: `go test ./...`.

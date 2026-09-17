@@ -13,11 +13,11 @@
 // replace rejects it (text.empty_pattern); conversions live in
 // scalars.ail beside their kernels; join rides Seq (v40), split
 // is next, graphemes/casefold/normalize wait on pinned data,
-// hex/base64 on Bytes (see #42); utf8 via std__utf8__encode and
-// std__utf8__decode below.
+// base64 on Bytes (see #42); utf8 via std__utf8__encode and
+// std__utf8__decode, hex via std__hex__encode below.
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, Str__Value, Bool__Value, Int__Value, Split__Result]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, Str__Value, Bool__Value, Int__Value, Split__Result]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -439,3 +439,21 @@ fn std__utf8__decode(value: Bytes) -> Encoding__Text rev 1
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
+
+fn std__hex__encode(value: Bytes) -> Encoding__Text rev 1
+  emits []
+  tests
+    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
+    zero(value = Bytes(Seq<int>[0])) => Ok(value = "00")
+    ff(value = Bytes(Seq<int>[255])) => Ok(value = "ff")
+    lower(value = Bytes(Seq<int>[171])) => Ok(value = "ab")
+    leadzero(value = Bytes(Seq<int>[1])) => Ok(value = "01")
+    sixteen(value = Bytes(Seq<int>[16])) => Ok(value = "10")
+    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
+    notext(value = Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
+    nulbyte(value = Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
+    high(value = Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
+    nibbles(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
+=
+  match call bytes__hex__encode(value)
+    on Ok r => Ok(value = r.value)

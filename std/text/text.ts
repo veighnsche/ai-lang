@@ -72,6 +72,14 @@ function $ailUtf8Decode(value: Uint8Array): { $ail_kind: "ok"; value: string } |
   if (!valid) return { $ail_kind: "encoding.invalid_utf8", value: value };
   return { $ail_kind: "ok", value: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(value) };
 }
+function $ailHexEncode(value: Uint8Array): string {
+  const digits = "0123456789abcdef";
+  let out = "";
+  for (let i = 0; i < value.length; i++) {
+    out += digits[value[i] >> 4] + digits[value[i] & 15];
+  }
+  return out;
+}
 export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
   return { $ail_kind: "ok", value: (left + right) };
 }
@@ -606,6 +614,15 @@ export function std__utf8__decode(value: Uint8Array): { $ail_kind: "ok"; value: 
   }
   default: {
     throw new Error("unreachable");
+  }
+  }
+}
+export function std__hex__encode(value: Uint8Array): { $ail_kind: "ok"; value: string } {
+  const $ail_m1: { $ail_kind: "ok", value: string } = { $ail_kind: "ok", value: $ailHexEncode(value) };
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", value: r.value };
   }
   }
 }
