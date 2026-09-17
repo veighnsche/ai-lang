@@ -1,6 +1,6 @@
 // GENERATED from text.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" };
+export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array };
 export type Str__Value = { value: string };
 export type Bool__Value = { value: boolean };
 export type Int__Value = { value: bigint };
@@ -42,6 +42,35 @@ function $ailSeqAt<T>(a: T[], i: bigint): T {
   const k = Number(i);
   if (k >= a.length) throw new Error("seq index out of range");
   return a[k];
+}
+function $ailUtf8Decode(value: Uint8Array): { $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } {
+  let i = 0;
+  const n = value.length;
+  let valid = true;
+  while (i < n && valid) {
+    const b0 = value[i];
+    if (b0 < 0x80) { i += 1; continue; }
+    let need = 0; let lo = 0x80; let hi = 0xBF;
+    if (b0 >= 0xC2 && b0 <= 0xDF) { need = 1; }
+    else if (b0 === 0xE0) { need = 2; lo = 0xA0; }
+    else if (b0 >= 0xE1 && b0 <= 0xEC) { need = 2; }
+    else if (b0 === 0xED) { need = 2; hi = 0x9F; }
+    else if (b0 >= 0xEE && b0 <= 0xEF) { need = 2; }
+    else if (b0 === 0xF0) { need = 3; lo = 0x90; }
+    else if (b0 >= 0xF1 && b0 <= 0xF3) { need = 3; }
+    else if (b0 === 0xF4) { need = 3; hi = 0x8F; }
+    else { valid = false; break; }
+    if (i + need >= n) { valid = false; break; }
+    const b1 = value[i + 1];
+    if (b1 < lo || b1 > hi) { valid = false; break; }
+    for (let k = 2; k <= need; k++) {
+      const b = value[i + k];
+      if (b < 0x80 || b > 0xBF) { valid = false; break; }
+    }
+    i += 1 + need;
+  }
+  if (!valid) return { $ail_kind: "encoding.invalid_utf8", value: value };
+  return { $ail_kind: "ok", value: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(value) };
 }
 export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
   return { $ail_kind: "ok", value: (left + right) };
@@ -561,6 +590,22 @@ export function std__utf8__encode(value: string): { $ail_kind: "ok"; value: Uint
   case "ok": {
     const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
+  }
+  }
+}
+export function std__utf8__decode(value: Uint8Array): { $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } {
+  const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } = $ailUtf8Decode(value);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", value: r.value };
+  }
+  case "encoding.invalid_utf8": {
+    const e = $ail_m1;
+    return { $ail_kind: "encoding.invalid_utf8", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }

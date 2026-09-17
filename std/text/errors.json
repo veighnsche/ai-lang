@@ -5,10 +5,24 @@
       "value"
     ],
     "raised_by": [
-      "kernel.bytes__utf8__decode"
+      "kernel.bytes__utf8__decode",
+      "text.std__utf8__decode"
     ],
-    "handled_by": [],
-    "hit_by_tests": []
+    "handled_by": [
+      {
+        "fn": "text.std__utf8__decode",
+        "arm": "on encoding.invalid_utf8 e =\u003e encoding.invalid_utf8(value = e.value)"
+      }
+    ],
+    "hit_by_tests": [
+      "text.std__utf8__decode/above_max",
+      "text.std__utf8__decode/mid_bad",
+      "text.std__utf8__decode/overlong_nul",
+      "text.std__utf8__decode/stray_cont",
+      "text.std__utf8__decode/surrogate",
+      "text.std__utf8__decode/trunc_after_ascii",
+      "text.std__utf8__decode/trunc_e2b"
+    ]
   },
   {
     "kind": "text.empty_pattern",

@@ -13,10 +13,11 @@
 // replace rejects it (text.empty_pattern); conversions live in
 // scalars.ail beside their kernels; join rides Seq (v40), split
 // is next, graphemes/casefold/normalize wait on pinned data,
-// hex/base64 on Bytes (see #42); utf8 via std__utf8__encode below.
+// hex/base64 on Bytes (see #42); utf8 via std__utf8__encode and
+// std__utf8__decode below.
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, Str__Value, Bool__Value, Int__Value, Split__Result]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, Str__Value, Bool__Value, Int__Value, Split__Result]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -416,3 +417,25 @@ fn std__utf8__encode(value: str) -> Bytes__Value rev 1
 =
   match call bytes__utf8__encode(value)
     on Ok r => Ok(value = r.value)
+
+fn std__utf8__decode(value: Bytes) -> Encoding__Text rev 1
+  emits [encoding.invalid_utf8]
+  tests
+    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
+    ascii(value = Bytes(Seq<int>[65])) => Ok(value = "A")
+    latin(value = Bytes(Seq<int>[195, 169])) => Ok(value = "é")
+    cjk(value = Bytes(Seq<int>[228, 184, 150, 231, 149, 140])) => Ok(value = "世界")
+    astral(value = Bytes(Seq<int>[240, 159, 152, 128])) => Ok(value = "😀")
+    ufffd(value = Bytes(Seq<int>[239, 191, 189])) => Ok(value = "�")
+    markup(value = Bytes(Seq<int>[38, 60, 62])) => Ok(value = "&<>")
+    overlong_nul(value = Bytes(Seq<int>[192, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[192, 128]))
+    surrogate(value = Bytes(Seq<int>[237, 160, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[237, 160, 128]))
+    above_max(value = Bytes(Seq<int>[244, 144, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[244, 144, 128, 128]))
+    stray_cont(value = Bytes(Seq<int>[128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[128]))
+    trunc_e2b(value = Bytes(Seq<int>[226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226, 130]))
+    trunc_after_ascii(value = Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
+    mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
+=
+  match call bytes__utf8__decode(value)
+    on Ok r => Ok(value = r.value)
+    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
