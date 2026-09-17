@@ -16,7 +16,7 @@
 // hex/base64/utf8 on Bytes (see #42).
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, Str__Value, Bool__Value, Int__Value]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, Str__Value, Bool__Value, Int__Value, Split__Result]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -24,6 +24,7 @@ error text.index_out_of_range(value: str, index: int)
 error text.invalid_slice(value: str, start: int, end: int)
 error text.not_found(value: str, pattern: str)
 error text.empty_pattern()
+error text.empty_separator()
 
 type Str__Value rev 1 (
   value: str
@@ -35,6 +36,10 @@ type Bool__Value rev 1 (
 
 type Int__Value rev 1 (
   value: int
+)
+
+type Split__Result rev 1 (
+  values: Seq<str>
 )
 
 fn std__str__concat(left: str, right: str) -> Str__Value rev 1
@@ -357,3 +362,44 @@ fn std__str__join(values: Seq<str>, separator: str) -> Str__Value rev 1
 =
   match call std__str__join_from(values = values, separator = separator, position = 0, fuel = #values + 1, acc = "")
     on Ok r => Ok(value = r.value)
+
+fn std__str__split_from(value: str, separator: str, current: str, acc: Seq<str>, fuel: int) -> Split__Result rev 1
+  decreases fuel
+  emits []
+  tests
+    zero_budget(value = "abc", separator = ",", current = "cur", acc = Seq<str>["done"], fuel = 0) => Ok(values = Seq<str>["done", "cur"])
+    empty_input(value = "", separator = ",", current = "", acc = Seq<str>[], fuel = 1) => Ok(values = Seq<str>[""])
+    hit(value = ",a,,", separator = ",", current = "", acc = Seq<str>[], fuel = 5) => Ok(values = Seq<str>["", "a", "", ""])
+    miss(value = "abc", separator = ",", current = "", acc = Seq<str>[], fuel = 4) => Ok(values = Seq<str>["abc"])
+    short(value = "abc", separator = "abcd", current = "", acc = Seq<str>[], fuel = 4) => Ok(values = Seq<str>["abc"])
+    overlap(value = "aaa", separator = "aa", current = "", acc = Seq<str>[], fuel = 4) => Ok(values = Seq<str>["", "a"])
+=
+  match fuel <= 0
+    true => Ok(values = acc + current)
+    false => match value == ""
+      true => Ok(values = acc + current)
+      false => match #value >= #separator
+        true => match value[0:#separator] == separator
+          true => match call std__str__split_from(value = value[#separator:#value], separator = separator, current = "", acc = acc + current, fuel = fuel - 1)
+            on Ok r => Ok(values = r.values)
+          false => match call std__str__split_from(value = value[1:#value], separator = separator, current = current + value[0:1], acc = acc, fuel = fuel - 1)
+            on Ok r => Ok(values = r.values)
+        false => match call std__str__split_from(value = value[1:#value], separator = separator, current = current + value[0:1], acc = acc, fuel = fuel - 1)
+          on Ok r => Ok(values = r.values)
+
+fn std__str__split(value: str, separator: str) -> Split__Result rev 1
+  emits [text.empty_separator]
+  tests
+    empty_input(value = "", separator = ",") => Ok(values = Seq<str>[""])
+    fields(value = ",a,,", separator = ",") => Ok(values = Seq<str>["", "a", "", ""])
+    no_separator(value = "abc", separator = ",") => Ok(values = Seq<str>["abc"])
+    empty_value_empty_separator(value = "", separator = "") => text.empty_separator()
+    nonempty_empty_separator(value = "abc", separator = "") => text.empty_separator()
+    markup(value = " a&<b> ,X ", separator = ",") => Ok(values = Seq<str>[" a&<b> ", "X "])
+    overlap_leftmost(value = "aaa", separator = "aa") => Ok(values = Seq<str>["", "a"])
+    separator_longer(value = "abc", separator = "abcd") => Ok(values = Seq<str>["abc"])
+=
+  match separator == ""
+    true => text.empty_separator()
+    false => match call std__str__split_from(value = value, separator = separator, current = "", acc = Seq<str>[], fuel = #value + 1)
+      on Ok r => Ok(values = r.values)

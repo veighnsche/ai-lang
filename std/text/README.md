@@ -12,8 +12,10 @@
   encoders, never here. `find` locates the empty pattern at 0;
   `replace` rejects it. `join`/`join_from` walk `Seq<str>`
   positionally (first-element test is `position == 0`, never
-  `acc == ""`). Split is next; graphemes/casefold/normalize wait
-  on pinned data, hex/base64/utf8 on Bytes.
+  `acc == ""`). `split`/`split_from` return `Split__Result`,
+  retain empty fields, go leftmost on overlaps, and mint
+  `text.empty_separator`. Graphemes/casefold/normalize wait on
+  pinned data, hex/base64/utf8 on Bytes.
 - `text.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
   std/text std/text/text.ail`; verify: `go test ./...`.

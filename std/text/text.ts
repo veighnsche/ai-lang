@@ -1,9 +1,10 @@
 // GENERATED from text.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type TextResult = { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" };
+export type TextResult = { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" };
 export type Str__Value = { value: string };
 export type Bool__Value = { value: boolean };
 export type Int__Value = { value: bigint };
+export type Split__Result = { values: string[] };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -485,5 +486,72 @@ export function std__str__join(values: string[], separator: string): { $ail_kind
   default: {
     throw new Error("unreachable");
   }
+  }
+}
+export function std__str__split_from(value: string, separator: string, current: string, acc: string[], fuel: bigint): { $ail_kind: "ok"; values: string[] } {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", values: [...acc, current] };
+  }
+  else {
+    if ((value === "")) {
+      return { $ail_kind: "ok", values: [...acc, current] };
+    }
+    else {
+      if (((BigInt([...value].length)) >= (BigInt([...separator].length)))) {
+        if (($ailStrSlice(value, 0n, (BigInt([...separator].length))) === separator)) {
+          const $ail_m1: { $ail_kind: "ok"; values: string[] } = std__str__split_from($ailStrSlice(value, (BigInt([...separator].length)), (BigInt([...value].length))), separator, "", [...acc, current], (fuel - 1n));
+          switch ($ail_m1.$ail_kind) {
+          case "ok": {
+            const r = $ail_m1;
+            return { $ail_kind: "ok", values: r.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $ail_m2: { $ail_kind: "ok"; values: string[] } = std__str__split_from($ailStrSlice(value, 1n, (BigInt([...value].length))), separator, (current + $ailStrSlice(value, 0n, 1n)), acc, (fuel - 1n));
+          switch ($ail_m2.$ail_kind) {
+          case "ok": {
+            const r = $ail_m2;
+            return { $ail_kind: "ok", values: r.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+      else {
+        const $ail_m3: { $ail_kind: "ok"; values: string[] } = std__str__split_from($ailStrSlice(value, 1n, (BigInt([...value].length))), separator, (current + $ailStrSlice(value, 0n, 1n)), acc, (fuel - 1n));
+        switch ($ail_m3.$ail_kind) {
+        case "ok": {
+          const r = $ail_m3;
+          return { $ail_kind: "ok", values: r.values };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+  }
+}
+export function std__str__split(value: string, separator: string): { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.empty_separator" } {
+  if ((separator === "")) {
+    return { $ail_kind: "text.empty_separator" };
+  }
+  else {
+    const $ail_m1: { $ail_kind: "ok"; values: string[] } = std__str__split_from(value, separator, "", [], ((BigInt([...value].length)) + 1n));
+    switch ($ail_m1.$ail_kind) {
+    case "ok": {
+      const r = $ail_m1;
+      return { $ail_kind: "ok", values: r.values };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
   }
 }

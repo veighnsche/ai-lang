@@ -30,6 +30,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v38-seq-access.md` | Shipped (S3) | `xs[i]` over `Seq<T>` yields `T`; bounded traversal under existing `decreases`; `std/seq` deferred |
 | `v39-seq-append.md` | Shipped (S4) | `Seq<T> + T` copy-on-append; concat refused; compiler complete, customers next |
 | `v40-str-join.md` | Shipped (customer 1) | `std__str__join` preserves order; positional first-element test; split next |
+| `v41-str-split.md` | Shipped (customer 2) | `std__str__split` retains empties, leftmost policy; wrapper return; mints `text.empty_separator` |
 
 ## Reading order for a reviewer
 

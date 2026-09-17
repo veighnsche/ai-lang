@@ -11,6 +11,18 @@
     ]
   },
   {
+    "kind": "text.empty_separator",
+    "fields": [],
+    "raised_by": [
+      "text.std__str__split"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "text.std__str__split/empty_value_empty_separator",
+      "text.std__str__split/nonempty_empty_separator"
+    ]
+  },
+  {
     "kind": "text.index_out_of_range",
     "fields": [
       "value",
