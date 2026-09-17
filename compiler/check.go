@@ -12,10 +12,35 @@ package main
 import (
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 )
+
+// qualifiedFile renders a module for diagnostics: the bare filename,
+// qualified to its canonical input path when another module shares the
+// basename. Single-basename worlds render exactly as before.
+func qualifiedFile(mods []*Module, m *Module) string {
+	for _, o := range mods {
+		if o != m && o.File == m.File {
+			return m.ID
+		}
+	}
+	return m.File
+}
+
+// qualifiedID renders a module identity for diagnostics when only the
+// identity string is at hand (cycle edges).
+func qualifiedID(mods []*Module, id string) string {
+	base := filepath.Base(id)
+	for _, o := range mods {
+		if o.ID != id && o.File == base {
+			return id
+		}
+	}
+	return base
+}
 
 // parsePinRev splits a uses entry into its requested revision:
 // name@N yields N. ok=false when the entry carries no trailing @N,
@@ -80,7 +105,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 	}
 	provides := map[string]*Module{}
 	emit := func(m *Module, d Diag) {
-		d.File = m.File
+		d.File = qualifiedFile(mods, m)
 		out = append(out, d)
 	}
 	seenFn := map[string]*Module{}
@@ -108,11 +133,11 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			if isFn || isEx {
 				if _, dup := seenFn[name]; dup {
 					if m == open {
-						emit(m, spanDiag(texts[m.File], line, "error",
+						emit(m, spanDiag(texts[m.ID], line, "error",
 							fmt.Sprintf("double definition: %s", name), name, CodeDupFn))
 					} else {
-						emit(m, spanDiag(texts[open.File], 1, "error",
-							fmt.Sprintf("sibling %s also defines %s (double definition)", m.File, name), m.File, CodeDupSibling))
+						emit(m, spanDiag(texts[open.ID], 1, "error",
+							fmt.Sprintf("sibling %s also defines %s (double definition)", qualifiedFile(mods, m), name), m.File, CodeDupSibling))
 					}
 					continue
 				}
@@ -126,12 +151,12 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			case *FnDecl:
 				prog.Fns[d.Name] = d
 				prog.EmitsOf[d.Name] = d.Emits
-				prog.FnFile[d.Name] = m.File
+				prog.FnFile[d.Name] = m.ID
 				provides[d.Name] = m
 			case *ExternDecl:
 				prog.Externs[d.Name] = d
 				prog.EmitsOf[d.Name] = d.Emits
-				prog.FnFile[d.Name] = m.File
+				prog.FnFile[d.Name] = m.ID
 				provides[d.Name] = m
 			case *TypeDecl:
 				provides[d.Name] = m
@@ -141,7 +166,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 					prog.Brands[d.Name] = d.Under
 				}
 				if _, ok := prog.BrandFile[d.Name]; !ok {
-					prog.BrandFile[d.Name] = m.File
+					prog.BrandFile[d.Name] = m.ID
 				}
 			case *ErrorDecl:
 				var fs []string
@@ -154,13 +179,13 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 	}
 	for _, m := range mods {
 		for _, u := range m.Hdr["uses"] {
-			line := locateLine(texts[m.File], u, 1)
-			spanText := texts[m.File]
+			line := locateLine(texts[m.ID], u, 1)
+			spanText := texts[m.ID]
 			if m != open {
 				// Another file's problem shows on the open doc only
 				// as a line-1 pointer; the message names the file.
 				line = 1
-				spanText = texts[open.File]
+				spanText = texts[open.ID]
 			}
 			if !strings.Contains(u, "@") {
 				emit(m, spanDiag(spanText, line, "error",
@@ -516,7 +541,7 @@ func fileTests(prog *Program, fname string) map[string]bool {
 		return out
 	}
 	for _, m := range prog.Modules {
-		if m.File != file {
+		if m.ID != file {
 			continue
 		}
 		for _, d := range m.Decls {
@@ -826,7 +851,7 @@ func checkGlobalCycles(mods []*Module, texts map[string]string, prog *Program) [
 				if _, ok := prog.Fns[n.Scrut.Fname]; !ok {
 					continue
 				}
-				add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line, m.File)
+				add(fn.Name, n.Scrut.Fname, n.Scrut.Fname, n.Line, m.ID)
 			}
 			bodySmalls(fn.Body, func(s *Small, line int) {
 				if s.Kind != "call" {
@@ -838,7 +863,7 @@ func checkGlobalCycles(mods []*Module, texts map[string]string, prog *Program) [
 				if _, ok := prog.Fns[s.Fname]; !ok {
 					return
 				}
-				add(fn.Name, s.Fname, s.Fname, locateUseLine(texts[m.File], s.Fname+"(", 1), m.File)
+				add(fn.Name, s.Fname, s.Fname, locateUseLine(texts[m.ID], s.Fname+"(", 1), m.ID)
 			})
 		}
 	}
@@ -876,7 +901,7 @@ func checkGlobalCycles(mods []*Module, texts map[string]string, prog *Program) [
 				}
 				d := spanDiag(texts[e.file], e.line, "error",
 					fmt.Sprintf("call cycle %s: only direct self-recursion with decreases is admitted", strings.Join(path, " -> ")), e.token, CodeLocalCycle)
-				d.File = e.file
+				d.File = qualifiedID(mods, e.file)
 				out = append(out, d)
 			case white:
 				visit(e.to)
@@ -1049,7 +1074,7 @@ func storeCellName(scrut *Small) (string, bool) {
 // so existence is global while use stays file-local.
 func cellAnywhere(prog *Program, name string) *StateDecl {
 	for _, m := range prog.Modules {
-		if s := cellInFile(prog, m.File, name); s != nil {
+		if s := cellInFile(prog, m.ID, name); s != nil {
 			return s
 		}
 	}
@@ -1060,7 +1085,7 @@ func cellAnywhere(prog *Program, name string) *StateDecl {
 // module-private, so the declaration must sit beside the use.
 func cellInFile(prog *Program, file, name string) *StateDecl {
 	for _, m := range prog.Modules {
-		if m.File != file {
+		if m.ID != file {
 			continue
 		}
 		for _, d := range m.Decls {

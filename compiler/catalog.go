@@ -73,7 +73,7 @@ func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []cata
 			}
 			who := m.Mod + "." + fn.Name
 			eachRaise(fn, func(kind string, _ int) { mark(raisedBy, kind, who) })
-			rows := strings.Split(texts[m.File], "\n")
+			rows := strings.Split(texts[m.ID], "\n")
 			calls := []*Node{}
 			for _, n := range matchNodes(fn.Body) {
 				if n.Scrut == nil || n.Scrut.Kind != "call" {

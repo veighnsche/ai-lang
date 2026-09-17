@@ -66,7 +66,7 @@ func newTycker(prog *Program, text, fn string) *tycker {
 			case *StateDecl:
 				// Cells resolve in the checking function's own file;
 				// only base types enter (the decl rule owns the rest).
-				if prog.FnFile[fn] != m.File {
+				if prog.FnFile[fn] != m.ID {
 					continue
 				}
 				switch d.Type {
