@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -152,7 +153,11 @@ type StateDecl struct {
 func (d *StateDecl) declKind() string { return "state" }
 
 type Module struct {
-	File  string
+	File string
+	// ID is the canonical source identity: the cleaned input path as
+	// passed. Two inputs with different IDs are different modules even
+	// when their basenames (File) match; File stays the display name.
+	ID    string
 	Stem  string
 	Mod   string
 	Hdr   map[string][]string
@@ -884,7 +889,8 @@ func parseModuleText(name, text string) (*Module, error) {
 			return nil, at(declLine, fmt.Errorf("unknown top-level decl: %s", code))
 		}
 	}
-	mod.File = path[strings.LastIndex(path, "/")+1:]
+	mod.ID = filepath.Clean(path)
+	mod.File = filepath.Base(mod.ID)
 	return mod, nil
 }
 

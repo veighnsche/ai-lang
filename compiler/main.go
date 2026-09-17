@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -23,7 +24,9 @@ func main() {
 }
 
 // version is stamped at build time via:
-//   go build -ldflags "-X main.version=<v>" ./compiler
+//
+//	go build -ldflags "-X main.version=<v>" ./compiler
+//
 // Unstamped builds (e.g. plain `go install ...@latest`) report "dev".
 var version = "dev"
 
@@ -213,26 +216,90 @@ func runNormalize(w io.Writer, paths []string) error {
 // parsePaths reads and parses every path, collecting AIL1000 diagnostics
 // for files that do not parse instead of failing fast, so one broken file
 // never hides the rest. Raw IO errors still fail immediately.
+//
+// Identity is the cleaned input path: two inputs with different
+// identities are different modules even when their basenames match.
+// Output stems stay bare while unique, then disambiguate by directory;
+// the same identity twice is an AIL5007 collision, rejected before
+// evaluation or writing.
 func parsePaths(paths []string) (mods []*Module, texts map[string]string, collected []Diag, err error) {
 	texts = map[string]string{}
+	seen := map[string]bool{}
 	for _, p := range paths {
 		data, err := os.ReadFile(p)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		base := p
-		if i := strings.LastIndex(p, "/"); i >= 0 {
-			base = p[i+1:]
-		}
-		m, perr := parseModuleText(base, string(data))
+		m, perr := parseModuleText(p, string(data))
 		if perr != nil {
+			base := filepath.Base(filepath.Clean(p))
 			collected = append(collected, Diag{File: base, Line: diagLine(perr, 1), Sev: "error", Msg: stripLinePrefix(perr), Code: CodeParse})
 			continue
 		}
+		if seen[m.ID] {
+			collected = append(collected, Diag{File: m.File, Line: 1, Sev: "error",
+				Msg: fmt.Sprintf("module %s inputs twice: one canonical identity per file", m.ID), Code: CodeModuleCollision})
+			continue
+		}
+		seen[m.ID] = true
 		mods = append(mods, m)
-		texts[base] = string(data)
+		texts[m.ID] = string(data)
 	}
+	assignStems(mods)
 	return mods, texts, collected, nil
+}
+
+// assignStems gives every module an injective output stem. The bare
+// stem (filename without extension) wins while unique, so single-file
+// and distinct-name inputs emit exactly as before; sharers after the
+// first (in sorted identity order) take the sanitized identity path,
+// with numeric suffixes breaking residual ties. Deterministic in the
+// input set, never silently merging two owners into one artifact.
+func assignStems(mods []*Module) {
+	count := map[string]int{}
+	for _, m := range mods {
+		count[m.Stem]++
+	}
+	used := map[string]bool{}
+	ordered := append([]*Module{}, mods...)
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].ID < ordered[j].ID })
+	for _, m := range ordered {
+		if count[m.Stem] == 1 && !used[m.Stem] {
+			used[m.Stem] = true
+			continue
+		}
+		candidate := sanitizeStem(strings.TrimSuffix(m.ID, ".ail"))
+		for n := 2; used[candidate]; n++ {
+			candidate = fmt.Sprintf("%s_%d", sanitizeStem(strings.TrimSuffix(m.ID, ".ail")), n)
+		}
+		m.Stem = candidate
+		used[candidate] = true
+	}
+}
+
+// sanitizeStem maps an identity path to stem characters: every run of
+// non-letters-and-digits (separators included) becomes one underscore,
+// with leading/trailing underscores trimmed. Underscore itself maps to
+// itself, so "a/b" and "a_b" can still collide — assignStems breaks
+// that tie with a numeric suffix.
+func sanitizeStem(id string) string {
+	var b strings.Builder
+	prev := '_'
+	for _, r := range id {
+		var c rune
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '_':
+			c = r
+		default:
+			c = '_'
+		}
+		if c == '_' && prev == '_' {
+			continue
+		}
+		b.WriteRune(c)
+		prev = c
+	}
+	return strings.Trim(b.String(), "_")
 }
 
 // checkProgram runs the full shared suite over parsed modules: static
@@ -241,7 +308,7 @@ func parsePaths(paths []string) (mods []*Module, texts map[string]string, collec
 // skipped on a dirty world, mirroring the editor.
 func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pass func(mod, fn, test string)) (*Program, []Diag) {
 	for _, m := range mods {
-		collected = append(collected, checkStatic(m, texts[m.File])...)
+		collected = append(collected, checkStatic(m, texts[m.ID])...)
 	}
 	if len(mods) == 0 {
 		return nil, collected
@@ -259,7 +326,7 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	collected = append(collected, global...)
 	gblocked := hasErrors(global)
 	for _, m := range mods {
-		text := texts[m.File]
+		text := texts[m.ID]
 		var hook func(fn, test string)
 		if pass != nil {
 			mod := m.Mod
@@ -269,7 +336,7 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	}
 	for _, m := range mods {
 		for _, err := range verifyExhaustiveAll([]*Module{m}, prog) {
-			d := proofDiag(texts[m.File], err)
+			d := proofDiag(texts[m.ID], err)
 			d.File = m.File
 			collected = append(collected, d)
 		}

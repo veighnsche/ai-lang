@@ -503,7 +503,7 @@ func freshStore(prog *Program) (map[string]*Value, error) {
 			if err != nil {
 				return nil, err
 			}
-			out[storeKey(m.File, s.Name)] = v
+			out[storeKey(m.ID, s.Name)] = v
 		}
 	}
 	return out, nil
