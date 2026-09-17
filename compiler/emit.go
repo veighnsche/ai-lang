@@ -228,7 +228,11 @@ func binopOperandType(node *Small) string {
 func (e *emitter) emitValue(node *Small) (string, error) {
 	switch node.Kind {
 	case "str":
-		return `"` + strings.ReplaceAll(strings.ReplaceAll(node.Str, `\`, `\\`), `"`, `\"`) + `"`, nil
+		// One literal encoder (normStr): the in-memory string is
+		// source-raw (the parser interprets no escapes), so the
+		// target literal must re-escape every special char. Values
+		// and patterns share this encoder (see stmtMatch).
+		return normStr(node.Str), nil
 	case "int":
 		return node.Num.String() + "n", nil
 	case "dec":
@@ -289,11 +293,24 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return "", fmt.Errorf("cannot emit op %s", node.Op)
 		}
+		// Strings and brands order by UTF-8 bytes through the
+		// $ailStr helpers, matching Go's byte-wise evaluator
+		// ordering (native target ordering is UTF-16 code units and
+		// disagrees past the BMP); string + concatenates natively
+		// and ==/!== stay exact in both runtimes.
+		if ot == "str" || e.brands[ot] != "" {
+			switch node.Op {
+			case ">=":
+				e.strOps["ge"] = true
+				return fmt.Sprintf("$ailStrGe(%s, %s)", l, r), nil
+			case "<=":
+				e.strOps["le"] = true
+				return fmt.Sprintf("$ailStrLe(%s, %s)", l, r), nil
+			}
+		}
 		// Ints are bigints (native ops exact, except / and %: BigInt
 		// truncates toward zero, so Euclidean division rides the
-		// $ailDivMod helper, emitted inline only when used). Strings
-		// and brands compare lexicographically, matching the
-		// evaluator; string + concatenates natively.
+		// $ailDivMod helper, emitted inline only when used).
 		if ot == "int" && (node.Op == "/" || node.Op == "%") {
 			e.divmod = true
 			idx := "0"
@@ -458,6 +475,58 @@ var decRuntimeOps = []struct {
 	}},
 }
 
+// strRuntimeShared compares strings by UTF-8 bytes: Go orders strings
+// byte-wise, while native target ordering is UTF-16 code units and
+// disagrees past the BMP (U+E000 vs U+10000 sorts opposite). Encoding
+// both sides to UTF-8 and comparing bytes reproduces the evaluator
+// exactly on every input.
+var strRuntimeShared = []string{
+	"function $ailStrCmp(a: string, b: string): number {",
+	"  const A = new TextEncoder().encode(a);",
+	"  const B = new TextEncoder().encode(b);",
+	"  const n = Math.min(A.length, B.length);",
+	"  for (let i = 0; i < n; i++) {",
+	"    if (A[i] !== B[i]) {",
+	"      return A[i] < B[i] ? -1 : 1;",
+	"    }",
+	"  }",
+	"  if (A.length === B.length) {",
+	"    return 0;",
+	"  }",
+	"  return A.length < B.length ? -1 : 1;",
+	"}",
+}
+
+var strRuntimeOps = []struct {
+	key  string
+	code []string
+}{
+	{"ge", []string{
+		"function $ailStrGe(a: string, b: string): boolean {",
+		"  return $ailStrCmp(a, b) >= 0;",
+		"}",
+	}},
+	{"le", []string{
+		"function $ailStrLe(a: string, b: string): boolean {",
+		"  return $ailStrCmp(a, b) <= 0;",
+		"}",
+	}},
+}
+
+// strHelpers renders the byte-order string runtime for exactly the used
+// comparisons, shared plumbing first, then ops in fixed order.
+func strHelpers(used map[string]bool) []string {
+	var out []string
+	out = append(out, "// Byte-order string comparison: UTF-8 bytes, matching Go.")
+	out = append(out, strRuntimeShared...)
+	for _, op := range strRuntimeOps {
+		if used[op.key] {
+			out = append(out, op.code...)
+		}
+	}
+	return out
+}
+
 // decHelpers renders the exact-decimal runtime for exactly the used
 // operations, shared plumbing first, then ops in fixed order.
 func decHelpers(used map[string]bool) []string {
@@ -480,6 +549,7 @@ type emitter struct {
 	cellTypes map[string]string      // cell -> TS type, this module only
 	tailUnion string
 	decOps    map[string]bool // exact-decimal helpers used by this module
+	strOps    map[string]bool // byte-order string helpers used by this module
 	divmod    bool            // Euclidean division helper used by this module
 }
 
@@ -641,7 +711,7 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 				}
 				*out = append(*out, fmt.Sprintf("%s (%s) {", kw, cond))
 			case "str":
-				*out = append(*out, fmt.Sprintf("%s (%s === \"%s\") {", kw, sv, pat.Str))
+				*out = append(*out, fmt.Sprintf("%s (%s === %s) {", kw, sv, normStr(pat.Str)))
 			}
 		}
 		lines, err := e.retLines(arm.Rhs, nil)
@@ -877,7 +947,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, divmod: false}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
@@ -912,6 +982,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// spell, so user code can never collide with them.
 	if len(em.decOps) > 0 {
 		L = append(L, decHelpers(em.decOps)...)
+	}
+	// Byte-order string runtime: emitted inline only when a string
+	// ordering is used, so files without one gain no code.
+	if len(em.strOps) > 0 {
+		L = append(L, strHelpers(em.strOps)...)
 	}
 	if em.divmod {
 		L = append(L, divModHelper...)
