@@ -6,7 +6,7 @@ export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
 export type Str__Value = { value: string };
 let Quota__used: bigint = 0n;
-export function validate__require(condition: boolean, field: string, rule: string): QuotaResult {
+export function std__validate__require(condition: boolean, field: string, rule: string): QuotaResult {
   if (condition) {
     return { kind: "ok" };
   }
@@ -14,7 +14,7 @@ export function validate__require(condition: boolean, field: string, rule: strin
     return { kind: "validation.failed", field: field, rule: rule };
   }
 }
-export function validate__int_range(value: bigint, lower: bigint, upper: bigint): QuotaResult {
+export function std__validate__int_range(value: bigint, lower: bigint, upper: bigint): QuotaResult {
   if ((lower <= upper)) {
     if ((value >= lower)) {
       if ((value <= upper)) {
@@ -32,7 +32,7 @@ export function validate__int_range(value: bigint, lower: bigint, upper: bigint)
     return { kind: "validation.invalid_bounds", lower: lower, upper: upper };
   }
 }
-export function validate__int_nonnegative(value: bigint): QuotaResult {
+export function std__validate__int_nonnegative(value: bigint): QuotaResult {
   if ((value >= 0n)) {
     return { kind: "ok", value: value };
   }
@@ -40,13 +40,13 @@ export function validate__int_nonnegative(value: bigint): QuotaResult {
     return { kind: "validation.negative_value", value: value };
   }
 }
-export function validate__str_nonempty(value: string): QuotaResult {
+export function std__validate__str_nonempty(value: string): QuotaResult {
   if (value === "") {
     return { kind: "validation.empty_value", value: value };
   }
   return { kind: "ok", value: value };
 }
-export function validate__exclusive_pair(left: boolean, right: boolean): QuotaResult {
+export function std__validate__exclusive_pair(left: boolean, right: boolean): QuotaResult {
   if (left) {
     if (right) {
       return { kind: "validation.exclusive_choice" };
@@ -69,13 +69,13 @@ export function quota__consume(amount: bigint, quota: bigint): QuotaResult {
   switch (_m1.kind) {
   case "ok":
     const s = _m1;
-    const _m2: QuotaResult = validate__int_nonnegative(amount);
+    const _m2: QuotaResult = std__validate__int_nonnegative(amount);
     switch (_m2.kind) {
     case "validation.negative_value":
       return { kind: "validation.negative_value", value: amount };
     case "ok":
       const _ = _m2;
-      const _m3: QuotaResult = validate__int_range((s.value + amount), 0n, quota);
+      const _m3: QuotaResult = std__validate__int_range((s.value + amount), 0n, quota);
       switch (_m3.kind) {
       case "validation.invalid_bounds":
         return { kind: "validation.invalid_bounds", lower: 0n, upper: quota };
@@ -99,7 +99,7 @@ export function quota__usage(quota: bigint): QuotaResult {
   switch (_m5.kind) {
   case "ok":
     const s = _m5;
-    const _m6: QuotaResult = validate__int_nonnegative(quota);
+    const _m6: QuotaResult = std__validate__int_nonnegative(quota);
     switch (_m6.kind) {
     case "validation.negative_value":
       return { kind: "validation.negative_value", value: quota };

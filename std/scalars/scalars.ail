@@ -5,14 +5,13 @@
 // bounded backoff delay that reuses the power helper.
 // Every function returns a named success record. Bool answers use
 // Bool__Value, three-way comparisons use Int__Value with exactly -1,
-// 0, or 1, and false compares before true. Names use one double
-// underscore only in prose: the R3 grammar allows a single __
-// separator, so spec name std__int__abs lands here as int__abs.
-// The mapping table lives in docs/v13-stdlib.md.
+// 0, or 1, and false compares before true. Names follow the brief
+// verbatim (std__int__abs and friends): the R3 verb class admits
+// hierarchical separators — see issue 5.
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [bool__not, bool__and, bool__or, bool__xor, bool__implies, bool__equivalent, compare__int, compare__dec, compare__str, compare__bool, select__int, select__bool, select__str, select__dec, int__is_zero, int__is_positive, int__is_negative, int__in_closed_range, int__in_open_range, dec__is_zero, dec__is_positive, dec__is_negative, dec__in_closed_range, dec__in_open_range, int__abs, int__negate, int__sign, int__min, int__max, int__clamp, int__distance, int__square, int__pow_from, int__pow, int__add_bounded, int__subtract_bounded, int__multiply_bounded, int__factorial_from, int__factorial, int__sum_from, int__sum_to, dec__abs, dec__negate, dec__sign, dec__min, dec__max, dec__clamp, dec__distance, dec__square, dec__pow_from, dec__pow, dec__lerp, convert__bool_to_str, convert__str_to_bool, convert__bool_to_int, convert__int_to_bool, convert__bool_to_dec, convert__dec_to_bool, backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value]
   uses []
   emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.negative_exponent, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding]
 
@@ -42,7 +41,7 @@ type Bool__Value rev 1 (
   value: bool
 )
 
-fn bool__not(value: bool) -> Bool__Value rev 1
+fn std__bool__not(value: bool) -> Bool__Value rev 1
   emits []
   tests
     not_true(value = true) => Ok(value = false)
@@ -52,7 +51,7 @@ fn bool__not(value: bool) -> Bool__Value rev 1
     true => Ok(value = false)
     false => Ok(value = true)
 
-fn bool__and(left: bool, right: bool) -> Bool__Value rev 1
+fn std__bool__and(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
     and_tt(left = true, right = true) => Ok(value = true)
@@ -66,7 +65,7 @@ fn bool__and(left: bool, right: bool) -> Bool__Value rev 1
       false => Ok(value = false)
     false => Ok(value = false)
 
-fn bool__or(left: bool, right: bool) -> Bool__Value rev 1
+fn std__bool__or(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
     or_tt(left = true, right = true) => Ok(value = true)
@@ -80,7 +79,7 @@ fn bool__or(left: bool, right: bool) -> Bool__Value rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-fn bool__xor(left: bool, right: bool) -> Bool__Value rev 1
+fn std__bool__xor(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
     xor_tt(left = true, right = true) => Ok(value = false)
@@ -96,7 +95,7 @@ fn bool__xor(left: bool, right: bool) -> Bool__Value rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-fn bool__implies(left: bool, right: bool) -> Bool__Value rev 1
+fn std__bool__implies(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
     imp_tt(left = true, right = true) => Ok(value = true)
@@ -110,7 +109,7 @@ fn bool__implies(left: bool, right: bool) -> Bool__Value rev 1
       false => Ok(value = false)
     false => Ok(value = true)
 
-fn bool__equivalent(left: bool, right: bool) -> Bool__Value rev 1
+fn std__bool__equivalent(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
     equiv_tt(left = true, right = true) => Ok(value = true)
@@ -126,7 +125,7 @@ fn bool__equivalent(left: bool, right: bool) -> Bool__Value rev 1
       true => Ok(value = false)
       false => Ok(value = true)
 
-fn compare__int(left: int, right: int) -> Int__Value rev 1
+fn std__compare__int(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
     cmp_int_eq(left = 4, right = 4) => Ok(value = 0)
@@ -139,7 +138,7 @@ fn compare__int(left: int, right: int) -> Int__Value rev 1
       true => Ok(value = 1)
       false => Ok(value = -1)
 
-fn compare__dec(left: dec, right: dec) -> Int__Value rev 1
+fn std__compare__dec(left: dec, right: dec) -> Int__Value rev 1
   emits []
   tests
     cmp_dec_eq(left = d"1.5", right = d"1.5") => Ok(value = 0)
@@ -152,7 +151,7 @@ fn compare__dec(left: dec, right: dec) -> Int__Value rev 1
       true => Ok(value = 1)
       false => Ok(value = -1)
 
-fn compare__str(left: str, right: str) -> Int__Value rev 1
+fn std__compare__str(left: str, right: str) -> Int__Value rev 1
   emits []
   tests
     cmp_str_eq(left = "a", right = "a") => Ok(value = 0)
@@ -165,7 +164,7 @@ fn compare__str(left: str, right: str) -> Int__Value rev 1
       true => Ok(value = 1)
       false => Ok(value = -1)
 
-fn compare__bool(left: bool, right: bool) -> Int__Value rev 1
+fn std__compare__bool(left: bool, right: bool) -> Int__Value rev 1
   emits []
   tests
     cmp_bool_tt(left = true, right = true) => Ok(value = 0)
@@ -179,7 +178,7 @@ fn compare__bool(left: bool, right: bool) -> Int__Value rev 1
       true => Ok(value = 1)
       false => Ok(value = -1)
 
-fn select__int(condition: bool, when_true: int, when_false: int) -> Int__Value rev 1
+fn std__select__int(condition: bool, when_true: int, when_false: int) -> Int__Value rev 1
   emits []
   tests
     sel_int_t(condition = true, when_true = 1, when_false = 2) => Ok(value = 1)
@@ -189,7 +188,7 @@ fn select__int(condition: bool, when_true: int, when_false: int) -> Int__Value r
     true => Ok(value = when_true)
     false => Ok(value = when_false)
 
-fn select__bool(condition: bool, when_true: bool, when_false: bool) -> Bool__Value rev 1
+fn std__select__bool(condition: bool, when_true: bool, when_false: bool) -> Bool__Value rev 1
   emits []
   tests
     sel_bool_t(condition = true, when_true = true, when_false = false) => Ok(value = true)
@@ -199,7 +198,7 @@ fn select__bool(condition: bool, when_true: bool, when_false: bool) -> Bool__Val
     true => Ok(value = when_true)
     false => Ok(value = when_false)
 
-fn select__str(condition: bool, when_true: str, when_false: str) -> Str__Value rev 1
+fn std__select__str(condition: bool, when_true: str, when_false: str) -> Str__Value rev 1
   emits []
   tests
     sel_str_t(condition = true, when_true = "a", when_false = "b") => Ok(value = "a")
@@ -209,7 +208,7 @@ fn select__str(condition: bool, when_true: str, when_false: str) -> Str__Value r
     true => Ok(value = when_true)
     false => Ok(value = when_false)
 
-fn select__dec(condition: bool, when_true: dec, when_false: dec) -> Dec__Value rev 1
+fn std__select__dec(condition: bool, when_true: dec, when_false: dec) -> Dec__Value rev 1
   emits []
   tests
     sel_dec_t(condition = true, when_true = d"1.5", when_false = d"2.5") => Ok(value = d"1.5")
@@ -219,7 +218,7 @@ fn select__dec(condition: bool, when_true: dec, when_false: dec) -> Dec__Value r
     true => Ok(value = when_true)
     false => Ok(value = when_false)
 
-fn int__is_zero(value: int) -> Bool__Value rev 1
+fn std__int__is_zero(value: int) -> Bool__Value rev 1
   emits []
   tests
     is_zero_z(value = 0) => Ok(value = true)
@@ -230,7 +229,7 @@ fn int__is_zero(value: int) -> Bool__Value rev 1
     true => Ok(value = true)
     false => Ok(value = false)
 
-fn int__is_positive(value: int) -> Bool__Value rev 1
+fn std__int__is_positive(value: int) -> Bool__Value rev 1
   emits []
   tests
     is_pos_z(value = 0) => Ok(value = false)
@@ -243,7 +242,7 @@ fn int__is_positive(value: int) -> Bool__Value rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-fn int__is_negative(value: int) -> Bool__Value rev 1
+fn std__int__is_negative(value: int) -> Bool__Value rev 1
   emits []
   tests
     is_neg_z(value = 0) => Ok(value = false)
@@ -256,7 +255,7 @@ fn int__is_negative(value: int) -> Bool__Value rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-fn int__in_closed_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
+fn std__int__in_closed_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
   emits [math.invalid_bounds]
   tests
     closed_in(value = 5, lower = 0, upper = 10) => Ok(value = true)
@@ -274,7 +273,7 @@ fn int__in_closed_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
       false => Ok(value = false)
     false => math.invalid_bounds(lower = lower, upper = upper)
 
-fn int__in_open_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
+fn std__int__in_open_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
   emits [math.invalid_bounds]
   tests
     open_in(value = 5, lower = 0, upper = 10) => Ok(value = true)
@@ -292,7 +291,7 @@ fn int__in_open_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
         false => Ok(value = true)
     false => math.invalid_bounds(lower = lower, upper = upper)
 
-fn dec__is_zero(value: dec) -> Bool__Value rev 1
+fn std__dec__is_zero(value: dec) -> Bool__Value rev 1
   emits []
   tests
     dec_zero_z(value = d"0.0") => Ok(value = true)
@@ -303,7 +302,7 @@ fn dec__is_zero(value: dec) -> Bool__Value rev 1
     true => Ok(value = true)
     false => Ok(value = false)
 
-fn dec__is_positive(value: dec) -> Bool__Value rev 1
+fn std__dec__is_positive(value: dec) -> Bool__Value rev 1
   emits []
   tests
     dec_pos_z(value = d"0.0") => Ok(value = false)
@@ -316,7 +315,7 @@ fn dec__is_positive(value: dec) -> Bool__Value rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-fn dec__is_negative(value: dec) -> Bool__Value rev 1
+fn std__dec__is_negative(value: dec) -> Bool__Value rev 1
   emits []
   tests
     dec_neg_z(value = d"0.0") => Ok(value = false)
@@ -329,7 +328,7 @@ fn dec__is_negative(value: dec) -> Bool__Value rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-fn dec__in_closed_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
+fn std__dec__in_closed_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
   emits [math.dec_invalid_bounds]
   tests
     dec_closed_in(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = true)
@@ -345,7 +344,7 @@ fn dec__in_closed_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
       false => Ok(value = false)
     false => math.dec_invalid_bounds(lower = lower, upper = upper)
 
-fn dec__in_open_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
+fn std__dec__in_open_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
   emits [math.dec_invalid_bounds]
   tests
     dec_open_in(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = true)
@@ -362,7 +361,7 @@ fn dec__in_open_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
         false => Ok(value = true)
     false => math.dec_invalid_bounds(lower = lower, upper = upper)
 
-fn int__abs(value: int) -> Int__Value rev 1
+fn std__int__abs(value: int) -> Int__Value rev 1
   emits []
   tests
     abs_neg(value = -3) => Ok(value = 3)
@@ -373,7 +372,7 @@ fn int__abs(value: int) -> Int__Value rev 1
     true => Ok(value = value)
     false => Ok(value = 0 - value)
 
-fn int__negate(value: int) -> Int__Value rev 1
+fn std__int__negate(value: int) -> Int__Value rev 1
   emits []
   tests
     neg_pos(value = 3) => Ok(value = -3)
@@ -382,7 +381,7 @@ fn int__negate(value: int) -> Int__Value rev 1
 =
   Ok(value = 0 - value)
 
-fn int__sign(value: int) -> Int__Value rev 1
+fn std__int__sign(value: int) -> Int__Value rev 1
   emits []
   tests
     sign_zero(value = 0) => Ok(value = 0)
@@ -395,7 +394,7 @@ fn int__sign(value: int) -> Int__Value rev 1
       true => Ok(value = 1)
       false => Ok(value = -1)
 
-fn int__min(left: int, right: int) -> Int__Value rev 1
+fn std__int__min(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
     min_lt(left = 3, right = 4) => Ok(value = 3)
@@ -406,7 +405,7 @@ fn int__min(left: int, right: int) -> Int__Value rev 1
     true => Ok(value = left)
     false => Ok(value = right)
 
-fn int__max(left: int, right: int) -> Int__Value rev 1
+fn std__int__max(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
     max_lt(left = 3, right = 4) => Ok(value = 4)
@@ -417,7 +416,7 @@ fn int__max(left: int, right: int) -> Int__Value rev 1
     true => Ok(value = left)
     false => Ok(value = right)
 
-fn int__clamp(value: int, lower: int, upper: int) -> Int__Value rev 1
+fn std__int__clamp(value: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds]
   tests
     clamp_in(value = 5, lower = 0, upper = 10) => Ok(value = 5)
@@ -433,7 +432,7 @@ fn int__clamp(value: int, lower: int, upper: int) -> Int__Value rev 1
       false => Ok(value = lower)
     false => math.invalid_bounds(lower = lower, upper = upper)
 
-fn int__distance(left: int, right: int) -> Int__Value rev 1
+fn std__int__distance(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
     dist_gt(left = 5, right = 2) => Ok(value = 3)
@@ -444,7 +443,7 @@ fn int__distance(left: int, right: int) -> Int__Value rev 1
     true => Ok(value = left - right)
     false => Ok(value = right - left)
 
-fn int__square(value: int) -> Int__Value rev 1
+fn std__int__square(value: int) -> Int__Value rev 1
   emits []
   tests
     sq_pos(value = 4) => Ok(value = 16)
@@ -453,7 +452,7 @@ fn int__square(value: int) -> Int__Value rev 1
 =
   Ok(value = value * value)
 
-fn int__pow_from(base: int, exponent: int) -> Int__Value rev 1
+fn std__int__pow_from(base: int, exponent: int) -> Int__Value rev 1
   decreases exponent
   emits []
   tests
@@ -462,10 +461,10 @@ fn int__pow_from(base: int, exponent: int) -> Int__Value rev 1
 =
   match exponent <= 0
     true => Ok(value = 1)
-    false => match call int__pow_from(base, exponent - 1)
+    false => match call std__int__pow_from(base, exponent - 1)
       on Ok r => Ok(value = base * r.value)
 
-fn int__pow(base: int, exponent: int) -> Int__Value rev 1
+fn std__int__pow(base: int, exponent: int) -> Int__Value rev 1
   emits [math.negative_exponent]
   tests
     pow_zero_exp(base = 5, exponent = 0) => Ok(value = 1)
@@ -474,11 +473,11 @@ fn int__pow(base: int, exponent: int) -> Int__Value rev 1
     pow_neg(base = 2, exponent = -1) => math.negative_exponent(exponent = -1)
 =
   match exponent >= 0
-    true => match call int__pow_from(base, exponent)
+    true => match call std__int__pow_from(base, exponent)
       on Ok r => Ok(value = r.value)
     false => math.negative_exponent(exponent = exponent)
 
-fn int__add_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
+fn std__int__add_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds, math.out_of_range]
   tests
     add_ok(left = 3, right = 4, lower = 0, upper = 10) => Ok(value = 7)
@@ -494,7 +493,7 @@ fn int__add_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value
       false => math.out_of_range(value = left + right, lower = lower, upper = upper)
     false => math.invalid_bounds(lower = lower, upper = upper)
 
-fn int__subtract_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
+fn std__int__subtract_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds, math.out_of_range]
   tests
     sub_ok(left = 9, right = 4, lower = 0, upper = 10) => Ok(value = 5)
@@ -510,7 +509,7 @@ fn int__subtract_bounded(left: int, right: int, lower: int, upper: int) -> Int__
       false => math.out_of_range(value = left - right, lower = lower, upper = upper)
     false => math.invalid_bounds(lower = lower, upper = upper)
 
-fn int__multiply_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
+fn std__int__multiply_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds, math.out_of_range]
   tests
     mul_ok(left = 3, right = 4, lower = 0, upper = 20) => Ok(value = 12)
@@ -526,7 +525,7 @@ fn int__multiply_bounded(left: int, right: int, lower: int, upper: int) -> Int__
       false => math.out_of_range(value = left * right, lower = lower, upper = upper)
     false => math.invalid_bounds(lower = lower, upper = upper)
 
-fn int__factorial_from(value: int) -> Int__Value rev 1
+fn std__int__factorial_from(value: int) -> Int__Value rev 1
   decreases value
   emits []
   tests
@@ -535,10 +534,10 @@ fn int__factorial_from(value: int) -> Int__Value rev 1
 =
   match value <= 0
     true => Ok(value = 1)
-    false => match call int__factorial_from(value - 1)
+    false => match call std__int__factorial_from(value - 1)
       on Ok r => Ok(value = value * r.value)
 
-fn int__factorial(value: int) -> Int__Value rev 1
+fn std__int__factorial(value: int) -> Int__Value rev 1
   emits [math.negative_input]
   tests
     fact_zero(value = 0) => Ok(value = 1)
@@ -546,11 +545,11 @@ fn int__factorial(value: int) -> Int__Value rev 1
     fact_neg(value = -2) => math.negative_input(value = -2)
 =
   match value >= 0
-    true => match call int__factorial_from(value)
+    true => match call std__int__factorial_from(value)
       on Ok r => Ok(value = r.value)
     false => math.negative_input(value = value)
 
-fn int__sum_from(upper: int) -> Int__Value rev 1
+fn std__int__sum_from(upper: int) -> Int__Value rev 1
   decreases upper
   emits []
   tests
@@ -559,10 +558,10 @@ fn int__sum_from(upper: int) -> Int__Value rev 1
 =
   match upper <= 0
     true => Ok(value = 0)
-    false => match call int__sum_from(upper - 1)
+    false => match call std__int__sum_from(upper - 1)
       on Ok r => Ok(value = upper + r.value)
 
-fn int__sum_to(upper: int) -> Int__Value rev 1
+fn std__int__sum_to(upper: int) -> Int__Value rev 1
   emits [math.negative_input]
   tests
     sum_zero(upper = 0) => Ok(value = 0)
@@ -570,11 +569,11 @@ fn int__sum_to(upper: int) -> Int__Value rev 1
     sum_neg(upper = -2) => math.negative_input(value = -2)
 =
   match upper >= 0
-    true => match call int__sum_from(upper)
+    true => match call std__int__sum_from(upper)
       on Ok r => Ok(value = r.value)
     false => math.negative_input(value = upper)
 
-fn dec__abs(value: dec) -> Dec__Value rev 1
+fn std__dec__abs(value: dec) -> Dec__Value rev 1
   emits []
   tests
     dec_abs_neg(value = d"-2.5") => Ok(value = d"2.5")
@@ -585,7 +584,7 @@ fn dec__abs(value: dec) -> Dec__Value rev 1
     true => Ok(value = value)
     false => Ok(value = d"0.0" - value)
 
-fn dec__negate(value: dec) -> Dec__Value rev 1
+fn std__dec__negate(value: dec) -> Dec__Value rev 1
   emits []
   tests
     dec_neg_pos(value = d"2.5") => Ok(value = d"-2.5")
@@ -594,7 +593,7 @@ fn dec__negate(value: dec) -> Dec__Value rev 1
 =
   Ok(value = d"0.0" - value)
 
-fn dec__sign(value: dec) -> Int__Value rev 1
+fn std__dec__sign(value: dec) -> Int__Value rev 1
   emits []
   tests
     dec_sign_zero(value = d"0.0") => Ok(value = 0)
@@ -607,7 +606,7 @@ fn dec__sign(value: dec) -> Int__Value rev 1
       true => Ok(value = 1)
       false => Ok(value = -1)
 
-fn dec__min(left: dec, right: dec) -> Dec__Value rev 1
+fn std__dec__min(left: dec, right: dec) -> Dec__Value rev 1
   emits []
   tests
     dec_min_lt(left = d"1.5", right = d"2.5") => Ok(value = d"1.5")
@@ -618,7 +617,7 @@ fn dec__min(left: dec, right: dec) -> Dec__Value rev 1
     true => Ok(value = left)
     false => Ok(value = right)
 
-fn dec__max(left: dec, right: dec) -> Dec__Value rev 1
+fn std__dec__max(left: dec, right: dec) -> Dec__Value rev 1
   emits []
   tests
     dec_max_lt(left = d"1.5", right = d"2.5") => Ok(value = d"2.5")
@@ -629,7 +628,7 @@ fn dec__max(left: dec, right: dec) -> Dec__Value rev 1
     true => Ok(value = left)
     false => Ok(value = right)
 
-fn dec__clamp(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
+fn std__dec__clamp(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
   emits [math.dec_invalid_bounds]
   tests
     dec_clamp_in(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"5.0")
@@ -645,7 +644,7 @@ fn dec__clamp(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
       false => Ok(value = lower)
     false => math.dec_invalid_bounds(lower = lower, upper = upper)
 
-fn dec__distance(left: dec, right: dec) -> Dec__Value rev 1
+fn std__dec__distance(left: dec, right: dec) -> Dec__Value rev 1
   emits []
   tests
     dec_dist_gt(left = d"5.5", right = d"2.5") => Ok(value = d"3.0")
@@ -656,7 +655,7 @@ fn dec__distance(left: dec, right: dec) -> Dec__Value rev 1
     true => Ok(value = left - right)
     false => Ok(value = right - left)
 
-fn dec__square(value: dec) -> Dec__Value rev 1
+fn std__dec__square(value: dec) -> Dec__Value rev 1
   emits []
   tests
     dec_sq_pos(value = d"4.0") => Ok(value = d"16.0")
@@ -665,7 +664,7 @@ fn dec__square(value: dec) -> Dec__Value rev 1
 =
   Ok(value = value * value)
 
-fn dec__pow_from(base: dec, exponent: int) -> Dec__Value rev 1
+fn std__dec__pow_from(base: dec, exponent: int) -> Dec__Value rev 1
   decreases exponent
   emits []
   tests
@@ -674,10 +673,10 @@ fn dec__pow_from(base: dec, exponent: int) -> Dec__Value rev 1
 =
   match exponent <= 0
     true => Ok(value = d"1.0")
-    false => match call dec__pow_from(base, exponent - 1)
+    false => match call std__dec__pow_from(base, exponent - 1)
       on Ok r => Ok(value = base * r.value)
 
-fn dec__pow(base: dec, exponent: int) -> Dec__Value rev 1
+fn std__dec__pow(base: dec, exponent: int) -> Dec__Value rev 1
   emits [math.negative_exponent]
   tests
     dec_pow_zero_exp(base = d"2.5", exponent = 0) => Ok(value = d"1.0")
@@ -685,11 +684,11 @@ fn dec__pow(base: dec, exponent: int) -> Dec__Value rev 1
     dec_pow_neg(base = d"1.5", exponent = -1) => math.negative_exponent(exponent = -1)
 =
   match exponent >= 0
-    true => match call dec__pow_from(base, exponent)
+    true => match call std__dec__pow_from(base, exponent)
       on Ok r => Ok(value = r.value)
     false => math.negative_exponent(exponent = exponent)
 
-fn dec__lerp(start: dec, end: dec, fraction: dec) -> Dec__Value rev 1
+fn std__dec__lerp(start: dec, end: dec, fraction: dec) -> Dec__Value rev 1
   emits [math.dec_out_of_range]
   tests
     lerp_zero(start = d"10.0", end = d"20.0", fraction = d"0.0") => Ok(value = d"10.0")
@@ -704,7 +703,7 @@ fn dec__lerp(start: dec, end: dec, fraction: dec) -> Dec__Value rev 1
       false => math.dec_out_of_range(value = fraction, lower = d"0.0", upper = d"1.0")
     false => math.dec_out_of_range(value = fraction, lower = d"0.0", upper = d"1.0")
 
-fn convert__bool_to_str(value: bool) -> Str__Value rev 1
+fn std__convert__bool_to_str(value: bool) -> Str__Value rev 1
   emits []
   tests
     b2s_t(value = true) => Ok(value = "true")
@@ -714,7 +713,7 @@ fn convert__bool_to_str(value: bool) -> Str__Value rev 1
     true => Ok(value = "true")
     false => Ok(value = "false")
 
-fn convert__str_to_bool(value: str) -> Bool__Value rev 1
+fn std__convert__str_to_bool(value: str) -> Bool__Value rev 1
   emits [convert.invalid_boolean]
   tests
     s2b_t(value = "true") => Ok(value = true)
@@ -726,7 +725,7 @@ fn convert__str_to_bool(value: str) -> Bool__Value rev 1
     "false" => Ok(value = false)
     _ => convert.invalid_boolean(value = value)
 
-fn convert__bool_to_int(value: bool) -> Int__Value rev 1
+fn std__convert__bool_to_int(value: bool) -> Int__Value rev 1
   emits []
   tests
     b2i_t(value = true) => Ok(value = 1)
@@ -736,7 +735,7 @@ fn convert__bool_to_int(value: bool) -> Int__Value rev 1
     true => Ok(value = 1)
     false => Ok(value = 0)
 
-fn convert__int_to_bool(value: int) -> Bool__Value rev 1
+fn std__convert__int_to_bool(value: int) -> Bool__Value rev 1
   emits [convert.invalid_boolean_encoding]
   tests
     i2b_zero(value = 0) => Ok(value = false)
@@ -749,7 +748,7 @@ fn convert__int_to_bool(value: int) -> Bool__Value rev 1
       true => Ok(value = true)
       false => convert.invalid_boolean_encoding(value = value)
 
-fn convert__bool_to_dec(value: bool) -> Dec__Value rev 1
+fn std__convert__bool_to_dec(value: bool) -> Dec__Value rev 1
   emits []
   tests
     b2d_t(value = true) => Ok(value = d"1.0")
@@ -759,7 +758,7 @@ fn convert__bool_to_dec(value: bool) -> Dec__Value rev 1
     true => Ok(value = d"1.0")
     false => Ok(value = d"0.0")
 
-fn convert__dec_to_bool(value: dec) -> Bool__Value rev 1
+fn std__convert__dec_to_bool(value: dec) -> Bool__Value rev 1
   emits [convert.invalid_dec_encoding]
   tests
     d2b_zero(value = d"0.0") => Ok(value = false)
@@ -772,7 +771,7 @@ fn convert__dec_to_bool(value: dec) -> Bool__Value rev 1
       true => Ok(value = true)
       false => convert.invalid_dec_encoding(value = value)
 
-fn backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value rev 1
+fn std__backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value rev 1
   emits [math.negative_input]
   tests
     backoff_zero(attempt = 0, base_ms = 100, cap_ms = 1000) => Ok(value = 100)
@@ -787,7 +786,7 @@ fn backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value rev 1
     true => match cap_ms >= 0
       true => match attempt >= 0
         true => match attempt <= 30
-          true => match call int__pow_from(2, attempt)
+          true => match call std__int__pow_from(2, attempt)
             on Ok p => match base_ms * p.value <= cap_ms
               true => Ok(value = base_ms * p.value)
               false => Ok(value = cap_ms)
@@ -797,13 +796,13 @@ fn backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value rev 1
     false => math.negative_input(value = base_ms)
 
 // Shape notes, kept with the program, not in a second file.
-// 1. Termination and cost are separate claims. int__pow_from ends for
+// 1. Termination and cost are separate claims. std__int__pow_from ends for
 //    every non-negative exponent by the decreases proof, while
-//    backoff__delay caps attempts at 30 so builds stay cheap. The cap
+//    std__backoff__delay caps attempts at 30 so builds stay cheap. The cap
 //    is a cost policy at the call site, not part of the power proof.
 // 2. Recursion never hides an error arm. fallible recursion splits in
 //    two: a total helper with no emits under the guard, and a checked
 //    entry that rejects negatives before delegating.
-// 3. String order in compare__str is byte order on the wire encoding.
+// 3. String order in std__compare__str is byte order on the wire encoding.
 //    It is deterministic, not Unicode aware. Grapheme or collation
 //    aware comparison waits on the Text layer and pinned data.

@@ -41,18 +41,20 @@ an outcome its provider body can never produce) is the reason
 this cannot be a silent default: evaluated imports would forbid
 exactly the stub the flagship relies on.
 
-## Name mapping (R3 allows one `__` separator)
+## Name mapping (resolved by issue 5)
 
-Spec names with two separators land with one. The mapping is
-mechanical: `std__int__abs` is `int__abs`, `std__dec__abs` is
-`dec__abs`, `std__bool__not` is `bool__not`,
-`std__compare__int` is `compare__int`,
-`std__select__int` is `select__int`,
-`std__validate__int_range` is `validate__int_range`,
-`std__convert__bool_to_str` is `convert__bool_to_str`,
-and so on per domain. Two error kinds split by payload type,
-since one kind has one field list: `convert.invalid_boolean`
-for strings, `convert.invalid_boolean_encoding` for ints,
+The R3 single-separator reading was wrong: the grammar's verb
+class already admits hierarchical names, so spec names land
+verbatim — `std__int__abs`, `std__bool__not`,
+`std__compare__int`, `std__select__int`,
+`std__validate__int_range`, `std__convert__bool_to_str`, and so
+on per domain. Pinned by `TestMultiUnderscoreNameAccepted` and
+`TestMalformedNamesRejected` in `compiler/naming_test.go`, which
+also pin the remaining rejections (no separator,
+leading/trailing/doubled runs). Two error kinds split by payload
+type, since one kind has one field list:
+`convert.invalid_boolean` for strings,
+`convert.invalid_boolean_encoding` for ints,
 `convert.invalid_dec_encoding` for decs. Every function returns
 a named success record (`Int__Value`, `Dec__Value`,
 `Str__Value`, `Bool__Value`, `Quota__Usage`, `Validate__Pass`);
