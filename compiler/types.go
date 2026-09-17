@@ -405,6 +405,11 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		slots, berr := bindSlots(s.Fname, s.Args, sig.params)
 		if berr != nil {
 			c.out = append(c.out, spanDiag(c.text, line, "error", berr.Error(), s.Fname, CodeBadBinding))
+			// Still check the argument expressions themselves so one
+			// bad vector never hides nested errors inside the args.
+			for _, a := range s.Args {
+				c.value(a.V, "", line, env, "call "+s.Fname+" arg")
+			}
 			return
 		}
 		for i, a := range s.Args {
