@@ -192,6 +192,19 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			return "", false
 		}
 		return t, true
+	case "ctor":
+		// A named record constructor carries its record type outward
+		// so outer positions (Ok fields, call arguments, test
+		// expectations, equality) check the constructor identity, not
+		// just the inner fields. Ok and error ctors resolve through
+		// their own rules; unknown records stay silent here because
+		// checkCtor owns the unknown-record diagnostic.
+		if s.Ctor != "Ok" && !strings.Contains(s.Ctor, ".") {
+			if _, ok := c.recs[s.Ctor]; ok {
+				return s.Ctor, true
+			}
+		}
+		return "", false
 	case "binop":
 		if !isArith(s.Op) {
 			return "bool", true
@@ -554,7 +567,13 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 	for _, f := range fields {
 		byName[f[0]] = f[1]
 	}
+	seenArg := map[string]bool{}
 	for _, a := range s.Args {
+		if seenArg[a.Name] {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("%s repeats field %s", label, a.Name), a.Name, CodeTypeMismatch))
+		}
+		seenArg[a.Name] = true
 		ft, ok := byName[a.Name]
 		if !ok {
 			c.out = append(c.out, spanDiag(c.text, line, "error",

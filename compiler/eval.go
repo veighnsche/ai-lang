@@ -20,6 +20,25 @@ type Value struct {
 	D       string
 	Dict    map[string]*Value
 	ErrKind string
+	// Rec names the record constructor for rec values built in value
+	// positions; empty for Ok payloads (which render as Ok).
+	Rec string
+}
+
+// recordDecl finds a record declaration by name, first wins across
+// modules, matching the checker and the emitter.
+func recordDecl(prog *Program, name string) *TypeDecl {
+	if prog == nil {
+		return nil
+	}
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			if td, ok := d.(*TypeDecl); ok && td.Name == name {
+				return td
+			}
+		}
+	}
+	return nil
 }
 
 // decRat parses canonical dec digits exactly. Canonical form always
@@ -371,6 +390,9 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		}
 		fields := map[string]*Value{}
 		for _, a := range node.Args {
+			if _, dup := fields[a.Name]; dup {
+				return nil, fmt.Errorf("%s: %s repeats field %s", owner, node.Ctor, a.Name)
+			}
 			v, err := evSmall(a.V, env, ctx, owner)
 			if err != nil {
 				return nil, err
@@ -398,6 +420,27 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 				}
 			}
 			return &Value{Kind: "err", ErrKind: node.Ctor, Dict: fields}, nil
+		}
+		// Declared finite monomorphic records in value positions:
+		// exact named fields with explicit declared types (checked
+		// statically; re-verified here so execution never invents a
+		// shape the declaration does not name).
+		if decl := recordDecl(ctx.Prog, node.Ctor); decl != nil {
+			want := map[string]bool{}
+			for _, f := range decl.Fields {
+				want[f[0]] = true
+			}
+			for f := range fields {
+				if !want[f] {
+					return nil, fmt.Errorf("%s: %s has unknown field %s", owner, node.Ctor, f)
+				}
+			}
+			for f := range want {
+				if _, ok := fields[f]; !ok {
+					return nil, fmt.Errorf("%s: %s missing field %s", owner, node.Ctor, f)
+				}
+			}
+			return &Value{Kind: "rec", Rec: node.Ctor, Dict: fields}, nil
 		}
 		return nil, fmt.Errorf("unknown constructor: %s", node.Ctor)
 	case "list":
@@ -736,7 +779,11 @@ func normalizeValue(v *Value) string {
 		for _, k := range keys {
 			parts = append(parts, k+" = "+normalizeValue(v.Dict[k]))
 		}
-		return "Ok(" + strings.Join(parts, ", ") + ")"
+		name := "Ok"
+		if v.Kind == "rec" && v.Rec != "" {
+			name = v.Rec
+		}
+		return name + "(" + strings.Join(parts, ", ") + ")"
 	case "err":
 		if len(v.Dict) == 0 {
 			return "err(" + v.ErrKind + ")"

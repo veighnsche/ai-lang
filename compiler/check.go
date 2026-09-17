@@ -806,6 +806,85 @@ func checkLocalCycles(m *Module, prog *Program, text string) []Diag {
 	return out
 }
 
+// checkRecordCycles rejects cycles in the record-type graph for this
+// first cut: only finite monomorphic products are admitted, so a
+// record reaching itself through field types fails before tests or
+// output. Brands and base types are leaves; unknown field types belong
+// to the declaration check, not the cycle hunt.
+func checkRecordCycles(mods []*Module, texts map[string]string) []Diag {
+	fieldsOf := map[string][][2]string{}
+	declLine := map[string]int{}
+	declFile := map[string]string{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			td, ok := d.(*TypeDecl)
+			if !ok {
+				continue
+			}
+			if _, seen := fieldsOf[td.Name]; !seen {
+				fieldsOf[td.Name] = td.Fields
+				declLine[td.Name] = td.Line
+				declFile[td.Name] = m.ID
+			}
+		}
+	}
+	isRecord := func(t string) bool {
+		_, ok := fieldsOf[t]
+		return ok
+	}
+	var out []Diag
+	reported := map[string]bool{}
+	var visit func(name string, stack []string)
+	visit = func(name string, stack []string) {
+		for _, f := range fieldsOf[name] {
+			ft := f[1]
+			if !isRecord(ft) {
+				continue
+			}
+			idx := -1
+			for i, s := range stack {
+				if s == ft {
+					idx = i
+					break
+				}
+			}
+			if idx >= 0 {
+				// One diagnostic per cycle: rotate to start at the
+				// smallest name so every root reports the same key.
+				cyc := append(append([]string{}, stack[idx:]...), ft)
+				body := cyc[:len(cyc)-1]
+				mi := 0
+				for i, n := range body {
+					if n < body[mi] {
+						mi = i
+					}
+				}
+				rot := append(append([]string{}, body[mi:]...), body[:mi]...)
+				rot = append(rot, rot[0])
+				key := strings.Join(rot, "->")
+				if !reported[key] {
+					reported[key] = true
+					text := texts[declFile[rot[0]]]
+					out = append(out, spanDiag(text, declLine[rot[0]], "error",
+						fmt.Sprintf("record type cycle: %s reaches itself through field types", strings.Join(rot, " -> ")),
+						rot[0], CodeRecordCycle))
+				}
+				continue
+			}
+			visit(ft, append(stack, ft))
+		}
+	}
+	var names []string
+	for n := range fieldsOf {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	for _, n := range names {
+		visit(n, []string{n})
+	}
+	return out
+}
+
 // checkGlobalCycles bans recursion across files (v11): the sandbox
 // stubs foreign calls, so a cross-file cycle passes every per-file
 // check and every test, then links into an unproved recursive cycle

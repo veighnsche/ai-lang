@@ -324,7 +324,11 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	// per the R10 world-error rule.
 	global := checkGlobalCycles(mods, texts, prog)
 	collected = append(collected, global...)
-	gblocked := hasErrors(global)
+	// Finite products only (first cut): record-type cycles fail before
+	// tests or output through the same execution gate.
+	recCycles := checkRecordCycles(mods, texts)
+	collected = append(collected, recCycles...)
+	gblocked := hasErrors(global) || hasErrors(recCycles)
 	for _, m := range mods {
 		text := texts[m.ID]
 		var hook func(fn, test string)

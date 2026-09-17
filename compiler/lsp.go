@@ -201,7 +201,9 @@ func diagnose(dir, name, text string) []Diag {
 	// (report per-line, suppress only execution-dependent checks).
 	global := checkGlobalCycles(all, texts, prog)
 	out = append(out, global...)
-	out = append(out, checkSem(open, text, prog, nil, hasErrors(global))...)
+	recCycles := checkRecordCycles(all, texts)
+	out = append(out, recCycles...)
+	out = append(out, checkSem(open, text, prog, nil, hasErrors(global) || hasErrors(recCycles))...)
 	sortDiags(out)
 	return withFile(out, name)
 }
