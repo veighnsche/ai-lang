@@ -40,7 +40,7 @@ var cases = []sampleCase{
 	{"entity.name.tag.ail", []string{"user_id:", "happy:"}},
 	{"constant.numeric.version.ail", []string{"@3"}},
 	{"variable.other.readwrite.ail", []string{"id", "pw", "user"}},
-	{"string.quoted.double.ail", []string{`"secret"`}},
+	{"string.quoted.double.ail", []string{`"secret"`, `e"a\nb"`}},
 	{"comment.line.double-slash.ail", []string{"// note"}},
 }
 

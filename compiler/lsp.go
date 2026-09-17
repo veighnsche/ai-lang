@@ -481,6 +481,11 @@ func patDesc(p Pattern) (desc, tok string) {
 		}
 		return "on false", "false"
 	case "str":
+		// v66: an interpreted pattern's decoded value is not
+		// searchable in source; locate its verbatim spelling.
+		if strings.HasPrefix(p.Raw, `e"`) {
+			return "on " + p.Raw, p.Raw
+		}
 		return "on " + strconv.Quote(p.Str), p.Str
 	default:
 		return "_", "_"

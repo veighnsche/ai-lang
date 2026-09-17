@@ -385,9 +385,11 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 	switch node.Kind {
 	case "str":
 		// One literal encoder (normStr): the in-memory string is
-		// source-raw (the parser interprets no escapes), so the
-		// target literal must re-escape every special char. Values
-		// and patterns share this encoder (see stmtMatch).
+		// either source-raw (ordinary "..." interprets no
+		// escapes) or already decoded (v66 e"..." six escapes),
+		// so the target literal must re-escape every special
+		// char. Values and patterns share this encoder (see
+		// stmtMatch).
 		return normStr(node.Str), nil
 	case "int":
 		return node.Num.String() + "n", nil

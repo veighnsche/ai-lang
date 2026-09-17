@@ -63,6 +63,10 @@ type Pattern struct {
 	Str  string
 	Name string
 	Var  string
+	// Raw is the source spelling of a str pattern (v66): the
+	// squiggle locator needs the verbatim token because a
+	// decoded interpreted literal is not searchable in source.
+	Raw string
 }
 
 type Arm struct {
@@ -581,10 +585,110 @@ func canonDec(raw string) (string, error) {
 	return m[1] + ip + "." + fp, nil
 }
 
+// decodeEscapes interprets the six e"..." escapes once, left to
+// right: \" \\ \n \r \t \0. The result is data, never input to
+// another pass (e"\\n" is backslash+n; e"\01" is NUL followed
+// by '1', not an octal escape). Unknown escapes, a dangling
+// backslash, and non-escape content all fail: ordinary "..."
+// already provides the preservation mechanism, so e"..."
+// rejects instead of passing through.
+func decodeEscapes(raw string) (string, error) {
+	if strings.IndexByte(raw, '\\') < 0 {
+		return raw, nil
+	}
+	var out strings.Builder
+	out.Grow(len(raw))
+	for i := 0; i < len(raw); i++ {
+		c := raw[i]
+		if c != '\\' {
+			out.WriteByte(c)
+			continue
+		}
+		i++
+		if i >= len(raw) {
+			return "", fmt.Errorf("dangling backslash in interpreted string")
+		}
+		switch raw[i] {
+		case '"':
+			out.WriteByte('"')
+		case '\\':
+			out.WriteByte('\\')
+		case 'n':
+			out.WriteByte('\n')
+		case 'r':
+			out.WriteByte('\r')
+		case 't':
+			out.WriteByte('\t')
+		case '0':
+			out.WriteByte(0)
+		default:
+			return "", fmt.Errorf("unsupported escape \\%c in interpreted string: want one of \\\" \\\\ \\n \\r \\t \\0", raw[i])
+		}
+	}
+	return out.String(), nil
+}
+
+// escClose finds the closing quote of a literal opening at s[0],
+// skipping backslash-escaped bytes. -1 means unterminated.
+func escClose(s string) int {
+	esc := false
+	for k := 1; k < len(s); k++ {
+		c := s[k]
+		if esc {
+			esc = false
+		} else if c == '\\' {
+			esc = true
+		} else if c == '"' {
+			return k
+		}
+	}
+	return -1
+}
+
 func parseSmall(s string) (*Small, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil, fmt.Errorf("empty expression")
+	}
+	// v66: interpreted string literals e"...". Same str kind and
+	// runtime representation as ordinary literals; only the six
+	// escapes decode. The e prefix is inert to every splitter
+	// (they track "..." regions uniformly), so embedding and
+	// postfix reuse the ordinary rule below: a bare literal, or
+	// fall-through to generic binop/bracket parsing.
+	if strings.HasPrefix(s, `e"`) {
+		j := escClose(s[1:])
+		if j < 0 {
+			return nil, fmt.Errorf("unterminated interpreted string: %s", s)
+		}
+		j++ // account for the e prefix
+		decoded, err := decodeEscapes(s[2:j])
+		if err != nil {
+			return nil, err
+		}
+		if j == len(s)-1 {
+			return &Small{Kind: "str", Str: decoded}, nil
+		}
+		rest := strings.TrimSpace(s[j+1:])
+		embedded := false
+		if oplen := leadingBinOpLen(rest); oplen > 0 {
+			after := strings.TrimSpace(rest[oplen:])
+			if after != "" && !strings.HasPrefix(after, `"`) && !strings.HasPrefix(after, `e"`) {
+				embedded = true
+			}
+		} else if strings.HasPrefix(rest, "[") {
+			embedded = true
+		}
+		if !embedded {
+			if len(s) < 3 || !strings.HasSuffix(s, `"`) {
+				return nil, fmt.Errorf("bad string: %s", s)
+			}
+			inner, err := decodeEscapes(s[2 : len(s)-1])
+			if err != nil {
+				return nil, err
+			}
+			return &Small{Kind: "str", Str: inner}, nil
+		}
 	}
 	if strings.HasPrefix(s, `"`) {
 		// A trailing index/slice group belongs to the postfix branch
@@ -1326,7 +1430,21 @@ func parsePattern(s string) (Pattern, error) {
 	case s == "false":
 		return Pattern{Kind: "bool"}, nil
 	case strings.HasPrefix(s, `"`):
-		return Pattern{Kind: "str", Str: s[1 : len(s)-1]}, nil
+		return Pattern{Kind: "str", Str: s[1 : len(s)-1], Raw: s}, nil
+	case strings.HasPrefix(s, `e"`):
+		j := escClose(s[1:])
+		if j < 0 {
+			return Pattern{}, fmt.Errorf("unterminated interpreted string: %s", s)
+		}
+		j++ // account for the e prefix
+		if strings.TrimSpace(s[j+1:]) != "" {
+			return Pattern{}, fmt.Errorf("bad match pattern: %s", s)
+		}
+		decoded, err := decodeEscapes(s[2:j])
+		if err != nil {
+			return Pattern{}, err
+		}
+		return Pattern{Kind: "str", Str: decoded, Raw: s}, nil
 	}
 	if m := rePatVar.FindStringSubmatch(s); m != nil && (m[1] == "Ok" || strings.Contains(m[1], ".")) {
 		return Pattern{Kind: "variant", Name: m[1], Var: m[2]}, nil

@@ -49,11 +49,14 @@ Out of scope: `\b \f \v \a` and numeric controls
 
 - Probe first (red): `compiler/str_escapes_test.go`
   with the verdict's five utf8 rows (raw + escaped +
-  decode-once + NUL + not-octal), the two base64
-  reject rows (`e"QQ==\n"`, length-eight
+  decode-once + NUL + not-octal), the base64 rows
+  (`e"QUJD"` success for the AIL4107 Ok arm plus the
+  two rejects `e"QQ==\n"` and length-eight
   `e"QUJD\r\n\r\n"`), and the `e"\x51Q=="`
   AIL1000 rejection. Pre-fix the `e` forms do not
-  parse.
+  parse. Pattern parity (`on e"a\nb"` taken by its
+  row) and the untaken-e-arm source-spelling diag
+  complete the set.
 - Keep green: `TestStrSemanticsEmit`,
   `tail_backslash`, full `go test -count=1 ./...`.
 - Post-fix: committed `.ts` unchanged by test-row

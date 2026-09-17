@@ -27,7 +27,13 @@ specification must rule out the constant function, not merely bless examples.
 - No macros or user-defined dialects. No lazy evaluation: strict/eager only.
 - No type inference that hides information; annotations are mandatory.
 - No syntactic sugar with two spellings for one thing. One canonical form,
-  enforced by formatter (formatter TBD).
+  enforced by formatter (formatter TBD). Amendment (v66): interpreted
+  `e"..."` literals are the versioned exception. Ordinary `"..."` stays
+  raw and a decoded `e"..."` may denote the same value; the two forms
+  are not interchangeable sugar (raw cannot spell LF without a
+  physical line break, `e"..."` admits only six escapes), and
+  interpretation never depends on module, revision, or formatter
+  mode.
 - No native/asm backend for v0.1 (revisit on measured hot paths; WASM first).
 
 ## R1 — Delimiters

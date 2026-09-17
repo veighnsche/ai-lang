@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -34,6 +35,7 @@ fn probe__utf8(value: str) -> Bytes__Value rev 1
 fn probe__b64(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
+    ok_abc(value = e"QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
     trailing_lf(value = e"QQ==\n") => encoding.invalid_base64(value = e"QQ==\n")
     crlf_tail(value = e"QUJD\r\n\r\n") => encoding.invalid_base64(value = e"QUJD\r\n\r\n")
 =
@@ -44,6 +46,75 @@ fn probe__b64(value: str) -> Bytes__Value rev 1
 	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
 	if diags := diagnose(dir, "probe.ail", probe); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+// TestEscapedPatterns pins value/pattern parity: an e-pattern
+// matches its decoded value at runtime. The e-arm is taken by
+// its row, so a clean run proves both directions agree.
+func TestEscapedPatterns(t *testing.T) {
+	probe := `mod probe
+  provides [probe__pat, Str__Value]
+  uses []
+  emits []
+
+type Str__Value rev 1 (
+  value: str
+)
+
+fn probe__pat(value: str) -> Str__Value rev 1
+  emits []
+  tests
+    lf(value = e"a\nb") => Ok(value = "nl")
+    other(value = "x") => Ok(value = "other")
+=
+  match value
+    on e"a\nb" => Ok(value = "nl")
+    on _ => Ok(value = "other")
+`
+	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
+	if diags := diagnose(dir, "probe.ail", probe); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+// TestEscapedPatternDiagLocation pins the v66 squiggle: an
+// untaken e-arm reports its source spelling, never a decoded
+// control character.
+func TestEscapedPatternDiagLocation(t *testing.T) {
+	probe := `mod probe
+  provides [probe__pat, Str__Value]
+  uses []
+  emits []
+
+type Str__Value rev 1 (
+  value: str
+)
+
+fn probe__pat(value: str) -> Str__Value rev 1
+  emits []
+  tests
+    other(value = "x") => Ok(value = "other")
+=
+  match value
+    on e"a\nb" => Ok(value = "nl")
+    on _ => Ok(value = "other")
+`
+	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
+	diags := diagnose(dir, "probe.ail", probe)
+	if !hasErrCode(diags, CodeArmUntaken) {
+		t.Fatalf("expected AIL4107 for the untaken e-arm, got %v", diags)
+	}
+	for _, d := range diags {
+		if d.Code != CodeArmUntaken {
+			continue
+		}
+		if !strings.Contains(d.Msg, `on e"a\nb"`) {
+			t.Fatalf("arm diag must name the source spelling, got %q", d.Msg)
+		}
+		if strings.Contains(d.Msg, "\n") {
+			t.Fatalf("arm diag must not contain a decoded newline, got %q", d.Msg)
+		}
 	}
 }
 
