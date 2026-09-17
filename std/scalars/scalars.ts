@@ -456,21 +456,23 @@ export function std__int__pow_from(base: bigint, exponent: bigint): ScalarsResul
     return { kind: "ok", value: 1n };
   }
   else {
-    const _m1: ScalarsResult = std__int__pow_from(base, (exponent - 1n));
-    switch (_m1.kind) {
-    case "ok":
-      const r = _m1;
+    const $ail_m1: ScalarsResult = std__int__pow_from(base, (exponent - 1n));
+    switch ($ail_m1.kind) {
+    case "ok": {
+      const r = $ail_m1;
       return { kind: "ok", value: (base * r.value) };
+    }
     }
   }
 }
 export function std__int__pow(base: bigint, exponent: bigint): ScalarsResult {
   if ((exponent >= 0n)) {
-    const _m2: ScalarsResult = std__int__pow_from(base, exponent);
-    switch (_m2.kind) {
-    case "ok":
-      const r = _m2;
+    const $ail_m2: ScalarsResult = std__int__pow_from(base, exponent);
+    switch ($ail_m2.kind) {
+    case "ok": {
+      const r = $ail_m2;
       return { kind: "ok", value: r.value };
+    }
     }
   }
   else {
@@ -536,21 +538,23 @@ export function std__int__factorial_from(value: bigint): ScalarsResult {
     return { kind: "ok", value: 1n };
   }
   else {
-    const _m3: ScalarsResult = std__int__factorial_from((value - 1n));
-    switch (_m3.kind) {
-    case "ok":
-      const r = _m3;
+    const $ail_m3: ScalarsResult = std__int__factorial_from((value - 1n));
+    switch ($ail_m3.kind) {
+    case "ok": {
+      const r = $ail_m3;
       return { kind: "ok", value: (value * r.value) };
+    }
     }
   }
 }
 export function std__int__factorial(value: bigint): ScalarsResult {
   if ((value >= 0n)) {
-    const _m4: ScalarsResult = std__int__factorial_from(value);
-    switch (_m4.kind) {
-    case "ok":
-      const r = _m4;
+    const $ail_m4: ScalarsResult = std__int__factorial_from(value);
+    switch ($ail_m4.kind) {
+    case "ok": {
+      const r = $ail_m4;
       return { kind: "ok", value: r.value };
+    }
     }
   }
   else {
@@ -562,21 +566,23 @@ export function std__int__sum_from(upper: bigint): ScalarsResult {
     return { kind: "ok", value: 0n };
   }
   else {
-    const _m5: ScalarsResult = std__int__sum_from((upper - 1n));
-    switch (_m5.kind) {
-    case "ok":
-      const r = _m5;
+    const $ail_m5: ScalarsResult = std__int__sum_from((upper - 1n));
+    switch ($ail_m5.kind) {
+    case "ok": {
+      const r = $ail_m5;
       return { kind: "ok", value: (upper + r.value) };
+    }
     }
   }
 }
 export function std__int__sum_to(upper: bigint): ScalarsResult {
   if ((upper >= 0n)) {
-    const _m6: ScalarsResult = std__int__sum_from(upper);
-    switch (_m6.kind) {
-    case "ok":
-      const r = _m6;
+    const $ail_m6: ScalarsResult = std__int__sum_from(upper);
+    switch ($ail_m6.kind) {
+    case "ok": {
+      const r = $ail_m6;
       return { kind: "ok", value: r.value };
+    }
     }
   }
   else {
@@ -657,21 +663,23 @@ export function std__dec__pow_from(base: string, exponent: bigint): ScalarsResul
     return { kind: "ok", value: "1.0" };
   }
   else {
-    const _m7: ScalarsResult = std__dec__pow_from(base, (exponent - 1n));
-    switch (_m7.kind) {
-    case "ok":
-      const r = _m7;
+    const $ail_m7: ScalarsResult = std__dec__pow_from(base, (exponent - 1n));
+    switch ($ail_m7.kind) {
+    case "ok": {
+      const r = $ail_m7;
       return { kind: "ok", value: $ailDecMul(base, r.value) };
+    }
     }
   }
 }
 export function std__dec__pow(base: string, exponent: bigint): ScalarsResult {
   if ((exponent >= 0n)) {
-    const _m8: ScalarsResult = std__dec__pow_from(base, exponent);
-    switch (_m8.kind) {
-    case "ok":
-      const r = _m8;
+    const $ail_m8: ScalarsResult = std__dec__pow_from(base, exponent);
+    switch ($ail_m8.kind) {
+    case "ok": {
+      const r = $ail_m8;
       return { kind: "ok", value: r.value };
+    }
     }
   }
   else {
@@ -755,16 +763,17 @@ export function std__backoff__delay(attempt: bigint, base_ms: bigint, cap_ms: bi
     if ((cap_ms >= 0n)) {
       if ((attempt >= 0n)) {
         if ((attempt <= 30n)) {
-          const _m9: ScalarsResult = std__int__pow_from(2n, attempt);
-          switch (_m9.kind) {
-          case "ok":
-            const p = _m9;
+          const $ail_m9: ScalarsResult = std__int__pow_from(2n, attempt);
+          switch ($ail_m9.kind) {
+          case "ok": {
+            const p = $ail_m9;
             if (((base_ms * p.value) <= cap_ms)) {
               return { kind: "ok", value: (base_ms * p.value) };
             }
             else {
               return { kind: "ok", value: cap_ms };
             }
+          }
           }
         }
         else {

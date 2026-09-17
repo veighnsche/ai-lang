@@ -6,42 +6,62 @@ export type AuthResult = { kind: "ok"; remaining_tries: bigint; user_id: string 
 export type Auth__Session = { user_id: string; remaining_tries: bigint };
 export type Auth__Verdict = {};
 export function auth__login(id: string, pw: string): AuthResult {
-  const _m1: DbResult = db__get_user(id);
-  switch (_m1.kind) {
-  case "db.user_not_found":
+  const $ail_m1: DbResult = db__get_user(id);
+  switch ($ail_m1.kind) {
+  case "db.user_not_found": {
+    const _ = $ail_m1;
     return { kind: "auth.login_failed", user_id: id };
-  case "db.down":
-    const _m2: DbResult = db__get_user(id);
-    switch (_m2.kind) {
-    case "db.user_not_found":
+  }
+  case "db.down": {
+    const _ = $ail_m1;
+    const $ail_m2: DbResult = db__get_user(id);
+    switch ($ail_m2.kind) {
+    case "db.user_not_found": {
+      const _ = $ail_m2;
       return { kind: "auth.login_failed", user_id: id };
-    case "db.down":
+    }
+    case "db.down": {
+      const _ = $ail_m2;
       return { kind: "auth.unavailable", reason: "db down twice" };
-    case "ok":
-      const user = _m2;
-      const _m3: AuthResult = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
-      switch (_m3.kind) {
-      case "auth.login_failed":
+    }
+    case "ok": {
+      const user = $ail_m2;
+      const $ail_m3: AuthResult = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
+      switch ($ail_m3.kind) {
+      case "auth.login_failed": {
+        const _ = $ail_m3;
         return { kind: "auth.login_failed", user_id: user.id };
-      case "auth.account_locked":
+      }
+      case "auth.account_locked": {
+        const _ = $ail_m3;
         return { kind: "auth.account_locked", user_id: user.id };
-      case "ok":
-        const s = _m3;
+      }
+      case "ok": {
+        const s = $ail_m3;
         return { kind: "ok", user_id: s.user_id, remaining_tries: s.remaining_tries };
       }
+      }
     }
-  case "ok":
-    const user = _m1;
-    const _m4: AuthResult = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
-    switch (_m4.kind) {
-    case "auth.login_failed":
+    }
+  }
+  case "ok": {
+    const user = $ail_m1;
+    const $ail_m4: AuthResult = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
+    switch ($ail_m4.kind) {
+    case "auth.login_failed": {
+      const _ = $ail_m4;
       return { kind: "auth.login_failed", user_id: user.id };
-    case "auth.account_locked":
+    }
+    case "auth.account_locked": {
+      const _ = $ail_m4;
       return { kind: "auth.account_locked", user_id: user.id };
-    case "ok":
-      const s = _m4;
+    }
+    case "ok": {
+      const s = $ail_m4;
       return { kind: "ok", user_id: s.user_id, remaining_tries: s.remaining_tries };
     }
+    }
+  }
   }
 }
 export function auth__verify(user_id: string, failed_attempts: bigint, pw: string, pw_hash: string): AuthResult {
@@ -49,13 +69,16 @@ export function auth__verify(user_id: string, failed_attempts: bigint, pw: strin
     return { kind: "auth.account_locked", user_id: user_id };
   }
   else {
-    const _m5: { kind: "ok" } | { kind: "auth.mismatch" } = auth__check_pw(pw, pw_hash);
-    switch (_m5.kind) {
-    case "auth.mismatch":
+    const $ail_m5: { kind: "ok" } | { kind: "auth.mismatch" } = auth__check_pw(pw, pw_hash);
+    switch ($ail_m5.kind) {
+    case "auth.mismatch": {
+      const _ = $ail_m5;
       return { kind: "auth.login_failed", user_id: user_id };
-    case "ok":
-      const ok = _m5;
+    }
+    case "ok": {
+      const ok = $ail_m5;
       return { kind: "ok", user_id: user_id, remaining_tries: (3n - failed_attempts) };
+    }
     }
   }
 }

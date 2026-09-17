@@ -8,20 +8,26 @@ export function retry__fetch(fuel: bigint): RetryResult {
     return { kind: "retry.exhausted" };
   }
   else {
-    const _m1: { kind: "ok"; body: string } | { kind: "net.down" } = net__fetch();
-    switch (_m1.kind) {
-    case "net.down":
-      const _m2: RetryResult = retry__fetch((fuel - 1n));
-      switch (_m2.kind) {
-      case "retry.exhausted":
+    const $ail_m1: { kind: "ok"; body: string } | { kind: "net.down" } = net__fetch();
+    switch ($ail_m1.kind) {
+    case "net.down": {
+      const _ = $ail_m1;
+      const $ail_m2: RetryResult = retry__fetch((fuel - 1n));
+      switch ($ail_m2.kind) {
+      case "retry.exhausted": {
+        const _ = $ail_m2;
         return { kind: "retry.exhausted" };
-      case "ok":
-        const d = _m2;
+      }
+      case "ok": {
+        const d = $ail_m2;
         return { kind: "ok", body: d.body };
       }
-    case "ok":
-      const d = _m1;
+      }
+    }
+    case "ok": {
+      const d = $ail_m1;
       return { kind: "ok", body: d.body };
+    }
     }
   }
 }
