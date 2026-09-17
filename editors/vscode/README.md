@@ -7,9 +7,9 @@ Install: copy this folder's contents (including `node_modules/` and `bin/`)
 into the editor's extensions dir as `ai-lang.ai-lang-<version>`, then
 re-sign the server so macOS runs it (`codesign --force --sign - <extdir>/bin/ailc`;
 without this the OS kills it with "Code Signature Invalid"), then
-Developer: Reload Window. Open any `sketches/*/*.ail` file. Broken files
-under `sketches/broken-login/` should show red/yellow squiggles; clean
-files show none.
+Developer: Reload Window. Open any `sketches/*/*.ail` or `std/*/*.ail`
+file. Broken files under `sketches/broken-login/` should show red/yellow
+squiggles; clean files show none.
 
 See a squiggle and disagree? The diagnosis comes from `compiler/lsp.go`
 (`diagnose`), proven by `compiler/lsp_test.go` — fix it there, rebuild
