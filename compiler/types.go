@@ -1168,8 +1168,17 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 		case exp.Kind == "ref" && len(exp.Ref) > 1:
 			// Bare error kinds prove nothing about the payload (v12):
 			// expectations must construct the complete error value.
-			c.out = append(c.out, spanDiag(text, t.Line, "error",
-				fmt.Sprintf("test %s expects bare error kind %s: write the complete error value", t.Name, strings.Join(exp.Ref, ".")), exp.Ref[len(exp.Ref)-1], CodeBareErrorKind))
+			name := strings.Join(exp.Ref, ".")
+			d := spanDiag(text, t.Line, "error",
+				fmt.Sprintf("test %s expects bare error kind %s: write the complete error value", t.Name, name), exp.Ref[len(exp.Ref)-1], CodeBareErrorKind)
+			d.Found = name
+			parts := make([]string, 0, len(c.errs[name]))
+			for _, f := range c.errs[name] {
+				parts = append(parts, fmt.Sprintf("%s = <%s>", f[0], f[1]))
+			}
+			d.Expected = name + "(" + strings.Join(parts, ", ") + ")"
+			d.Hint = "write the complete error value with all fields"
+			c.out = append(c.out, d)
 		case exp.Kind == "float":
 			c.value(exp, "", t.Line, env, label)
 		default:

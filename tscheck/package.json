@@ -1,0 +1,8 @@
+{
+  "name": "ail-tscheck",
+  "private": true,
+  "description": "Pinned TypeScript for the v14/v70 tsc gate over committed goldens.",
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}

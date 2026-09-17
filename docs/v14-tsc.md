@@ -46,3 +46,30 @@ check that proves nothing.
 - No test or tooling change ships here; inventing an unrunnable
   CI job to look resolved would be exactly the aspirational
   pattern this decision retires.
+
+## Reinstated (v70)
+
+The clause is live again: R11's "`tsc` re-checks types and
+contracts, not coverage" is now a running gate, not an
+aspiration.
+
+- Gate: `.github/workflows/tsc.yml` runs pinned
+  TypeScript 5.9.2 (`tscheck/`, lockfile committed)
+  `tsc --strict --noEmit` over every committed golden
+  `.ts` (9 files: 5 std + 4 sketches) plus 2
+  hand-written extern-stub fixtures
+  (`sketches/auth-login/auth.externs.ts`,
+  `sketches/retry-loop/retry.externs.ts`). Green on
+  arrival: the priced emit-narrowing risk did not
+  materialize, so no emit change shipped.
+- Ownership: `tsc` owns type + contract shape of
+  emitted output. Everything else — exhaustiveness,
+  termination, decision tables, coverage — stays
+  exclusively in `ailc` (`go test ./...`). A green
+  `tsc` run never substitutes for the ailc proof, and
+  an ailc-green program never skips the `tsc` shape
+  check on changed emit.
+- Follow-up (not this slice): drift-checking stubs
+  against their `.ail` extern decls (a signature
+  change today rots its stub silently until a human
+  notices the mismatch).

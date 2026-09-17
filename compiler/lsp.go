@@ -33,6 +33,14 @@ type Diag struct {
 	Msg        string
 	Start, End int
 	Code       string
+	// Expected, Found, and Hint carry machine-actionable
+	// payloads (v71, v61 item 1): what the rule wanted, what
+	// it saw, and the suggested fix shape. Empty means the
+	// code carries no payload; JSON omits empty fields so
+	// payload-free lines stay byte-identical.
+	Expected string
+	Found    string
+	Hint     string
 }
 
 func sevCode(sev string) int {
@@ -533,9 +541,14 @@ func proofDiag(text string, err error) Diag {
 		return spanDiag(text, line, "error", msg, kind, CodeStaleArm)
 	}
 	code := CodeProofOther
+	var want, hint string
 	switch {
 	case strings.Contains(msg, "non-exhaustive match, missing "):
 		code = CodeMissingArm
+		if i := strings.Index(msg, "missing "); i >= 0 {
+			want = strings.TrimSpace(msg[i+len("missing "):])
+			hint = fmt.Sprintf("add an `on %s ...` arm covering the missing outcome", want)
+		}
 	case strings.Contains(msg, "bool match must be exactly "):
 		code = CodeBoolArms
 	case strings.Contains(msg, "value match without _ "):
@@ -553,7 +566,10 @@ func proofDiag(text string, err error) Diag {
 			kw = "on"
 		}
 	}
-	return spanDiag(text, line, "error", msg, kw, code)
+	d := spanDiag(text, line, "error", msg, kw, code)
+	d.Expected = want
+	d.Hint = hint
+	return d
 }
 
 // ------------------------------------------------------------- protocol ---

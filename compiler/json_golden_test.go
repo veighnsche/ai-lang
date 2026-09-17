@@ -67,7 +67,7 @@ func TestGoldenJSONDiags(t *testing.T) {
 const jsonGolden = `{"code":"AIL3401","sev":"warning","file":"auth.ail","line":3,"start":19,"end":29,"msg":"uses db__ping@1 but auth never calls it"}
 {"code":"AIL4002","sev":"error","file":"auth.ail","line":13,"start":19,"end":29,"msg":"auth__go declares unknown error kind auth.stale in emits"}
 {"code":"AIL4200","sev":"error","file":"auth.ail","line":17,"start":4,"end":9,"msg":"test extra fails: auth__go/extra: no script for call db__get"}
-{"code":"AIL3105","sev":"error","file":"auth.ail","line":17,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 19)"}
+{"code":"AIL3105","sev":"error","file":"auth.ail","line":17,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 19)","expected":"extra =\u003e [exchange args (...) outcome ...]","found":"extra","hint":"add a script row for this test under the given table at line 19"}
 {"code":"AIL3104","sev":"warning","file":"auth.ail","line":23,"start":6,"end":9,"msg":"script zzz never runs: no test named zzz in auth__go"}
 `
 

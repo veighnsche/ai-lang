@@ -786,8 +786,12 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 		own, extra := reachingTests(prog, fn.Name)
 		for _, t := range append(append([]Test{}, own...), extra...) {
 			if _, ok := m.Given[t.Name]; !ok {
-				out = append(out, spanDiag(text, t.Line, "error",
-					fmt.Sprintf("test %s has no script at the call to %s (line %d)", t.Name, fname, m.Line), t.Name, CodeDanglingTest))
+				d := spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s has no script at the call to %s (line %d)", t.Name, fname, m.Line), t.Name, CodeDanglingTest)
+				d.Found = t.Name
+				d.Expected = t.Name + " => [exchange args (...) outcome ...]"
+				d.Hint = fmt.Sprintf("add a script row for this test under the given table at line %d", m.Line)
+				out = append(out, d)
 			}
 		}
 	}
@@ -1861,8 +1865,16 @@ func checkEmits(fn *FnDecl, prog *Program, text string) []Diag {
 			out = append(out, spanDiag(text, line, "error",
 				fmt.Sprintf("%s raises unknown error kind %s", fn.Name, kind), kind, CodeUnknownKind))
 		} else if !declared[kind] {
-			out = append(out, spanDiag(text, line, "error",
-				fmt.Sprintf("%s raises %s which is not in its emits", fn.Name, kind), kind, CodeForeignRaise))
+			d := spanDiag(text, line, "error",
+				fmt.Sprintf("%s raises %s which is not in its emits", fn.Name, kind), kind, CodeForeignRaise)
+			d.Found = kind
+			if len(fn.Emits) == 0 {
+				d.Expected = "a declared emits kind (none declared)"
+			} else {
+				d.Expected = "one of: " + strings.Join(fn.Emits, ", ")
+			}
+			d.Hint = fmt.Sprintf("add %q to the emits [...] line, or raise a declared kind", kind)
+			out = append(out, d)
 		}
 	}
 	eachRaise(fn, raise)

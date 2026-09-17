@@ -38,6 +38,9 @@ func run(argv []string) int {
 	if len(argv) > 0 && argv[0] == "lsp" {
 		return runLSP()
 	}
+	if len(argv) > 0 && argv[0] == "explain" {
+		return runExplain(os.Stdout, argv[1:])
+	}
 	if len(argv) > 0 && argv[0] == "normalize" {
 		if err := runNormalize(os.Stdout, argv[1:]); err != nil {
 			fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
@@ -394,13 +397,16 @@ func failDiags(collected []Diag, jsonOut bool) error {
 // jsonDiag is the machine rendering of a Diag: same facts as the editor
 // squiggle plus the stable code. Field order is fixed for golden tests.
 type jsonDiag struct {
-	Code  string `json:"code"`
-	Sev   string `json:"sev"`
-	File  string `json:"file"`
-	Line  int    `json:"line"`
-	Start int    `json:"start"`
-	End   int    `json:"end"`
-	Msg   string `json:"msg"`
+	Code     string `json:"code"`
+	Sev      string `json:"sev"`
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+	Start    int    `json:"start"`
+	End      int    `json:"end"`
+	Msg      string `json:"msg"`
+	Expected string `json:"expected,omitempty"`
+	Found    string `json:"found,omitempty"`
+	Hint     string `json:"hint,omitempty"`
 }
 
 // reportDiags writes diagnostics sorted file-top to file-bottom, one JSON
@@ -413,6 +419,7 @@ func reportDiags(w io.Writer, diags []Diag) {
 		body, err := json.Marshal(jsonDiag{
 			Code: d.Code, Sev: d.Sev, File: d.File, Line: d.Line,
 			Start: d.Start, End: d.End, Msg: d.Msg,
+			Expected: d.Expected, Found: d.Found, Hint: d.Hint,
 		})
 		if err != nil {
 			continue

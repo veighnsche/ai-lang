@@ -69,6 +69,18 @@ type Pattern struct {
 	Raw string
 }
 
+// ContractArm is one ensures arm (v69): the outcome it
+// specifies, the bound result/error name, expression
+// predicates, and Boolean match blocks. Stored only;
+// no phase proves, checks, or emits contracts yet.
+type ContractArm struct {
+	Outcome string
+	Bind    string
+	Preds   []*Small
+	Matches []*Node
+	Line    int
+}
+
 type Arm struct {
 	// Pats holds the arm's patterns, one per match scrutinee: exactly
 	// one entry for single-scrutinee arms, two or more for
@@ -155,7 +167,12 @@ type FnDecl struct {
 	// Set from the decreases metadata line; v19 owns the theorems.
 	DecNames  []string
 	DecSchema string
-	Line      int
+	// Requires holds requires-block predicates and Ensures the
+	// outcome-indexed ensures arms (v69). Parsed and stored
+	// only; no phase enforces them yet.
+	Requires []*Small
+	Ensures  []ContractArm
+	Line     int
 }
 
 func (d *FnDecl) declKind() string { return "fn" }
@@ -1106,17 +1123,20 @@ func at(line int, err error) error {
 }
 
 var (
-	reHdrLine         = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
-	reError           = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
-	reType            = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
-	reBrand           = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
-	reExtern          = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reFn              = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reExport          = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
-	reField           = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
-	reTest            = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
-	reGiven           = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
-	reArm             = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
+	reHdrLine = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
+	reError   = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
+	reType    = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
+	reBrand   = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
+	reExtern  = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reFn      = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reExport  = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
+	reField   = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
+	reTest    = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
+	reGiven   = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
+	reArm     = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
+	// reContractArm heads an ensures arm: outcome plus bound name,
+	// no => (predicates follow as rows). v69 owns the shape.
+	reContractArm     = regexp.MustCompile(`^on\s+([A-Za-z][\w.]*)\s+(\w+)$`)
 	reDecreases       = regexp.MustCompile(`^decreases\s+(\w+)$`)
 	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+)\s*,\s*(\w+)\s+by\s+(euclid|narrowing)$`)
 	reEffects         = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
@@ -1372,6 +1392,67 @@ func parseModuleText(name, text string) (*Module, error) {
 					}
 					fn.Effects = splitTop(mm[1], ',')
 					i++
+				case c == "requires":
+					if fn.Requires != nil {
+						return nil, at(metaLine, fmt.Errorf("duplicate requires block"))
+					}
+					i++
+					for i < len(rows) && rows[i].indent > ind {
+						sm, err := parseSmall(rows[i].code)
+						if err != nil {
+							return nil, at(rows[i].line, err)
+						}
+						fn.Requires = append(fn.Requires, sm)
+						i++
+					}
+					if len(fn.Requires) == 0 {
+						return nil, at(metaLine, fmt.Errorf("requires with no predicates"))
+					}
+				case c == "ensures":
+					if fn.Ensures != nil {
+						return nil, at(metaLine, fmt.Errorf("duplicate ensures block"))
+					}
+					i++
+					for i < len(rows) && rows[i].indent > ind {
+						aind, ac := rows[i].indent, rows[i].code
+						aline := rows[i].line
+						m := reContractArm.FindStringSubmatch(ac)
+						if m == nil {
+							return nil, at(aline, fmt.Errorf("bad ensures arm: %s", ac))
+						}
+						arm := ContractArm{Outcome: m[1], Bind: m[2], Line: aline}
+						i++
+						for i < len(rows) && rows[i].indent > aind {
+							pc, pline := rows[i].code, rows[i].line
+							if strings.HasPrefix(pc, "match ") {
+								scruts, err := parseScrutList(strings.TrimSpace(pc[len("match "):]))
+								if err != nil {
+									return nil, at(pline, err)
+								}
+								node, next, err := parseMatchArms(rows, i+1, rows[i].indent, pline, scruts)
+								if err != nil {
+									return nil, err
+								}
+								node.Line = pline
+								arm.Matches = append(arm.Matches, node)
+								i = next
+								continue
+							}
+							sm, err := parseSmall(pc)
+							if err != nil {
+								return nil, at(pline, err)
+							}
+							arm.Preds = append(arm.Preds, sm)
+							i++
+						}
+						if len(arm.Preds) == 0 && len(arm.Matches) == 0 {
+							return nil, at(aline, fmt.Errorf("ensures arm with no predicates: %s", ac))
+						}
+						fn.Ensures = append(fn.Ensures, arm)
+					}
+					if len(fn.Ensures) == 0 {
+						return nil, at(metaLine, fmt.Errorf("ensures with no arms"))
+					}
 				case c == "tests":
 					i++
 					for i < len(rows) && rows[i].indent > ind {
@@ -1404,6 +1485,17 @@ func parseModuleText(name, text string) (*Module, error) {
 				return nil, err
 			}
 			i = next
+			// v69: ensures outcomes resolve against the complete
+			// emits set, so block order is free.
+			allowed := map[string]bool{"Ok": true}
+			for _, e := range fn.Emits {
+				allowed[e] = true
+			}
+			for _, a := range fn.Ensures {
+				if !allowed[a.Outcome] {
+					return nil, at(a.Line, fmt.Errorf("unknown contract outcome %s: want Ok or a declared emits kind", a.Outcome))
+				}
+			}
 			for _, t := range fn.Tests {
 				if !isKwargList(t.Args) {
 					return nil, at(t.Line, fmt.Errorf("test %s args must be named", t.Name))

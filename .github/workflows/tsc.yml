@@ -1,0 +1,20 @@
+name: tsc gate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tsc-strict:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tscheck/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: tscheck
+      - run: ./node_modules/.bin/tsc -p tsconfig.json
+        working-directory: tscheck
