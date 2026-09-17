@@ -8,16 +8,21 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_nonnegative, std__validate__str_nonempty, std__validate__exclusive_pair, Quota__Usage, Validate__Pass, Int__Value, Str__Value]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__exclusive_pair, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value]
   uses []
-  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.negative_value, validation.empty_value, validation.exclusive_choice]
+  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.empty_value, validation.exclusive_choice]
 
 state Quota__used: int = 0
 
 error validation.failed(field: str, rule: str)
 error validation.invalid_bounds(lower: int, upper: int)
 error validation.out_of_range(value: int, lower: int, upper: int)
+error validation.not_positive(value: int)
 error validation.negative_value(value: int)
+error validation.dec_invalid_bounds(lower: dec, upper: dec)
+error validation.dec_out_of_range(value: dec, lower: dec, upper: dec)
+error validation.dec_not_positive(value: dec)
+error validation.dec_negative_value(value: dec)
 error validation.empty_value(value: str)
 error validation.exclusive_choice()
 
@@ -31,6 +36,10 @@ type Validate__Pass rev 1 (
 
 type Int__Value rev 1 (
   value: int
+)
+
+type Dec__Value rev 1 (
+  value: dec
 )
 
 type Str__Value rev 1 (
@@ -75,6 +84,59 @@ fn std__validate__int_nonnegative(value: int) -> Int__Value rev 1
   match value >= 0
     true => Ok(value = value)
     false => validation.negative_value(value = value)
+
+fn std__validate__int_positive(value: int) -> Int__Value rev 1
+  emits [validation.not_positive]
+  tests
+    positive(value = 3) => Ok(value = 3)
+    zero(value = 0) => validation.not_positive(value = 0)
+    negative(value = -2) => validation.not_positive(value = -2)
+=
+  match value >= 1
+    true => Ok(value = value)
+    false => validation.not_positive(value = value)
+
+fn std__validate__dec_range(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
+  emits [validation.dec_invalid_bounds, validation.dec_out_of_range]
+  tests
+    inside(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"5.0")
+    at_lower(value = d"0.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"0.0")
+    at_upper(value = d"10.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"10.0")
+    below(value = d"-0.5", lower = d"0.0", upper = d"10.0") => validation.dec_out_of_range(value = d"-0.5", lower = d"0.0", upper = d"10.0")
+    above(value = d"10.5", lower = d"0.0", upper = d"10.0") => validation.dec_out_of_range(value = d"10.5", lower = d"0.0", upper = d"10.0")
+    bad_bounds(value = d"5.0", lower = d"10.0", upper = d"0.0") => validation.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
+=
+  match lower <= upper
+    true => match value >= lower
+      true => match value <= upper
+        true => Ok(value = value)
+        false => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
+      false => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
+    false => validation.dec_invalid_bounds(lower = lower, upper = upper)
+
+fn std__validate__dec_positive(value: dec) -> Dec__Value rev 1
+  emits [validation.dec_not_positive]
+  tests
+    positive(value = d"0.5") => Ok(value = d"0.5")
+    zero(value = d"0.0") => validation.dec_not_positive(value = d"0.0")
+    negative(value = d"-2.0") => validation.dec_not_positive(value = d"-2.0")
+=
+  match value >= d"0.0"
+    true => match value != d"0.0"
+      true => Ok(value = value)
+      false => validation.dec_not_positive(value = value)
+    false => validation.dec_not_positive(value = value)
+
+fn std__validate__dec_nonnegative(value: dec) -> Dec__Value rev 1
+  emits [validation.dec_negative_value]
+  tests
+    zero(value = d"0.0") => Ok(value = d"0.0")
+    positive(value = d"4.0") => Ok(value = d"4.0")
+    negative(value = d"-1.0") => validation.dec_negative_value(value = d"-1.0")
+=
+  match value >= d"0.0"
+    true => Ok(value = value)
+    false => validation.dec_negative_value(value = value)
 
 fn std__validate__str_nonempty(value: str) -> Str__Value rev 1
   emits [validation.empty_value]

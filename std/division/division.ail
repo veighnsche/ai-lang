@@ -100,6 +100,9 @@ fn std__int__is_odd(value: int) -> Bool__Value rev 1
 // 2. is_odd tests the false arm for odd inputs instead of testing
 //    value % 2 == 1, which would hide the Euclidean guarantee
 //    inside a passing test.
-// 3. gcd, lcm, sqrt_floor, and primality wait on fuel-pattern
-//    recursion: the decreases rule admits only exact p - 1 steps,
-//    and a Euclidean mod step is not one.
+// 3. gcd, lcm, sqrt_floor, primality, binomial, and next_power_of_two
+//    ship as NOW-dagger linear downward scans in scalars.ail: the
+//    decreases rule admits exact p - 1 steps, so a Euclidean mod step
+//    is replaced by a trial scan with a shifted guard (e = d - 1, so
+//    the stop coincides with e <= 0). Efficient Euclidean and
+//    binary-search forms wait on fuel-pattern recursion.
