@@ -70,6 +70,7 @@ const (
 	CodeArmUntaken         = "AIL4107"
 	CodeTestFailed         = "AIL4200"
 	CodeSiblingParse       = "AIL5001"
+	CodeBadCompare         = "AIL5005"
 	CodeModuleCollision    = "AIL5007"
 	CodeFloatLiteral       = "AIL6001"
 	CodeUnknownType        = "AIL6002"
@@ -96,6 +97,6 @@ var allCodes = []string{
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken,
 	CodeTestFailed,
-	CodeSiblingParse,
+	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision,
 }
