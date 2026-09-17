@@ -23,6 +23,12 @@ type Value struct {
 	// Rec names the record constructor for rec values built in value
 	// positions; empty for Ok payloads (which render as Ok).
 	Rec string
+	// Arr holds the ordered members of a seq value (v36 S1);
+	// Elem names the checked element type. Brands erase at runtime,
+	// so branded members arrive here as their strings: Elem keeps
+	// the static identity vEq compares.
+	Arr  []*Value
+	Elem string
 }
 
 // recordDecl finds a record declaration by name, first wins across
@@ -302,6 +308,21 @@ func vEq(a, b *Value) (bool, error) {
 			return false, nil
 		}
 		return vEq(&Value{Kind: "rec", Dict: a.Dict}, &Value{Kind: "rec", Dict: b.Dict})
+	case "seq":
+		// Structural sequence comparison for the test evaluator
+		// only (v36 S1): same element type, same length, ordered
+		// member comparison. This is not a language equality
+		// operator; == over sequences stays a compile error.
+		if a.Elem != b.Elem || len(a.Arr) != len(b.Arr) {
+			return false, nil
+		}
+		for i := range a.Arr {
+			eq, err := vEq(a.Arr[i], b.Arr[i])
+			if err != nil || !eq {
+				return eq, err
+			}
+		}
+		return true, nil
 	}
 	return false, fmt.Errorf("cannot compare %s", a.Kind)
 }
@@ -514,6 +535,19 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		return nil, fmt.Errorf("unknown constructor: %s", node.Ctor)
 	case "list":
 		return nil, fmt.Errorf("list literal outside given is outside the v0 subset")
+	case "seqlit":
+		// v36 S1: order, empties, and repeats preserved exactly.
+		// Members evaluate left to right; the first failure ends
+		// the literal, like every other strict position.
+		arr := make([]*Value, 0, len(node.Items))
+		for _, it := range node.Items {
+			v, err := evSmall(it, env, ctx, owner)
+			if err != nil {
+				return nil, err
+			}
+			arr = append(arr, v)
+		}
+		return &Value{Kind: "seq", Arr: arr, Elem: node.Elem}, nil
 	case "ref":
 		if len(node.Ref) == 1 {
 			v, ok := env[node.Ref[0]]
@@ -971,6 +1005,12 @@ func normalizeValue(v *Value) string {
 			name = v.Rec
 		}
 		return name + "(" + strings.Join(parts, ", ") + ")"
+	case "seq":
+		parts := make([]string, 0, len(v.Arr))
+		for _, m := range v.Arr {
+			parts = append(parts, normalizeValue(m))
+		}
+		return "Seq<" + v.Elem + ">[" + strings.Join(parts, ", ") + "]"
 	case "err":
 		if len(v.Dict) == 0 {
 			return "err(" + v.ErrKind + ")"

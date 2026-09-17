@@ -20,7 +20,7 @@ type Arg struct {
 }
 
 type Small struct {
-	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice
+	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
 	// "this request received this permitted response" (v12).
@@ -37,7 +37,10 @@ type Small struct {
 	// no trailing fractional zeros (d"1.50" parses to "1.5").
 	Dec string
 	// Seal holds the brand name for Kind seal; Str holds the literal.
-	Seal  string
+	Seal string
+	// Elem holds the element type name for Kind seqlit
+	// (v36 S1: typed sequence literals Seq<T>[...]).
+	Elem string
 	Op    string
 	L, R  *Small
 	// Hi holds the slice end for Kind strslice (base L, start R).
@@ -485,6 +488,11 @@ var (
 	reFloat = regexp.MustCompile(`^-?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+)$`)
 	reDecNM = regexp.MustCompile(`^(-?)(\d+)\.(\d+)$`)
 	reSeal  = regexp.MustCompile(`^seal\s+(\w+)\((.*)\)$`)
+	// reSeqElem admits one plain element type name inside Seq<...>.
+	// No angle brackets: nested sequences are not a v1 shape, so a
+	// second < fails here with a precise diagnostic instead of a
+	// binop cascade downstream.
+	reSeqElem = regexp.MustCompile(`^[A-Za-z_][\w.]*$`)
 )
 
 // canonDec normalizes dec digits to canonical form: no leading integer
@@ -601,6 +609,32 @@ func parseSmall(s string) (*Small, error) {
 	// every script row is `exchange args (...) outcome ...` (v12).
 	if s == "exchange" || strings.HasPrefix(s, "exchange ") || strings.HasPrefix(s, "exchange\t") {
 		return parseExchange(s)
+	}
+	// v36 S1: typed sequence literals Seq<T>[...]. The element type
+	// is always written; bare [...] keeps its script-row meaning.
+	// This rule precedes binop splitting so the < and > never read
+	// as comparisons. Anything starting with Seq< is claimed here:
+	// malformed shapes fail with a precise error, never a binop
+	// cascade (`Seq < x` with a space is unaffected and still parses
+	// as a comparison).
+	if strings.HasPrefix(s, "Seq<") {
+		end := seqHeadEnd(s)
+		if end < 0 {
+			return nil, fmt.Errorf("bad sequence literal %s: want Seq<T>[...]", s)
+		}
+		if end == len(s)-1 {
+			return parseSeqLit(s)
+		}
+		// A valid head followed by more text: the literal is one
+		// operand inside a larger expression. Reparse with the
+		// head parenthesized so the normal cascade below splits
+		// operators with its usual precedence; the inner parse
+		// still owns malformed heads precisely.
+		head := s[:end+1]
+		if _, err := parseSeqLit(head); err != nil {
+			return nil, err
+		}
+		return parseSmall("(" + head + ")" + s[end+1:])
 	}
 	if i, op := findTop(s, []string{"==", ">=", "<=", ">", "<", "!="}); i >= 0 {
 		l, err := parseSmall(s[:i])
@@ -738,6 +772,63 @@ func parseSmall(s string) (*Small, error) {
 	return nil, fmt.Errorf("cannot parse expression: %s", s)
 }
 
+// seqHeadEnd ends the Seq<T>[...] head starting at s[0]: the index
+// of the closing bracket, or -1 when s holds no valid head there.
+// Whitespace between > and [ is tolerated, like everywhere else.
+func seqHeadEnd(s string) int {
+	close := strings.Index(s, ">")
+	if close < 0 {
+		return -1
+	}
+	rest := s[close+1:]
+	lead := len(rest) - len(strings.TrimLeft(rest, " \t"))
+	rest = strings.TrimLeft(rest, " \t")
+	if !strings.HasPrefix(rest, "[") {
+		return -1
+	}
+	end, err := balanced(rest, 0)
+	if err != nil {
+		return -1
+	}
+	return close + 1 + lead + end
+}
+
+// parseSeqLit parses one typed sequence literal Seq<T>[v, ...]
+// (v36 S1). The element type is one plain name: no nesting, no
+// elision. Members are full expressions split top-level-comma aware,
+// so members containing commas parse; an empty bracket is the empty
+// sequence. Anything else starting with Seq< fails here precisely.
+func parseSeqLit(s string) (*Small, error) {
+	close := strings.Index(s, ">")
+	if close < 0 {
+		return nil, fmt.Errorf("bad sequence literal %s: want Seq<T>[...]", s)
+	}
+	elem := s[len("Seq<"):close]
+	if !reSeqElem.MatchString(elem) {
+		return nil, fmt.Errorf("bad sequence element type %q: want one plain type name, no nesting", elem)
+	}
+	rest := strings.TrimSpace(s[close+1:])
+	if !strings.HasPrefix(rest, "[") {
+		return nil, fmt.Errorf("bad sequence literal %s: want Seq<%s>[...]", s, elem)
+	}
+	end, err := balanced(rest, 0)
+	if err != nil || end != len(rest)-1 {
+		return nil, fmt.Errorf("bad sequence literal %s: want Seq<%s>[...]", s, elem)
+	}
+	inner := strings.TrimSpace(rest[1:end])
+	var items []*Small
+	if inner != "" {
+		for _, p := range splitTop(inner, ',') {
+			it, err := parseSmall(p)
+			if err != nil {
+				return nil, err
+			}
+			items = append(items, it)
+		}
+	}
+	return &Small{Kind: "seqlit", Elem: elem, Items: items}, nil
+}
+
 // parseExchange parses one script row: exchange args (...) outcome ....
 // The args group is located by balanced parens (depth- and
 // string-aware like every other grouping rule); arg values are full
@@ -851,9 +942,9 @@ var (
 	reError     = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
 	reType      = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
 	reBrand     = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
-	reExtern    = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+)\s+rev\s+(\d+)$`)
-	reFn        = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+)\s+rev\s+(\d+)$`)
-	reField     = regexp.MustCompile(`^(\w+)\s*:\s*(\w+)$`)
+	reExtern    = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reFn        = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reField     = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
 	reTest      = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
 	reGiven     = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
 	reArm       = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)

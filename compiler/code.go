@@ -80,6 +80,7 @@ const (
 	CodeSealForeign        = "AIL6004"
 	CodeInexactDivision    = "AIL6005"
 	CodeRecordCycle        = "AIL6006"
+	CodeSeqLiteral         = "AIL6007"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -101,5 +102,5 @@ var allCodes = []string{
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee,
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
-	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle,
+	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
 }

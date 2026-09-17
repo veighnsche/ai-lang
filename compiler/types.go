@@ -89,12 +89,33 @@ func newTycker(prog *Program, text, fn string) *tycker {
 	return c
 }
 
+// seqElemName splits a sequence annotation Seq<T> into its element
+// type name (v36 S1). ok=false for anything else, including nested
+// sequences: Seq<Seq<str>> is not a v1 shape.
+func seqElemName(t string) (string, bool) {
+	if !strings.HasPrefix(t, "Seq<") || !strings.HasSuffix(t, ">") {
+		return "", false
+	}
+	elem := t[len("Seq<") : len(t)-1]
+	if elem == "" || strings.ContainsAny(elem, "<>") {
+		return "", false
+	}
+	return elem, true
+}
+
 // knownType reports whether a name is a legal annotation: a base type,
-// a declared record, or a declared brand. Error kinds are not values.
+// a declared record, a declared brand, or a sequence over a plain
+// element type. Error kinds are not values.
 func (c *tycker) knownType(t string) bool {
 	switch t {
 	case "str", "int", "bool", "dec":
 		return true
+	}
+	if elem, ok := seqElemName(t); ok {
+		if _, nested := seqElemName(elem); nested {
+			return false
+		}
+		return c.knownType(elem)
 	}
 	if _, ok := c.recs[t]; ok {
 		return true
@@ -193,6 +214,19 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			return "", false
 		}
 		return s.Seal, true
+	case "seqlit":
+		// A typed literal carries its sequence type outward, exactly
+		// like a record constructor carries its record type, so outer
+		// positions (fields, args, expectations) check the element
+		// identity instead of re-deriving it. Unknown element types
+		// stay silent here: value() owns that diagnostic.
+		if _, nested := seqElemName(s.Elem); nested {
+			return "", false
+		}
+		if !c.knownType(s.Elem) {
+			return "", false
+		}
+		return "Seq<" + s.Elem + ">", true
 	case "ref":
 		t, ok := c.resolveRef(s.Ref, env)
 		if !ok {
@@ -297,6 +331,8 @@ func tokenOf(s *Small) string {
 		return "[:]"
 	case "seal":
 		return s.Seal
+	case "seqlit":
+		return "Seq"
 	case "ctor":
 		return s.Ctor
 	case "exchange":
@@ -460,6 +496,13 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if l != r {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: no implicit conversions", l, r), s.Op, CodeTypeMismatch))
+		} else if _, ok := seqElemName(l); ok {
+			// v36 S1 promises no sequence equality surface: ==
+			// over two sequences is a compile error, not a silent
+			// shape. Structural comparison lives in the test
+			// evaluator (vEq) only, so expectations still verify.
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot compare %s with %s: sequence equality is not in v1", l, r), s.Op, CodeTypeMismatch))
 		}
 	case "strlen":
 		c.value(s.L, "", line, env, "length")
@@ -536,8 +579,46 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 	case "ctor":
 		c.checkCtor(s, want, line, env, where)
 	case "list":
+		// v36 S1: bare [...] is script rows, never a value. Given
+		// tables consume the outer list structurally (checkStubs),
+		// so this arm only fires in real value positions, where the
+		// fix is always an explicitly typed Seq<T>[...] literal.
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			"bare [...] is script rows, not a sequence value: write Seq<T>[...] with an explicit element type", "[", CodeSeqLiteral))
 		for _, it := range s.Items {
 			c.value(it, "", line, env, where)
+		}
+	case "seqlit":
+		// v36 S1: values and element checking are one admission
+		// boundary. Every member checks against the written element
+		// type with no inference and no emptiness waiver; exec is
+		// untouched, so seals inside executable literals keep the
+		// v15 file-ownership rule (AIL6004) while test and script
+		// data keep naming any declared brand.
+		if _, nested := seqElemName(s.Elem); nested || !c.knownType(s.Elem) {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("unknown type %s in Seq literal", s.Elem), "Seq", CodeUnknownType))
+			for _, it := range s.Items {
+				c.value(it, "", line, env, where)
+			}
+			return
+		}
+		st := "Seq<" + s.Elem + ">"
+		for _, it := range s.Items {
+			switch it.Kind {
+			case "call", "exchange", "wild", "list":
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("Seq literal takes values, not %s", it.Kind), "Seq", CodeTypeMismatch))
+				c.value(it, "", line, env, where)
+				continue
+			}
+			c.value(it, "", line, env, where)
+			if got, ok := c.typeOf(it, env); ok && got != s.Elem {
+				c.mismatch(line, where, got, s.Elem, tokenOf(it))
+			}
+		}
+		if want != "" && want != st {
+			c.mismatch(line, where, st, want, "Seq")
 		}
 	default:
 		for _, a := range s.Args {
@@ -891,6 +972,15 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 	if c.brands[fn.Ret] {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns brand %s: bare-brand returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
+	}
+	// v36 S1: bare-Seq returns are unsupported, like bare-brand
+	// returns. Expectations must be Ok(...) or an error kind, so a
+	// function returning a bare sequence could never be tested;
+	// entries return wrapper records. A future customer slice may
+	// amend this explicitly if it carries its own return convention.
+	if _, ok := seqElemName(fn.Ret); ok {
+		c.out = append(c.out, spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s returns %s: bare-Seq returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
 	}
 	env := map[string]string{}
 	for _, p := range fn.Params {

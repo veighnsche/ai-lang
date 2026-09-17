@@ -39,6 +39,16 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string) (s
 	if out, ok := tsBase[t]; ok {
 		return out, nil
 	}
+	// v36 S1: sequences emit as arrays over the mapped element
+	// type. Brands erase through the same rule as scalars, so
+	// Seq<M__B> is string[] without hard-coding brand names here.
+	if elem, ok := seqElemName(t); ok {
+		inner, err := tsTypeB(elem, brands, recs)
+		if err != nil {
+			return "", err
+		}
+		return inner + "[]", nil
+	}
 	if u, ok := brands[t]; ok {
 		if out, ok := tsBase[u]; ok {
 			return out, nil
@@ -209,6 +219,11 @@ func leafType(s *Small) string {
 		return "str"
 	case "bool":
 		return "bool"
+	case "seqlit":
+		// Literal operands carry their sequence type without
+		// checker annotations, like every other literal kind.
+		// Emit runs only after checkSem, so Elem is valid here.
+		return "Seq<" + s.Elem + ">"
 	}
 	return ""
 }
@@ -337,6 +352,19 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "true", nil
 		}
 		return "false", nil
+	case "seqlit":
+		// v36 S1: sequence values are array literals, members in
+		// order. Sealed members erase to their strings through the
+		// shared seal arm, so brands need no special case here.
+		parts := make([]string, 0, len(node.Items))
+		for _, it := range node.Items {
+			v, err := e.emitValue(it)
+			if err != nil {
+				return "", err
+			}
+			parts = append(parts, v)
+		}
+		return "[" + strings.Join(parts, ", ") + "]", nil
 	case "ref":
 		return strings.Join(node.Ref, "."), nil
 	case "binop":

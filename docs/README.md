@@ -25,6 +25,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v16-text.md` | Landed (part) | `+` concatenates strings; Unicode-scalar indexing decided; scalar-access surface open |
 | `v17-division.md` | Landed (part) | Exact Euclidean `/` and `%` on ints; dec refused (AIL6005); gcd family waits on fuel |
 | `v35-typed-fragments.md` | Sketch (pre-decision) | HTMX-shaped fragment endpoints after unions, HTTP, components; revisit trigger, no rule yet |
+| `v36-seq-typed-construction.md` | Shipped (S1) | Typed `Seq<T>` literals, element checking, AIL6007; length/access/append are later slices |
 
 ## Reading order for a reviewer
 
