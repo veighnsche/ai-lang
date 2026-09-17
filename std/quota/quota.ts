@@ -1,6 +1,6 @@
 // GENERATED from quota.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type QuotaResult = { $ail_kind: "ok" } | { $ail_kind: "ok"; remaining: bigint; used: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.failed"; field: string; rule: string } | { $ail_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } | { $ail_kind: "validation.empty_value"; value: string } | { $ail_kind: "validation.exclusive_choice" };
+export type QuotaResult = { $ail_kind: "ok" } | { $ail_kind: "ok"; remaining: bigint; used: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: string } | { $ail_kind: "validation.failed"; field: string; rule: string } | { $ail_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } | { $ail_kind: "validation.empty_value"; value: string } | { $ail_kind: "validation.exclusive_choice" };
 export type Quota__Usage = { used: bigint; remaining: bigint };
 export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
