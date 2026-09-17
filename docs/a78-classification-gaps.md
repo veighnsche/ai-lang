@@ -79,6 +79,62 @@ implementation).
 - Proposal already filed: a61 item 2. Not re-proposed
   here; listed for completeness and ranking.
 
+## Exhibit round 2 (same day; 7 largest fns read, 253 total)
+
+All four gaps reconfirmed; no brand-new major gap. New
+exhibits and one minor gap:
+
+- `html__url__authority` (std/html/html.ail:548, 87
+  lines, largest in the corpus): repeats scheme_token's
+  exact `47/57/64/90/96/122` ladder (bounds arithmetic
+  now copy-pasted across functions); 12 identity relay
+  arms (6 sites x 2 — relays are the dominant body-line
+  consumer in workers); and 4x identical `prev == "-"`
+  terminator sub-ladders (`/`, `?`, `#`, end) that only
+  or-patterns collapse (ranges alone do not). Magic
+  numbers `47/63/35/0/46/45` throughout.
+- `std__dec__round_half_even` (scalars.ail:1111): a
+  3-scrutinee match whose 4 arms repeat an identical
+  5-line tail differing in one subexpression (`q` vs
+  `q+1`), recomputing `(a.value % pd.value)` and
+  `(a.value / pd.value)` across scrutinees and arms.
+  This is the `let`-binding gap (F# borrow item #1,
+  known-planned, verified still absent: no `Let` in
+  the parser) with its strongest exhibit yet: one
+  computed quotient plus one shared tail. Newly
+  evidenced, not newly discovered.
+- `html__attributes__make` (35 test lines, 3-line
+  body) and `html__attribute__name` (20 rows, 2 arms):
+  test-literal verbosity dominates big functions, and
+  every row reconstructs full nested values with no
+  shared fixtures — the same no-nameable-values root
+  as Gap 3/`let`. Payoff of nameable values is biggest
+  in tests, not bodies; proposals must cover test
+  scope, not just bodies.
+- Gap 5 (new, minor): unary minus. Probe: `-n`
+  fails (`cannot parse expression: -n`) while the
+  literal `-3` parses — hence the `0 - scale` idiom.
+  Nearly free to close; never proposed.
+
+Style nuance (proposal acceptance criteria, not gaps):
+some ladder cost is unforced. `value_from`'s 5-level
+`s[0:1] == "&"` chain could be a flat 5-arm string
+match today (`name` proves the idiom, 2 arms flat);
+one shared classifier helper could de-duplicate the
+two ASCII ladders today (bounds would still ladder
+once inside it — Gap 1 stands). Closing the gaps will
+not fully pay off unless the style migrates: the two
+ladders plus `value_from` are named acceptance proofs
+for items 1 and 3.
+
+Scoped out (deliberately, with reasons): higher-order
+`map`/`fold` (needs first-class functions — enormous;
+the `_from` worker idiom is fine and its costs are
+already-covered gaps); record-update syntax
+(marginal — explicit threading is checkable, and tests
+would still construct every field); table lookup
+(flat string arms already cover the shape).
+
 ## Bonus finding: grammar dead weight (verified)
 
 Of the TextMate grammar's keyword/operator vocabulary,
@@ -124,6 +180,16 @@ not lost.
    but still needed for predicate composition. Pairs
    with a stdlib row of char-class predicates; neither
    alone fixes classification.
+5. Unary minus fifth (Gap 5, round 2). Smallest item:
+   extend the expression parser to prefix `-` (and
+   confirm `+`), keeping literal behavior unchanged.
+   Kills the `0 - x` idiom. May ride any other item
+   or land alone.
+
+Across items 1–3: proposals must cover test scope
+(round-2 finding: nameable-value payoff is biggest in
+tests) and must migrate the named acceptance proofs
+(the two ASCII ladders plus `value_from` flatness).
 
 ## Non-goals
 
@@ -153,7 +219,7 @@ not lost.
    row; either may lead.
 
 Each item graduates separately with a verdict-style
-review. Item 1 may proceed alone. Evidence for all
+review. Items 1 and 5 may proceed alone. Evidence for all
 claims above: three compiler probes
 (`bad match pattern: 5`; `cannot parse expression:
 a and b`; `unknown top-level decl`), rerunnable from
