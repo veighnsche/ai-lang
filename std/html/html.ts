@@ -1,9 +1,10 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_attribute_name"; value: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
+export type Html__NameResult = { name: string };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -84,4 +85,10 @@ export function html__text__escape(raw: string): HtmlResult {
 }
 export function html__text__node(text: string): HtmlResult {
   return { $ail_kind: "ok", safe: text };
+}
+export function html__attribute__name(value: string): HtmlResult {
+  if (value === "title") {
+    return { $ail_kind: "ok", name: "title" };
+  }
+  return { $ail_kind: "html.invalid_attribute_name", value: value };
 }

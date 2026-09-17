@@ -12,9 +12,11 @@
 // Promotion is relabeling, not re-encoding: erase(node(t)) = erase(t).
 
 mod html
-  provides [html__text__escape_from, html__text__escape, html__text__node, Html__Text, Html__Escaped, Html__TextResult, Html__Safe, Html__SafeResult]
+  provides [html__text__escape_from, html__text__escape, html__text__node, html__attribute__name, Html__Text, Html__Escaped, Html__TextResult, Html__Safe, Html__SafeResult, Html__TextAttributeName, Html__NameResult]
   uses []
-  emits []
+  emits [html.invalid_attribute_name]
+
+error html.invalid_attribute_name(value: str)
 
 brand Html__Text is str rev 1
 
@@ -81,3 +83,48 @@ fn html__text__node(text: Html__Text) -> Html__SafeResult rev 1
     node_astral(text = seal Html__Text("𝌆")) => Ok(safe = seal Html__Safe("𝌆"))
 =
   Ok(safe = seal Html__Safe(text))
+
+// html/attribute: the name gate. Html__TextAttributeName contains
+// exactly the canonical names approved by this library revision for
+// the ordinary quoted-text attribute-value constructor — narrower
+// than "a valid HTML attribute name." Membership admits one spelling
+// per name; anything else is API rejection, not a claim of HTML
+// invalidity. id/class are excluded (specialized constructors own
+// them); srcdoc/meta-content are excluded (wrong value context);
+// DOM-clobbering names need no separate rule here because added
+// names require their own justification, but "text-valued" is never
+// advertised as "incapable of affecting application behavior."
+
+brand Html__TextAttributeName is str rev 1
+
+type Html__NameResult rev 1 (
+  name: Html__TextAttributeName
+)
+
+fn html__attribute__name(value: str) -> Html__NameResult rev 1
+  emits [html.invalid_attribute_name]
+  tests
+    name_title(value = "title") => Ok(name = seal Html__TextAttributeName("title"))
+    name_upper(value = "TITLE") => html.invalid_attribute_name(value = "TITLE")
+    name_mixed(value = "Title") => html.invalid_attribute_name(value = "Title")
+    name_href(value = "href") => html.invalid_attribute_name(value = "href")
+    name_href_upper(value = "HREF") => html.invalid_attribute_name(value = "HREF")
+    name_href_mixed(value = "hReF") => html.invalid_attribute_name(value = "hReF")
+    name_onclick(value = "onclick") => html.invalid_attribute_name(value = "onclick")
+    name_onclick_upper(value = "OnClick") => html.invalid_attribute_name(value = "OnClick")
+    name_style(value = "style") => html.invalid_attribute_name(value = "style")
+    name_style_upper(value = "STYLE") => html.invalid_attribute_name(value = "STYLE")
+    name_srcdoc(value = "srcdoc") => html.invalid_attribute_name(value = "srcdoc")
+    name_id(value = "id") => html.invalid_attribute_name(value = "id")
+    name_class(value = "class") => html.invalid_attribute_name(value = "class")
+    name_empty(value = "") => html.invalid_attribute_name(value = "")
+    name_padded_left(value = " title") => html.invalid_attribute_name(value = " title")
+    name_padded_right(value = "title ") => html.invalid_attribute_name(value = "title ")
+    name_compound(value = "title onclick") => html.invalid_attribute_name(value = "title onclick")
+    name_equals(value = "title=") => html.invalid_attribute_name(value = "title=")
+    name_unlisted(value = "data-count") => html.invalid_attribute_name(value = "data-count")
+    name_lookalike(value = "titlé") => html.invalid_attribute_name(value = "titlé")
+=
+  match value
+    "title" => Ok(name = seal Html__TextAttributeName("title"))
+    _ => html.invalid_attribute_name(value = value)

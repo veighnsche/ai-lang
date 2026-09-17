@@ -20,10 +20,15 @@
   relabeling (`erase(node(t)) = erase(t)`): no double escape, no
   normalization. One-way, exact, same-module, non-transitive; see
   `docs/v26-html-node.md`.
+- `html__attribute__name` gates `Html__TextAttributeName`: a small
+  exact lowercase allowlist (currently `{title}`), each member with
+  its own justification; everything else is `invalid_attribute_name`.
+  See `docs/v27-attribute-name.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html
   std/html/html.ail`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
-`docs/v26-html-node.md`, brand scope: `docs/v15-brands.md`.
+`docs/v26-html-node.md`, `docs/v27-attribute-name.md`, brand scope:
+`docs/v15-brands.md`.

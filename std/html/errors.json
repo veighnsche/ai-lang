@@ -1,1 +1,33 @@
-[]
+[
+  {
+    "kind": "html.invalid_attribute_name",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "html.html__attribute__name"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "html.html__attribute__name/name_class",
+      "html.html__attribute__name/name_compound",
+      "html.html__attribute__name/name_empty",
+      "html.html__attribute__name/name_equals",
+      "html.html__attribute__name/name_href",
+      "html.html__attribute__name/name_href_mixed",
+      "html.html__attribute__name/name_href_upper",
+      "html.html__attribute__name/name_id",
+      "html.html__attribute__name/name_lookalike",
+      "html.html__attribute__name/name_mixed",
+      "html.html__attribute__name/name_onclick",
+      "html.html__attribute__name/name_onclick_upper",
+      "html.html__attribute__name/name_padded_left",
+      "html.html__attribute__name/name_padded_right",
+      "html.html__attribute__name/name_srcdoc",
+      "html.html__attribute__name/name_style",
+      "html.html__attribute__name/name_style_upper",
+      "html.html__attribute__name/name_unlisted",
+      "html.html__attribute__name/name_upper"
+    ]
+  }
+]
