@@ -466,8 +466,12 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if childType(node.L) != "str" {
-			return "", fmt.Errorf("cannot emit #: operand type unknown (run checkSem first)")
+		// v37 S2: arrays lower through the same spread-length
+		// shape as strings; the checker owns the operand rule.
+		if ct := childType(node.L); ct != "str" {
+			if _, ok := seqElemName(ct); !ok {
+				return "", fmt.Errorf("cannot emit #: operand type unknown (run checkSem first)")
+			}
 		}
 		return fmt.Sprintf("(BigInt([...%s].length))", v), nil
 	case "stridx":

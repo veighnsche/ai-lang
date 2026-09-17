@@ -420,6 +420,12 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		if err != nil {
 			return nil, err
 		}
+		// v37 S2: sequences count elements, strings count
+		// scalars. Members are never inspected, so brands need
+		// no case here.
+		if v.Kind == "seq" {
+			return &Value{Kind: "int", N: big.NewInt(int64(len(v.Arr)))}, nil
+		}
 		if v.Kind != "str" {
 			return nil, fmt.Errorf("bad length operand")
 		}

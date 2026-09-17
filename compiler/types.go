@@ -507,9 +507,13 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 	case "strlen":
 		c.value(s.L, "", line, env, "length")
 		if t, ok := c.typeOf(s.L, env); ok && t != "str" {
-			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("cannot count scalars of %s: length needs str", t), "#", CodeTypeMismatch))
-			return
+			// v37 S2: # counts sequence elements too. Anything
+			// else keeps the pinned scalar diagnostic verbatim.
+			if _, isSeq := seqElemName(t); !isSeq {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("cannot count scalars of %s: length needs str", t), "#", CodeTypeMismatch))
+				return
+			}
 		}
 		s.T = "int"
 	case "stridx":

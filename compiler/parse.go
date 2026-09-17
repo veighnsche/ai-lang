@@ -406,6 +406,14 @@ func findTop(s string, ops []string) (int, string) {
 		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
 			stack = stack[:len(stack)-1]
 		} else if len(stack) == 0 {
+			// v36 S1: a sequence head is one atom. Its <, >,
+			// and member commas never split an outer operator.
+			if strings.HasPrefix(s[i:], "Seq<") {
+				if end := seqHeadEnd(s[i:]); end > 0 {
+					i += end
+					continue
+				}
+			}
 			for _, op := range ops {
 				if strings.HasPrefix(s[i:], op) {
 					return i, op
@@ -440,6 +448,13 @@ func findLastTop(s string, ops []string) (int, string) {
 		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
 			stack = stack[:len(stack)-1]
 		} else if len(stack) == 0 {
+			// v36 S1: a sequence head is one atom (see findTop).
+			if strings.HasPrefix(s[i:], "Seq<") {
+				if end := seqHeadEnd(s[i:]); end > 0 {
+					i += end
+					continue
+				}
+			}
 			for _, op := range ops {
 				if strings.HasPrefix(s[i:], op) {
 					best, bestOp = i, op
