@@ -1,15 +1,29 @@
-// std/text/text.ail — row 3 of the standard-library program, first cut.
-// Explicit text construction. Concatenation needs no indexing, so it
-// ships now; measurement and indexing wait on the scalar-access
-// surface decision recorded in docs/v16-text.md.
-// Concat preserves every scalar unchanged: quotes, ampersands, and
-// markup pass through exactly. Safety lives in context encoders,
-// never in construction. See the Html__Text contract when it lands.
+// std/text/text.ail — row 3 of the standard-library program.
+// Explicit text construction and scalar measurement, search, and
+// ASCII case over the v20 operators (#, s[i], s[a:b]). Concat
+// preserves every scalar unchanged: quotes, ampersands, and markup
+// pass through exactly. Safety lives in context encoders, never in
+// construction. See the Html__Text contract when it lands.
+//
+// ASCII whitespace here is space, tab, LF, CR (the JSON set):
+// literals are raw (no escapes), so tab/LF/CR never appear in a
+// decision table — std__str__is_whitespace takes int-denoted
+// scalars (as s[i] yields) and pins all four arms directly.
+// Grammars: find locates the empty pattern at 0 (indexOf rule);
+// replace rejects it (text.empty_pattern); conversions live in
+// scalars.ail beside their kernels; split/join wait on Seq,
+// graphemes/casefold/normalize on pinned data, hex/base64/utf8 on
+// Bytes (see #42).
 
 mod text
-  provides [std__str__concat, std__str__is_empty, Str__Value, Bool__Value]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, Str__Value, Bool__Value, Int__Value]
   uses []
-  emits []
+  emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
+
+error text.index_out_of_range(value: str, index: int)
+error text.invalid_slice(value: str, start: int, end: int)
+error text.not_found(value: str, pattern: str)
+error text.empty_pattern()
 
 type Str__Value rev 1 (
   value: str
@@ -17,6 +31,10 @@ type Str__Value rev 1 (
 
 type Bool__Value rev 1 (
   value: bool
+)
+
+type Int__Value rev 1 (
+  value: int
 )
 
 fn std__str__concat(left: str, right: str) -> Str__Value rev 1
@@ -41,3 +59,273 @@ fn std__str__is_empty(value: str) -> Bool__Value rev 1
   match value == ""
     true => Ok(value = true)
     false => Ok(value = false)
+
+fn std__str__is_whitespace(scalar: int) -> Bool__Value rev 1
+  emits []
+  tests
+    space(scalar = 32) => Ok(value = true)
+    tab(scalar = 9) => Ok(value = true)
+    lf(scalar = 10) => Ok(value = true)
+    cr(scalar = 13) => Ok(value = true)
+    letter(scalar = 65) => Ok(value = false)
+    nul(scalar = 0) => Ok(value = false)
+=
+  match scalar == 32
+    true => Ok(value = true)
+    false => match scalar == 9
+      true => Ok(value = true)
+      false => match scalar == 10
+        true => Ok(value = true)
+        false => match scalar == 13
+          true => Ok(value = true)
+          false => Ok(value = false)
+
+fn std__str__length_scalars(value: str) -> Int__Value rev 1
+  emits []
+  tests
+    ascii(value = "abc") => Ok(value = 3)
+    mixed(value = "héllo世界") => Ok(value = 7)
+    astral(value = "a𝄞b") => Ok(value = 3)
+    empty(value = "") => Ok(value = 0)
+=
+  Ok(value = #value)
+
+fn std__str__scalar_at(value: str, index: int) -> Int__Value rev 1
+  emits [text.index_out_of_range]
+  tests
+    ascii(value = "abc", index = 1) => Ok(value = 98)
+    mixed(value = "héllo世界", index = 5) => Ok(value = 19990)
+    astral(value = "a𝄞b", index = 1) => Ok(value = 119070)
+    negative(value = "abc", index = -1) => text.index_out_of_range(value = "abc", index = -1)
+    past_end(value = "abc", index = 3) => text.index_out_of_range(value = "abc", index = 3)
+    empty(value = "", index = 0) => text.index_out_of_range(value = "", index = 0)
+=
+  match index >= 0
+    true => match index < #value
+      true => Ok(value = value[index])
+      false => text.index_out_of_range(value = value, index = index)
+    false => text.index_out_of_range(value = value, index = index)
+
+fn std__str__slice_scalars(value: str, start: int, end: int) -> Str__Value rev 1
+  emits [text.invalid_slice]
+  tests
+    inner(value = "héllo", start = 1, end = 4) => Ok(value = "éll")
+    full(value = "abc", start = 0, end = 3) => Ok(value = "abc")
+    empty_slice(value = "abc", start = 2, end = 2) => Ok(value = "")
+    neg_start(value = "abc", start = -1, end = 2) => text.invalid_slice(value = "abc", start = -1, end = 2)
+    inverted(value = "abc", start = 2, end = 1) => text.invalid_slice(value = "abc", start = 2, end = 1)
+    past_end(value = "abc", start = 0, end = 4) => text.invalid_slice(value = "abc", start = 0, end = 4)
+=
+  match start >= 0
+    true => match end >= start
+      true => match end <= #value
+        true => Ok(value = value[start:end])
+        false => text.invalid_slice(value = value, start = start, end = end)
+      false => text.invalid_slice(value = value, start = start, end = end)
+    false => text.invalid_slice(value = value, start = start, end = end)
+
+fn std__str__find_from(orig: str, value: str, pattern: str, pos: int, n: int) -> Int__Value rev 1
+  decreases n
+  emits [text.not_found]
+  tests
+    exhausted(orig = "x", value = "yz", pattern = "z", pos = 0, n = 0) => text.not_found(value = "x", pattern = "z")
+    immediate(orig = "abc", value = "abc", pattern = "a", pos = 0, n = 3) => Ok(value = 0)
+    later(orig = "abc", value = "abc", pattern = "bc", pos = 0, n = 3) => Ok(value = 1)
+    shorter(orig = "ab", value = "ab", pattern = "abcd", pos = 0, n = 2) => text.not_found(value = "ab", pattern = "abcd")
+=
+  match n <= 0
+    true => text.not_found(value = orig, pattern = pattern)
+    false => match #value >= #pattern
+      true => match value[0:#pattern] == pattern
+        true => Ok(value = pos)
+        false => match call std__str__find_from(orig, value[1:#value], pattern, pos + 1, n - 1)
+          on text.not_found e => text.not_found(value = e.value, pattern = e.pattern)
+          on Ok r => Ok(value = r.value)
+      false => text.not_found(value = orig, pattern = pattern)
+
+fn std__str__find(value: str, pattern: str) -> Int__Value rev 1
+  emits [text.not_found]
+  tests
+    at_start(value = "abc", pattern = "a") => Ok(value = 0)
+    middle(value = "abc", pattern = "bc") => Ok(value = 1)
+    whole(value = "abc", pattern = "abc") => Ok(value = 0)
+    absent(value = "abc", pattern = "z") => text.not_found(value = "abc", pattern = "z")
+    longer(value = "ab", pattern = "abcd") => text.not_found(value = "ab", pattern = "abcd")
+    empty_pattern(value = "abc", pattern = "") => Ok(value = 0)
+=
+  match #pattern == 0
+    true => Ok(value = 0)
+    false => match call std__str__find_from(value, value, pattern, 0, #value)
+      on text.not_found e => text.not_found(value = e.value, pattern = e.pattern)
+      on Ok r => Ok(value = r.value)
+
+fn std__str__contains(value: str, pattern: str) -> Bool__Value rev 1
+  emits []
+  tests
+    yes(value = "abc", pattern = "b") => Ok(value = true)
+    no(value = "abc", pattern = "z") => Ok(value = false)
+    empty_pattern(value = "abc", pattern = "") => Ok(value = true)
+=
+  match call std__str__find(value, pattern)
+    on text.not_found _ => Ok(value = false)
+    on Ok _ => Ok(value = true)
+
+fn std__str__starts_with(value: str, pattern: str) -> Bool__Value rev 1
+  emits []
+  tests
+    yes(value = "abc", pattern = "ab") => Ok(value = true)
+    no(value = "abc", pattern = "bc") => Ok(value = false)
+    longer(value = "ab", pattern = "abc") => Ok(value = false)
+    empty_pattern(value = "abc", pattern = "") => Ok(value = true)
+=
+  match #pattern <= #value
+    true => match value[0:#pattern] == pattern
+      true => Ok(value = true)
+      false => Ok(value = false)
+    false => Ok(value = false)
+
+fn std__str__ends_with(value: str, pattern: str) -> Bool__Value rev 1
+  emits []
+  tests
+    yes(value = "abc", pattern = "bc") => Ok(value = true)
+    no(value = "abc", pattern = "ab") => Ok(value = false)
+    longer(value = "ab", pattern = "abc") => Ok(value = false)
+    empty_pattern(value = "abc", pattern = "") => Ok(value = true)
+=
+  match #pattern <= #value
+    true => match value[#value - #pattern:#value] == pattern
+      true => Ok(value = true)
+      false => Ok(value = false)
+    false => Ok(value = false)
+
+fn std__str__replace_all_from(value: str, old: str, replacement: str, acc: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    replace_from_base(value = "", old = "a", replacement = "x", acc = "q", n = 0) => Ok(value = "q")
+    replace_from_short(value = "ab", old = "abcd", replacement = "x", acc = "", n = 2) => Ok(value = "ab")
+    replace_from_match(value = "aa", old = "a", replacement = "X", acc = "", n = 2) => Ok(value = "XX")
+    replace_from_skip(value = "ab", old = "b", replacement = "X", acc = "", n = 2) => Ok(value = "aX")
+=
+  match n <= 0
+    true => Ok(value = acc + value)
+    false => match #value >= #old
+      true => match value[0:#old] == old
+        true => match call std__str__replace_all_from(value[#old:#value], old, replacement, acc + replacement, n - 1)
+          on Ok r => Ok(value = r.value)
+        false => match call std__str__replace_all_from(value[1:#value], old, replacement, acc + value[0:1], n - 1)
+          on Ok r => Ok(value = r.value)
+      false => Ok(value = acc + value)
+
+fn std__str__replace_all(value: str, old: str, replacement: str) -> Str__Value rev 1
+  emits [text.empty_pattern]
+  tests
+    replace_basic(value = "hello world", old = "o", replacement = "0") => Ok(value = "hell0 w0rld")
+    replace_overlap(value = "aaa", old = "aa", replacement = "b") => Ok(value = "ba")
+    replace_absent(value = "abc", old = "z", replacement = "q") => Ok(value = "abc")
+    replace_empty_old(value = "abc", old = "", replacement = "q") => text.empty_pattern()
+    replace_empty_value(value = "", old = "a", replacement = "b") => Ok(value = "")
+=
+  match #old == 0
+    true => text.empty_pattern()
+    false => match call std__str__replace_all_from(value, old, replacement, "", #value)
+      on Ok r => Ok(value = r.value)
+
+fn std__str__trim_left(value: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    trim_left_empty(value = "", n = 0) => Ok(value = "")
+    trim_left_nowhite(value = "ab", n = 2) => Ok(value = "ab")
+    trim_left_spaces(value = "  ab", n = 4) => Ok(value = "ab")
+=
+  match n <= 0
+    true => Ok(value = value)
+    false => match call std__str__is_whitespace(value[0])
+      on Ok w => match w.value
+        true => match call std__str__trim_left(value[1:#value], n - 1)
+          on Ok r => Ok(value = r.value)
+        false => match call std__str__trim_right(value, #value)
+          on Ok r => Ok(value = r.value)
+
+fn std__str__trim_right(value: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    trim_right_empty(value = "", n = 0) => Ok(value = "")
+    trim_right_nowhite(value = "ab", n = 2) => Ok(value = "ab")
+    trim_right_spaces(value = "ab  ", n = 4) => Ok(value = "ab")
+=
+  match n <= 0
+    true => Ok(value = value)
+    false => match call std__str__is_whitespace(value[n - 1])
+      on Ok w => match w.value
+        true => match call std__str__trim_right(value[0:n - 1], n - 1)
+          on Ok r => Ok(value = r.value)
+        false => Ok(value = value)
+
+fn std__str__trim_ascii(value: str) -> Str__Value rev 1
+  emits []
+  tests
+    trim_both(value = "  ab  ") => Ok(value = "ab")
+    trim_none(value = "ab") => Ok(value = "ab")
+    trim_all(value = "   ") => Ok(value = "")
+    trim_empty(value = "") => Ok(value = "")
+    trim_inner(value = "a b") => Ok(value = "a b")
+=
+  match call std__str__trim_left(value, #value)
+    on Ok r => Ok(value = r.value)
+
+fn std__str__upper_ascii_from(value: str, acc: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    upper_from_letters(value = "abc", acc = "", n = 3) => Ok(value = "ABC")
+    upper_from_mixed(value = "a5b", acc = "", n = 3) => Ok(value = "A5B")
+    upper_from_empty(value = "", acc = "q", n = 0) => Ok(value = "q")
+=
+  match n <= 0
+    true => Ok(value = acc)
+    false => match call std__str__find("abcdefghijklmnopqrstuvwxyz", value[0:1])
+      on Ok f => match call std__str__upper_ascii_from(value[1:#value], acc + "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[f.value:f.value + 1], n - 1)
+        on Ok r => Ok(value = r.value)
+      on text.not_found _ => match call std__str__upper_ascii_from(value[1:#value], acc + value[0:1], n - 1)
+        on Ok r => Ok(value = r.value)
+
+fn std__str__upper_ascii(value: str) -> Str__Value rev 1
+  emits []
+  tests
+    upper_lower(value = "abc") => Ok(value = "ABC")
+    upper_mixed(value = "a5b") => Ok(value = "A5B")
+    upper_already(value = "ABC") => Ok(value = "ABC")
+    upper_empty(value = "") => Ok(value = "")
+=
+  match call std__str__upper_ascii_from(value, "", #value)
+    on Ok r => Ok(value = r.value)
+
+fn std__str__lower_ascii_from(value: str, acc: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    lower_from_letters(value = "ABC", acc = "", n = 3) => Ok(value = "abc")
+    lower_from_mixed(value = "A5B", acc = "", n = 3) => Ok(value = "a5b")
+    lower_from_empty(value = "", acc = "q", n = 0) => Ok(value = "q")
+=
+  match n <= 0
+    true => Ok(value = acc)
+    false => match call std__str__find("ABCDEFGHIJKLMNOPQRSTUVWXYZ", value[0:1])
+      on Ok f => match call std__str__lower_ascii_from(value[1:#value], acc + "abcdefghijklmnopqrstuvwxyz"[f.value:f.value + 1], n - 1)
+        on Ok r => Ok(value = r.value)
+      on text.not_found _ => match call std__str__lower_ascii_from(value[1:#value], acc + value[0:1], n - 1)
+        on Ok r => Ok(value = r.value)
+
+fn std__str__lower_ascii(value: str) -> Str__Value rev 1
+  emits []
+  tests
+    lower_upper(value = "ABC") => Ok(value = "abc")
+    lower_mixed(value = "A5B") => Ok(value = "a5b")
+    lower_already(value = "abc") => Ok(value = "abc")
+    lower_empty(value = "") => Ok(value = "")
+=
+  match call std__str__lower_ascii_from(value, "", #value)
+    on Ok r => Ok(value = r.value)

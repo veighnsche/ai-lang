@@ -168,6 +168,19 @@ func leafType(s *Small) string {
 	return ""
 }
 
+// childType resolves one operand's static type: the checker's T
+// annotation first, literals second. Emit runs only after checkSem,
+// so unknown here is a loud internal, never a silent default.
+func childType(s *Small) string {
+	if s == nil {
+		return ""
+	}
+	if s.T != "" {
+		return s.T
+	}
+	return leafType(s)
+}
+
 // isScalar reports whether an operand type compares exactly with
 // native identity: base types (bigint by value, canonical dec
 // strings, strings, booleans) and str-backed brands.
@@ -374,6 +387,47 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "", fmt.Errorf("cannot emit op %s", node.Op)
 		}
 		return fmt.Sprintf("(%s %s %s)", l, op, r), nil
+	case "strlen":
+		v, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		if childType(node.L) != "str" {
+			return "", fmt.Errorf("cannot emit #: operand type unknown (run checkSem first)")
+		}
+		return fmt.Sprintf("(BigInt([...%s].length))", v), nil
+	case "stridx":
+		b, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		ix, err := e.emitValue(node.R)
+		if err != nil {
+			return "", err
+		}
+		if childType(node.L) != "str" {
+			return "", fmt.Errorf("cannot emit []: operand type unknown (run checkSem first)")
+		}
+		e.strOps["at"] = true
+		return fmt.Sprintf("$ailStrAt(%s, %s)", b, ix), nil
+	case "strslice":
+		b, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		lo, err := e.emitValue(node.R)
+		if err != nil {
+			return "", err
+		}
+		hi, err := e.emitValue(node.Hi)
+		if err != nil {
+			return "", err
+		}
+		if childType(node.L) != "str" {
+			return "", fmt.Errorf("cannot emit [:]: operand type unknown (run checkSem first)")
+		}
+		e.strOps["slice"] = true
+		return fmt.Sprintf("$ailStrSlice(%s, %s, %s)", b, lo, hi), nil
 	case "ctor":
 		var parts []string
 		for _, a := range node.Args {
@@ -584,6 +638,24 @@ var strRuntimeOps = []struct {
 	{"le", []string{
 		"function $ailStrLe(a: string, b: string): boolean {",
 		"  return $ailStrCmp(a, b) <= 0;",
+		"}",
+	}},
+	{"at", []string{
+		"function $ailStrAt(s: string, i: bigint): bigint {",
+		"  const cps = [...s];",
+		"  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"str index out of range\");",
+		"  const k = Number(i);",
+		"  if (k >= cps.length) throw new Error(\"str index out of range\");",
+		"  return BigInt(cps[k].codePointAt(0));",
+		"}",
+	}},
+	{"slice", []string{
+		"function $ailStrSlice(s: string, a: bigint, b: bigint): string {",
+		"  const cps = [...s];",
+		"  const toIdx = (x: bigint): number => { if (x < 0n || x > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"str slice out of range\"); return Number(x); };",
+		"  const lo = toIdx(a), hi = toIdx(b);",
+		"  if (lo > hi || hi > cps.length) throw new Error(\"str slice out of range\");",
+		"  return cps.slice(lo, hi).join(\"\");",
 		"}",
 	}},
 	{"gt", []string{

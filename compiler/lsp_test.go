@@ -840,6 +840,71 @@ func TestDiagnoseStrictMixedCompare(t *testing.T) {
 	checkSpan(t, typeStrictMixed, diags, "cannot compare int with dec", ">", expectLine(t, typeStrictMixed, "match a > b"))
 }
 
+const typeTextOps = `mod m
+  provides [m__len, m__at, m__at_str, m__slice, m__slice_str, M__Out, M__Str]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  n: int
+)
+
+type M__Str rev 1 (
+  s: str
+)
+
+fn m__len(v: int) -> M__Out rev 1
+  emits []
+  tests
+    t(v = 1) => Ok(n = 0)
+=
+  Ok(n = #v)
+
+fn m__at(v: int, i: int) -> M__Out rev 1
+  emits []
+  tests
+    t(v = 1, i = 0) => Ok(n = 0)
+=
+  Ok(n = v[i])
+
+fn m__at_str(v: str, i: str) -> M__Out rev 1
+  emits []
+  tests
+    t(v = "ab", i = "x") => Ok(n = 0)
+=
+  Ok(n = v[i])
+
+fn m__slice(v: int, a: int, b: int) -> M__Str rev 1
+  emits []
+  tests
+    t(v = 1, a = 0, b = 1) => Ok(s = "x")
+=
+  Ok(s = v[a:b])
+
+fn m__slice_str(v: str, a: str, b: int) -> M__Str rev 1
+  emits []
+  tests
+    t(v = "ab", a = "x", b = 1) => Ok(s = "x")
+=
+  Ok(s = v[a:b])
+`
+
+func TestDiagnoseTextOpsMismatch(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.ail": typeTextOps})
+	diags := diagnose(dir, "m.ail", typeTextOps)
+	for _, want := range []string{
+		"cannot count scalars of int",
+		"cannot index into int",
+		"cannot index with str",
+		"cannot slice int",
+		"cannot slice with str",
+	} {
+		if !hasDiag(diags, "error", want) {
+			t.Fatalf("expected %q, got %v", want, diags)
+		}
+	}
+}
+
 const typeSeal = `mod m
   provides [m__seal, M__B, M__Out]
   uses []

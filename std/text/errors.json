@@ -1,1 +1,85 @@
-[]
+[
+  {
+    "kind": "text.empty_pattern",
+    "fields": [],
+    "raised_by": [
+      "text.std__str__replace_all"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "text.std__str__replace_all/replace_empty_old"
+    ]
+  },
+  {
+    "kind": "text.index_out_of_range",
+    "fields": [
+      "value",
+      "index"
+    ],
+    "raised_by": [
+      "text.std__str__scalar_at"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "text.std__str__scalar_at/empty",
+      "text.std__str__scalar_at/negative",
+      "text.std__str__scalar_at/past_end"
+    ]
+  },
+  {
+    "kind": "text.invalid_slice",
+    "fields": [
+      "value",
+      "start",
+      "end"
+    ],
+    "raised_by": [
+      "text.std__str__slice_scalars"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "text.std__str__slice_scalars/inverted",
+      "text.std__str__slice_scalars/neg_start",
+      "text.std__str__slice_scalars/past_end"
+    ]
+  },
+  {
+    "kind": "text.not_found",
+    "fields": [
+      "value",
+      "pattern"
+    ],
+    "raised_by": [
+      "text.std__str__find",
+      "text.std__str__find_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "text.std__str__contains",
+        "arm": "on text.not_found _ =\u003e Ok(value = false)"
+      },
+      {
+        "fn": "text.std__str__find",
+        "arm": "on text.not_found e =\u003e text.not_found(value = e.value, pattern = e.pattern)"
+      },
+      {
+        "fn": "text.std__str__find_from",
+        "arm": "on text.not_found e =\u003e text.not_found(value = e.value, pattern = e.pattern)"
+      },
+      {
+        "fn": "text.std__str__lower_ascii_from",
+        "arm": "on text.not_found _ =\u003e match call std__str__lower_ascii_from(value[1:#value], acc + value[0:1], n - 1)"
+      },
+      {
+        "fn": "text.std__str__upper_ascii_from",
+        "arm": "on text.not_found _ =\u003e match call std__str__upper_ascii_from(value[1:#value], acc + value[0:1], n - 1)"
+      }
+    ],
+    "hit_by_tests": [
+      "text.std__str__find/absent",
+      "text.std__str__find/longer",
+      "text.std__str__find_from/exhausted",
+      "text.std__str__find_from/shorter"
+    ]
+  }
+]

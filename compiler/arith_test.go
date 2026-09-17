@@ -138,6 +138,75 @@ func TestStrictComparisonStr(t *testing.T) {
 // TestArithUnbounded pins v10: ints never overflow, never wrap. The
 // old int64 gate is gone; chains that once failed loud now compute
 // exactly, matching the bigint target.
+// TestTextOpsEval pins the v20 scalar operators at the evaluator
+// level: # counts Unicode scalars, s[i] yields the scalar value,
+// s[a:b] slices half-open. Out-of-range shapes are loud faults,
+// never silent values.
+func TestTextOpsEval(t *testing.T) {
+	env := map[string]*Value{"s": {Kind: "str", S: "héllo世界"}}
+	for _, c := range []struct {
+		expr    string
+		kind    string
+		intWant string
+		strWant string
+	}{
+		{`#s`, "int", "7", ""},
+		{`s[0]`, "int", "104", ""},
+		{`s[5]`, "int", "19990", ""},
+		{`s[1:4]`, "str", "", "éll"},
+		{`s[2:2]`, "str", "", ""},
+		{`s[0:7]`, "str", "", "héllo世界"},
+	} {
+		sm, err := parseSmall(c.expr)
+		if err != nil {
+			t.Fatalf("parseSmall(%q): %v", c.expr, err)
+		}
+		got, err := evSmall(sm, env, &Ctx{}, "test")
+		if err != nil {
+			t.Fatalf("evSmall(%q): %v", c.expr, err)
+		}
+		switch c.kind {
+		case "int":
+			if got.Kind != "int" || got.N.String() != c.intWant {
+				t.Fatalf("%s = %v, want int %s", c.expr, got, c.intWant)
+			}
+		case "str":
+			if got.Kind != "str" || got.S != c.strWant {
+				t.Fatalf("%s = %v, want str %q", c.expr, got, c.strWant)
+			}
+		}
+	}
+	astral := map[string]*Value{"s": {Kind: "str", S: "a\U0001D11Eb"}}
+	for _, c := range []struct {
+		expr    string
+		intWant string
+	}{
+		{`#s`, "3"},
+		{`s[1]`, "119070"},
+	} {
+		sm, err := parseSmall(c.expr)
+		if err != nil {
+			t.Fatalf("parseSmall(%q): %v", c.expr, err)
+		}
+		got, err := evSmall(sm, astral, &Ctx{}, "test")
+		if err != nil {
+			t.Fatalf("evSmall(%q): %v", c.expr, err)
+		}
+		if got.Kind != "int" || got.N.String() != c.intWant {
+			t.Fatalf("%s = %v, want int %s", c.expr, got, c.intWant)
+		}
+	}
+	for _, expr := range []string{`s[7]`, `s[-1]`, `s[3:2]`, `s[0:8]`, `s[-1:2]`} {
+		sm, err := parseSmall(expr)
+		if err != nil {
+			t.Fatalf("parseSmall(%q): %v", expr, err)
+		}
+		if _, err := evSmall(sm, env, &Ctx{}, "test"); err == nil {
+			t.Fatalf("evSmall(%q): expected out-of-range error, got none", expr)
+		}
+	}
+}
+
 func TestArithUnbounded(t *testing.T) {
 	wantInt(t, "3037000500 * 3037000500", "9223372037000250000")
 	wantInt(t, "1000000000000000000 - 1", "999999999999999999")

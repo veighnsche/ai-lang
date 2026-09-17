@@ -394,6 +394,61 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			}
 			return &Value{Kind: "bool", B: lv.S != rv.S}, nil
 		}
+	case "strlen":
+		v, err := evSmall(node.L, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		if v.Kind != "str" {
+			return nil, fmt.Errorf("bad length operand")
+		}
+		return &Value{Kind: "int", N: big.NewInt(int64(len([]rune(v.S))))}, nil
+	case "stridx":
+		b, err := evSmall(node.L, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		ix, err := evSmall(node.R, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		if b.Kind != "str" || ix.Kind != "int" {
+			return nil, fmt.Errorf("bad index operands")
+		}
+		rs := []rune(b.S)
+		if !ix.N.IsInt64() {
+			return nil, fmt.Errorf("str index out of range")
+		}
+		i := ix.N.Int64()
+		if i < 0 || i >= int64(len(rs)) {
+			return nil, fmt.Errorf("str index out of range")
+		}
+		return &Value{Kind: "int", N: big.NewInt(int64(rs[i]))}, nil
+	case "strslice":
+		b, err := evSmall(node.L, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		lo, err := evSmall(node.R, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		hi, err := evSmall(node.Hi, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		if b.Kind != "str" || lo.Kind != "int" || hi.Kind != "int" {
+			return nil, fmt.Errorf("bad slice operands")
+		}
+		rs := []rune(b.S)
+		if !lo.N.IsInt64() || !hi.N.IsInt64() {
+			return nil, fmt.Errorf("str slice out of range")
+		}
+		l, h := lo.N.Int64(), hi.N.Int64()
+		if l < 0 || h < l || h > int64(len(rs)) {
+			return nil, fmt.Errorf("str slice out of range")
+		}
+		return &Value{Kind: "str", S: string(rs[l:h])}, nil
 	case "call":
 		return nil, fmt.Errorf("call outside match scrutinee is outside the v0 subset")
 	case "exchange":
@@ -1145,6 +1200,11 @@ func walkCalls(node *Node) []*Small {
 		if s.Kind == "binop" {
 			walkSmall(s.L)
 			walkSmall(s.R)
+		}
+		if s.Kind == "strlen" || s.Kind == "stridx" || s.Kind == "strslice" {
+			walkSmall(s.L)
+			walkSmall(s.R)
+			walkSmall(s.Hi)
 		}
 		for _, it := range s.Items {
 			walkSmall(it)

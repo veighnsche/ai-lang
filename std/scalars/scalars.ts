@@ -1,6 +1,6 @@
 // GENERATED from scalars.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type ScalarsResult = { $ail_kind: "ok"; remainder: bigint; root: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "math.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "math.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $ail_kind: "math.dec_invalid_bounds"; lower: string; upper: string } | { $ail_kind: "math.dec_out_of_range"; value: string; lower: string; upper: string } | { $ail_kind: "math.negative_input"; value: bigint } | { $ail_kind: "math.nonpositive_input"; value: bigint } | { $ail_kind: "math.negative_exponent"; exponent: bigint } | { $ail_kind: "math.invalid_count"; n: bigint; k: bigint } | { $ail_kind: "math.negative_scale"; scale: bigint } | { $ail_kind: "convert.invalid_boolean"; value: string } | { $ail_kind: "convert.invalid_boolean_encoding"; value: bigint } | { $ail_kind: "convert.invalid_dec_encoding"; value: string };
+export type ScalarsResult = { $ail_kind: "ok"; remainder: bigint; root: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "math.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "math.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $ail_kind: "math.dec_invalid_bounds"; lower: string; upper: string } | { $ail_kind: "math.dec_out_of_range"; value: string; lower: string; upper: string } | { $ail_kind: "math.negative_input"; value: bigint } | { $ail_kind: "math.nonpositive_input"; value: bigint } | { $ail_kind: "math.negative_exponent"; exponent: bigint } | { $ail_kind: "math.invalid_count"; n: bigint; k: bigint } | { $ail_kind: "math.negative_scale"; scale: bigint } | { $ail_kind: "convert.invalid_boolean"; value: string } | { $ail_kind: "convert.invalid_integer"; value: string } | { $ail_kind: "convert.invalid_decimal"; value: string } | { $ail_kind: "convert.invalid_boolean_encoding"; value: bigint } | { $ail_kind: "convert.invalid_dec_encoding"; value: string };
 export type Int__Value = { value: bigint };
 export type Dec__Value = { value: string };
 export type Str__Value = { value: string };
@@ -93,6 +93,20 @@ function $ailStrCmp(a: string, b: string): number {
 }
 function $ailStrGe(a: string, b: string): boolean {
   return $ailStrCmp(a, b) >= 0;
+}
+function $ailStrAt(s: string, i: bigint): bigint {
+  const cps = [...s];
+  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("str index out of range");
+  const k = Number(i);
+  if (k >= cps.length) throw new Error("str index out of range");
+  return BigInt(cps[k].codePointAt(0));
+}
+function $ailStrSlice(s: string, a: bigint, b: bigint): string {
+  const cps = [...s];
+  const toIdx = (x: bigint): number => { if (x < 0n || x > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("str slice out of range"); return Number(x); };
+  const lo = toIdx(a), hi = toIdx(b);
+  if (lo > hi || hi > cps.length) throw new Error("str slice out of range");
+  return cps.slice(lo, hi).join("");
 }
 // Euclidean integer division (v17): quotient and remainder with
 // 0 <= r < |b| on every sign combination.
@@ -1091,21 +1105,255 @@ export function std__convert__int_to_dec_from(m: bigint, acc: string, step: stri
     }
   }
 }
+export function std__convert__int_to_str_from(n: bigint, acc: string, m: bigint): ScalarsResult {
+  if ((m <= 0n)) {
+    return { $ail_kind: "ok", value: acc };
+  }
+  else {
+    if ((n <= 9n)) {
+      return { $ail_kind: "ok", value: ($ailStrSlice("0123456789", n, (n + 1n)) + acc) };
+    }
+    else {
+      const $ail_m34: ScalarsResult = std__convert__int_to_str_from($ailDivMod(n, 10n)[0], ($ailStrSlice("0123456789", $ailDivMod(n, 10n)[1], ($ailDivMod(n, 10n)[1] + 1n)) + acc), (m - 1n));
+      switch ($ail_m34.$ail_kind) {
+      case "ok": {
+        const r = $ail_m34;
+        return { $ail_kind: "ok", value: r.value };
+      }
+      }
+    }
+  }
+}
+export function std__convert__int_to_str(value: bigint): ScalarsResult {
+  if ((value < 0n)) {
+    const $ail_m35: ScalarsResult = std__convert__int_to_str_from((0n - value), "", ((0n - value) + 1n));
+    switch ($ail_m35.$ail_kind) {
+    case "ok": {
+      const r = $ail_m35;
+      return { $ail_kind: "ok", value: ("-" + r.value) };
+    }
+    }
+  }
+  else {
+    const $ail_m36: ScalarsResult = std__convert__int_to_str_from(value, "", (value + 1n));
+    switch ($ail_m36.$ail_kind) {
+    case "ok": {
+      const r = $ail_m36;
+      return { $ail_kind: "ok", value: r.value };
+    }
+    }
+  }
+}
+export function std__convert__str_to_int_from(orig: string, value: string, pos: bigint, acc: bigint, n: bigint): ScalarsResult {
+  if ((n <= 0n)) {
+    return { $ail_kind: "ok", value: acc };
+  }
+  else {
+    if (($ailStrAt(value, pos) >= 48n)) {
+      if (($ailStrAt(value, pos) <= 57n)) {
+        const $ail_m37: ScalarsResult = std__convert__str_to_int_from(orig, value, (pos + 1n), ((acc * 10n) + ($ailStrAt(value, pos) - 48n)), (n - 1n));
+        switch ($ail_m37.$ail_kind) {
+        case "convert.invalid_integer": {
+          const e = $ail_m37;
+          return { $ail_kind: "convert.invalid_integer", value: e.value };
+        }
+        case "ok": {
+          const r = $ail_m37;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        }
+      }
+      else {
+        return { $ail_kind: "convert.invalid_integer", value: orig };
+      }
+    }
+    else {
+      return { $ail_kind: "convert.invalid_integer", value: orig };
+    }
+  }
+}
+export function std__convert__str_to_int(value: string): ScalarsResult {
+  if (((BigInt([...value].length)) === 0n)) {
+    return { $ail_kind: "convert.invalid_integer", value: value };
+  }
+  else {
+    if (($ailStrSlice(value, 0n, 1n) === "-")) {
+      if (((BigInt([...value].length)) >= 2n)) {
+        const $ail_m38: ScalarsResult = std__convert__str_to_int_from(value, value, 1n, 0n, ((BigInt([...value].length)) - 1n));
+        switch ($ail_m38.$ail_kind) {
+        case "convert.invalid_integer": {
+          const e = $ail_m38;
+          return { $ail_kind: "convert.invalid_integer", value: e.value };
+        }
+        case "ok": {
+          const r = $ail_m38;
+          return { $ail_kind: "ok", value: (0n - r.value) };
+        }
+        }
+      }
+      else {
+        return { $ail_kind: "convert.invalid_integer", value: value };
+      }
+    }
+    else {
+      const $ail_m39: ScalarsResult = std__convert__str_to_int_from(value, value, 0n, 0n, (BigInt([...value].length)));
+      switch ($ail_m39.$ail_kind) {
+      case "convert.invalid_integer": {
+        const e = $ail_m39;
+        return { $ail_kind: "convert.invalid_integer", value: e.value };
+      }
+      case "ok": {
+        const r = $ail_m39;
+        return { $ail_kind: "ok", value: r.value };
+      }
+      }
+    }
+  }
+}
+export function std__convert__str_to_dec_from(orig: string, value: string, pos: bigint, coeff: bigint, scale: bigint, dot: bigint, n: bigint): ScalarsResult {
+  if ((n <= 0n)) {
+    if ((dot === 0n)) {
+      const $ail_m40: ScalarsResult = std__convert__int_to_dec(coeff);
+      switch ($ail_m40.$ail_kind) {
+      case "ok": {
+        const whole = $ail_m40;
+        return { $ail_kind: "ok", value: whole.value };
+      }
+      }
+    }
+    else {
+      if ((scale === 0n)) {
+        return { $ail_kind: "convert.invalid_decimal", value: orig };
+      }
+      else {
+        const $ail_m41: ScalarsResult = std__convert__int_to_dec(coeff);
+        switch ($ail_m41.$ail_kind) {
+        case "ok": {
+          const whole = $ail_m41;
+          const $ail_m42: ScalarsResult = std__dec__scale_by_power_of_ten(whole.value, (0n - scale));
+          switch ($ail_m42.$ail_kind) {
+          case "ok": {
+            const moved = $ail_m42;
+            return { $ail_kind: "ok", value: moved.value };
+          }
+          }
+        }
+        }
+      }
+    }
+  }
+  else {
+    if (($ailStrSlice(value, pos, (pos + 1n)) === ".")) {
+      if ((dot === 0n)) {
+        const $ail_m43: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), coeff, scale, 1n, (n - 1n));
+        switch ($ail_m43.$ail_kind) {
+        case "convert.invalid_decimal": {
+          const e = $ail_m43;
+          return { $ail_kind: "convert.invalid_decimal", value: e.value };
+        }
+        case "ok": {
+          const r = $ail_m43;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        }
+      }
+      else {
+        return { $ail_kind: "convert.invalid_decimal", value: orig };
+      }
+    }
+    else {
+      if (($ailStrAt(value, pos) >= 48n)) {
+        if (($ailStrAt(value, pos) <= 57n)) {
+          if ((dot === 0n)) {
+            const $ail_m44: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), ((coeff * 10n) + ($ailStrAt(value, pos) - 48n)), scale, dot, (n - 1n));
+            switch ($ail_m44.$ail_kind) {
+            case "convert.invalid_decimal": {
+              const e = $ail_m44;
+              return { $ail_kind: "convert.invalid_decimal", value: e.value };
+            }
+            case "ok": {
+              const r = $ail_m44;
+              return { $ail_kind: "ok", value: r.value };
+            }
+            }
+          }
+          else {
+            const $ail_m45: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), ((coeff * 10n) + ($ailStrAt(value, pos) - 48n)), (scale + 1n), dot, (n - 1n));
+            switch ($ail_m45.$ail_kind) {
+            case "convert.invalid_decimal": {
+              const e = $ail_m45;
+              return { $ail_kind: "convert.invalid_decimal", value: e.value };
+            }
+            case "ok": {
+              const r = $ail_m45;
+              return { $ail_kind: "ok", value: r.value };
+            }
+            }
+          }
+        }
+        else {
+          return { $ail_kind: "convert.invalid_decimal", value: orig };
+        }
+      }
+      else {
+        return { $ail_kind: "convert.invalid_decimal", value: orig };
+      }
+    }
+  }
+}
+export function std__convert__str_to_dec(value: string): ScalarsResult {
+  if (((BigInt([...value].length)) === 0n)) {
+    return { $ail_kind: "convert.invalid_decimal", value: value };
+  }
+  else {
+    if (($ailStrSlice(value, 0n, 1n) === "-")) {
+      if (((BigInt([...value].length)) >= 2n)) {
+        const $ail_m46: ScalarsResult = std__convert__str_to_dec_from(value, value, 1n, 0n, 0n, 0n, ((BigInt([...value].length)) - 1n));
+        switch ($ail_m46.$ail_kind) {
+        case "convert.invalid_decimal": {
+          const e = $ail_m46;
+          return { $ail_kind: "convert.invalid_decimal", value: e.value };
+        }
+        case "ok": {
+          const r = $ail_m46;
+          return { $ail_kind: "ok", value: $ailDecSub("0.0", r.value) };
+        }
+        }
+      }
+      else {
+        return { $ail_kind: "convert.invalid_decimal", value: value };
+      }
+    }
+    else {
+      const $ail_m47: ScalarsResult = std__convert__str_to_dec_from(value, value, 0n, 0n, 0n, 0n, (BigInt([...value].length)));
+      switch ($ail_m47.$ail_kind) {
+      case "convert.invalid_decimal": {
+        const e = $ail_m47;
+        return { $ail_kind: "convert.invalid_decimal", value: e.value };
+      }
+      case "ok": {
+        const r = $ail_m47;
+        return { $ail_kind: "ok", value: r.value };
+      }
+      }
+    }
+  }
+}
 export function std__convert__int_to_dec(value: bigint): ScalarsResult {
   if ((value >= 0n)) {
-    const $ail_m34: ScalarsResult = std__convert__int_to_dec_from(value, "0.0", "1.0");
-    switch ($ail_m34.$ail_kind) {
+    const $ail_m48: ScalarsResult = std__convert__int_to_dec_from(value, "0.0", "1.0");
+    switch ($ail_m48.$ail_kind) {
     case "ok": {
-      const r = $ail_m34;
+      const r = $ail_m48;
       return { $ail_kind: "ok", value: r.value };
     }
     }
   }
   else {
-    const $ail_m35: ScalarsResult = std__convert__int_to_dec_from((0n - value), "0.0", "-1.0");
-    switch ($ail_m35.$ail_kind) {
+    const $ail_m49: ScalarsResult = std__convert__int_to_dec_from((0n - value), "0.0", "-1.0");
+    switch ($ail_m49.$ail_kind) {
     case "ok": {
-      const r = $ail_m35;
+      const r = $ail_m49;
       return { $ail_kind: "ok", value: r.value };
     }
     }
@@ -1116,10 +1364,10 @@ export function std__backoff__delay(attempt: bigint, base_ms: bigint, cap_ms: bi
     if ((cap_ms >= 0n)) {
       if ((attempt >= 0n)) {
         if ((attempt <= 30n)) {
-          const $ail_m36: ScalarsResult = std__int__pow_from(2n, attempt);
-          switch ($ail_m36.$ail_kind) {
+          const $ail_m50: ScalarsResult = std__int__pow_from(2n, attempt);
+          switch ($ail_m50.$ail_kind) {
           case "ok": {
-            const p = $ail_m36;
+            const p = $ail_m50;
             if (((base_ms * p.value) <= cap_ms)) {
               return { $ail_kind: "ok", value: (base_ms * p.value) };
             }
