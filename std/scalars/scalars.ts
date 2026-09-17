@@ -1,6 +1,6 @@
 // GENERATED from scalars.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type ScalarsResult = { $ail_kind: "ok"; coefficient: bigint; scale: bigint } | { $ail_kind: "ok"; exact: boolean; stripped: bigint } | { $ail_kind: "ok"; remainder: bigint; root: bigint } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "math.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "math.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $ail_kind: "math.dec_invalid_bounds"; lower: string; upper: string } | { $ail_kind: "math.dec_out_of_range"; value: string; lower: string; upper: string } | { $ail_kind: "math.negative_input"; value: bigint } | { $ail_kind: "math.nonpositive_input"; value: bigint } | { $ail_kind: "math.negative_exponent"; exponent: bigint } | { $ail_kind: "math.invalid_count"; n: bigint; k: bigint } | { $ail_kind: "math.negative_scale"; scale: bigint } | { $ail_kind: "convert.invalid_boolean"; value: string } | { $ail_kind: "convert.invalid_integer"; value: string } | { $ail_kind: "convert.invalid_decimal"; value: string } | { $ail_kind: "convert.invalid_boolean_encoding"; value: bigint } | { $ail_kind: "convert.invalid_dec_encoding"; value: string };
+export type ScalarsResult = { $ail_kind: "ok"; coefficient: bigint; scale: bigint } | { $ail_kind: "ok"; discarded: string; value: string } | { $ail_kind: "ok"; exact: boolean; stripped: bigint } | { $ail_kind: "ok"; fives: bigint; rest: bigint; twos: bigint } | { $ail_kind: "ok"; remainder: bigint; root: bigint } | { $ail_kind: "ok"; remainder: string; value: string } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "math.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "math.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $ail_kind: "math.dec_invalid_bounds"; lower: string; upper: string } | { $ail_kind: "math.dec_out_of_range"; value: string; lower: string; upper: string } | { $ail_kind: "math.negative_input"; value: bigint } | { $ail_kind: "math.nonpositive_input"; value: bigint } | { $ail_kind: "math.negative_exponent"; exponent: bigint } | { $ail_kind: "math.invalid_count"; n: bigint; k: bigint } | { $ail_kind: "math.negative_scale"; scale: bigint } | { $ail_kind: "math.dec_zero_divisor"; divisor: string } | { $ail_kind: "math.nonterminating_decimal"; dividend: string; divisor: string } | { $ail_kind: "math.dec_negative_input"; value: string } | { $ail_kind: "math.nonrepresentable_result"; value: string } | { $ail_kind: "convert.fractional_value"; value: string } | { $ail_kind: "convert.invalid_boolean"; value: string } | { $ail_kind: "convert.invalid_integer"; value: string } | { $ail_kind: "convert.invalid_decimal"; value: string } | { $ail_kind: "convert.invalid_boolean_encoding"; value: bigint } | { $ail_kind: "convert.invalid_dec_encoding"; value: string };
 export type Int__Value = { value: bigint };
 export type Dec__Value = { value: string };
 export type Str__Value = { value: string };
@@ -8,6 +8,9 @@ export type Bool__Value = { value: boolean };
 export type Int__Root = { root: bigint; remainder: bigint };
 export type Dec__Parts = { coefficient: bigint; scale: bigint };
 export type Dec__Strip = { stripped: bigint; exact: boolean };
+export type Dec__Factors = { rest: bigint; twos: bigint; fives: bigint };
+export type Dec__Rounded = { value: string; discarded: string };
+export type Dec__RoundedQuotient = { value: string; remainder: string };
 // Exact-decimal runtime (v10): canonical-digit strings, BigInt math.
 function $ailDecSplit(d: string): { neg: boolean; ip: string; fp: string } {
   let neg = false;
@@ -77,6 +80,12 @@ function $ailDecLe(a: string, b: string): boolean {
   const B = $ailDecSplit(b);
   const s = Math.max(A.fp.length, B.fp.length);
   return $ailDecMant(A, s) <= $ailDecMant(B, s);
+}
+function $ailDecLt(a: string, b: string): boolean {
+  const A = $ailDecSplit(a);
+  const B = $ailDecSplit(b);
+  const s = Math.max(A.fp.length, B.fp.length);
+  return $ailDecMant(A, s) < $ailDecMant(B, s);
 }
 function $ailDecParts(d: string): { coefficient: bigint; scale: bigint } {
   const p = $ailDecSplit(d);
@@ -1168,6 +1177,502 @@ export function std__dec__ceil(value: string): ScalarsResult {
   }
   }
 }
+export function std__dec__strip257_from(fuel: bigint, current: bigint, twos: bigint, fives: bigint): ScalarsResult {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", rest: current, twos: twos, fives: fives };
+  }
+  else {
+    if ((current === 1n)) {
+      return { $ail_kind: "ok", rest: 1n, twos: twos, fives: fives };
+    }
+    else {
+      if (($ailDivMod(current, 2n)[1] === 0n)) {
+        const $ail_m48: ScalarsResult = std__dec__strip257_from((fuel - 1n), $ailDivMod(current, 2n)[0], (twos + 1n), fives);
+        switch ($ail_m48.$ail_kind) {
+        case "ok": {
+          const r = $ail_m48;
+          return { $ail_kind: "ok", rest: r.rest, twos: r.twos, fives: r.fives };
+        }
+        }
+      }
+      else {
+        if (($ailDivMod(current, 5n)[1] === 0n)) {
+          const $ail_m49: ScalarsResult = std__dec__strip257_from((fuel - 1n), $ailDivMod(current, 5n)[0], twos, (fives + 1n));
+          switch ($ail_m49.$ail_kind) {
+          case "ok": {
+            const r = $ail_m49;
+            return { $ail_kind: "ok", rest: r.rest, twos: r.twos, fives: r.fives };
+          }
+          }
+        }
+        else {
+          return { $ail_kind: "ok", rest: current, twos: twos, fives: fives };
+        }
+      }
+    }
+  }
+}
+export function std__dec__divide_exact(dividend: string, divisor: string): ScalarsResult {
+  const $ail_m50: ScalarsResult = std__dec__parts(divisor);
+  switch ($ail_m50.$ail_kind) {
+  case "ok": {
+    const d = $ail_m50;
+    if ((d.coefficient === 0n)) {
+      return { $ail_kind: "math.dec_zero_divisor", divisor: divisor };
+    }
+    else {
+      const $ail_m51: ScalarsResult = std__dec__parts(dividend);
+      switch ($ail_m51.$ail_kind) {
+      case "ok": {
+        const n = $ail_m51;
+        const $ail_m52: ScalarsResult = std__int__pow_from(10n, d.scale);
+        switch ($ail_m52.$ail_kind) {
+        case "ok": {
+          const pds = $ail_m52;
+          const $ail_m53: ScalarsResult = std__int__pow_from(10n, n.scale);
+          switch ($ail_m53.$ail_kind) {
+          case "ok": {
+            const pns = $ail_m53;
+            const $ail_m54: ScalarsResult = std__int__abs((n.coefficient * pns.value));
+            switch ($ail_m54.$ail_kind) {
+            case "ok": {
+              const an = $ail_m54;
+              const $ail_m55: ScalarsResult = std__int__abs((d.coefficient * pds.value));
+              switch ($ail_m55.$ail_kind) {
+              case "ok": {
+                const ad = $ail_m55;
+                const $ail_m56: ScalarsResult = std__int__gcd(an.value, ad.value);
+                switch ($ail_m56.$ail_kind) {
+                case "ok": {
+                  const g = $ail_m56;
+                  const $ail_m57: ScalarsResult = std__dec__strip257_from($ailDivMod(ad.value, g.value)[0], $ailDivMod(ad.value, g.value)[0], 0n, 0n);
+                  switch ($ail_m57.$ail_kind) {
+                  case "ok": {
+                    const f = $ail_m57;
+                    if ((f.rest === 1n)) {
+                      const $ail_m58: ScalarsResult = std__int__max(f.twos, f.fives);
+                      switch ($ail_m58.$ail_kind) {
+                      case "ok": {
+                        const m = $ail_m58;
+                        const $ail_m59: ScalarsResult = std__int__pow_from(10n, m.value);
+                        switch ($ail_m59.$ail_kind) {
+                        case "ok": {
+                          const p10 = $ail_m59;
+                          const $ail_m60: ScalarsResult = std__convert__int_to_dec(($ailDivMod(an.value, g.value)[0] * $ailDivMod(p10.value, $ailDivMod(ad.value, g.value)[0])[0]));
+                          switch ($ail_m60.$ail_kind) {
+                          case "ok": {
+                            const qi = $ail_m60;
+                            const $ail_m61: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - m.value));
+                            switch ($ail_m61.$ail_kind) {
+                            case "ok": {
+                              const q = $ail_m61;
+                              if (((n.coefficient * pns.value) < 0n)) {
+                                if (((d.coefficient * pds.value) < 0n)) {
+                                  return { $ail_kind: "ok", value: q.value };
+                                }
+                                else {
+                                  return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0") };
+                                }
+                              }
+                              else {
+                                if (((d.coefficient * pds.value) < 0n)) {
+                                  return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0") };
+                                }
+                                else {
+                                  return { $ail_kind: "ok", value: q.value };
+                                }
+                              }
+                            }
+                            }
+                          }
+                          }
+                        }
+                        }
+                      }
+                      }
+                    }
+                    else {
+                      return { $ail_kind: "math.nonterminating_decimal", dividend: dividend, divisor: divisor };
+                    }
+                  }
+                  }
+                }
+                }
+              }
+              }
+            }
+            }
+          }
+          }
+        }
+        }
+      }
+      }
+    }
+  }
+  }
+}
+export function std__dec__round_half_even(value: string, scale: bigint): ScalarsResult {
+  if ((scale >= 0n)) {
+    const $ail_m62: ScalarsResult = std__dec__parts(value);
+    switch ($ail_m62.$ail_kind) {
+    case "ok": {
+      const p = $ail_m62;
+      if ((p.scale <= scale)) {
+        return { $ail_kind: "ok", value: value, discarded: "0.0" };
+      }
+      else {
+        const $ail_m63: ScalarsResult = std__int__pow_from(10n, (p.scale - scale));
+        switch ($ail_m63.$ail_kind) {
+        case "ok": {
+          const pd = $ail_m63;
+          const $ail_m64: ScalarsResult = std__int__abs(p.coefficient);
+          switch ($ail_m64.$ail_kind) {
+          case "ok": {
+            const a = $ail_m64;
+            if ((($ailDivMod(a.value, pd.value)[1] * 2n) === pd.value)) {
+              if (($ailDivMod($ailDivMod(a.value, pd.value)[0], 2n)[1] === 0n)) {
+                const $ail_m65: ScalarsResult = std__convert__int_to_dec($ailDivMod(a.value, pd.value)[0]);
+                switch ($ail_m65.$ail_kind) {
+                case "ok": {
+                  const qi = $ail_m65;
+                  const $ail_m66: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - scale));
+                  switch ($ail_m66.$ail_kind) {
+                  case "ok": {
+                    const q = $ail_m66;
+                    if ($ailDecLt(value, "0.0")) {
+                      return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0"), discarded: $ailDecSub(value, $ailDecMul(q.value, "-1.0")) };
+                    }
+                    else {
+                      return { $ail_kind: "ok", value: q.value, discarded: $ailDecSub(value, q.value) };
+                    }
+                  }
+                  }
+                }
+                }
+              }
+              else {
+                const $ail_m67: ScalarsResult = std__convert__int_to_dec(($ailDivMod(a.value, pd.value)[0] + 1n));
+                switch ($ail_m67.$ail_kind) {
+                case "ok": {
+                  const qi = $ail_m67;
+                  const $ail_m68: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - scale));
+                  switch ($ail_m68.$ail_kind) {
+                  case "ok": {
+                    const q = $ail_m68;
+                    if ($ailDecLt(value, "0.0")) {
+                      return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0"), discarded: $ailDecSub(value, $ailDecMul(q.value, "-1.0")) };
+                    }
+                    else {
+                      return { $ail_kind: "ok", value: q.value, discarded: $ailDecSub(value, q.value) };
+                    }
+                  }
+                  }
+                }
+                }
+              }
+            }
+            else {
+              if ((($ailDivMod(a.value, pd.value)[1] * 2n) > pd.value)) {
+                const $ail_m69: ScalarsResult = std__convert__int_to_dec(($ailDivMod(a.value, pd.value)[0] + 1n));
+                switch ($ail_m69.$ail_kind) {
+                case "ok": {
+                  const qi = $ail_m69;
+                  const $ail_m70: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - scale));
+                  switch ($ail_m70.$ail_kind) {
+                  case "ok": {
+                    const q = $ail_m70;
+                    if ($ailDecLt(value, "0.0")) {
+                      return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0"), discarded: $ailDecSub(value, $ailDecMul(q.value, "-1.0")) };
+                    }
+                    else {
+                      return { $ail_kind: "ok", value: q.value, discarded: $ailDecSub(value, q.value) };
+                    }
+                  }
+                  }
+                }
+                }
+              }
+              else {
+                const $ail_m71: ScalarsResult = std__convert__int_to_dec($ailDivMod(a.value, pd.value)[0]);
+                switch ($ail_m71.$ail_kind) {
+                case "ok": {
+                  const qi = $ail_m71;
+                  const $ail_m72: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - scale));
+                  switch ($ail_m72.$ail_kind) {
+                  case "ok": {
+                    const q = $ail_m72;
+                    if ($ailDecLt(value, "0.0")) {
+                      return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0"), discarded: $ailDecSub(value, $ailDecMul(q.value, "-1.0")) };
+                    }
+                    else {
+                      return { $ail_kind: "ok", value: q.value, discarded: $ailDecSub(value, q.value) };
+                    }
+                  }
+                  }
+                }
+                }
+              }
+            }
+          }
+          }
+        }
+        }
+      }
+    }
+    }
+  }
+  else {
+    return { $ail_kind: "math.negative_scale", scale: scale };
+  }
+}
+export function std__dec__divide_round_half_even_result(qm: bigint, scale: bigint, num: bigint, den: bigint, dividend: string, divisor: string): ScalarsResult {
+  const $ail_m73: ScalarsResult = std__convert__int_to_dec(qm);
+  switch ($ail_m73.$ail_kind) {
+  case "ok": {
+    const qi = $ail_m73;
+    const $ail_m74: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - scale));
+    switch ($ail_m74.$ail_kind) {
+    case "ok": {
+      const q = $ail_m74;
+      if ((num < 0n)) {
+        if ((den < 0n)) {
+          return { $ail_kind: "ok", value: q.value, remainder: $ailDecSub(dividend, $ailDecMul(divisor, q.value)) };
+        }
+        else {
+          return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0"), remainder: $ailDecSub(dividend, $ailDecMul(divisor, $ailDecMul(q.value, "-1.0"))) };
+        }
+      }
+      else {
+        if ((den < 0n)) {
+          return { $ail_kind: "ok", value: $ailDecMul(q.value, "-1.0"), remainder: $ailDecSub(dividend, $ailDecMul(divisor, $ailDecMul(q.value, "-1.0"))) };
+        }
+        else {
+          return { $ail_kind: "ok", value: q.value, remainder: $ailDecSub(dividend, $ailDecMul(divisor, q.value)) };
+        }
+      }
+    }
+    }
+  }
+  }
+}
+export function std__dec__divide_round_half_even(dividend: string, divisor: string, scale: bigint): ScalarsResult {
+  const $ail_m75: ScalarsResult = std__dec__parts(divisor);
+  switch ($ail_m75.$ail_kind) {
+  case "ok": {
+    const d = $ail_m75;
+    if ((d.coefficient === 0n)) {
+      return { $ail_kind: "math.dec_zero_divisor", divisor: divisor };
+    }
+    else {
+      if ((scale >= 0n)) {
+        const $ail_m76: ScalarsResult = std__dec__parts(dividend);
+        switch ($ail_m76.$ail_kind) {
+        case "ok": {
+          const n = $ail_m76;
+          const $ail_m77: ScalarsResult = std__int__pow_from(10n, d.scale);
+          switch ($ail_m77.$ail_kind) {
+          case "ok": {
+            const pds = $ail_m77;
+            const $ail_m78: ScalarsResult = std__int__pow_from(10n, n.scale);
+            switch ($ail_m78.$ail_kind) {
+            case "ok": {
+              const pns = $ail_m78;
+              const $ail_m79: ScalarsResult = std__int__abs((n.coefficient * pns.value));
+              switch ($ail_m79.$ail_kind) {
+              case "ok": {
+                const an = $ail_m79;
+                const $ail_m80: ScalarsResult = std__int__abs((d.coefficient * pds.value));
+                switch ($ail_m80.$ail_kind) {
+                case "ok": {
+                  const ad = $ail_m80;
+                  const $ail_m81: ScalarsResult = std__int__pow_from(10n, scale);
+                  switch ($ail_m81.$ail_kind) {
+                  case "ok": {
+                    const psc = $ail_m81;
+                    if ((($ailDivMod((an.value * psc.value), ad.value)[1] * 2n) === ad.value)) {
+                      if (($ailDivMod($ailDivMod((an.value * psc.value), ad.value)[0], 2n)[1] === 0n)) {
+                        const $ail_m82: ScalarsResult = std__dec__divide_round_half_even_result($ailDivMod((an.value * psc.value), ad.value)[0], scale, (n.coefficient * pns.value), (d.coefficient * pds.value), dividend, divisor);
+                        switch ($ail_m82.$ail_kind) {
+                        case "ok": {
+                          const r = $ail_m82;
+                          return { $ail_kind: "ok", value: r.value, remainder: r.remainder };
+                        }
+                        }
+                      }
+                      else {
+                        const $ail_m83: ScalarsResult = std__dec__divide_round_half_even_result(($ailDivMod((an.value * psc.value), ad.value)[0] + 1n), scale, (n.coefficient * pns.value), (d.coefficient * pds.value), dividend, divisor);
+                        switch ($ail_m83.$ail_kind) {
+                        case "ok": {
+                          const r = $ail_m83;
+                          return { $ail_kind: "ok", value: r.value, remainder: r.remainder };
+                        }
+                        }
+                      }
+                    }
+                    else {
+                      if ((($ailDivMod((an.value * psc.value), ad.value)[1] * 2n) > ad.value)) {
+                        const $ail_m84: ScalarsResult = std__dec__divide_round_half_even_result(($ailDivMod((an.value * psc.value), ad.value)[0] + 1n), scale, (n.coefficient * pns.value), (d.coefficient * pds.value), dividend, divisor);
+                        switch ($ail_m84.$ail_kind) {
+                        case "ok": {
+                          const r = $ail_m84;
+                          return { $ail_kind: "ok", value: r.value, remainder: r.remainder };
+                        }
+                        }
+                      }
+                      else {
+                        const $ail_m85: ScalarsResult = std__dec__divide_round_half_even_result($ailDivMod((an.value * psc.value), ad.value)[0], scale, (n.coefficient * pns.value), (d.coefficient * pds.value), dividend, divisor);
+                        switch ($ail_m85.$ail_kind) {
+                        case "ok": {
+                          const r = $ail_m85;
+                          return { $ail_kind: "ok", value: r.value, remainder: r.remainder };
+                        }
+                        }
+                      }
+                    }
+                  }
+                  }
+                }
+                }
+              }
+              }
+            }
+            }
+          }
+          }
+        }
+        }
+      }
+      else {
+        return { $ail_kind: "math.negative_scale", scale: scale };
+      }
+    }
+  }
+  }
+}
+export function std__convert__dec_to_str(value: string): ScalarsResult {
+  const $ail_m86: ScalarsResult = std__dec__parts(value);
+  switch ($ail_m86.$ail_kind) {
+  case "ok": {
+    const p = $ail_m86;
+    const $ail_m87: ScalarsResult = std__int__abs(p.coefficient);
+    switch ($ail_m87.$ail_kind) {
+    case "ok": {
+      const a = $ail_m87;
+      const $ail_m88: ScalarsResult = std__int__pow_from(10n, p.scale);
+      switch ($ail_m88.$ail_kind) {
+      case "ok": {
+        const p10 = $ail_m88;
+        const $ail_m89: ScalarsResult = std__convert__int_to_str($ailDivMod(a.value, p10.value)[0]);
+        switch ($ail_m89.$ail_kind) {
+        case "ok": {
+          const ip = $ail_m89;
+          const $ail_m90: ScalarsResult = std__convert__int_to_str(($ailDivMod(a.value, p10.value)[1] + p10.value));
+          switch ($ail_m90.$ail_kind) {
+          case "ok": {
+            const fp = $ail_m90;
+            if ((p.coefficient < 0n)) {
+              return { $ail_kind: "ok", value: ((("-" + ip.value) + ".") + $ailStrSlice(fp.value, 1n, (p.scale + 1n))) };
+            }
+            else {
+              return { $ail_kind: "ok", value: ((ip.value + ".") + $ailStrSlice(fp.value, 1n, (p.scale + 1n))) };
+            }
+          }
+          }
+        }
+        }
+      }
+      }
+    }
+    }
+  }
+  }
+}
+export function std__convert__dec_to_int_exact(value: string): ScalarsResult {
+  const $ail_m91: ScalarsResult = std__dec__parts(value);
+  switch ($ail_m91.$ail_kind) {
+  case "ok": {
+    const p = $ail_m91;
+    const $ail_m92: ScalarsResult = std__dec__strip_from(p.scale, p.coefficient, true);
+    switch ($ail_m92.$ail_kind) {
+    case "ok": {
+      const s = $ail_m92;
+      if (s.exact) {
+        return { $ail_kind: "ok", value: s.stripped };
+      }
+      else {
+        return { $ail_kind: "convert.fractional_value", value: value };
+      }
+    }
+    }
+  }
+  }
+}
+export function std__dec__sqrt_exact(value: string): ScalarsResult {
+  const $ail_m93: ScalarsResult = std__dec__parts(value);
+  switch ($ail_m93.$ail_kind) {
+  case "ok": {
+    const p = $ail_m93;
+    if ((p.coefficient < 0n)) {
+      return { $ail_kind: "math.dec_negative_input", value: value };
+    }
+    else {
+      if (($ailDivMod(p.scale, 2n)[1] === 0n)) {
+        const $ail_m94: ScalarsResult = std__int__sqrt_floor_search(p.coefficient, 0n, (p.coefficient + 1n));
+        switch ($ail_m94.$ail_kind) {
+        case "ok": {
+          const r = $ail_m94;
+          if (((p.coefficient - (r.value * r.value)) === 0n)) {
+            const $ail_m95: ScalarsResult = std__convert__int_to_dec(r.value);
+            switch ($ail_m95.$ail_kind) {
+            case "ok": {
+              const qi = $ail_m95;
+              const $ail_m96: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - $ailDivMod(p.scale, 2n)[0]));
+              switch ($ail_m96.$ail_kind) {
+              case "ok": {
+                const q = $ail_m96;
+                return { $ail_kind: "ok", value: q.value };
+              }
+              }
+            }
+            }
+          }
+          else {
+            return { $ail_kind: "math.nonrepresentable_result", value: value };
+          }
+        }
+        }
+      }
+      else {
+        const $ail_m97: ScalarsResult = std__int__sqrt_floor_search((p.coefficient * 10n), 0n, ((p.coefficient * 10n) + 1n));
+        switch ($ail_m97.$ail_kind) {
+        case "ok": {
+          const r = $ail_m97;
+          if ((((p.coefficient * 10n) - (r.value * r.value)) === 0n)) {
+            const $ail_m98: ScalarsResult = std__convert__int_to_dec(r.value);
+            switch ($ail_m98.$ail_kind) {
+            case "ok": {
+              const qi = $ail_m98;
+              const $ail_m99: ScalarsResult = std__dec__scale_by_power_of_ten(qi.value, (0n - $ailDivMod((p.scale + 1n), 2n)[0]));
+              switch ($ail_m99.$ail_kind) {
+              case "ok": {
+                const q = $ail_m99;
+                return { $ail_kind: "ok", value: q.value };
+              }
+              }
+            }
+            }
+          }
+          else {
+            return { $ail_kind: "math.nonrepresentable_result", value: value };
+          }
+        }
+        }
+      }
+    }
+  }
+  }
+}
 export function std__convert__bool_to_str(value: boolean): ScalarsResult {
   if (value) {
     return { $ail_kind: "ok", value: "true" };
@@ -1232,10 +1737,10 @@ export function std__convert__int_to_dec_from(m: bigint, acc: string, step: stri
     return { $ail_kind: "ok", value: acc };
   }
   else {
-    const $ail_m48: ScalarsResult = std__convert__int_to_dec_from((m - 1n), $ailDecAdd(acc, step), step);
-    switch ($ail_m48.$ail_kind) {
+    const $ail_m100: ScalarsResult = std__convert__int_to_dec_from((m - 1n), $ailDecAdd(acc, step), step);
+    switch ($ail_m100.$ail_kind) {
     case "ok": {
-      const r = $ail_m48;
+      const r = $ail_m100;
       return { $ail_kind: "ok", value: r.value };
     }
     }
@@ -1250,10 +1755,10 @@ export function std__convert__int_to_str_from(n: bigint, acc: string, m: bigint)
       return { $ail_kind: "ok", value: ($ailStrSlice("0123456789", n, (n + 1n)) + acc) };
     }
     else {
-      const $ail_m49: ScalarsResult = std__convert__int_to_str_from($ailDivMod(n, 10n)[0], ($ailStrSlice("0123456789", $ailDivMod(n, 10n)[1], ($ailDivMod(n, 10n)[1] + 1n)) + acc), (m - 1n));
-      switch ($ail_m49.$ail_kind) {
+      const $ail_m101: ScalarsResult = std__convert__int_to_str_from($ailDivMod(n, 10n)[0], ($ailStrSlice("0123456789", $ailDivMod(n, 10n)[1], ($ailDivMod(n, 10n)[1] + 1n)) + acc), (m - 1n));
+      switch ($ail_m101.$ail_kind) {
       case "ok": {
-        const r = $ail_m49;
+        const r = $ail_m101;
         return { $ail_kind: "ok", value: r.value };
       }
       }
@@ -1262,19 +1767,19 @@ export function std__convert__int_to_str_from(n: bigint, acc: string, m: bigint)
 }
 export function std__convert__int_to_str(value: bigint): ScalarsResult {
   if ((value < 0n)) {
-    const $ail_m50: ScalarsResult = std__convert__int_to_str_from((0n - value), "", ((0n - value) + 1n));
-    switch ($ail_m50.$ail_kind) {
+    const $ail_m102: ScalarsResult = std__convert__int_to_str_from((0n - value), "", ((0n - value) + 1n));
+    switch ($ail_m102.$ail_kind) {
     case "ok": {
-      const r = $ail_m50;
+      const r = $ail_m102;
       return { $ail_kind: "ok", value: ("-" + r.value) };
     }
     }
   }
   else {
-    const $ail_m51: ScalarsResult = std__convert__int_to_str_from(value, "", (value + 1n));
-    switch ($ail_m51.$ail_kind) {
+    const $ail_m103: ScalarsResult = std__convert__int_to_str_from(value, "", (value + 1n));
+    switch ($ail_m103.$ail_kind) {
     case "ok": {
-      const r = $ail_m51;
+      const r = $ail_m103;
       return { $ail_kind: "ok", value: r.value };
     }
     }
@@ -1287,14 +1792,14 @@ export function std__convert__str_to_int_from(orig: string, value: string, pos: 
   else {
     if (($ailStrAt(value, pos) >= 48n)) {
       if (($ailStrAt(value, pos) <= 57n)) {
-        const $ail_m52: ScalarsResult = std__convert__str_to_int_from(orig, value, (pos + 1n), ((acc * 10n) + ($ailStrAt(value, pos) - 48n)), (n - 1n));
-        switch ($ail_m52.$ail_kind) {
+        const $ail_m104: ScalarsResult = std__convert__str_to_int_from(orig, value, (pos + 1n), ((acc * 10n) + ($ailStrAt(value, pos) - 48n)), (n - 1n));
+        switch ($ail_m104.$ail_kind) {
         case "convert.invalid_integer": {
-          const e = $ail_m52;
+          const e = $ail_m104;
           return { $ail_kind: "convert.invalid_integer", value: e.value };
         }
         case "ok": {
-          const r = $ail_m52;
+          const r = $ail_m104;
           return { $ail_kind: "ok", value: r.value };
         }
         }
@@ -1315,14 +1820,14 @@ export function std__convert__str_to_int(value: string): ScalarsResult {
   else {
     if (($ailStrSlice(value, 0n, 1n) === "-")) {
       if (((BigInt([...value].length)) >= 2n)) {
-        const $ail_m53: ScalarsResult = std__convert__str_to_int_from(value, value, 1n, 0n, ((BigInt([...value].length)) - 1n));
-        switch ($ail_m53.$ail_kind) {
+        const $ail_m105: ScalarsResult = std__convert__str_to_int_from(value, value, 1n, 0n, ((BigInt([...value].length)) - 1n));
+        switch ($ail_m105.$ail_kind) {
         case "convert.invalid_integer": {
-          const e = $ail_m53;
+          const e = $ail_m105;
           return { $ail_kind: "convert.invalid_integer", value: e.value };
         }
         case "ok": {
-          const r = $ail_m53;
+          const r = $ail_m105;
           return { $ail_kind: "ok", value: (0n - r.value) };
         }
         }
@@ -1332,14 +1837,14 @@ export function std__convert__str_to_int(value: string): ScalarsResult {
       }
     }
     else {
-      const $ail_m54: ScalarsResult = std__convert__str_to_int_from(value, value, 0n, 0n, (BigInt([...value].length)));
-      switch ($ail_m54.$ail_kind) {
+      const $ail_m106: ScalarsResult = std__convert__str_to_int_from(value, value, 0n, 0n, (BigInt([...value].length)));
+      switch ($ail_m106.$ail_kind) {
       case "convert.invalid_integer": {
-        const e = $ail_m54;
+        const e = $ail_m106;
         return { $ail_kind: "convert.invalid_integer", value: e.value };
       }
       case "ok": {
-        const r = $ail_m54;
+        const r = $ail_m106;
         return { $ail_kind: "ok", value: r.value };
       }
       }
@@ -1349,10 +1854,10 @@ export function std__convert__str_to_int(value: string): ScalarsResult {
 export function std__convert__str_to_dec_from(orig: string, value: string, pos: bigint, coeff: bigint, scale: bigint, dot: bigint, n: bigint): ScalarsResult {
   if ((n <= 0n)) {
     if ((dot === 0n)) {
-      const $ail_m55: ScalarsResult = std__convert__int_to_dec(coeff);
-      switch ($ail_m55.$ail_kind) {
+      const $ail_m107: ScalarsResult = std__convert__int_to_dec(coeff);
+      switch ($ail_m107.$ail_kind) {
       case "ok": {
-        const whole = $ail_m55;
+        const whole = $ail_m107;
         return { $ail_kind: "ok", value: whole.value };
       }
       }
@@ -1362,14 +1867,14 @@ export function std__convert__str_to_dec_from(orig: string, value: string, pos: 
         return { $ail_kind: "convert.invalid_decimal", value: orig };
       }
       else {
-        const $ail_m56: ScalarsResult = std__convert__int_to_dec(coeff);
-        switch ($ail_m56.$ail_kind) {
+        const $ail_m108: ScalarsResult = std__convert__int_to_dec(coeff);
+        switch ($ail_m108.$ail_kind) {
         case "ok": {
-          const whole = $ail_m56;
-          const $ail_m57: ScalarsResult = std__dec__scale_by_power_of_ten(whole.value, (0n - scale));
-          switch ($ail_m57.$ail_kind) {
+          const whole = $ail_m108;
+          const $ail_m109: ScalarsResult = std__dec__scale_by_power_of_ten(whole.value, (0n - scale));
+          switch ($ail_m109.$ail_kind) {
           case "ok": {
-            const moved = $ail_m57;
+            const moved = $ail_m109;
             return { $ail_kind: "ok", value: moved.value };
           }
           }
@@ -1381,14 +1886,14 @@ export function std__convert__str_to_dec_from(orig: string, value: string, pos: 
   else {
     if (($ailStrSlice(value, pos, (pos + 1n)) === ".")) {
       if ((dot === 0n)) {
-        const $ail_m58: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), coeff, scale, 1n, (n - 1n));
-        switch ($ail_m58.$ail_kind) {
+        const $ail_m110: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), coeff, scale, 1n, (n - 1n));
+        switch ($ail_m110.$ail_kind) {
         case "convert.invalid_decimal": {
-          const e = $ail_m58;
+          const e = $ail_m110;
           return { $ail_kind: "convert.invalid_decimal", value: e.value };
         }
         case "ok": {
-          const r = $ail_m58;
+          const r = $ail_m110;
           return { $ail_kind: "ok", value: r.value };
         }
         }
@@ -1401,27 +1906,27 @@ export function std__convert__str_to_dec_from(orig: string, value: string, pos: 
       if (($ailStrAt(value, pos) >= 48n)) {
         if (($ailStrAt(value, pos) <= 57n)) {
           if ((dot === 0n)) {
-            const $ail_m59: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), ((coeff * 10n) + ($ailStrAt(value, pos) - 48n)), scale, dot, (n - 1n));
-            switch ($ail_m59.$ail_kind) {
+            const $ail_m111: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), ((coeff * 10n) + ($ailStrAt(value, pos) - 48n)), scale, dot, (n - 1n));
+            switch ($ail_m111.$ail_kind) {
             case "convert.invalid_decimal": {
-              const e = $ail_m59;
+              const e = $ail_m111;
               return { $ail_kind: "convert.invalid_decimal", value: e.value };
             }
             case "ok": {
-              const r = $ail_m59;
+              const r = $ail_m111;
               return { $ail_kind: "ok", value: r.value };
             }
             }
           }
           else {
-            const $ail_m60: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), ((coeff * 10n) + ($ailStrAt(value, pos) - 48n)), (scale + 1n), dot, (n - 1n));
-            switch ($ail_m60.$ail_kind) {
+            const $ail_m112: ScalarsResult = std__convert__str_to_dec_from(orig, value, (pos + 1n), ((coeff * 10n) + ($ailStrAt(value, pos) - 48n)), (scale + 1n), dot, (n - 1n));
+            switch ($ail_m112.$ail_kind) {
             case "convert.invalid_decimal": {
-              const e = $ail_m60;
+              const e = $ail_m112;
               return { $ail_kind: "convert.invalid_decimal", value: e.value };
             }
             case "ok": {
-              const r = $ail_m60;
+              const r = $ail_m112;
               return { $ail_kind: "ok", value: r.value };
             }
             }
@@ -1444,14 +1949,14 @@ export function std__convert__str_to_dec(value: string): ScalarsResult {
   else {
     if (($ailStrSlice(value, 0n, 1n) === "-")) {
       if (((BigInt([...value].length)) >= 2n)) {
-        const $ail_m61: ScalarsResult = std__convert__str_to_dec_from(value, value, 1n, 0n, 0n, 0n, ((BigInt([...value].length)) - 1n));
-        switch ($ail_m61.$ail_kind) {
+        const $ail_m113: ScalarsResult = std__convert__str_to_dec_from(value, value, 1n, 0n, 0n, 0n, ((BigInt([...value].length)) - 1n));
+        switch ($ail_m113.$ail_kind) {
         case "convert.invalid_decimal": {
-          const e = $ail_m61;
+          const e = $ail_m113;
           return { $ail_kind: "convert.invalid_decimal", value: e.value };
         }
         case "ok": {
-          const r = $ail_m61;
+          const r = $ail_m113;
           return { $ail_kind: "ok", value: $ailDecSub("0.0", r.value) };
         }
         }
@@ -1461,14 +1966,14 @@ export function std__convert__str_to_dec(value: string): ScalarsResult {
       }
     }
     else {
-      const $ail_m62: ScalarsResult = std__convert__str_to_dec_from(value, value, 0n, 0n, 0n, 0n, (BigInt([...value].length)));
-      switch ($ail_m62.$ail_kind) {
+      const $ail_m114: ScalarsResult = std__convert__str_to_dec_from(value, value, 0n, 0n, 0n, 0n, (BigInt([...value].length)));
+      switch ($ail_m114.$ail_kind) {
       case "convert.invalid_decimal": {
-        const e = $ail_m62;
+        const e = $ail_m114;
         return { $ail_kind: "convert.invalid_decimal", value: e.value };
       }
       case "ok": {
-        const r = $ail_m62;
+        const r = $ail_m114;
         return { $ail_kind: "ok", value: r.value };
       }
       }
@@ -1477,19 +1982,19 @@ export function std__convert__str_to_dec(value: string): ScalarsResult {
 }
 export function std__convert__int_to_dec(value: bigint): ScalarsResult {
   if ((value >= 0n)) {
-    const $ail_m63: ScalarsResult = std__convert__int_to_dec_from(value, "0.0", "1.0");
-    switch ($ail_m63.$ail_kind) {
+    const $ail_m115: ScalarsResult = std__convert__int_to_dec_from(value, "0.0", "1.0");
+    switch ($ail_m115.$ail_kind) {
     case "ok": {
-      const r = $ail_m63;
+      const r = $ail_m115;
       return { $ail_kind: "ok", value: r.value };
     }
     }
   }
   else {
-    const $ail_m64: ScalarsResult = std__convert__int_to_dec_from((0n - value), "0.0", "-1.0");
-    switch ($ail_m64.$ail_kind) {
+    const $ail_m116: ScalarsResult = std__convert__int_to_dec_from((0n - value), "0.0", "-1.0");
+    switch ($ail_m116.$ail_kind) {
     case "ok": {
-      const r = $ail_m64;
+      const r = $ail_m116;
       return { $ail_kind: "ok", value: r.value };
     }
     }
@@ -1500,10 +2005,10 @@ export function std__backoff__delay(attempt: bigint, base_ms: bigint, cap_ms: bi
     if ((cap_ms >= 0n)) {
       if ((attempt >= 0n)) {
         if ((attempt <= 30n)) {
-          const $ail_m65: ScalarsResult = std__int__pow_from(2n, attempt);
-          switch ($ail_m65.$ail_kind) {
+          const $ail_m117: ScalarsResult = std__int__pow_from(2n, attempt);
+          switch ($ail_m117.$ail_kind) {
           case "ok": {
-            const p = $ail_m65;
+            const p = $ail_m117;
             if (((base_ms * p.value) <= cap_ms)) {
               return { $ail_kind: "ok", value: (base_ms * p.value) };
             }

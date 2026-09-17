@@ -1,5 +1,20 @@
 [
   {
+    "kind": "convert.fractional_value",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__dec_to_int_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__convert__dec_to_int_exact/s2i_cents",
+      "scalars.std__convert__dec_to_int_exact/s2i_frac",
+      "scalars.std__convert__dec_to_int_exact/s2i_neg_frac"
+    ]
+  },
+  {
     "kind": "convert.invalid_boolean",
     "fields": [
       "value"
@@ -117,6 +132,19 @@
     ]
   },
   {
+    "kind": "math.dec_negative_input",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__dec__sqrt_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__sqrt_exact/sqrt_exact_neg"
+    ]
+  },
+  {
     "kind": "math.dec_out_of_range",
     "fields": [
       "value",
@@ -130,6 +158,22 @@
     "hit_by_tests": [
       "scalars.std__dec__lerp/lerp_above",
       "scalars.std__dec__lerp/lerp_below"
+    ]
+  },
+  {
+    "kind": "math.dec_zero_divisor",
+    "fields": [
+      "divisor"
+    ],
+    "raised_by": [
+      "scalars.std__dec__divide_exact",
+      "scalars.std__dec__divide_round_half_even"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__divide_exact/div_exact_zero_den",
+      "scalars.std__dec__divide_round_half_even/div_round_zero_den",
+      "scalars.std__dec__divide_round_half_even/div_round_zero_neg_scale"
     ]
   },
   {
@@ -213,11 +257,15 @@
       "scale"
     ],
     "raised_by": [
-      "scalars.std__dec__from_parts"
+      "scalars.std__dec__divide_round_half_even",
+      "scalars.std__dec__from_parts",
+      "scalars.std__dec__round_half_even"
     ],
     "handled_by": [],
     "hit_by_tests": [
-      "scalars.std__dec__from_parts/parts_neg_scale"
+      "scalars.std__dec__divide_round_half_even/div_round_neg_scale",
+      "scalars.std__dec__from_parts/parts_neg_scale",
+      "scalars.std__dec__round_half_even/round_neg_scale"
     ]
   },
   {
@@ -232,6 +280,36 @@
     "hit_by_tests": [
       "scalars.std__int__next_power_of_two/npot_negative",
       "scalars.std__int__next_power_of_two/npot_zero"
+    ]
+  },
+  {
+    "kind": "math.nonrepresentable_result",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__dec__sqrt_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__sqrt_exact/sqrt_exact_even_refuse",
+      "scalars.std__dec__sqrt_exact/sqrt_exact_odd_refuse"
+    ]
+  },
+  {
+    "kind": "math.nonterminating_decimal",
+    "fields": [
+      "dividend",
+      "divisor"
+    ],
+    "raised_by": [
+      "scalars.std__dec__divide_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__divide_exact/div_exact_seventh",
+      "scalars.std__dec__divide_exact/div_exact_sixth",
+      "scalars.std__dec__divide_exact/div_exact_third"
     ]
   },
   {

@@ -12,9 +12,9 @@
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__dec__strip_from, std__dec__truncate, std__dec__floor, std__dec__ceil, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts, Dec__Strip]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__dec__strip_from, std__dec__truncate, std__dec__floor, std__dec__ceil, std__dec__strip257_from, std__dec__divide_exact, std__dec__divide_round_half_even_result, std__dec__divide_round_half_even, std__dec__round_half_even, std__convert__dec_to_str, std__convert__dec_to_int_exact, std__dec__sqrt_exact, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts, Dec__Strip, Dec__Factors, Dec__Rounded, Dec__RoundedQuotient]
   uses []
-  emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding, convert.invalid_integer, convert.invalid_decimal]
+  emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, math.dec_zero_divisor, math.nonterminating_decimal, math.dec_negative_input, math.nonrepresentable_result, convert.invalid_boolean, convert.fractional_value, convert.invalid_boolean_encoding, convert.invalid_dec_encoding, convert.invalid_integer, convert.invalid_decimal]
 
 error math.invalid_bounds(lower: int, upper: int)
 error math.out_of_range(value: int, lower: int, upper: int)
@@ -25,6 +25,11 @@ error math.nonpositive_input(value: int)
 error math.negative_exponent(exponent: int)
 error math.invalid_count(n: int, k: int)
 error math.negative_scale(scale: int)
+error math.dec_zero_divisor(divisor: dec)
+error math.nonterminating_decimal(dividend: dec, divisor: dec)
+error math.dec_negative_input(value: dec)
+error math.nonrepresentable_result(value: dec)
+error convert.fractional_value(value: dec)
 error convert.invalid_boolean(value: str)
 error convert.invalid_integer(value: str)
 error convert.invalid_decimal(value: str)
@@ -60,6 +65,22 @@ type Dec__Parts rev 1 (
 type Dec__Strip rev 1 (
   stripped: int
   exact: bool
+)
+
+type Dec__Factors rev 1 (
+  rest: int
+  twos: int
+  fives: int
+)
+
+type Dec__Rounded rev 1 (
+  value: dec
+  discarded: dec
+)
+
+type Dec__RoundedQuotient rev 1 (
+  value: dec
+  remainder: dec
 )
 
 fn std__bool__not(value: bool) -> Bool__Value rev 1
@@ -1040,6 +1061,241 @@ fn std__dec__ceil(value: dec) -> Dec__Value rev 1
           on Ok whole => Ok(value = whole.value)
         false => match call std__convert__int_to_dec(s.stripped + 1)
           on Ok whole => Ok(value = whole.value)
+
+fn std__dec__strip257_from(fuel: int, current: int, twos: int, fives: int) -> Dec__Factors rev 1
+  decreases fuel
+  emits []
+  tests
+    factors_done(fuel = 5, current = 1, twos = 0, fives = 0) => Ok(rest = 1, twos = 0, fives = 0)
+    factors_fuel_out(fuel = 0, current = 6, twos = 0, fives = 0) => Ok(rest = 6, twos = 0, fives = 0)
+    factors_two(fuel = 4, current = 12, twos = 0, fives = 0) => Ok(rest = 3, twos = 2, fives = 0)
+    factors_five(fuel = 3, current = 25, twos = 0, fives = 0) => Ok(rest = 1, twos = 0, fives = 2)
+    factors_mixed(fuel = 6, current = 40, twos = 0, fives = 0) => Ok(rest = 1, twos = 3, fives = 1)
+    factors_odd(fuel = 4, current = 7, twos = 0, fives = 0) => Ok(rest = 7, twos = 0, fives = 0)
+=
+  match fuel <= 0
+    true => Ok(rest = current, twos = twos, fives = fives)
+    false => match current == 1
+      true => Ok(rest = 1, twos = twos, fives = fives)
+      false => match current % 2 == 0
+        true => match call std__dec__strip257_from(fuel - 1, current / 2, twos + 1, fives)
+          on Ok r => Ok(rest = r.rest, twos = r.twos, fives = r.fives)
+        false => match current % 5 == 0
+          true => match call std__dec__strip257_from(fuel - 1, current / 5, twos, fives + 1)
+            on Ok r => Ok(rest = r.rest, twos = r.twos, fives = r.fives)
+          false => Ok(rest = current, twos = twos, fives = fives)
+
+fn std__dec__divide_exact(dividend: dec, divisor: dec) -> Dec__Value rev 1
+  emits [math.dec_zero_divisor, math.nonterminating_decimal]
+  tests
+    div_exact_basic(dividend = d"7.0", divisor = d"2.0") => Ok(value = d"3.5")
+    div_exact_eighth(dividend = d"1.0", divisor = d"8.0") => Ok(value = d"0.125")
+    div_exact_whole(dividend = d"6.0", divisor = d"3.0") => Ok(value = d"2.0")
+    div_exact_scaled(dividend = d"0.3", divisor = d"0.2") => Ok(value = d"1.5")
+    div_exact_neg_num(dividend = d"-7.0", divisor = d"2.0") => Ok(value = d"-3.5")
+    div_exact_neg_den(dividend = d"7.0", divisor = d"-2.0") => Ok(value = d"-3.5")
+    div_exact_neg_both(dividend = d"-7.0", divisor = d"-2.0") => Ok(value = d"3.5")
+    div_exact_zero_num(dividend = d"0.0", divisor = d"5.0") => Ok(value = d"0.0")
+    div_exact_zero_den(dividend = d"5.0", divisor = d"0.0") => math.dec_zero_divisor(divisor = d"0.0")
+    div_exact_third(dividend = d"1.0", divisor = d"3.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"3.0")
+    div_exact_sixth(dividend = d"1.0", divisor = d"6.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"6.0")
+    div_exact_seventh(dividend = d"1.0", divisor = d"7.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"7.0")
+=
+  match call std__dec__parts(divisor)
+    on Ok d => match d.coefficient == 0
+      true => math.dec_zero_divisor(divisor = divisor)
+      false => match call std__dec__parts(dividend)
+        on Ok n => match call std__int__pow_from(10, d.scale)
+          on Ok pds => match call std__int__pow_from(10, n.scale)
+            on Ok pns => match call std__int__abs(n.coefficient * pns.value)
+              on Ok an => match call std__int__abs(d.coefficient * pds.value)
+                on Ok ad => match call std__int__gcd(an.value, ad.value)
+                  on Ok g => match call std__dec__strip257_from(ad.value / g.value, ad.value / g.value, 0, 0)
+                    on Ok f => match f.rest == 1
+                      true => match call std__int__max(f.twos, f.fives)
+                        on Ok m => match call std__int__pow_from(10, m.value)
+                          on Ok p10 => match call std__convert__int_to_dec((an.value / g.value) * (p10.value / (ad.value / g.value)))
+                            on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - m.value)
+                              on Ok q => match (n.coefficient * pns.value) < 0
+                                true => match (d.coefficient * pds.value) < 0
+                                  true => Ok(value = q.value)
+                                  false => Ok(value = q.value * d"-1.0")
+                                false => match (d.coefficient * pds.value) < 0
+                                  true => Ok(value = q.value * d"-1.0")
+                                  false => Ok(value = q.value)
+                      false => math.nonterminating_decimal(dividend = dividend, divisor = divisor)
+
+fn std__dec__round_half_even(value: dec, scale: int) -> Dec__Rounded rev 1
+  emits [math.negative_scale]
+  tests
+    round_even_tie(value = d"2.5", scale = 0) => Ok(value = d"2.0", discarded = d"0.5")
+    round_odd_tie(value = d"3.5", scale = 0) => Ok(value = d"4.0", discarded = d"-0.5")
+    round_up(value = d"2.7", scale = 0) => Ok(value = d"3.0", discarded = d"-0.3")
+    round_down(value = d"2.3", scale = 0) => Ok(value = d"2.0", discarded = d"0.3")
+    round_neg_tie(value = d"-2.5", scale = 0) => Ok(value = d"-2.0", discarded = d"-0.5")
+    round_neg_tie_odd(value = d"-3.5", scale = 0) => Ok(value = d"-4.0", discarded = d"0.5")
+    round_neg_up(value = d"-2.7", scale = 0) => Ok(value = d"-3.0", discarded = d"0.3")
+    round_neg_down(value = d"-2.3", scale = 0) => Ok(value = d"-2.0", discarded = d"-0.3")
+    round_multi(value = d"12.345", scale = 1) => Ok(value = d"12.3", discarded = d"0.045")
+    round_wider_scale(value = d"2.7", scale = 2) => Ok(value = d"2.7", discarded = d"0.0")
+    round_zero(value = d"0.0", scale = 0) => Ok(value = d"0.0", discarded = d"0.0")
+    round_half_up(value = d"0.5", scale = 0) => Ok(value = d"0.0", discarded = d"0.5")
+    round_neg_scale(value = d"2.7", scale = -1) => math.negative_scale(scale = -1)
+=
+  match scale >= 0
+    true => match call std__dec__parts(value)
+      on Ok p => match p.scale <= scale
+        true => Ok(value = value, discarded = d"0.0")
+        false => match call std__int__pow_from(10, p.scale - scale)
+          on Ok pd => match call std__int__abs(p.coefficient)
+            on Ok a => match (a.value % pd.value) * 2 == pd.value
+              true => match (a.value / pd.value) % 2 == 0
+                true => match call std__convert__int_to_dec(a.value / pd.value)
+                  on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+                    on Ok q => match value < d"0.0"
+                      true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+                      false => Ok(value = q.value, discarded = value - q.value)
+                false => match call std__convert__int_to_dec(a.value / pd.value + 1)
+                  on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+                    on Ok q => match value < d"0.0"
+                      true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+                      false => Ok(value = q.value, discarded = value - q.value)
+              false => match (a.value % pd.value) * 2 > pd.value
+                true => match call std__convert__int_to_dec(a.value / pd.value + 1)
+                  on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+                    on Ok q => match value < d"0.0"
+                      true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+                      false => Ok(value = q.value, discarded = value - q.value)
+                false => match call std__convert__int_to_dec(a.value / pd.value)
+                  on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+                    on Ok q => match value < d"0.0"
+                      true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+                      false => Ok(value = q.value, discarded = value - q.value)
+    false => math.negative_scale(scale = scale)
+
+fn std__dec__divide_round_half_even_result(qm: int, scale: int, num: int, den: int, dividend: dec, divisor: dec) -> Dec__RoundedQuotient rev 1
+  emits []
+  tests
+    div_result_pos(qm = 35, scale = 1, num = 700, den = 200, dividend = d"7.0", divisor = d"2.0") => Ok(value = d"3.5", remainder = d"0.0")
+    div_result_neg_num(qm = 35, scale = 1, num = -700, den = 200, dividend = d"-7.0", divisor = d"2.0") => Ok(value = d"-3.5", remainder = d"0.0")
+    div_result_neg_den(qm = 35, scale = 1, num = 700, den = -200, dividend = d"7.0", divisor = d"-2.0") => Ok(value = d"-3.5", remainder = d"0.0")
+    div_result_neg_both(qm = 35, scale = 1, num = -700, den = -200, dividend = d"-7.0", divisor = d"-2.0") => Ok(value = d"3.5", remainder = d"0.0")
+=
+  match call std__convert__int_to_dec(qm)
+    on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+      on Ok q => match num < 0
+        true => match den < 0
+          true => Ok(value = q.value, remainder = dividend - divisor * q.value)
+          false => Ok(value = q.value * d"-1.0", remainder = dividend - divisor * (q.value * d"-1.0"))
+        false => match den < 0
+          true => Ok(value = q.value * d"-1.0", remainder = dividend - divisor * (q.value * d"-1.0"))
+          false => Ok(value = q.value, remainder = dividend - divisor * q.value)
+
+fn std__dec__divide_round_half_even(dividend: dec, divisor: dec, scale: int) -> Dec__RoundedQuotient rev 1
+  emits [math.dec_zero_divisor, math.negative_scale]
+  tests
+    div_round_basic(dividend = d"7.0", divisor = d"2.0", scale = 1) => Ok(value = d"3.5", remainder = d"0.0")
+    div_round_third(dividend = d"1.0", divisor = d"3.0", scale = 2) => Ok(value = d"0.33", remainder = d"0.01")
+    div_round_tie_even(dividend = d"2.5", divisor = d"1.0", scale = 0) => Ok(value = d"2.0", remainder = d"0.5")
+    div_round_tie_odd(dividend = d"3.5", divisor = d"1.0", scale = 0) => Ok(value = d"4.0", remainder = d"-0.5")
+    div_round_up(dividend = d"2.7", divisor = d"1.0", scale = 0) => Ok(value = d"3.0", remainder = d"-0.3")
+    div_round_down(dividend = d"2.3", divisor = d"1.0", scale = 0) => Ok(value = d"2.0", remainder = d"0.3")
+    div_round_neg_num(dividend = d"-7.0", divisor = d"2.0", scale = 1) => Ok(value = d"-3.5", remainder = d"0.0")
+    div_round_neg_den(dividend = d"7.0", divisor = d"-2.0", scale = 1) => Ok(value = d"-3.5", remainder = d"0.0")
+    div_round_neg_both(dividend = d"-7.0", divisor = d"-2.0", scale = 1) => Ok(value = d"3.5", remainder = d"0.0")
+    div_round_zero_num(dividend = d"0.0", divisor = d"5.0", scale = 1) => Ok(value = d"0.0", remainder = d"0.0")
+    div_round_zero_den(dividend = d"5.0", divisor = d"0.0", scale = 1) => math.dec_zero_divisor(divisor = d"0.0")
+    div_round_neg_scale(dividend = d"1.0", divisor = d"2.0", scale = -1) => math.negative_scale(scale = -1)
+    div_round_zero_neg_scale(dividend = d"5.0", divisor = d"0.0", scale = -1) => math.dec_zero_divisor(divisor = d"0.0")
+=
+  match call std__dec__parts(divisor)
+    on Ok d => match d.coefficient == 0
+      true => math.dec_zero_divisor(divisor = divisor)
+      false => match scale >= 0
+        true => match call std__dec__parts(dividend)
+          on Ok n => match call std__int__pow_from(10, d.scale)
+            on Ok pds => match call std__int__pow_from(10, n.scale)
+              on Ok pns => match call std__int__abs(n.coefficient * pns.value)
+                on Ok an => match call std__int__abs(d.coefficient * pds.value)
+                  on Ok ad => match call std__int__pow_from(10, scale)
+                    on Ok psc => match (an.value * psc.value) % ad.value * 2 == ad.value
+                      true => match (an.value * psc.value) / ad.value % 2 == 0
+                        true => match call std__dec__divide_round_half_even_result((an.value * psc.value) / ad.value, scale, n.coefficient * pns.value, d.coefficient * pds.value, dividend, divisor)
+                          on Ok r => Ok(value = r.value, remainder = r.remainder)
+                        false => match call std__dec__divide_round_half_even_result((an.value * psc.value) / ad.value + 1, scale, n.coefficient * pns.value, d.coefficient * pds.value, dividend, divisor)
+                          on Ok r => Ok(value = r.value, remainder = r.remainder)
+                      false => match (an.value * psc.value) % ad.value * 2 > ad.value
+                        true => match call std__dec__divide_round_half_even_result((an.value * psc.value) / ad.value + 1, scale, n.coefficient * pns.value, d.coefficient * pds.value, dividend, divisor)
+                          on Ok r => Ok(value = r.value, remainder = r.remainder)
+                        false => match call std__dec__divide_round_half_even_result((an.value * psc.value) / ad.value, scale, n.coefficient * pns.value, d.coefficient * pds.value, dividend, divisor)
+                          on Ok r => Ok(value = r.value, remainder = r.remainder)
+        false => math.negative_scale(scale = scale)
+
+fn std__convert__dec_to_str(value: dec) -> Str__Value rev 1
+  emits []
+  tests
+    s2s_simple(value = d"12.34") => Ok(value = "12.34")
+    s2s_cents(value = d"0.25") => Ok(value = "0.25")
+    s2s_neg(value = d"-0.5") => Ok(value = "-0.5")
+    s2s_units(value = d"7.0") => Ok(value = "7.0")
+    s2s_zero(value = d"0.0") => Ok(value = "0.0")
+    s2s_hundreds(value = d"100.0") => Ok(value = "100.0")
+    s2s_pad(value = d"0.05") => Ok(value = "0.05")
+    s2s_large(value = d"999.99") => Ok(value = "999.99")
+=
+  match call std__dec__parts(value)
+    on Ok p => match call std__int__abs(p.coefficient)
+      on Ok a => match call std__int__pow_from(10, p.scale)
+        on Ok p10 => match call std__convert__int_to_str(a.value / p10.value)
+          on Ok ip => match call std__convert__int_to_str(a.value % p10.value + p10.value)
+            on Ok fp => match p.coefficient < 0
+              true => Ok(value = "-" + ip.value + "." + fp.value[1:p.scale + 1])
+              false => Ok(value = ip.value + "." + fp.value[1:p.scale + 1])
+
+fn std__convert__dec_to_int_exact(value: dec) -> Int__Value rev 1
+  emits [convert.fractional_value]
+  tests
+    s2i_whole(value = d"7.0") => Ok(value = 7)
+    s2i_neg_whole(value = d"-7.0") => Ok(value = -7)
+    s2i_zero(value = d"0.0") => Ok(value = 0)
+    s2i_hundreds(value = d"100.0") => Ok(value = 100)
+    s2i_frac(value = d"2.5") => convert.fractional_value(value = d"2.5")
+    s2i_neg_frac(value = d"-2.5") => convert.fractional_value(value = d"-2.5")
+    s2i_cents(value = d"0.25") => convert.fractional_value(value = d"0.25")
+=
+  match call std__dec__parts(value)
+    on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
+      on Ok s => match s.exact
+        true => Ok(value = s.stripped)
+        false => convert.fractional_value(value = value)
+
+fn std__dec__sqrt_exact(value: dec) -> Dec__Value rev 1
+  emits [math.dec_negative_input, math.nonrepresentable_result]
+  tests
+    sqrt_exact_whole(value = d"4.0") => Ok(value = d"2.0")
+    sqrt_exact_frac(value = d"2.25") => Ok(value = d"1.5")
+    sqrt_exact_small(value = d"0.25") => Ok(value = d"0.5")
+    sqrt_exact_zero(value = d"0.0") => Ok(value = d"0.0")
+    sqrt_exact_even_refuse(value = d"2.26") => math.nonrepresentable_result(value = d"2.26")
+    sqrt_exact_odd_refuse(value = d"2.0") => math.nonrepresentable_result(value = d"2.0")
+    sqrt_exact_neg(value = d"-4.0") => math.dec_negative_input(value = d"-4.0")
+=
+  match call std__dec__parts(value)
+    on Ok p => match p.coefficient < 0
+      true => math.dec_negative_input(value = value)
+      false => match p.scale % 2 == 0
+        true => match call std__int__sqrt_floor_search(p.coefficient, 0, p.coefficient + 1)
+          on Ok r => match p.coefficient - r.value * r.value == 0
+            true => match call std__convert__int_to_dec(r.value)
+              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - p.scale / 2)
+                on Ok q => Ok(value = q.value)
+            false => math.nonrepresentable_result(value = value)
+        false => match call std__int__sqrt_floor_search(p.coefficient * 10, 0, p.coefficient * 10 + 1)
+          on Ok r => match p.coefficient * 10 - r.value * r.value == 0
+            true => match call std__convert__int_to_dec(r.value)
+              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - (p.scale + 1) / 2)
+                on Ok q => Ok(value = q.value)
+            false => math.nonrepresentable_result(value = value)
 
 fn std__convert__bool_to_str(value: bool) -> Str__Value rev 1
   emits []

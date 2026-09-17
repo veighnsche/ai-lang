@@ -8,7 +8,11 @@
   decimal observation (`std__dec__parts` over the `dec__parts`
   kernel: coefficient plus scale, total) and its first consumers
   (`std__dec__truncate`, `std__dec__floor`, `std__dec__ceil` over a
-  digit-stripping worker: total in, total out), the pure NOW
+  digit-stripping worker: total in, total out; `std__dec__divide_exact`
+  over gcd plus 2/5-factor stripping: exact quotient or explicit
+  refusal, with two dec-payload error kinds; witnessed half-even
+  rounding, exact division with remainder, decimal rendering,
+  exact int conversion, and exact square roots), the pure NOW
   conversions between bool, int, dec, and str, and a bounded
   backoff delay with
   zero, negative, saturated, and large-attempt cases. Every function
