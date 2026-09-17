@@ -41,6 +41,9 @@ func recordShapes(mods []*Module) map[string][][2]string {
 // across modules, matching the checker and the evaluator.
 func errorShapes(mods []*Module) map[string][][2]string {
 	errs := map[string][][2]string{}
+	for _, b := range builtinErrorDecls() {
+		errs[b.Name] = b.Fields
+	}
 	for _, m := range mods {
 		for _, d := range m.Decls {
 			if ed, ok := d.(*ErrorDecl); ok {
@@ -112,6 +115,27 @@ func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]s
 	return fmt.Sprintf("{ %s: \"%s\"%s }", tsTag, ed.Name, fs), nil
 }
 
+// builtinErrorLookup finds an error declaration by kind: compiler-owned
+// first, then source last-wins across modules (matching the loops it
+// replaces). A builtin name can never resolve to source: world build
+// rejects such redefinitions as primitive shadows.
+func builtinErrorLookup(name string, mods []*Module) *ErrorDecl {
+	for _, b := range builtinErrorDecls() {
+		if b.Name == name {
+			return b
+		}
+	}
+	var ed *ErrorDecl
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if er, ok := d.(*ErrorDecl); ok && er.Name == name {
+				ed = er
+			}
+		}
+	}
+	return ed
+}
+
 // externUnion is the TS Result type of a foreign call: ok carrying the
 // Ret record plus one member per declared emits kind. The host owns the
 // implementation; this is the contract ailc proves against.
@@ -143,14 +167,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	}
 	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
 	for _, e := range ex.Emits {
-		var ed *ErrorDecl
-		for _, m := range prog.Modules {
-			for _, d := range m.Decls {
-				if er, ok := d.(*ErrorDecl); ok && er.Name == e {
-					ed = er
-				}
-			}
-		}
+		ed := builtinErrorLookup(e, prog.Modules)
 		if ed == nil {
 			return "", fmt.Errorf("extern %s emits unknown error %s", ex.Name, e)
 		}
@@ -188,14 +205,7 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
 	recs := recordShapes(prog.Modules)
 	for _, e := range fn.Emits {
-		var ed *ErrorDecl
-		for _, m := range prog.Modules {
-			for _, d := range m.Decls {
-				if er, ok := d.(*ErrorDecl); ok && er.Name == e {
-					ed = er
-				}
-			}
-		}
+		ed := builtinErrorLookup(e, prog.Modules)
 		if ed == nil {
 			return "", fmt.Errorf("%s emits unknown error %s", fn.Name, e)
 		}
@@ -1005,6 +1015,7 @@ type emitter struct {
 	errFields map[string][]string    // error kind -> declared field names
 	errTypes  map[string][][2]string // error kind -> declared typed fields
 	divmod    bool                   // Euclidean division helper used by this module
+	utf8dec   bool                   // strict UTF-8 decode helper used by this module (v50 B6)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1070,6 +1081,47 @@ var divModHelper = []string{
 	"}",
 }
 
+// utf8DecodeHelper renders the strict UTF-8 decode runtime (v50 B6):
+// validate-then-decode over the input VIEW (indices, never the
+// backing buffer). The leading-byte table is the strict grammar Go
+// utf8.Valid implements (C0/C1/F5+ excluded, E0/ED/F0/F4 second-byte
+// ranges, continuation tails, no tolerant reads); only valid input
+// reaches TextDecoder, so malformed bytes become the error VALUE
+// without exception handling. fatal:true makes decoding total on
+// valid input; ignoreBOM:true preserves a leading U+FEFF, which the
+// default decoder would strip.
+var utf8DecodeHelper = []string{
+	"function $ailUtf8Decode(value: Uint8Array): { $ail_kind: \"ok\"; value: string } | { $ail_kind: \"encoding.invalid_utf8\"; value: Uint8Array } {",
+	"  let i = 0;",
+	"  const n = value.length;",
+	"  let valid = true;",
+	"  while (i < n && valid) {",
+	"    const b0 = value[i];",
+	"    if (b0 < 0x80) { i += 1; continue; }",
+	"    let need = 0; let lo = 0x80; let hi = 0xBF;",
+	"    if (b0 >= 0xC2 && b0 <= 0xDF) { need = 1; }",
+	"    else if (b0 === 0xE0) { need = 2; lo = 0xA0; }",
+	"    else if (b0 >= 0xE1 && b0 <= 0xEC) { need = 2; }",
+	"    else if (b0 === 0xED) { need = 2; hi = 0x9F; }",
+	"    else if (b0 >= 0xEE && b0 <= 0xEF) { need = 2; }",
+	"    else if (b0 === 0xF0) { need = 3; lo = 0x90; }",
+	"    else if (b0 >= 0xF1 && b0 <= 0xF3) { need = 3; }",
+	"    else if (b0 === 0xF4) { need = 3; hi = 0x8F; }",
+	"    else { valid = false; break; }",
+	"    if (i + need >= n) { valid = false; break; }",
+	"    const b1 = value[i + 1];",
+	"    if (b1 < lo || b1 > hi) { valid = false; break; }",
+	"    for (let k = 2; k <= need; k++) {",
+	"      const b = value[i + k];",
+	"      if (b < 0x80 || b > 0xBF) { valid = false; break; }",
+	"    }",
+	"    i += 1 + need;",
+	"  }",
+	"  if (!valid) return { $ail_kind: \"encoding.invalid_utf8\", value: value };",
+	"  return { $ail_kind: \"ok\", value: new TextDecoder(\"utf-8\", { fatal: true, ignoreBOM: true }).decode(value) };",
+	"}",
+}
+
 func (e *emitter) fresh() string {
 	e.tmp++
 	// Unspellable in ail (identifiers match \w+, so $ never appears in
@@ -1112,6 +1164,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if isDecParts(scrut.Fname) {
 		return e.stmtDecParts(node, scrut, out)
 	}
+	if isBytesDecode(scrut.Fname) {
+		return e.stmtBytesDecode(node, scrut, out)
+	}
 	if isBytesKernel(scrut.Fname) {
 		return e.stmtBytesEncode(node, scrut, out)
 	}
@@ -1126,6 +1181,14 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	}
 	*out = append(*out, fmt.Sprintf("const %s: %s = %s;", tmp, union, call))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	return e.emitCallArms(node, tmp, out)
+}
+
+// emitCallArms lowers every arm of a call match over an already-bound
+// discriminated temporary: the generic foreign/local path and the
+// fallible-kernel path share it, so decoder matches use ordinary
+// success/error binding, never encoder single-success assumptions.
+func (e *emitter) emitCallArms(node *Node, tmp string, out *[]string) error {
 	for _, arm := range node.Arms {
 		pat := arm.Pats[0]
 		// Every arm body is block-scoped: the same binder name in
@@ -1442,6 +1505,73 @@ func (e *emitter) stmtBytesEncode(node *Node, scrut *Small, out *[]string) error
 	return nil
 }
 
+// decodeResultUnion renders the decode kernel's two-outcome TS type
+// from the compiler-owned contracts (never literals): ok carrying
+// the kernel's return record plus one member per emitted error.
+func decodeResultUnion(brands map[string]string, recs map[string][][2]string) (string, error) {
+	k := bytesKernels[bytesDecodeKernel]
+	var td *TypeDecl
+	for _, b := range builtinTypeDecls() {
+		if b.Name == k.ret {
+			td = b
+		}
+	}
+	if td == nil {
+		return "", fmt.Errorf("decode kernel returns unknown type %s", k.ret)
+	}
+	fs := ""
+	for _, f := range td.Fields {
+		t, err := tsTypeB(f[1], brands, recs)
+		if err != nil {
+			return "", err
+		}
+		fs += "; " + f[0] + ": " + t
+	}
+	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
+	for _, e := range k.emits {
+		ed := builtinErrorLookup(e, nil)
+		if ed == nil {
+			return "", fmt.Errorf("decode kernel emits unknown error %s", e)
+		}
+		mem, err := tsErrMember(ed, brands, recs)
+		if err != nil {
+			return "", err
+		}
+		union += " | " + mem
+	}
+	return union, nil
+}
+
+// stmtBytesDecode lowers UTF-8 decoding (v50 B6): the input Bytes
+// through the strict $ailUtf8Decode helper into the kernel's
+// two-outcome union. Matches use ordinary success/error binding via
+// the shared arm lowering, never encoder single-success assumptions.
+func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error {
+	slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if err != nil {
+		return fmt.Errorf("cannot emit %s: %s", scrut.Fname, err.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := e.emitValue(argv)
+	if err != nil {
+		return err
+	}
+	union, err := decodeResultUnion(e.brands, e.recs)
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	e.utf8dec = true
+	*out = append(*out, fmt.Sprintf("const %s: %s = $ailUtf8Decode(%s);", tmp, union, v))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	return e.emitCallArms(node, tmp, out)
+}
+
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	// Per-function temp scope: every fresh() temporary lands as a
 	// const inside this body, so numbering restarts at $ail_m1 per
@@ -1543,6 +1673,37 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			continue
 		}
 		mem, err := tsErrMember(ed, prog.Brands, recs)
+		if err != nil {
+			return "", err
+		}
+		members = append(members, mem)
+	}
+	// Compiler-owned errors join the module union exactly when the
+	// module's declared function outcomes require them: never
+	// unconditionally, or every module's public union would carry
+	// unrelated builtin members.
+	for _, b := range builtinErrorDecls() {
+		needed := false
+		for _, d := range mod.Decls {
+			switch d := d.(type) {
+			case *FnDecl:
+				for _, e := range d.Emits {
+					if e == b.Name {
+						needed = true
+					}
+				}
+			case *ExternDecl:
+				for _, e := range d.Emits {
+					if e == b.Name {
+						needed = true
+					}
+				}
+			}
+		}
+		if !needed {
+			continue
+		}
+		mem, err := tsErrMember(b, prog.Brands, recs)
 		if err != nil {
 			return "", err
 		}
@@ -1696,6 +1857,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	}
 	if em.divmod {
 		L = append(L, divModHelper...)
+	}
+	// Strict UTF-8 decode runtime: emitted inline only when the decode
+	// kernel is called, so files without one gain no code.
+	if em.utf8dec {
+		L = append(L, utf8DecodeHelper...)
 	}
 	L = append(L, fnLines...)
 	// v46 S2: compiler-owned record definitions, emitted exactly when

@@ -1,5 +1,16 @@
 [
   {
+    "kind": "encoding.invalid_utf8",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "kernel.bytes__utf8__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": []
+  },
+  {
     "kind": "html.disallowed_scheme",
     "fields": [
       "value"

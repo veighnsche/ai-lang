@@ -925,6 +925,39 @@ func evBytesEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
 }
 
+// evBytesDecodeOp evaluates UTF-8 decoding (v50 B6): the input Bytes
+// as a string when the whole input is valid UTF-8, else the
+// encoding.invalid_utf8 language error carrying the ORIGINAL payload
+// unchanged — with a nil Go error. Malformed input is a computed
+// comparable result: a Go error here would launder false scripted
+// successes into trusted linkage evidence (contradictScriptOk treats
+// provider Go errors as "not contradicted").
+func evBytesDecodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	slots, berr := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if berr != nil {
+		return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := evSmall(argv, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "bytes" {
+		return nil, fmt.Errorf("%s: call to %s takes Bytes", owner, scrut.Fname)
+	}
+	if !utf8.Valid(v.Bytes) {
+		out := make([]byte, len(v.Bytes))
+		copy(out, v.Bytes)
+		return &Value{Kind: "err", ErrKind: encodingInvalidUtf8, Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: string(v.Bytes)}}}, nil
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -952,7 +985,13 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			if node.Given != nil {
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
-			val, err := evBytesEncodeOp(scrut, env, ctx, owner)
+			var val *Value
+			var err error
+			if isBytesDecode(fname) {
+				val, err = evBytesDecodeOp(scrut, env, ctx, owner)
+			} else {
+				val, err = evBytesEncodeOp(scrut, env, ctx, owner)
+			}
 			if err != nil {
 				return nil, err
 			}

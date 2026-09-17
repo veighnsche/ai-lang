@@ -54,6 +54,9 @@ func newTycker(prog *Program, text, fn string) *tycker {
 	for _, b := range builtinTypeDecls() {
 		c.recs[b.Name] = b.Fields
 	}
+	for _, b := range builtinErrorDecls() {
+		c.errs[b.Name] = b.Fields
+	}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
 			switch d := d.(type) {

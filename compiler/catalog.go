@@ -149,6 +149,15 @@ func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []cata
 			}
 		}
 	}
+	// A kernel's declared failures attribute to the compiler
+	// intrinsic, not to an .ail source location: availability is not
+	// an execution claim. Total kernels emit nothing and contribute
+	// no rows here.
+	for name, k := range bytesKernels {
+		for _, e := range k.emits {
+			mark(raisedBy, e, "kernel."+name)
+		}
+	}
 	byKind := map[string][]catalogArm{}
 	for _, h := range handled {
 		byKind[h.kind] = append(byKind[h.kind], catalogArm{Fn: h.fn, Arm: h.arm})

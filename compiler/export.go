@@ -37,6 +37,18 @@ func isBytesExport(fname string) bool {
 // total over str, deterministic, certificate-free.
 const bytesEncodeKernel = "bytes__utf8__encode"
 
+// bytesDecodeKernel is the public UTF-8 decode intrinsic (v50 B6):
+// the first fallible kernel. Bytes in, Encoding__Text on success,
+// encoding.invalid_utf8 (original payload, unchanged) on malformed
+// input. Deterministic, certificate-free.
+const bytesDecodeKernel = "bytes__utf8__decode"
+
+// encodingTextRecord is the compiler-owned decode success record.
+// encodingInvalidUtf8 is the compiler-owned malformed-input error,
+// carrying the original Bytes payload unchanged.
+const encodingTextRecord = "Encoding__Text"
+const encodingInvalidUtf8 = "encoding.invalid_utf8"
+
 // bytesKernel describes one compiler kernel: its static signature,
 // result record, declared emits, and whether calls need a grant
 // certificate. Only the export kernel is restricted; public kernels
@@ -55,6 +67,7 @@ type bytesKernel struct {
 var bytesKernels = map[string]bytesKernel{
 	bytesExportKernel: {ret: bytesValueRecord, emits: []string{}, restricted: true},
 	bytesEncodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{}},
+	bytesDecodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{encodingInvalidUtf8}},
 }
 
 // isBytesKernel reports any registered Bytes kernel.
@@ -64,13 +77,50 @@ func isBytesKernel(fname string) bool {
 }
 
 // builtinTypeDecls returns the compiler-owned record declarations.
-// B2 owns Bytes__Value only; later slices extend this list (never a
-// scattered duplicate). Callers must never insert these into source
-// modules or provides.
+// B2 owns Bytes__Value, B6 adds Encoding__Text; later slices extend
+// this list (never a scattered duplicate). Callers must never insert
+// these into source modules or provides.
 func builtinTypeDecls() []*TypeDecl {
 	return []*TypeDecl{
 		{Name: bytesValueRecord, Rev: 1, Fields: [][2]string{{"value", "Bytes"}}},
+		{Name: encodingTextRecord, Rev: 1, Fields: [][2]string{{"value", "str"}}},
 	}
+}
+
+// builtinErrorDecls returns the compiler-owned error declarations
+// (v50 B6). Builtin records seed every consumer first-wins; builtin
+// errors follow the same rule. Source must never redeclare these,
+// even identically (CodePrimitiveShadow at world build).
+func builtinErrorDecls() []*ErrorDecl {
+	return []*ErrorDecl{
+		{Name: encodingInvalidUtf8, Fields: [][2]string{{"value", "Bytes"}}},
+	}
+}
+
+// isBuiltinRecord reports a compiler-owned record name.
+func isBuiltinRecord(name string) bool {
+	for _, b := range builtinTypeDecls() {
+		if b.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// isBuiltinError reports a compiler-owned error kind.
+func isBuiltinError(name string) bool {
+	for _, b := range builtinErrorDecls() {
+		if b.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// isBytesDecode reports the fallible decode intrinsic, which needs
+// its own evaluator and lowering (never the encoder path).
+func isBytesDecode(fname string) bool {
+	return fname == bytesDecodeKernel
 }
 
 // exportGrantSite retains a grant with its owning module: ownership is

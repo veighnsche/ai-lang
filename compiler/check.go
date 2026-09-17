@@ -171,7 +171,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				if d.Name == "Bytes" {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						"type Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
-				} else if d.Name == bytesValueRecord {
+				} else if isBuiltinRecord(d.Name) {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						fmt.Sprintf("type %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
 				}
@@ -180,7 +180,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				if d.Name == "Bytes" {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						"brand Bytes shadows the Bytes primitive: rename the declaration", d.Name, CodePrimitiveShadow))
-				} else if d.Name == bytesValueRecord {
+				} else if isBuiltinRecord(d.Name) {
 					emit(m, spanDiag(texts[m.ID], line, "error",
 						fmt.Sprintf("brand %s shadows a compiler-owned record: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
 				}
@@ -192,6 +192,11 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 					prog.BrandFile[d.Name] = m.ID
 				}
 			case *ErrorDecl:
+				if isBuiltinError(d.Name) {
+					emit(m, spanDiag(texts[m.ID], line, "error",
+						fmt.Sprintf("error %s shadows a compiler-owned error: rename the declaration", d.Name), d.Name, CodePrimitiveShadow))
+					continue
+				}
 				var fs []string
 				for _, f := range d.Fields {
 					fs = append(fs, f[0])
@@ -243,6 +248,19 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 	// independently); an absent entry is never an empty error set.
 	for name, k := range bytesKernels {
 		prog.EmitsOf[name] = k.emits
+	}
+	// v50 B6: compiler-owned errors register globally, after source
+	// declarations. Source redefinitions are shadow rejections (see
+	// above), never silent overwrites, so this assignment is the
+	// single authoritative field list. Catalogs enumerate prog.Errors
+	// and therefore list these in every build (accepted churn: the
+	// all-declarations policy is unchanged).
+	for _, b := range builtinErrorDecls() {
+		var fs []string
+		for _, f := range b.Fields {
+			fs = append(fs, f[0])
+		}
+		prog.Errors[b.Name] = fs
 	}
 	return prog, out
 }

@@ -113,5 +113,16 @@
       "auth.auth__login/retry_missing",
       "db.db__get_user/unknown_user"
     ]
+  },
+  {
+    "kind": "encoding.invalid_utf8",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "kernel.bytes__utf8__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": []
   }
 ]
