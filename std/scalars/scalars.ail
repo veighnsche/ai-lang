@@ -12,7 +12,7 @@
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__dec__strip_from, std__dec__truncate, std__dec__floor, std__dec__ceil, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts, Dec__Strip]
   uses []
   emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, convert.invalid_boolean, convert.invalid_boolean_encoding, convert.invalid_dec_encoding, convert.invalid_integer, convert.invalid_decimal]
 
@@ -55,6 +55,11 @@ type Int__Root rev 1 (
 type Dec__Parts rev 1 (
   coefficient: int
   scale: int
+)
+
+type Dec__Strip rev 1 (
+  stripped: int
+  exact: bool
 )
 
 fn std__bool__not(value: bool) -> Bool__Value rev 1
@@ -957,6 +962,84 @@ fn std__dec__parts(value: dec) -> Dec__Parts rev 1
 =
   match call dec__parts(value)
     on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)
+
+fn std__dec__strip_from(remaining: int, current: int, exact: bool) -> Dec__Strip rev 1
+  decreases remaining
+  emits []
+  tests
+    strip_done(remaining = 0, current = 27, exact = true) => Ok(stripped = 27, exact = true)
+    strip_done_neg(remaining = 0, current = -5, exact = true) => Ok(stripped = -5, exact = true)
+    strip_step(remaining = 1, current = 27, exact = true) => Ok(stripped = 2, exact = false)
+    strip_exact_kept(remaining = 1, current = 20, exact = true) => Ok(stripped = 2, exact = true)
+    strip_neg(remaining = 1, current = -27, exact = true) => Ok(stripped = -3, exact = false)
+    strip_already_inexact(remaining = 2, current = 27, exact = false) => Ok(stripped = 0, exact = false)
+=
+  match remaining <= 0
+    true => Ok(stripped = current, exact = exact)
+    false => match current % 10 == 0
+      true => match call std__dec__strip_from(remaining - 1, current / 10, exact)
+        on Ok r => Ok(stripped = r.stripped, exact = r.exact)
+      false => match call std__dec__strip_from(remaining - 1, current / 10, false)
+        on Ok r => Ok(stripped = r.stripped, exact = r.exact)
+
+fn std__dec__truncate(value: dec) -> Dec__Value rev 1
+  emits []
+  tests
+    trunc_pos(value = d"2.7") => Ok(value = d"2.0")
+    trunc_neg(value = d"-2.7") => Ok(value = d"-2.0")
+    trunc_neg_frac(value = d"-0.5") => Ok(value = d"0.0")
+    trunc_exact(value = d"2.0") => Ok(value = d"2.0")
+    trunc_exact_neg(value = d"-2.0") => Ok(value = d"-2.0")
+    trunc_multi(value = d"123.456") => Ok(value = d"123.0")
+    trunc_multi_neg(value = d"-123.456") => Ok(value = d"-123.0")
+    trunc_zero(value = d"0.0") => Ok(value = d"0.0")
+=
+  match call std__dec__parts(value)
+    on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
+      on Ok s => match s.exact
+        true => match call std__convert__int_to_dec(s.stripped)
+          on Ok whole => Ok(value = whole.value)
+        false => match s.stripped >= 0
+          true => match call std__convert__int_to_dec(s.stripped)
+            on Ok whole => Ok(value = whole.value)
+          false => match call std__convert__int_to_dec(s.stripped + 1)
+            on Ok whole => Ok(value = whole.value)
+
+fn std__dec__floor(value: dec) -> Dec__Value rev 1
+  emits []
+  tests
+    floor_pos(value = d"2.7") => Ok(value = d"2.0")
+    floor_neg(value = d"-2.7") => Ok(value = d"-3.0")
+    floor_neg_frac(value = d"-0.5") => Ok(value = d"-1.0")
+    floor_exact(value = d"2.0") => Ok(value = d"2.0")
+    floor_exact_neg(value = d"-2.0") => Ok(value = d"-2.0")
+    floor_multi(value = d"123.456") => Ok(value = d"123.0")
+    floor_zero(value = d"0.0") => Ok(value = d"0.0")
+=
+  match call std__dec__parts(value)
+    on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
+      on Ok s => match call std__convert__int_to_dec(s.stripped)
+        on Ok whole => Ok(value = whole.value)
+
+fn std__dec__ceil(value: dec) -> Dec__Value rev 1
+  emits []
+  tests
+    ceil_pos(value = d"2.7") => Ok(value = d"3.0")
+    ceil_neg(value = d"-2.7") => Ok(value = d"-2.0")
+    ceil_frac(value = d"0.5") => Ok(value = d"1.0")
+    ceil_neg_frac(value = d"-0.5") => Ok(value = d"0.0")
+    ceil_exact(value = d"2.0") => Ok(value = d"2.0")
+    ceil_exact_neg(value = d"-2.0") => Ok(value = d"-2.0")
+    ceil_multi(value = d"123.456") => Ok(value = d"124.0")
+    ceil_zero(value = d"0.0") => Ok(value = d"0.0")
+=
+  match call std__dec__parts(value)
+    on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
+      on Ok s => match s.exact
+        true => match call std__convert__int_to_dec(s.stripped)
+          on Ok whole => Ok(value = whole.value)
+        false => match call std__convert__int_to_dec(s.stripped + 1)
+          on Ok whole => Ok(value = whole.value)
 
 fn std__convert__bool_to_str(value: bool) -> Str__Value rev 1
   emits []

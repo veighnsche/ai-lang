@@ -6,8 +6,11 @@
   fundamentals (abs, negate, sign, min, max, clamp, distance,
   square, power, bounded add/subtract/multiply, factorial, sum),
   decimal observation (`std__dec__parts` over the `dec__parts`
-  kernel: coefficient plus scale, total), the pure NOW conversions
-  between bool, int, dec, and str, and a bounded backoff delay with
+  kernel: coefficient plus scale, total) and its first consumers
+  (`std__dec__truncate`, `std__dec__floor`, `std__dec__ceil` over a
+  digit-stripping worker: total in, total out), the pure NOW
+  conversions between bool, int, dec, and str, and a bounded
+  backoff delay with
   zero, negative, saturated, and large-attempt cases. Every function
   returns a named success record; fallible recursion splits into a
   total `decreases` helper plus a checked entry, so no error arm is
