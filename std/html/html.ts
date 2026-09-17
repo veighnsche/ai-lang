@@ -16,6 +16,7 @@ export type Html__SchemeVerdict = { has: boolean };
 export type Html__Authority = { value: string; tail: string; n: bigint };
 export type Html__UrlTail = { value: string };
 export type Html__CheckedUrl = { value: string; len: bigint };
+export type Html__Children = { items: string[] };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -46,6 +47,13 @@ function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   const lo = toIdx(a), hi = toIdx(b);
   if (lo > hi || hi > cps.length) throw new Error("str slice out of range");
   return cps.slice(lo, hi).join("");
+}
+// Sequence indexing (v38 S3): bounds throw, matching Go.
+function $ailSeqAt<T>(a: T[], i: bigint): T {
+  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("seq index out of range");
+  const k = Number(i);
+  if (k >= a.length) throw new Error("seq index out of range");
+  return a[k];
 }
 export function html__text__escape_from(orig: string, s: string, acc: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
   if ((n <= 0n)) {
@@ -983,4 +991,47 @@ export function html__attribute__src(url: string): { $ail_kind: "ok"; attribute:
 }
 export function html__fragment__empty(): { $ail_kind: "ok"; safe: string } {
   return { $ail_kind: "ok", safe: "" };
+}
+export function html__fragment__join_from(children: Html__Children, position: bigint, fuel: bigint, acc: string): { $ail_kind: "ok"; safe: string } {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", safe: acc };
+  }
+  else {
+    if ((position < (BigInt([...children.items].length)))) {
+      const $ail_m1: { $ail_kind: "ok"; safe: string } = html__fragment__join_from(children, (position + 1n), (fuel - 1n), (acc + $ailSeqAt(children.items, position)));
+      switch ($ail_m1.$ail_kind) {
+      case "ok": {
+        const r = $ail_m1;
+        return { $ail_kind: "ok", safe: r.safe };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $ail_kind: "ok", safe: acc };
+    }
+  }
+}
+export function html__fragment__join(children: Html__Children): { $ail_kind: "ok"; safe: string } {
+  const $ail_m1: { $ail_kind: "ok"; safe: string } = html__fragment__empty();
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const e = $ail_m1;
+    const $ail_m2: { $ail_kind: "ok"; safe: string } = html__fragment__join_from(children, 0n, ((BigInt([...children.items].length)) + 1n), e.safe);
+    switch ($ail_m2.$ail_kind) {
+    case "ok": {
+      const r = $ail_m2;
+      return { $ail_kind: "ok", safe: r.safe };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
 }

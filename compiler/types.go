@@ -289,6 +289,12 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 				return l, true
 			}
 		}
+		// v42: same-brand str-backed + yields the brand.
+		if s.Op == "+" && lok && rok && l == r && c.brands[l] {
+			if under, ok := c.prog.Brands[l]; ok && under == "str" {
+				return l, true
+			}
+		}
 		// v17: decimal division and remainder have no exact result;
 		// keep them untyped so parents stay silent and the value
 		// rule reports the one refusal.
@@ -494,6 +500,20 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// strings.
 			if l == r && l == "str" && s.Op == "+" {
 				return
+			}
+			// v42: B + B -> B for str-backed brands (fragment
+			// assembly). Both operands are already minted, so
+			// no seal site is added or bypassed (the grep-seal
+			// audit is untouched); the result stays branded
+			// (sink rule intact). Eval and emit erase brands
+			// already, so this arm is checker-only. Anything
+			// else brand-flavored falls through to the
+			// refusal below.
+			if s.Op == "+" && lok && rok && l == r && c.brands[l] {
+				if under, ok := c.prog.Brands[l]; ok && under == "str" {
+					s.T = l
+					return
+				}
 			}
 			// v39 S4: Seq<T> + T appends, yielding the sequence
 			// type. Seq + Seq is a separate concatenation

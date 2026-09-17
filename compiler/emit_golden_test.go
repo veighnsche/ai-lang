@@ -190,3 +190,30 @@ func TestGoldenStdScalars(t *testing.T) {
 		}
 	}
 }
+
+// TestGoldenStdHtml freezes the html-constructor cut: the brand and
+// fragment module must transpile byte-identical, so its decision
+// tables can never silently rot. (No golden covered html before
+// the fragment slice; the join rows are the first to pin it.)
+func TestGoldenStdHtml(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../std/html/html.ail",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"html.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../std/html", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+		}
+	}
+}

@@ -49,6 +49,11 @@
   `html.disallowed_scheme`. See `docs/v32-url-attributes.md`.
 - `html__fragment__empty` seals `""` as the zero `Html__Safe`
   fragment. See `docs/v33-empty-fragment.md`.
+- `html__fragment__join`/`_from` walk explicit `Html__Children`
+  (plain record over `Seq<Html__Safe>`) with same-brand `+`
+  assembly, seeded from `fragment__empty`: composition has the
+  empty fragment as identity. Order, empties, and spacing
+  preserved exactly. See `docs/v42-fragment-join.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; errors empty — the module is total).
   Regenerate: `go run ./compiler --out std/html

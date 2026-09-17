@@ -31,6 +31,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v39-seq-append.md` | Shipped (S4) | `Seq<T> + T` copy-on-append; concat refused; compiler complete, customers next |
 | `v40-str-join.md` | Shipped (customer 1) | `std__str__join` preserves order; positional first-element test; split next |
 | `v41-str-split.md` | Shipped (customer 2) | `std__str__split` retains empties, leftmost policy; wrapper return; mints `text.empty_separator` |
+| `v42-fragment-join.md` | Shipped (customer 3) | `html__fragment__join` over explicit children; same-brand `+`; attributes fork posed |
 
 ## Reading order for a reviewer
 
