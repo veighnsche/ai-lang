@@ -60,6 +60,12 @@ function $ailDecLe(a: string, b: string): boolean {
   const s = Math.max(A.fp.length, B.fp.length);
   return $ailDecMant(A, s) <= $ailDecMant(B, s);
 }
+function $ailDecGt(a: string, b: string): boolean {
+  const A = $ailDecSplit(a);
+  const B = $ailDecSplit(b);
+  const s = Math.max(A.fp.length, B.fp.length);
+  return $ailDecMant(A, s) > $ailDecMant(B, s);
+}
 export function std__validate__require(condition: boolean, field: string, rule: string): QuotaResult {
   if (condition) {
     return { $ail_kind: "ok" };
@@ -95,7 +101,7 @@ export function std__validate__int_nonnegative(value: bigint): QuotaResult {
   }
 }
 export function std__validate__int_positive(value: bigint): QuotaResult {
-  if ((value >= 1n)) {
+  if ((value > 0n)) {
     return { $ail_kind: "ok", value: value };
   }
   else {
@@ -121,13 +127,8 @@ export function std__validate__dec_range(value: string, lower: string, upper: st
   }
 }
 export function std__validate__dec_positive(value: string): QuotaResult {
-  if ($ailDecGe(value, "0.0")) {
-    if ((value !== "0.0")) {
-      return { $ail_kind: "ok", value: value };
-    }
-    else {
-      return { $ail_kind: "validation.dec_not_positive", value: value };
-    }
+  if ($ailDecGt(value, "0.0")) {
+    return { $ail_kind: "ok", value: value };
   }
   else {
     return { $ail_kind: "validation.dec_not_positive", value: value };

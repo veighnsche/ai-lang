@@ -327,6 +327,12 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			case "<=":
 				e.decOps["le"] = true
 				return fmt.Sprintf("$ailDecLe(%s, %s)", l, r), nil
+			case ">":
+				e.decOps["gt"] = true
+				return fmt.Sprintf("$ailDecGt(%s, %s)", l, r), nil
+			case "<":
+				e.decOps["lt"] = true
+				return fmt.Sprintf("$ailDecLt(%s, %s)", l, r), nil
 			}
 			return "", fmt.Errorf("cannot emit op %s", node.Op)
 		}
@@ -343,6 +349,12 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			case "<=":
 				e.strOps["le"] = true
 				return fmt.Sprintf("$ailStrLe(%s, %s)", l, r), nil
+			case ">":
+				e.strOps["gt"] = true
+				return fmt.Sprintf("$ailStrGt(%s, %s)", l, r), nil
+			case "<":
+				e.strOps["lt"] = true
+				return fmt.Sprintf("$ailStrLt(%s, %s)", l, r), nil
 			}
 		}
 		// Ints are bigints (native ops exact, except / and %: BigInt
@@ -356,7 +368,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 			return fmt.Sprintf("$ailDivMod(%s, %s)[%s]", l, r, idx), nil
 		}
-		ops := map[string]string{">=": ">=", "<=": "<=", "+": "+", "-": "-", "*": "*"}
+		ops := map[string]string{">=": ">=", "<=": "<=", ">": ">", "<": "<", "+": "+", "-": "-", "*": "*"}
 		op, ok := ops[node.Op]
 		if !ok {
 			return "", fmt.Errorf("cannot emit op %s", node.Op)
@@ -520,6 +532,22 @@ var decRuntimeOps = []struct {
 		"  return $ailDecMant(A, s) <= $ailDecMant(B, s);",
 		"}",
 	}},
+	{"gt", []string{
+		"function $ailDecGt(a: string, b: string): boolean {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  const s = Math.max(A.fp.length, B.fp.length);",
+		"  return $ailDecMant(A, s) > $ailDecMant(B, s);",
+		"}",
+	}},
+	{"lt", []string{
+		"function $ailDecLt(a: string, b: string): boolean {",
+		"  const A = $ailDecSplit(a);",
+		"  const B = $ailDecSplit(b);",
+		"  const s = Math.max(A.fp.length, B.fp.length);",
+		"  return $ailDecMant(A, s) < $ailDecMant(B, s);",
+		"}",
+	}},
 }
 
 // strRuntimeShared compares strings by UTF-8 bytes: Go orders strings
@@ -556,6 +584,16 @@ var strRuntimeOps = []struct {
 	{"le", []string{
 		"function $ailStrLe(a: string, b: string): boolean {",
 		"  return $ailStrCmp(a, b) <= 0;",
+		"}",
+	}},
+	{"gt", []string{
+		"function $ailStrGt(a: string, b: string): boolean {",
+		"  return $ailStrCmp(a, b) > 0;",
+		"}",
+	}},
+	{"lt", []string{
+		"function $ailStrLt(a: string, b: string): boolean {",
+		"  return $ailStrCmp(a, b) < 0;",
 		"}",
 	}},
 }

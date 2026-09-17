@@ -421,7 +421,7 @@ func parseSmall(s string) (*Small, error) {
 	if s == "exchange" || strings.HasPrefix(s, "exchange ") || strings.HasPrefix(s, "exchange\t") {
 		return parseExchange(s)
 	}
-	if i, op := findTop(s, []string{"==", ">=", "<=", "!="}); i >= 0 {
+	if i, op := findTop(s, []string{"==", ">=", "<=", ">", "<", "!="}); i >= 0 {
 		l, err := parseSmall(s[:i])
 		if err != nil {
 			return nil, err

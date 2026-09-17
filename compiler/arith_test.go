@@ -48,6 +48,93 @@ func TestArithInt(t *testing.T) {
 	wantInt(t, "10 - 3 - 2", "5")
 }
 
+func wantBool(t *testing.T, expr string, want bool) {
+	t.Helper()
+	got := evArithExpr(t, expr)
+	if got.Kind != "bool" || got.B != want {
+		t.Fatalf("%s = %v, want bool %v", expr, got, want)
+	}
+}
+
+// TestStrictComparison pins < and > (issue #40) at the evaluator
+// level: ints by big-int order, decs by exact rational order.
+// Strings compare by byte order like >= and <=; str literals cannot
+// sit beside an operator (quotes swallow it, as ever), so string
+// strictness is pinned via refs in TestStrictComparisonStr below.
+func TestStrictComparison(t *testing.T) {
+	for _, c := range []struct {
+		expr string
+		want bool
+	}{
+		{`3 > 2`, true},
+		{`2 > 3`, false},
+		{`2 > 2`, false},
+		{`2 < 3`, true},
+		{`3 < 2`, false},
+		{`2 < 2`, false},
+		{`-1 < 0`, true},
+		{`d"1.5" > d"1.0"`, true},
+		{`d"1.0" > d"1.5"`, false},
+		{`d"1.5" > d"1.5"`, false},
+		{`d"1.0" < d"1.5"`, true},
+		{`d"1.5" < d"1.0"`, false},
+		{`d"-0.5" < d"0.0"`, true},
+		{`d"0.10" < d"0.2"`, true},
+	} {
+		wantBool(t, c.expr, c.want)
+	}
+}
+
+// TestStrictOpParse pins the findTop split: two-char operators win
+// over their one-char prefixes, and the new ops produce their own
+// binop kinds (issue #40 review).
+func TestStrictOpParse(t *testing.T) {
+	for expr, want := range map[string]string{
+		`x >= 2`: ">=",
+		`x <= 2`: "<=",
+		`x > 2`:  ">",
+		`x < 2`:  "<",
+		`x == 2`: "==",
+		`x != 2`: "!=",
+	} {
+		sm, err := parseSmall(expr)
+		if err != nil {
+			t.Fatalf("parseSmall(%q): %v", expr, err)
+		}
+		if sm.Kind != "binop" || sm.Op != want {
+			t.Fatalf("parseSmall(%q) = %s/%s, want binop/%s", expr, sm.Kind, sm.Op, want)
+		}
+	}
+}
+
+func TestStrictComparisonStr(t *testing.T) {
+	env := map[string]*Value{
+		"x": {Kind: "str", S: "a"},
+		"y": {Kind: "str", S: "b"},
+	}
+	for _, c := range []struct {
+		expr string
+		want bool
+	}{
+		{`x < y`, true},
+		{`y > x`, true},
+		{`x > x`, false},
+		{`x < x`, false},
+	} {
+		sm, err := parseSmall(c.expr)
+		if err != nil {
+			t.Fatalf("parseSmall(%q): %v", c.expr, err)
+		}
+		got, err := evSmall(sm, env, &Ctx{}, "test")
+		if err != nil {
+			t.Fatalf("evSmall(%q): %v", c.expr, err)
+		}
+		if got.Kind != "bool" || got.B != c.want {
+			t.Fatalf("%s = %v, want bool %v", c.expr, got, c.want)
+		}
+	}
+}
+
 // TestArithUnbounded pins v10: ints never overflow, never wrap. The
 // old int64 gate is gone; chains that once failed loud now compute
 // exactly, matching the bigint target.

@@ -92,7 +92,7 @@ fn std__validate__int_positive(value: int) -> Int__Value rev 1
     zero(value = 0) => validation.not_positive(value = 0)
     negative(value = -2) => validation.not_positive(value = -2)
 =
-  match value >= 1
+  match value > 0
     true => Ok(value = value)
     false => validation.not_positive(value = value)
 
@@ -121,10 +121,8 @@ fn std__validate__dec_positive(value: dec) -> Dec__Value rev 1
     zero(value = d"0.0") => validation.dec_not_positive(value = d"0.0")
     negative(value = d"-2.0") => validation.dec_not_positive(value = d"-2.0")
 =
-  match value >= d"0.0"
-    true => match value != d"0.0"
-      true => Ok(value = value)
-      false => validation.dec_not_positive(value = value)
+  match value > d"0.0"
+    true => Ok(value = value)
     false => validation.dec_not_positive(value = value)
 
 fn std__validate__dec_nonnegative(value: dec) -> Dec__Value rev 1
