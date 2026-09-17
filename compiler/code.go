@@ -70,6 +70,7 @@ const (
 	CodeFloatLiteral     = "AIL6001"
 	CodeUnknownType      = "AIL6002"
 	CodeTypeMismatch     = "AIL6003"
+	CodeSealForeign      = "AIL6004"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -90,5 +91,5 @@ var allCodes = []string{
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken,
 	CodeTestFailed,
 	CodeSiblingParse,
-	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch,
+	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign,
 }

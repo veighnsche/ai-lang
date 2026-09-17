@@ -29,7 +29,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 		Brands:  map[string]string{},
 		Errors:  map[string][]string{},
 		EmitsOf: map[string][]string{}, Uses: map[string]bool{},
-		Modules: mods, FnFile: map[string]string{},
+		Modules: mods, FnFile: map[string]string{}, BrandFile: map[string]string{},
 	}
 	provides := map[string]*Module{}
 	emit := func(m *Module, d Diag) {
@@ -92,6 +92,9 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				provides[d.Name] = m
 				if _, ok := prog.Brands[d.Name]; !ok {
 					prog.Brands[d.Name] = d.Under
+				}
+				if _, ok := prog.BrandFile[d.Name]; !ok {
+					prog.BrandFile[d.Name] = m.File
 				}
 			case *ErrorDecl:
 				var fs []string

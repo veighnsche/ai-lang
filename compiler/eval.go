@@ -188,11 +188,15 @@ type Program struct {
 	FnFile map[string]string
 	// Brands maps brand name to underlying type (v0: always str).
 	// The emitter erases brands through this map.
-	Brands  map[string]string
-	Errors  map[string][]string
-	EmitsOf map[string][]string
-	Uses    map[string]bool
-	Modules []*Module
+	Brands map[string]string
+	// BrandFile maps every brand name to its declaring module file.
+	// Same file means an executable seal site (checked); anything
+	// else means a foreign brand (refused in bodies, named in data).
+	BrandFile map[string]string
+	Errors    map[string][]string
+	EmitsOf   map[string][]string
+	Uses      map[string]bool
+	Modules   []*Module
 }
 
 func vField(v *Value, field string) (*Value, error) {

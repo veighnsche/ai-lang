@@ -28,6 +28,11 @@ type tycker struct {
 	recs   map[string][][2]string
 	errs   map[string][][2]string
 	brands map[string]bool
+	// brandFiles maps brand name to declaring file (first wins).
+	brandFiles map[string]string
+	// exec is true inside function bodies (executable positions)
+	// and false in tests and given rows (checked data positions).
+	exec bool
 	// cells maps visible cell names to base types (this file only).
 	cells map[string]string
 	out   []Diag
@@ -35,10 +40,11 @@ type tycker struct {
 
 func newTycker(prog *Program, text, fn string) *tycker {
 	c := &tycker{prog: prog, text: text, fn: fn,
-		recs:   map[string][][2]string{},
-		errs:   map[string][][2]string{},
-		brands: map[string]bool{},
-		cells:  map[string]string{}}
+		recs:       map[string][][2]string{},
+		errs:       map[string][][2]string{},
+		brands:     map[string]bool{},
+		brandFiles: map[string]string{},
+		cells:      map[string]string{}}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
 			switch d := d.(type) {
@@ -52,6 +58,11 @@ func newTycker(prog *Program, text, fn string) *tycker {
 				}
 			case *BrandDecl:
 				c.brands[d.Name] = true
+				if _, ok := c.brandFiles[d.Name]; !ok {
+					if f, ok := prog.BrandFile[d.Name]; ok {
+						c.brandFiles[d.Name] = f
+					}
+				}
 			case *StateDecl:
 				// Cells resolve in the checking function's own file;
 				// only base types enter (the decl rule owns the rest).
@@ -256,6 +267,17 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("unknown brand %s in seal", s.Seal), s.Seal, CodeUnknownType))
 			return
+		}
+		// v15: executable code mints only its own module's brands.
+		// The declaring file owns every executable seal site (grep
+		// seal is the audit); tests and given rows may name any
+		// declared brand because they are checked data, not code.
+		if c.exec {
+			if owner, ok := c.brandFiles[s.Seal]; ok && owner != c.prog.FnFile[c.fn] {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("seal %s in %s mints a brand declared in %s: bodies seal only their own module's brands", s.Seal, c.fn, owner), s.Seal, CodeSealForeign))
+				return
+			}
 		}
 		// v10: brands erase to strings at runtime; emit reads T.
 		s.T = s.Seal
@@ -720,6 +742,9 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 	if c.knownType(fn.Ret) {
 		ret = fn.Ret
 	}
+	// Bodies are executable positions: the seal rule applies from
+	// here on. Everything above checked data (tests, scripts).
+	c.exec = true
 	c.node(fn.Body, env, ret)
 	return c.out
 }

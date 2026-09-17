@@ -106,11 +106,10 @@ Pinned by `TestMultiShapeEmit` and
 - Text operations: strings are opaque today (equality and order
   only, no concat, length, or slicing), so every `std__str__*`
   entry waits on specified indexing and Unicode semantics.
-- Constructor-controlled brands: `seal` is unrestricted, so any
-  consumer can forge any brand. Protected constructors need a
-  language change; nominal distinction alone is not the safety
-  argument. `Html__Safe` and its sibling brands must not be
-  seal-constructible when they arrive.
+- Constructor-controlled brands: landed as `docs/v15-brands.md`.
+  Bodies seal only their own module's brands (AIL6004); tests and
+  scripts may name any declared brand. `Html__Safe` and its sibling
+  brands will arrive under this rule, unforgable by consumers.
 - HTML rendering: needs Text, Collections, and the brand change
   above. No template flavor is blessed; candidate A (ordinary
   calls, explicit child values) is the only one expressible
