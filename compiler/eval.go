@@ -1315,64 +1315,75 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				// admission (checkLinkedGraph) excluded
 				// externs, state, effects, and unresolved
 				// calls beforehand.
+				// a76: the real result still eliminates through
+				// the caller's arms below. Returning it here
+				// would skip the match the root was asked to
+				// execute — unobservable for pure relays, wrong
+				// for any transforming arm.
 				if callee, ok := ctx.Prog.Fns[fname]; ok {
-					return evLocalCall(callee, scrut, env, ctx, owner)
-				}
-				return nil, fmt.Errorf("%s: linked execution refused: %s resolves to no body", owner, fname)
-			}
-			if !ctx.Prog.Uses[fname] && ctx.Prog.Externs[fname] == nil {
-				return nil, fmt.Errorf("%s: %s not in uses", owner, fname)
-			}
-			entry, ok := node.Given[ctx.Test]
-			if !ok || entry == nil {
-				return nil, fmt.Errorf("%s/%s: no script for call %s", owner, ctx.Test, fname)
-			}
-			perTest, ok := ctx.Scripts[node]
-			if !ok {
-				perTest = map[string][]*Small{}
-				ctx.Scripts[node] = perTest
-			}
-			script, started := perTest[ctx.Test]
-			if !started {
-				if entry.Kind == "list" {
-					script = append([]*Small{}, entry.Items...)
-				} else {
-					script = []*Small{entry}
-				}
-				perTest[ctx.Test] = script
-			}
-			if len(script) == 0 {
-				return nil, fmt.Errorf("%s/%s: call %s script exhausted", owner, ctx.Test, fname)
-			}
-			item := script[0]
-			perTest[ctx.Test] = script[1:]
-			if item.Kind != "exchange" {
-				return nil, fmt.Errorf("%s/%s: script row must be an exchange with args and outcome", owner, ctx.Test)
-			}
-			if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
-				return nil, err
-			}
-			if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
-				return nil, err
-			}
-			val, err := evSmall(item.Outcome, env, ctx, owner)
-			if err != nil {
-				return nil, err
-			}
-			if val.Kind == "err" {
-				allowed := false
-				for _, e := range ctx.Prog.EmitsOf[fname] {
-					if e == val.ErrKind {
-						allowed = true
+					val, err := evLocalCall(callee, scrut, env, ctx, owner)
+					if err != nil {
+						return nil, err
 					}
+					v = val
+				} else {
+					return nil, fmt.Errorf("%s: linked execution refused: %s resolves to no body", owner, fname)
 				}
-				if !allowed {
-					return nil, fmt.Errorf("%s/%s: stub %s not in %s emits", owner, ctx.Test, val.ErrKind, fname)
+			} else {
+				if !ctx.Prog.Uses[fname] && ctx.Prog.Externs[fname] == nil {
+					return nil, fmt.Errorf("%s: %s not in uses", owner, fname)
 				}
-			} else if val.Kind != "ok" {
-				return nil, fmt.Errorf("%s/%s: stub must be Ok(..) or an error", owner, ctx.Test)
+				entry, ok := node.Given[ctx.Test]
+				if !ok || entry == nil {
+					return nil, fmt.Errorf("%s/%s: no script for call %s", owner, ctx.Test, fname)
+				}
+				perTest, ok := ctx.Scripts[node]
+				if !ok {
+					perTest = map[string][]*Small{}
+					ctx.Scripts[node] = perTest
+				}
+				script, started := perTest[ctx.Test]
+				if !started {
+					if entry.Kind == "list" {
+						script = append([]*Small{}, entry.Items...)
+					} else {
+						script = []*Small{entry}
+					}
+					perTest[ctx.Test] = script
+				}
+				if len(script) == 0 {
+					return nil, fmt.Errorf("%s/%s: call %s script exhausted", owner, ctx.Test, fname)
+				}
+				item := script[0]
+				perTest[ctx.Test] = script[1:]
+				if item.Kind != "exchange" {
+					return nil, fmt.Errorf("%s/%s: script row must be an exchange with args and outcome", owner, ctx.Test)
+				}
+				if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
+					return nil, err
+				}
+				if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
+					return nil, err
+				}
+				val, err := evSmall(item.Outcome, env, ctx, owner)
+				if err != nil {
+					return nil, err
+				}
+				if val.Kind == "err" {
+					allowed := false
+					for _, e := range ctx.Prog.EmitsOf[fname] {
+						if e == val.ErrKind {
+							allowed = true
+						}
+					}
+					if !allowed {
+						return nil, fmt.Errorf("%s/%s: stub %s not in %s emits", owner, ctx.Test, val.ErrKind, fname)
+					}
+				} else if val.Kind != "ok" {
+					return nil, fmt.Errorf("%s/%s: stub must be Ok(..) or an error", owner, ctx.Test)
+				}
+				v = val
 			}
-			v = val
 		}
 	} else {
 		// Parser-impossible: MatchCall always carries one call. Fail
