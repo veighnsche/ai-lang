@@ -59,7 +59,7 @@
   `named_href`/`named_src` relay the five makers (errors
   forwarded unchanged). See `docs/v43-named-attributes.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
-  (tests stripped; errors empty — the module is total).
+  (tests stripped; `errors.json` is the error registry).
   Regenerate: `go run ./compiler --out std/html
   std/html/html.ail`; verify: `go test ./...`.
 

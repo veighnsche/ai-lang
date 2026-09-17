@@ -8,7 +8,9 @@ History: v1 (workflow synthesis) → verdict (request changes; slices
 rebracketed, NUL withdrawn, Gap2/Gap9 closed as stale) → v2 → this
 resolution → B2 pre-implementation review folded (certificate lifecycle
 barrier, registration/identity/shape corrections, order-independence
-fixtures). Reviewer caveat: it saw v1/v2 + prompt only (v3 and the B1
+fixtures) → B4 pre-implementation review folded (v3 example rows joined —
+split outcomes are `AIL1000`; promotion-chain audit; NUL vector; escaping
+regressions; artifact expectations; downstream unresolved). Reviewer caveat: it saw v1/v2 + prompt only (v3 and the B1
 doc failed to retrieve on its side; both exist locally) — its cited
 anchors were re-verified here against `de82756` before folding. Prior docs: [bytes-workstream.md](/Users/vince/Projects/ai-lang/docs/bytes-workstream.md),
 [bytes-plan-review-prompt.md](/Users/vince/Projects/ai-lang/docs/bytes-plan-review-prompt.md),
@@ -118,10 +120,8 @@ exports_utf8 Html__Safe via html__render__utf8@1
 fn html__render__utf8(document: Html__Safe) -> Bytes__Value rev 1
   emits []
   tests
-    render_empty(document = seal Html__Safe("")) =>
-      Ok(value = Bytes(Seq<int>[]))
-    render_entity(document = seal Html__Safe("&amp;")) =>
-      Ok(value = Bytes(Seq<int>[38, 97, 109, 112, 59]))
+    render_empty(document = seal Html__Safe("")) => Ok(value = Bytes(Seq<int>[]))
+    render_entity(document = seal Html__Safe("&amp;")) => Ok(value = Bytes(Seq<int>[38, 97, 109, 112, 59]))
 =
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
@@ -490,7 +490,7 @@ consumers. Each slice closes item-12 gates before the next lands.
 | B1 | Value admission + literal construction | Five-case matrix; all value positions; empty/nonempty/order/repeats; `Seq<Bytes>` composition; nested structural `==`; normalization; wrong-result `AIL3110`/`AIL4200`; direct-operator + state rejection; emitter numeric-literal pins. |
 | B2 | Owner-authorized typed UTF-8 export | Grant declaration (separate registration pass) + exact AST exporter shape; lifecycle barrier (certificates before any linkage evaluation); branded export rows incl. own byte-correctness (empty/ASCII/non-ASCII/supplementary/NUL/BOM); unrelated-brand denials; same-basename/different-owner rejection via both loader routes; no string-returning or helper-forwarding exporter; explicit `EmitsOf` entry with independent existence check; two-grant both-orders test; sink controls (allowed route / denied route / real-decoder repeat); order-independence: `AIL3110` for wrong scripted export bytes under both module orders; grant-removal invalidation control; no real HTML consumer yet. |
 | B3 | Generic UTF-8 encode kernel | Strict `str` admission; NUL/BOM/Unicode vectors; no brand acceptance; empty `EmitsOf`; deterministic no-`given` rule. |
-| B4 | `html__render__utf8` consumer | HTML-owned grant + function; empty/entity/Unicode/NUL-position rows; exact serialization; unchanged `Html__Safe`, promotion, escaping. |
+| B4 | `html__render__utf8` consumer | HTML-owned grant + function (single-line rows — split outcomes are `AIL1000`); empty/entity/markup/Unicode/NUL-position rows; exact serialization with no second escaping (distinguish decode `[38]` from double-escape); 8-byte NUL vector `[65, 0, 38, 97, 109, 112, 59, 66]`; disclosure audit closes on Text/Attributes/Attribute chain + opaque composition; unchanged `Html__Safe`, promotion, escaping; `html.ts` regen (new fn + union member), `errors.json` regen expecting byte-identical; README remnants (`seals_from` description, errors-empty claim, `utf8 waits` comment at `html.ail:1580`); composition probes in temp-copy harness, never stdlib rows; downstream consumer contract stays unresolved (claim is exact serialization, not end-to-end delivery). |
 | B5 | `std__utf8__encode` wrapper | Declared Bytes wrapper result; computed encoding rows; inventories + artifacts updated. |
 | B6 | UTF-8 decode kernel | Strict grammar + complete-input errors; BOM/NUL preservation; fallible contract; missing/stale-arm rejections; full encode→decode brand-rejection fixtures; harness round-trip laws. |
 | B7 | `std__utf8__decode` wrapper | Valid/invalid rows; exhaustive match; unchanged reconstruction; full Bytes payload verified. |
