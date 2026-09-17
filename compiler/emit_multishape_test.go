@@ -60,9 +60,9 @@ func TestMultiShapeEmit(t *testing.T) {
 	}
 	ts := string(raw)
 	for _, want := range []string{
-		`{ kind: "ok"; value: bigint }`,
-		`{ kind: "ok"; got: bigint; limit: bigint }`,
-		`{ kind: "m.too_big"; value: bigint; limit: bigint }`,
+		`{ $ail_kind: "ok"; value: bigint }`,
+		`{ $ail_kind: "ok"; got: bigint; limit: bigint }`,
+		`{ $ail_kind: "m.too_big"; value: bigint; limit: bigint }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("emit missing %s\n%s", want, ts)
@@ -70,8 +70,8 @@ func TestMultiShapeEmit(t *testing.T) {
 	}
 }
 
-// A single-shape module keeps exactly the old union: one ok member,
-// so the gallery goldens stay byte-identical under the new rule.
+// A single-shape module keeps exactly one ok member in the union,
+// now under the disjoint tag.
 func TestSingleShapeEmitUnchanged(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"m.ail": helperClean})
 	out := t.TempDir()
@@ -88,7 +88,7 @@ func TestSingleShapeEmitUnchanged(t *testing.T) {
 			line = l
 		}
 	}
-	want := `export type MResult = { kind: "ok"; id: string } | { kind: "m.bad" };`
+	want := `export type MResult = { $ail_kind: "ok"; id: string } | { $ail_kind: "m.bad" };`
 	if line != want {
 		t.Errorf("single-shape union changed:\n got: %s\nwant: %s", line, want)
 	}

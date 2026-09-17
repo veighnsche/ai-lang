@@ -30,6 +30,24 @@ func tsTypeB(t string, brands map[string]string) (string, error) {
 	return "", fmt.Errorf("cannot map ail type to TS: %s", t)
 }
 
+// tsTag is the outcome discriminator key in emitted TypeScript. It is
+// unspellable in ail (identifiers match \w+, so $ never appears in
+// source), keeping metadata disjoint from logical payload fields: a
+// field named kind stays data, and the tag can never be overwritten by
+// one. Payload fields keep their source names verbatim.
+const tsTag = "$ail_kind"
+
+// tsField renders one payload field as target storage. Every declared
+// field becomes an own data property: ordinarily name: value, except
+// __proto__, which an object literal would otherwise install as the
+// prototype — the computed-key form defines a real own property.
+func tsField(name, value string) string {
+	if name == "__proto__" {
+		return `["__proto__"]: ` + value
+	}
+	return name + ": " + value
+}
+
 // tsErrMember renders one error kind as a TS union member.
 func tsErrMember(ed *ErrorDecl, brands map[string]string) (string, error) {
 	fs := ""
@@ -40,7 +58,7 @@ func tsErrMember(ed *ErrorDecl, brands map[string]string) (string, error) {
 		}
 		fs += "; " + f[0] + ": " + t
 	}
-	return fmt.Sprintf("{ kind: \"%s\"%s }", ed.Name, fs), nil
+	return fmt.Sprintf("{ %s: \"%s\"%s }", tsTag, ed.Name, fs), nil
 }
 
 // externUnion is the TS Result type of a foreign call: ok carrying the
@@ -66,7 +84,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 		}
 		fs += "; " + f[0] + ": " + t
 	}
-	union := fmt.Sprintf("{ kind: \"ok\"%s }", fs)
+	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
 	for _, e := range ex.Emits {
 		var ed *ErrorDecl
 		for _, m := range prog.Modules {
@@ -332,19 +350,19 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			parts = append(parts, a.Name+": "+v)
+			parts = append(parts, tsField(a.Name, v))
 		}
 		inner := strings.Join(parts, ", ")
 		if node.Ctor == "Ok" {
 			if inner == "" {
-				return `{ kind: "ok" }`, nil
+				return `{ ` + tsTag + `: "ok" }`, nil
 			}
-			return `{ kind: "ok", ` + inner + ` }`, nil
+			return `{ ` + tsTag + `: "ok", ` + inner + ` }`, nil
 		}
 		if inner == "" {
-			return `{ kind: "` + node.Ctor + `" }`, nil
+			return `{ ` + tsTag + `: "` + node.Ctor + `" }`, nil
 		}
-		return `{ kind: "` + node.Ctor + `", ` + inner + ` }`, nil
+		return `{ ` + tsTag + `: "` + node.Ctor + `", ` + inner + ` }`, nil
 	case "call":
 		// One binding rule (bindSlots): the call is invoked in the
 		// resolved parameter order, not source order, so a reordered
@@ -620,7 +638,7 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 			return err
 		}
 		*out = append(*out, fmt.Sprintf("const %s: %s = %s;", tmp, union, call))
-		*out = append(*out, fmt.Sprintf("switch (%s.kind) {", tmp))
+		*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 		for _, arm := range node.Arms {
 			pat := arm.Pat
 			// Every arm body is block-scoped: the same binder name in
@@ -736,7 +754,7 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 	}
 	tmp := e.fresh()
 	if scrut.Fname == "state__get" {
-		*out = append(*out, fmt.Sprintf("const %s: { kind: \"ok\", value: %s } = { kind: \"ok\", value: %s };", tmp, t, cell))
+		*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: %s } = { "+tsTag+": \"ok\", value: %s };", tmp, t, cell))
 	} else {
 		if len(scrut.Args) != 2 {
 			return fmt.Errorf("cannot emit %s: want cell and value", scrut.Fname)
@@ -746,9 +764,9 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 			return err
 		}
 		*out = append(*out, fmt.Sprintf("%s = %s;", cell, v))
-		*out = append(*out, fmt.Sprintf("const %s: { kind: \"ok\" } = { kind: \"ok\" };", tmp))
+		*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\" } = { "+tsTag+": \"ok\" };", tmp))
 	}
-	*out = append(*out, fmt.Sprintf("switch (%s.kind) {", tmp))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
 		pat := arm.Pat
 		if pat.Kind != "variant" || pat.Name != "Ok" {
@@ -907,11 +925,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		for _, n := range names {
 			okFs += "; " + n + ": " + shape[n]
 		}
-		okMembers = append(okMembers, fmt.Sprintf("{ kind: \"ok\"%s }", okFs))
+		okMembers = append(okMembers, fmt.Sprintf("{ "+tsTag+": \"ok\"%s }", okFs))
 	}
 	union := strings.Join(okMembers, " | ")
 	if union == "" {
-		union = "{ kind: \"ok\" }"
+		union = "{ " + tsTag + ": \"ok\" }"
 	}
 	for _, m := range members {
 		union += " | " + m
