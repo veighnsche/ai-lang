@@ -59,6 +59,10 @@ func decCmp(op string, c int) bool {
 		return c >= 0
 	case "<=":
 		return c <= 0
+	case ">":
+		return c > 0
+	case "<":
+		return c < 0
 	case "!=":
 		return c != 0
 	default:
@@ -374,6 +378,16 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 				return &Value{Kind: "bool", B: lv.N.Cmp(rv.N) <= 0}, nil
 			}
 			return &Value{Kind: "bool", B: lv.S <= rv.S}, nil
+		case ">":
+			if lv.Kind == "int" {
+				return &Value{Kind: "bool", B: lv.N.Cmp(rv.N) > 0}, nil
+			}
+			return &Value{Kind: "bool", B: lv.S > rv.S}, nil
+		case "<":
+			if lv.Kind == "int" {
+				return &Value{Kind: "bool", B: lv.N.Cmp(rv.N) < 0}, nil
+			}
+			return &Value{Kind: "bool", B: lv.S < rv.S}, nil
 		default:
 			if lv.Kind == "int" {
 				return &Value{Kind: "bool", B: lv.N.Cmp(rv.N) != 0}, nil

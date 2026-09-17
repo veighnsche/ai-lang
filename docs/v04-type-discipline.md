@@ -36,7 +36,7 @@ exact equality. This is the whole payoff — agent-written tests die on
 float equality (`0.1 + 0.2 != 0.3`), and exactness is load-bearing for
 normalize goldens and decision tables.
 
-Comparisons (`==`, `!=`, `>=`, `<=`) work on `dec` exactly like `int`.
+Comparisons (`==`, `!=`, `>=`, `<=`, `>`, `<`) work on `dec` exactly like `int`.
 Mixed `int`/`dec` comparison is `AIL6003`: no conversions, not even
 widening. There is no arithmetic in v0 (`+` does not exist), so `dec`
 needs none; arithmetic is future work and will be exact when it lands.
@@ -155,7 +155,7 @@ Error kinds are not value types.
 
 - Unknown name in any annotation (param, ret, type field, error
   field, seal) → `AIL6002` at the name.
-- `==`, `!=`, `>=`, `<=` require identical operand types → else
+- `==`, `!=`, `>=`, `<=`, `>`, `<` require identical operand types → else
   `AIL6003` at the operator row, naming both types. (Dynamic `==`
   across kinds used to be false; statically it is now an error.
   Intended: the discipline bites.)

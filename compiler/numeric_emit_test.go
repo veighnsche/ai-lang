@@ -12,7 +12,7 @@ import (
 // exercises arithmetic and ordering over refs (typed dispatch via
 // checker annotations) and literals in bodies.
 const numericFixture = `mod num
-  provides [num__add, num__big, num__lit, num__next, Num__Out]
+  provides [num__add, num__big, num__lit, num__next, num__strict, Num__Out]
   uses []
   emits []
 
@@ -51,6 +51,19 @@ fn num__next(n: int) -> Num__Out rev 1
     t1(n = 41) => Ok(total = d"1.0", count = 42)
 =
   Ok(total = d"1.0", count = n + 1)
+
+fn num__strict(a: dec, n: int) -> Num__Out rev 1
+  emits []
+  tests
+    t1(a = d"0.5", n = 3) => Ok(total = d"0.5", count = 1)
+    t2(a = d"0.1", n = 3) => Ok(total = d"0.1", count = 0)
+    t3(a = d"0.5", n = 7) => Ok(total = d"0.5", count = 0)
+=
+  match a > d"0.2"
+    true => match n < 5
+      true => Ok(total = a, count = 1)
+      false => Ok(total = a, count = 0)
+    false => Ok(total = a, count = 0)
 `
 
 func compileFixture(t *testing.T, name, src string) string {
@@ -81,6 +94,9 @@ func TestEmitNumerics(t *testing.T) {
 		"n: bigint",
 		"$ailDecAdd(a, b)",
 		"$ailDecGe(a, b)",
+		"$ailDecGt(a,",
+		"(n < 5n)",
+		"function $ailDecGt",
 		`"3.14"`,
 		"(n + 1n)",
 		"function $ailDecSplit",
