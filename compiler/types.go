@@ -198,6 +198,12 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		}
 		l, lok := c.typeOf(s.L, env)
 		r, rok := c.typeOf(s.R, env)
+		// v16: + concatenates strings (construction needs no
+		// indexing); - and * stay numeric-only, and brands and
+		// bools compute nothing even when both sides agree.
+		if s.Op == "+" && lok && rok && l == "str" && r == "str" {
+			return "str", true
+		}
 		if !lok || !rok || l != r || (l != "int" && l != "dec") {
 			return "", false
 		}
@@ -350,8 +356,13 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 		if isArith(s.Op) {
 			// Arithmetic yields the operand type, but only int
-			// and dec compute: same-brand seals, strings, and
-			// bools do not, even when both sides agree.
+			// and dec compute, plus str under + (v16: explicit
+			// construction). Same-brand seals and bools do not,
+			// even when both sides agree; neither do - and * on
+			// strings.
+			if l == r && l == "str" && s.Op == "+" {
+				return
+			}
 			if l != r || (l != "int" && l != "dec") {
 				c.out = append(c.out, spanDiag(c.text, line, "error",
 					fmt.Sprintf("cannot %s %s with %s: no implicit conversions", arithVerb(s.Op), l, r), s.Op, CodeTypeMismatch))
