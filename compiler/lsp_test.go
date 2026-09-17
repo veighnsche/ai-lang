@@ -85,8 +85,11 @@ func TestDiagnoseMissingTests(t *testing.T) {
 	noTests := strings.Replace(lspAuth, "  tests\n    ok(id = \"u\") => Ok(id = \"u\")\n    down(id = \"u\") => auth.bad()\n", "", 1)
 	dir := writeLSPDir(t, map[string]string{"db.ail": lspDB, "auth.ail": noTests})
 	diags := diagnose(dir, "auth.ail", noTests)
-	if !hasDiag(diags, "warning", "ships no tests") {
-		t.Fatalf("expected missing-tests warning, got %v", diags)
+	if !hasDiag(diags, "error", "ships no tests") {
+		t.Fatalf("expected missing-tests error, got %v", diags)
+	}
+	if !hasErrors(diags) {
+		t.Fatalf("expected missing-tests to fail the shared build gate, got %v", diags)
 	}
 }
 

@@ -231,7 +231,7 @@ func checkStatic(open *Module, text string) []Diag {
 			continue
 		}
 		if len(fn.Tests) == 0 {
-			out = append(out, spanDiag(text, fn.Line, "warning",
+			out = append(out, spanDiag(text, fn.Line, "error",
 				fmt.Sprintf("%s ships no tests: every function needs its decision table", fn.Name), fn.Name, CodeMissingTests))
 		}
 		out = append(out, checkTestShapes(fn, text)...)
