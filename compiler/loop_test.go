@@ -138,6 +138,20 @@ func TestLoopUnguardedRefused(t *testing.T) {
 	}
 }
 
+// Strict and < 1 guards cannot prove termination: the rule admits
+// only the p <= 0 spelling, so a self-call under any other guard is
+// refused even with a unit step (issue #40 review).
+func TestLoopStrictGuardRefused(t *testing.T) {
+	for _, guard := range []string{"match n > 0", "match n < 1"} {
+		bad := strings.Replace(loopPoll, "match n <= 0", guard, 1)
+		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
+		diags := diagnose(dir, "m.ail", bad)
+		if !hasDiag(diags, "error", "outside the positive branch") {
+			t.Fatalf("%s: expected guard-shape error, got %v", guard, diags)
+		}
+	}
+}
+
 func TestLoopNamedNoDecrease(t *testing.T) {
 	bad := strings.Replace(loopPoll,
 		"match call m__poll(n - 1)", "match call m__poll(n = n)", 1)

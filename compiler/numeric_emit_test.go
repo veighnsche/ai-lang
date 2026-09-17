@@ -52,18 +52,24 @@ fn num__next(n: int) -> Num__Out rev 1
 =
   Ok(total = d"1.0", count = n + 1)
 
-fn num__strict(a: dec, n: int) -> Num__Out rev 1
+fn num__strict(a: dec, n: int, s: str) -> Num__Out rev 1
   emits []
   tests
-    t1(a = d"0.5", n = 3) => Ok(total = d"0.5", count = 1)
-    t2(a = d"0.1", n = 3) => Ok(total = d"0.1", count = 0)
-    t3(a = d"0.5", n = 7) => Ok(total = d"0.5", count = 0)
+    t1(a = d"0.5", n = 3, s = "b") => Ok(total = d"0.5", count = 2)
+    t2(a = d"0.1", n = 3, s = "b") => Ok(total = d"0.1", count = -1)
+    t3(a = d"0.5", n = 7, s = "b") => Ok(total = d"0.5", count = 0)
+    t4(a = d"0.5", n = 3, s = "z") => Ok(total = d"0.5", count = 1)
+    t5(a = d"0.2", n = 3, s = "b") => Ok(total = d"0.2", count = 0)
 =
   match a > d"0.2"
     true => match n < 5
-      true => Ok(total = a, count = 1)
+      true => match s < "m"
+        true => Ok(total = a, count = 2)
+        false => Ok(total = a, count = 1)
       false => Ok(total = a, count = 0)
-    false => Ok(total = a, count = 0)
+    false => match a < d"0.2"
+      true => Ok(total = a, count = -1)
+      false => Ok(total = a, count = 0)
 `
 
 func compileFixture(t *testing.T, name, src string) string {
@@ -95,8 +101,12 @@ func TestEmitNumerics(t *testing.T) {
 		"$ailDecAdd(a, b)",
 		"$ailDecGe(a, b)",
 		"$ailDecGt(a,",
+		"$ailDecLt(a,",
+		"$ailStrLt(s,",
 		"(n < 5n)",
 		"function $ailDecGt",
+		"function $ailDecLt",
+		"function $ailStrLt",
 		`"3.14"`,
 		"(n + 1n)",
 		"function $ailDecSplit",
@@ -113,9 +123,12 @@ func TestEmitNumerics(t *testing.T) {
 		}
 	}
 	// The only number-typed values in exact emit are the helpers'
-	// own scale plumbing; every ail value is bigint or string.
+	// own plumbing (dec scale handling, the 3-way str comparator);
+	// every ail value is bigint or string.
 	for _, line := range strings.Split(got, "\n") {
-		if strings.Contains(line, ": number") && !strings.Contains(line, "scale: number") {
+		if strings.Contains(line, ": number") &&
+			!strings.Contains(line, "scale: number") &&
+			!strings.Contains(line, "function $ailStrCmp(") {
 			t.Errorf("emit maps an ail value to lossy number: %q", line)
 		}
 	}

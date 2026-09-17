@@ -815,6 +815,31 @@ func TestDiagnoseCrossBrandCompare(t *testing.T) {
 	checkSpan(t, typeCmp, diags, "cannot compare M__A with M__B", "==", expectLine(t, typeCmp, "match a == b"))
 }
 
+const typeStrictMixed = `mod m
+  provides [m__cmp, M__Out]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  echo: str
+)
+
+fn m__cmp(a: int, b: dec) -> M__Out rev 1
+  emits []
+  tests
+    t(a = 1, b = d"1.0") => Ok(echo = "n")
+=
+  match a > b
+    true => Ok(echo = "y")
+    false => Ok(echo = "n")
+`
+
+func TestDiagnoseStrictMixedCompare(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.ail": typeStrictMixed})
+	diags := diagnose(dir, "m.ail", typeStrictMixed)
+	checkSpan(t, typeStrictMixed, diags, "cannot compare int with dec", ">", expectLine(t, typeStrictMixed, "match a > b"))
+}
+
 const typeSeal = `mod m
   provides [m__seal, M__B, M__Out]
   uses []

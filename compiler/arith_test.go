@@ -85,6 +85,28 @@ func TestStrictComparison(t *testing.T) {
 	}
 }
 
+// TestStrictOpParse pins the findTop split: two-char operators win
+// over their one-char prefixes, and the new ops produce their own
+// binop kinds (issue #40 review).
+func TestStrictOpParse(t *testing.T) {
+	for expr, want := range map[string]string{
+		`x >= 2`: ">=",
+		`x <= 2`: "<=",
+		`x > 2`:  ">",
+		`x < 2`:  "<",
+		`x == 2`: "==",
+		`x != 2`: "!=",
+	} {
+		sm, err := parseSmall(expr)
+		if err != nil {
+			t.Fatalf("parseSmall(%q): %v", expr, err)
+		}
+		if sm.Kind != "binop" || sm.Op != want {
+			t.Fatalf("parseSmall(%q) = %s/%s, want binop/%s", expr, sm.Kind, sm.Op, want)
+		}
+	}
+}
+
 func TestStrictComparisonStr(t *testing.T) {
 	env := map[string]*Value{
 		"x": {Kind: "str", S: "a"},
