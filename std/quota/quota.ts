@@ -66,7 +66,7 @@ function $ailDecGt(a: string, b: string): boolean {
   const s = Math.max(A.fp.length, B.fp.length);
   return $ailDecMant(A, s) > $ailDecMant(B, s);
 }
-export function std__validate__require(condition: boolean, field: string, rule: string): QuotaResult {
+export function std__validate__require(condition: boolean, field: string, rule: string): { $ail_kind: "ok" } | { $ail_kind: "validation.failed"; field: string; rule: string } {
   if (condition) {
     return { $ail_kind: "ok" };
   }
@@ -74,7 +74,7 @@ export function std__validate__require(condition: boolean, field: string, rule: 
     return { $ail_kind: "validation.failed", field: field, rule: rule };
   }
 }
-export function std__validate__int_range(value: bigint, lower: bigint, upper: bigint): QuotaResult {
+export function std__validate__int_range(value: bigint, lower: bigint, upper: bigint): { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } {
   const $ail_m1 = (lower <= upper);
   const $ail_m2 = (value >= lower);
   const $ail_m3 = (value <= upper);
@@ -91,7 +91,7 @@ export function std__validate__int_range(value: bigint, lower: bigint, upper: bi
     return { $ail_kind: "validation.invalid_bounds", lower: lower, upper: upper };
   }
 }
-export function std__validate__int_nonnegative(value: bigint): QuotaResult {
+export function std__validate__int_nonnegative(value: bigint): { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } {
   if ((value >= 0n)) {
     return { $ail_kind: "ok", value: value };
   }
@@ -99,7 +99,7 @@ export function std__validate__int_nonnegative(value: bigint): QuotaResult {
     return { $ail_kind: "validation.negative_value", value: value };
   }
 }
-export function std__validate__int_positive(value: bigint): QuotaResult {
+export function std__validate__int_positive(value: bigint): { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.not_positive"; value: bigint } {
   if ((value > 0n)) {
     return { $ail_kind: "ok", value: value };
   }
@@ -107,7 +107,7 @@ export function std__validate__int_positive(value: bigint): QuotaResult {
     return { $ail_kind: "validation.not_positive", value: value };
   }
 }
-export function std__validate__dec_range(value: string, lower: string, upper: string): QuotaResult {
+export function std__validate__dec_range(value: string, lower: string, upper: string): { $ail_kind: "ok"; value: string } | { $ail_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $ail_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } {
   const $ail_m1 = $ailDecLe(lower, upper);
   const $ail_m2 = $ailDecGe(value, lower);
   const $ail_m3 = $ailDecLe(value, upper);
@@ -124,7 +124,7 @@ export function std__validate__dec_range(value: string, lower: string, upper: st
     return { $ail_kind: "validation.dec_invalid_bounds", lower: lower, upper: upper };
   }
 }
-export function std__validate__dec_positive(value: string): QuotaResult {
+export function std__validate__dec_positive(value: string): { $ail_kind: "ok"; value: string } | { $ail_kind: "validation.dec_not_positive"; value: string } {
   if ($ailDecGt(value, "0.0")) {
     return { $ail_kind: "ok", value: value };
   }
@@ -132,7 +132,7 @@ export function std__validate__dec_positive(value: string): QuotaResult {
     return { $ail_kind: "validation.dec_not_positive", value: value };
   }
 }
-export function std__validate__dec_nonnegative(value: string): QuotaResult {
+export function std__validate__dec_nonnegative(value: string): { $ail_kind: "ok"; value: string } | { $ail_kind: "validation.dec_negative_value"; value: string } {
   if ($ailDecGe(value, "0.0")) {
     return { $ail_kind: "ok", value: value };
   }
@@ -140,7 +140,7 @@ export function std__validate__dec_nonnegative(value: string): QuotaResult {
     return { $ail_kind: "validation.dec_negative_value", value: value };
   }
 }
-export function std__validate__str_length(value: string, minimum: bigint, maximum: bigint): QuotaResult {
+export function std__validate__str_length(value: string, minimum: bigint, maximum: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } {
   const $ail_m1 = (minimum <= maximum);
   const $ail_m2 = ((BigInt([...value].length)) >= minimum);
   const $ail_m3 = ((BigInt([...value].length)) <= maximum);
@@ -157,13 +157,13 @@ export function std__validate__str_length(value: string, minimum: bigint, maximu
     return { $ail_kind: "validation.invalid_bounds", lower: minimum, upper: maximum };
   }
 }
-export function std__validate__str_nonempty(value: string): QuotaResult {
+export function std__validate__str_nonempty(value: string): { $ail_kind: "ok"; value: string } | { $ail_kind: "validation.empty_value"; value: string } {
   if (value === "") {
     return { $ail_kind: "validation.empty_value", value: value };
   }
   return { $ail_kind: "ok", value: value };
 }
-export function std__validate__exclusive_pair(left: boolean, right: boolean): QuotaResult {
+export function std__validate__exclusive_pair(left: boolean, right: boolean): { $ail_kind: "ok" } | { $ail_kind: "validation.exclusive_choice" } {
   const $ail_m1 = left;
   const $ail_m2 = right;
   if ($ail_m1 && $ail_m2) {
@@ -179,12 +179,12 @@ export function std__validate__exclusive_pair(left: boolean, right: boolean): Qu
     return { $ail_kind: "validation.exclusive_choice" };
   }
 }
-export function quota__consume(amount: bigint, quota: bigint): QuotaResult {
+export function quota__consume(amount: bigint, quota: bigint): { $ail_kind: "ok"; remaining: bigint; used: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } | { $ail_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } {
   const $ail_m1: { $ail_kind: "ok", value: bigint } = { $ail_kind: "ok", value: Quota__used };
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const s = $ail_m1;
-    const $ail_m2: QuotaResult = std__validate__int_nonnegative(amount);
+    const $ail_m2: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } = std__validate__int_nonnegative(amount);
     switch ($ail_m2.$ail_kind) {
     case "validation.negative_value": {
       const _ = $ail_m2;
@@ -192,7 +192,7 @@ export function quota__consume(amount: bigint, quota: bigint): QuotaResult {
     }
     case "ok": {
       const _ = $ail_m2;
-      const $ail_m3: QuotaResult = std__validate__int_range((s.value + amount), 0n, quota);
+      const $ail_m3: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $ail_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } = std__validate__int_range((s.value + amount), 0n, quota);
       switch ($ail_m3.$ail_kind) {
       case "validation.invalid_bounds": {
         const _ = $ail_m3;
@@ -213,18 +213,24 @@ export function quota__consume(amount: bigint, quota: bigint): QuotaResult {
         }
         }
       }
+      default: {
+        throw new Error("unreachable");
       }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
     }
     }
   }
   }
 }
-export function quota__usage(quota: bigint): QuotaResult {
+export function quota__usage(quota: bigint): { $ail_kind: "ok"; remaining: bigint; used: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } {
   const $ail_m1: { $ail_kind: "ok", value: bigint } = { $ail_kind: "ok", value: Quota__used };
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const s = $ail_m1;
-    const $ail_m2: QuotaResult = std__validate__int_nonnegative(quota);
+    const $ail_m2: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "validation.negative_value"; value: bigint } = std__validate__int_nonnegative(quota);
     switch ($ail_m2.$ail_kind) {
     case "validation.negative_value": {
       const _ = $ail_m2;
@@ -233,6 +239,9 @@ export function quota__usage(quota: bigint): QuotaResult {
     case "ok": {
       const _ = $ail_m2;
       return { $ail_kind: "ok", used: s.value, remaining: (quota - s.value) };
+    }
+    default: {
+      throw new Error("unreachable");
     }
     }
   }

@@ -70,6 +70,41 @@ func TestMultiShapeEmit(t *testing.T) {
 	}
 }
 
+// Per-function result types: call temporaries and return annotations
+// carry the callee's own outcomes, never the module-wide union, so a
+// strict checker narrows each handled outcome to its exact payload
+// shape (v14: emit narrowing, not suppressions). Every call-switch
+// also ends in an unreachable default arm.
+func TestPerFnResultUnions(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.ail": multiShapeSrc})
+	out := t.TempDir()
+	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := string(raw)
+	// m__use returns only its own ok shape plus the errors it emits:
+	// the value-shape ok member of m__check must not appear.
+	wantRet := `export function m__use(value: bigint, limit: bigint): { $ail_kind: "ok"; got: bigint; limit: bigint } | { $ail_kind: "m.too_big"; value: bigint; limit: bigint } {`
+	if !strings.Contains(ts, wantRet) {
+		t.Errorf("emit missing per-function return:\n%s", ts)
+	}
+	// The m__check call temporary carries m__check's union, not MResult.
+	wantTmp := `const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "m.too_big"; value: bigint; limit: bigint } = m__check(value, limit);`
+	if !strings.Contains(ts, wantTmp) {
+		t.Errorf("emit missing per-function call temporary:\n%s", ts)
+	}
+	if strings.Contains(ts, "const $ail_m1: MResult") {
+		t.Errorf("call temporary uses module-wide union:\n%s", ts)
+	}
+	if !strings.Contains(ts, "throw new Error(\"unreachable\");") {
+		t.Errorf("call-switch missing unreachable default:\n%s", ts)
+	}
+}
+
 // A single-shape module keeps exactly one ok member in the union,
 // now under the disjoint tag.
 func TestSingleShapeEmitUnchanged(t *testing.T) {

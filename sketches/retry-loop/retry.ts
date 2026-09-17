@@ -3,7 +3,7 @@
 import { net__fetch } from "./retry.externs";
 export type RetryResult = { $ail_kind: "ok"; body: string } | { $ail_kind: "retry.exhausted" } | { $ail_kind: "net.down" };
 export type Retry__Doc = { body: string };
-export function retry__fetch(fuel: bigint): RetryResult {
+export function retry__fetch(fuel: bigint): { $ail_kind: "ok"; body: string } | { $ail_kind: "retry.exhausted" } {
   if ((fuel <= 0n)) {
     return { $ail_kind: "retry.exhausted" };
   }
@@ -12,7 +12,7 @@ export function retry__fetch(fuel: bigint): RetryResult {
     switch ($ail_m1.$ail_kind) {
     case "net.down": {
       const _ = $ail_m1;
-      const $ail_m2: RetryResult = retry__fetch((fuel - 1n));
+      const $ail_m2: { $ail_kind: "ok"; body: string } | { $ail_kind: "retry.exhausted" } = retry__fetch((fuel - 1n));
       switch ($ail_m2.$ail_kind) {
       case "retry.exhausted": {
         const _ = $ail_m2;
@@ -22,11 +22,17 @@ export function retry__fetch(fuel: bigint): RetryResult {
         const d = $ail_m2;
         return { $ail_kind: "ok", body: d.body };
       }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
     case "ok": {
       const d = $ail_m1;
       return { $ail_kind: "ok", body: d.body };
+    }
+    default: {
+      throw new Error("unreachable");
     }
     }
   }

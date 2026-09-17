@@ -3,7 +3,7 @@
 export type CounterResult = { $ail_kind: "ok"; total: bigint };
 export type Count__Tally = { total: bigint };
 let Count__total: bigint = 0n;
-export function count__bump(by: bigint): CounterResult {
+export function count__bump(by: bigint): { $ail_kind: "ok"; total: bigint } {
   const $ail_m1: { $ail_kind: "ok", value: bigint } = { $ail_kind: "ok", value: Count__total };
   switch ($ail_m1.$ail_kind) {
   case "ok": {
@@ -19,18 +19,24 @@ export function count__bump(by: bigint): CounterResult {
   }
   }
 }
-export function count__twice(by: bigint): CounterResult {
-  const $ail_m1: CounterResult = count__bump(by);
+export function count__twice(by: bigint): { $ail_kind: "ok"; total: bigint } {
+  const $ail_m1: { $ail_kind: "ok"; total: bigint } = count__bump(by);
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const s = $ail_m1;
-    const $ail_m2: CounterResult = count__bump(by);
+    const $ail_m2: { $ail_kind: "ok"; total: bigint } = count__bump(by);
     switch ($ail_m2.$ail_kind) {
     case "ok": {
       const t = $ail_m2;
       return { $ail_kind: "ok", total: t.total };
     }
+    default: {
+      throw new Error("unreachable");
     }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }

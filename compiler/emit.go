@@ -127,6 +127,51 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	return union, nil
 }
 
+// fnResultUnion is the TS Result type of one local function: ok
+// carrying its declared Ret record plus one member per declared emits
+// kind, in emits order. Call temporaries and return annotations use
+// this instead of the module-wide union so a strict checker narrows
+// each handled outcome to its exact payload shape (v14: emit
+// narrowing, not suppressions). The module union stays as the general
+// published type. Ok fields sort to match the module-union member for
+// the same shape.
+func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
+	shape, err := declaredOkShape(fn, prog)
+	if err != nil {
+		return "", err
+	}
+	var names []string
+	for n := range shape {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	fs := ""
+	for _, n := range names {
+		fs += "; " + n + ": " + shape[n]
+	}
+	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
+	recs := recordShapes(prog.Modules)
+	for _, e := range fn.Emits {
+		var ed *ErrorDecl
+		for _, m := range prog.Modules {
+			for _, d := range m.Decls {
+				if er, ok := d.(*ErrorDecl); ok && er.Name == e {
+					ed = er
+				}
+			}
+		}
+		if ed == nil {
+			return "", fmt.Errorf("%s emits unknown error %s", fn.Name, e)
+		}
+		mem, err := tsErrMember(ed, prog.Brands, recs)
+		if err != nil {
+			return "", err
+		}
+		union += " | " + mem
+	}
+	return union, nil
+}
+
 // declaredOkShape builds a function's Ok payload shape from its declared
 // return record, never from literals in the body or tests. The checker
 // already proves every Ok construction against that record (unknown,
@@ -653,7 +698,9 @@ var strRuntimeOps = []struct {
 		"  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"str index out of range\");",
 		"  const k = Number(i);",
 		"  if (k >= cps.length) throw new Error(\"str index out of range\");",
-		"  return BigInt(cps[k].codePointAt(0));",
+		"  const cp = cps[k].codePointAt(0);",
+		"  if (cp === undefined) throw new Error(\"str index out of range\");",
+		"  return BigInt(cp);",
 		"}",
 	}},
 	{"slice", []string{
@@ -871,6 +918,14 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 			return fmt.Errorf("call-match arm must be an error kind or Ok")
 		}
 	}
+	// The checker proves arm coverage before emission, so default is
+	// unreachable; it exists so strict checkers (whose narrowing gives
+	// up through deeply nested switches) and readers both see a total
+	// switch, and so a future emitter bug throws instead of returning
+	// undefined.
+	*out = append(*out, "default: {")
+	*out = append(*out, "  throw new Error(\"unreachable\");")
+	*out = append(*out, "}")
 	*out = append(*out, "}")
 	return nil
 }
@@ -1305,7 +1360,14 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !ok {
 			continue
 		}
-		lines, err := em.fn(fn, cap_)
+		// Return annotations are per-function unions (see
+		// fnResultUnion): the module union would lie about which
+		// outcomes each function can produce.
+		union, ok := fnUnions[fn.Name]
+		if !ok {
+			return "", fmt.Errorf("no Result type for function %s", fn.Name)
+		}
+		lines, err := em.fn(fn, union)
 		if err != nil {
 			return "", err
 		}

@@ -5,8 +5,8 @@ import { auth__check_pw } from "./auth.externs";
 export type AuthResult = { $ail_kind: "ok"; remaining_tries: bigint; user_id: string } | { $ail_kind: "auth.login_failed"; user_id: string } | { $ail_kind: "auth.account_locked"; user_id: string } | { $ail_kind: "auth.unavailable"; reason: string } | { $ail_kind: "auth.mismatch" };
 export type Auth__Session = { user_id: string; remaining_tries: bigint };
 export type Auth__Verdict = {};
-export function auth__login(id: string, pw: string): AuthResult {
-  const $ail_m1: DbResult = db__get_user(id);
+export function auth__login(id: string, pw: string): { $ail_kind: "ok"; remaining_tries: bigint; user_id: string } | { $ail_kind: "auth.login_failed"; user_id: string } | { $ail_kind: "auth.account_locked"; user_id: string } | { $ail_kind: "auth.unavailable"; reason: string } {
+  const $ail_m1: { $ail_kind: "ok"; failed_attempts: bigint; id: string; pw_hash: string } | { $ail_kind: "db.user_not_found"; id: string } | { $ail_kind: "db.down" } = db__get_user(id);
   switch ($ail_m1.$ail_kind) {
   case "db.user_not_found": {
     const _ = $ail_m1;
@@ -14,7 +14,7 @@ export function auth__login(id: string, pw: string): AuthResult {
   }
   case "db.down": {
     const _ = $ail_m1;
-    const $ail_m2: DbResult = db__get_user(id);
+    const $ail_m2: { $ail_kind: "ok"; failed_attempts: bigint; id: string; pw_hash: string } | { $ail_kind: "db.user_not_found"; id: string } | { $ail_kind: "db.down" } = db__get_user(id);
     switch ($ail_m2.$ail_kind) {
     case "db.user_not_found": {
       const _ = $ail_m2;
@@ -26,7 +26,7 @@ export function auth__login(id: string, pw: string): AuthResult {
     }
     case "ok": {
       const user = $ail_m2;
-      const $ail_m3: AuthResult = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
+      const $ail_m3: { $ail_kind: "ok"; remaining_tries: bigint; user_id: string } | { $ail_kind: "auth.login_failed"; user_id: string } | { $ail_kind: "auth.account_locked"; user_id: string } = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
       switch ($ail_m3.$ail_kind) {
       case "auth.login_failed": {
         const _ = $ail_m3;
@@ -40,13 +40,19 @@ export function auth__login(id: string, pw: string): AuthResult {
         const s = $ail_m3;
         return { $ail_kind: "ok", user_id: s.user_id, remaining_tries: s.remaining_tries };
       }
+      default: {
+        throw new Error("unreachable");
       }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
     }
     }
   }
   case "ok": {
     const user = $ail_m1;
-    const $ail_m4: AuthResult = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
+    const $ail_m4: { $ail_kind: "ok"; remaining_tries: bigint; user_id: string } | { $ail_kind: "auth.login_failed"; user_id: string } | { $ail_kind: "auth.account_locked"; user_id: string } = auth__verify(user.id, user.failed_attempts, pw, user.pw_hash);
     switch ($ail_m4.$ail_kind) {
     case "auth.login_failed": {
       const _ = $ail_m4;
@@ -60,11 +66,17 @@ export function auth__login(id: string, pw: string): AuthResult {
       const s = $ail_m4;
       return { $ail_kind: "ok", user_id: s.user_id, remaining_tries: s.remaining_tries };
     }
+    default: {
+      throw new Error("unreachable");
     }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }
-export function auth__verify(user_id: string, failed_attempts: bigint, pw: string, pw_hash: string): AuthResult {
+export function auth__verify(user_id: string, failed_attempts: bigint, pw: string, pw_hash: string): { $ail_kind: "ok"; remaining_tries: bigint; user_id: string } | { $ail_kind: "auth.login_failed"; user_id: string } | { $ail_kind: "auth.account_locked"; user_id: string } {
   if ((failed_attempts >= 3n)) {
     return { $ail_kind: "auth.account_locked", user_id: user_id };
   }
@@ -78,6 +90,9 @@ export function auth__verify(user_id: string, failed_attempts: bigint, pw: strin
     case "ok": {
       const ok = $ail_m1;
       return { $ail_kind: "ok", user_id: user_id, remaining_tries: (3n - failed_attempts) };
+    }
+    default: {
+      throw new Error("unreachable");
     }
     }
   }

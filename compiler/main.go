@@ -133,7 +133,15 @@ func compileEx(out string, paths []string, jsonOut bool) error {
 			switch d := d.(type) {
 			case *FnDecl:
 				stemOf[d.Name] = m.Stem
-				fnUnions[d.Name] = capitalize(m.Mod) + "Result"
+				// Per-function unions (see fnResultUnion): call
+				// temporaries and return annotations carry the
+				// callee's own outcomes, never the module-wide
+				// union, so strict checkers narrow exactly.
+				u, err := fnResultUnion(d, prog)
+				if err != nil {
+					return err
+				}
+				fnUnions[d.Name] = u
 			case *ExternDecl:
 				u, err := externUnion(d, prog)
 				if err != nil {

@@ -28,7 +28,9 @@ function $ailStrAt(s: string, i: bigint): bigint {
   if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("str index out of range");
   const k = Number(i);
   if (k >= cps.length) throw new Error("str index out of range");
-  return BigInt(cps[k].codePointAt(0));
+  const cp = cps[k].codePointAt(0);
+  if (cp === undefined) throw new Error("str index out of range");
+  return BigInt(cp);
 }
 function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   const cps = [...s];
@@ -37,7 +39,7 @@ function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   if (lo > hi || hi > cps.length) throw new Error("str slice out of range");
   return cps.slice(lo, hi).join("");
 }
-export function html__text__escape_from(orig: string, s: string, acc: string, n: bigint): HtmlResult {
+export function html__text__escape_from(orig: string, s: string, acc: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
   if ((n <= 0n)) {
     return { $ail_kind: "ok", value: acc };
   }
@@ -47,7 +49,7 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
     }
     else {
       if (($ailStrSlice(s, 0n, 1n) === "&")) {
-        const $ail_m1: HtmlResult = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
+        const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
         switch ($ail_m1.$ail_kind) {
         case "ok": {
           const r = $ail_m1;
@@ -57,11 +59,14 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
           const e = $ail_m1;
           return { $ail_kind: "html.nul_byte", value: e.value };
         }
+        default: {
+          throw new Error("unreachable");
+        }
         }
       }
       else {
         if (($ailStrSlice(s, 0n, 1n) === "<")) {
-          const $ail_m2: HtmlResult = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
+          const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
           switch ($ail_m2.$ail_kind) {
           case "ok": {
             const r = $ail_m2;
@@ -71,11 +76,14 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
             const e = $ail_m2;
             return { $ail_kind: "html.nul_byte", value: e.value };
           }
+          default: {
+            throw new Error("unreachable");
+          }
           }
         }
         else {
           if (($ailStrSlice(s, 0n, 1n) === ">")) {
-            const $ail_m3: HtmlResult = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
+            const $ail_m3: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
             switch ($ail_m3.$ail_kind) {
             case "ok": {
               const r = $ail_m3;
@@ -85,10 +93,13 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
               const e = $ail_m3;
               return { $ail_kind: "html.nul_byte", value: e.value };
             }
+            default: {
+              throw new Error("unreachable");
+            }
             }
           }
           else {
-            const $ail_m4: HtmlResult = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
+            const $ail_m4: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
             switch ($ail_m4.$ail_kind) {
             case "ok": {
               const r = $ail_m4;
@@ -98,6 +109,9 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
               const e = $ail_m4;
               return { $ail_kind: "html.nul_byte", value: e.value };
             }
+            default: {
+              throw new Error("unreachable");
+            }
             }
           }
         }
@@ -105,8 +119,8 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
     }
   }
 }
-export function html__text__escape(raw: string): HtmlResult {
-  const $ail_m1: HtmlResult = html__text__escape_from(raw, raw, "", (BigInt([...raw].length)));
+export function html__text__escape(raw: string): { $ail_kind: "ok"; text: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__text__escape_from(raw, raw, "", (BigInt([...raw].length)));
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const r = $ail_m1;
@@ -116,18 +130,21 @@ export function html__text__escape(raw: string): HtmlResult {
     const e = $ail_m1;
     return { $ail_kind: "html.nul_byte", value: raw };
   }
+  default: {
+    throw new Error("unreachable");
+  }
   }
 }
-export function html__text__node(text: string): HtmlResult {
+export function html__text__node(text: string): { $ail_kind: "ok"; safe: string } {
   return { $ail_kind: "ok", safe: text };
 }
-export function html__attribute__name(value: string): HtmlResult {
+export function html__attribute__name(value: string): { $ail_kind: "ok"; name: string } | { $ail_kind: "html.invalid_attribute_name"; value: string } {
   if (value === "title") {
     return { $ail_kind: "ok", name: "title" };
   }
   return { $ail_kind: "html.invalid_attribute_name", value: value };
 }
-export function html__attribute__value_from(orig: string, s: string, acc: string, n: bigint): HtmlResult {
+export function html__attribute__value_from(orig: string, s: string, acc: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } {
   if ((n <= 0n)) {
     return { $ail_kind: "ok", value: acc };
   }
@@ -137,7 +154,7 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
     }
     else {
       if (($ailStrSlice(s, 0n, 1n) === "&")) {
-        const $ail_m1: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
+        const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
         switch ($ail_m1.$ail_kind) {
         case "ok": {
           const r = $ail_m1;
@@ -147,11 +164,14 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
           const e = $ail_m1;
           return { $ail_kind: "html.nul_byte", value: e.value };
         }
+        default: {
+          throw new Error("unreachable");
+        }
         }
       }
       else {
         if (($ailStrSlice(s, 0n, 1n) === "<")) {
-          const $ail_m2: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
+          const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
           switch ($ail_m2.$ail_kind) {
           case "ok": {
             const r = $ail_m2;
@@ -161,11 +181,14 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
             const e = $ail_m2;
             return { $ail_kind: "html.nul_byte", value: e.value };
           }
+          default: {
+            throw new Error("unreachable");
+          }
           }
         }
         else {
           if (($ailStrSlice(s, 0n, 1n) === ">")) {
-            const $ail_m3: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
+            const $ail_m3: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
             switch ($ail_m3.$ail_kind) {
             case "ok": {
               const r = $ail_m3;
@@ -175,11 +198,14 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
               const e = $ail_m3;
               return { $ail_kind: "html.nul_byte", value: e.value };
             }
+            default: {
+              throw new Error("unreachable");
+            }
             }
           }
           else {
             if (($ailStrSlice(s, 0n, 1n) === "'")) {
-              const $ail_m4: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
+              const $ail_m4: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
               switch ($ail_m4.$ail_kind) {
               case "ok": {
                 const r = $ail_m4;
@@ -189,10 +215,13 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
                 const e = $ail_m4;
                 return { $ail_kind: "html.nul_byte", value: e.value };
               }
+              default: {
+                throw new Error("unreachable");
+              }
               }
             }
             else {
-              const $ail_m5: HtmlResult = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
+              const $ail_m5: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (acc + $ailStrSlice(s, 0n, 1n)), (n - 1n));
               switch ($ail_m5.$ail_kind) {
               case "ok": {
                 const r = $ail_m5;
@@ -202,6 +231,9 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
                 const e = $ail_m5;
                 return { $ail_kind: "html.nul_byte", value: e.value };
               }
+              default: {
+                throw new Error("unreachable");
+              }
               }
             }
           }
@@ -210,15 +242,15 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
     }
   }
 }
-export function html__attribute__spelling(name: string): HtmlResult {
+export function html__attribute__spelling(name: string): { $ail_kind: "ok"; name: string; spelling: string } {
   return { $ail_kind: "ok", name: name, spelling: "title" };
 }
-export function html__attribute__text(name: string, raw: string): HtmlResult {
-  const $ail_m1: HtmlResult = html__attribute__spelling(name);
+export function html__attribute__text(name: string, raw: string): { $ail_kind: "ok"; attribute: string } | { $ail_kind: "html.nul_byte"; value: string } {
+  const $ail_m1: { $ail_kind: "ok"; name: string; spelling: string } = html__attribute__spelling(name);
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const w = $ail_m1;
-    const $ail_m2: HtmlResult = html__attribute__value_from(raw, raw, "", (BigInt([...raw].length)));
+    const $ail_m2: { $ail_kind: "ok"; value: string } | { $ail_kind: "html.nul_byte"; value: string } = html__attribute__value_from(raw, raw, "", (BigInt([...raw].length)));
     switch ($ail_m2.$ail_kind) {
     case "ok": {
       const v = $ail_m2;
@@ -228,7 +260,13 @@ export function html__attribute__text(name: string, raw: string): HtmlResult {
       const e = $ail_m2;
       return { $ail_kind: "html.nul_byte", value: raw };
     }
+    default: {
+      throw new Error("unreachable");
     }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }
