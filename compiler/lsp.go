@@ -263,6 +263,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 				called[k] = true
 			}
 			out = append(out, checkCalls(fn, prog, localExtern, text)...)
+			out = append(out, checkEagerScrutinee(fn, text)...)
 			out = append(out, checkDecreases(fn, prog, text)...)
 			out = append(out, checkEffects(fn, prog, text)...)
 			out = append(out, checkGiven(fn, prog, text)...)

@@ -499,6 +499,70 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 	return out
 }
 
+// checkEagerScrutinee warns where a multi-scrutinee value match can
+// fail before dispatch: every scrutinee evaluates eagerly, left to
+// right, so a trapping operation (string index or slice, division or
+// remainder, any call) in any scrutinee runs even when an outer arm
+// of the equivalent nested match would have guarded it. Arity 1 is
+// silent: one scrutinee evaluates exactly as the nested form does.
+func checkEagerScrutinee(fn *FnDecl, text string) []Diag {
+	var out []Diag
+	for _, m := range matchNodes(fn.Body) {
+		if m.Kind != MatchValue || len(m.Scruts) < 2 {
+			continue
+		}
+		for i, ms := range m.Scruts {
+			trap := firstTrappingOp(ms)
+			if trap == "" {
+				continue
+			}
+			out = append(out, spanDiag(text, m.Line, "warning",
+				fmt.Sprintf("scrutinee %d may fail (%s) before dispatch: a multi-scrutinee match evaluates every scrutinee eagerly, unlike a nested match", i+1, trap), "match", CodeEagerScrutinee))
+		}
+	}
+	return out
+}
+
+// isNonzeroIntLit reports a statically nonzero int divisor: arbitrarily
+// large literals are fine (ints are unbounded), only zero can fail.
+func isNonzeroIntLit(s *Small) bool {
+	return s != nil && s.Kind == "int" && s.Num != nil && s.Num.Sign() != 0
+}
+
+// firstTrappingOp names the first operation in s that can fail at
+// runtime, or "" when s is total. The set mirrors the evSmall failure
+// surface: partial accessors, partial arithmetic, and calls.
+func firstTrappingOp(s *Small) string {
+	found := ""
+	walkSmallTrees(s, func(n *Small) {
+		if found != "" {
+			return
+		}
+		switch n.Kind {
+		case "stridx":
+			found = "string index"
+		case "strslice":
+			found = "string slice"
+		case "binop":
+			if n.Op == "/" || n.Op == "%" {
+				// A literal nonzero divisor cannot fail; parity-style
+				// tables over n % 2 stay silent.
+				if isNonzeroIntLit(n.R) {
+					break
+				}
+				if n.Op == "/" {
+					found = "division"
+				} else {
+					found = "remainder"
+				}
+			}
+		case "call":
+			found = fmt.Sprintf("call to %s", n.Fname)
+		}
+	})
+	return found
+}
+
 // reachingTests returns every test that can execute fname's body: its
 // own tests plus every transitive local caller's tests. Helper bodies
 // run under the caller's test name, so an inner given table must
