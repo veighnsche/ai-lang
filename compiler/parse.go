@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // ---------------------------------------------------------------- AST ------
@@ -853,6 +854,13 @@ func parseModule(path string) (*Module, error) {
 
 func parseModuleText(name, text string) (*Module, error) {
 	path := name
+	// Row 4: source decoding enforces valid UTF-8 before anything
+	// else runs. The pipeline cannot carry malformed bytes
+	// faithfully (the emitter substitutes), so fail closed at the
+	// door rather than repairing silently downstream.
+	if !utf8.ValidString(text) {
+		return nil, at(1, fmt.Errorf("source is not valid UTF-8: decode the file as UTF-8 before compiling"))
+	}
 	if strings.ContainsAny(text, "{}") {
 		line := 1
 		for n, raw := range strings.Split(text, "\n") {

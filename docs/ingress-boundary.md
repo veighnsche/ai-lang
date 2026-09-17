@@ -31,7 +31,7 @@ policy (row 5), not to this boundary.
 
 | Route | Finding | Decision |
 |---|---|---|
-| Source decoding / literal construction | No validation; malformed enters silently; emit repairs silently and divergently | **ENFORCE: reject malformed UTF-8 at parse** with a diagnostic. Silent repair already proves the pipeline cannot carry these bytes faithfully; fail closed costs no legitimate user. Repair slice scheduled (row 4). |
+| Source decoding / literal construction | Malformed entered silently; emit repaired silently and divergently | **REPAIRED (row 4)**: `parseModuleText` refuses malformed UTF-8 (`AIL1000`; all four routes share the choke point), pinned by `TestMalformedSourceRefused` on CLI and editor paths |
 | Extern success/error payloads | Real route: host-implemented externs return `str`-bearing records in prod (sketches), scripted in tests. Well-formedness is currently nobody's job | **TRUSTED under explicit contract**: host functions must return valid scalar-value strings, records included. Enforcement (runtime validation of host returns) is disproportionate now; the condition is written down instead of assumed. |
 | TypeScript entry points | Emitted functions take unchecked `string`; lone surrogates spread to lone-surrogate code points where Go yields FFFD — live runtime divergence for host-supplied strings | **TRUSTED under explicit contract** on emitted modules: callers supply valid scalar-value strings. Same reasoning as externs; not silently redesignated unsupported. |
 | Internal string operations | Conditional preservation (see above) | **CONDITIONAL theorem**: holds iff ingress holds. No per-operation validation. |
@@ -40,10 +40,11 @@ policy (row 5), not to this boundary.
 
 ## Consequences
 
-- The source-decode rejection is a **demonstrated defect repair**
-  (row 4): silent entry plus divergent repair, on a supported
-  path, against the exact-or-loud doctrine. It does not wait for
-  a framework.
+- The source-decode rejection was a **demonstrated defect repair**
+  (row 4, shipped): silent entry plus divergent repair, on a
+  supported path, against the exact-or-loud doctrine. One check
+  at the shared choke point; valid sources byte-identical in
+  behavior (full suite green).
 - The TS-entry and extern conditions must appear where a host
   author looks (emit header / extern contract docs), not buried
   here alone.

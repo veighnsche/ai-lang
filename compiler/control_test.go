@@ -49,3 +49,34 @@ func TestControlBytesRoundTrip(t *testing.T) {
 		t.Fatalf("emitted TS must escape NUL as \\u0000, got:\n%s", ts)
 	}
 }
+
+// Row 4: malformed UTF-8 is refused at parse on every route into
+// parseModuleText (CLI files and editor texts share the choke
+// point). Only 0x0A is excluded from the expressible set, by line
+// structure — every other probe above remains valid UTF-8.
+func TestMalformedSourceRefused(t *testing.T) {
+	bad := "mod probe\n  provides [probe__go]\n  uses []\n  emits []\n\nfn probe__go() -> Probe__Out rev 1\n  emits []\n  tests\n    go() => Ok(value = \"a\xff\xfeb\")\n=\n  Ok(value = \"a\xff\xfeb\")\n"
+	dir := t.TempDir()
+	srcPath := filepath.Join(dir, "probe.ail")
+	if err := os.WriteFile(srcPath, []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, collected, err := parsePaths([]string{srcPath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, d := range collected {
+		if d.Sev == "error" && d.Code == CodeParse && strings.Contains(d.Msg, "not valid UTF-8") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("CLI path must refuse malformed source, got %v", collected)
+	}
+	wdir := writeLSPDir(t, map[string]string{"probe.ail": bad})
+	diags := diagnose(wdir, "probe.ail", bad)
+	if !hasDiag(diags, "error", "not valid UTF-8") {
+		t.Fatalf("editor path must refuse malformed source, got %v", diags)
+	}
+}
