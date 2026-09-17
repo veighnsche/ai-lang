@@ -35,6 +35,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v43-named-attributes.md` | Shipped (fork verdict B) | Name-carrying wrappers; pairs minted, never parsed; `make` next |
 | `v45-bytes-values.md` | Shipped (Bytes B1) | `Bytes` value admission; `Bytes(Seq<int>[...])` literals `0..255`; `Uint8Array` emit; export/codecs next |
 | `v46-bytes-export.md` | Shipped (Bytes B2) | Owner-local `exports_utf8` grants; `bytes__utf8__export` kernel; whole-program certification barrier; generic encoder next |
+| `v47-bytes-encode.md` | Shipped (Bytes B3) | Public `bytes__utf8__encode` kernel; kernel descriptor table; strict `str` admission; Render consumer next |
 
 ## Reading order for a reviewer
 

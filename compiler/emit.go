@@ -1112,8 +1112,8 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if isDecParts(scrut.Fname) {
 		return e.stmtDecParts(node, scrut, out)
 	}
-	if isBytesExport(scrut.Fname) {
-		return e.stmtBytesExport(node, scrut, out)
+	if isBytesKernel(scrut.Fname) {
+		return e.stmtBytesEncode(node, scrut, out)
 	}
 	union, ok := e.fnUnions[scrut.Fname]
 	if !ok {
@@ -1393,18 +1393,31 @@ func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
 	return nil
 }
 
-// stmtBytesExport lowers a certified brand export (v46 S2): the
-// granted string through TextEncoder into an Ok record of Uint8Array.
-// The certificate annotation is required; uncertified nodes fail loud
-// and never fall through to the ordinary call path.
-func (e *emitter) stmtBytesExport(node *Node, scrut *Small, out *[]string) error {
-	if scrut.ExportBrand == "" {
+// stmtBytesEncode lowers UTF-8 encoding (v46 S2, v47 S3): the input
+// string through TextEncoder into an Ok record of Uint8Array.
+// Restricted calls require the certificate annotation; uncertified
+// nodes fail loud and never fall through to the ordinary call path.
+func (e *emitter) stmtBytesEncode(node *Node, scrut *Small, out *[]string) error {
+	if isBytesExport(scrut.Fname) && scrut.ExportBrand == "" {
 		return fmt.Errorf("cannot emit %s: no valid exports_utf8 grant certified this call", scrut.Fname)
 	}
-	if len(scrut.Args) != 1 {
+	var argv *Small
+	if !isBytesExport(scrut.Fname) {
+		slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+		if err != nil {
+			return fmt.Errorf("cannot emit %s: %s", scrut.Fname, err.Error())
+		}
+		for i, s := range slots {
+			if s == 0 {
+				argv = scrut.Args[i].V
+			}
+		}
+	} else if len(scrut.Args) != 1 {
 		return fmt.Errorf("cannot emit %s: want one value", scrut.Fname)
+	} else {
+		argv = scrut.Args[0].V
 	}
-	v, err := e.emitValue(scrut.Args[0].V)
+	v, err := e.emitValue(argv)
 	if err != nil {
 		return err
 	}

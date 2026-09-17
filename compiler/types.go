@@ -133,6 +133,9 @@ type calleeSig struct {
 }
 
 func (c *tycker) callee(name string) *calleeSig {
+	if k, ok := bytesKernels[name]; ok && !k.restricted {
+		return &calleeSig{k.params, k.ret}
+	}
 	if f, ok := c.prog.Fns[name]; ok {
 		return &calleeSig{f.Params, f.Ret}
 	}

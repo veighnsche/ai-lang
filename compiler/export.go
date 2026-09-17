@@ -33,6 +33,36 @@ func isBytesExport(fname string) bool {
 	return fname == bytesExportKernel
 }
 
+// bytesEncodeKernel is the public UTF-8 encode intrinsic (v47 S3):
+// total over str, deterministic, certificate-free.
+const bytesEncodeKernel = "bytes__utf8__encode"
+
+// bytesKernel describes one compiler kernel: its static signature,
+// result record, declared emits, and whether calls need a grant
+// certificate. Only the export kernel is restricted; public kernels
+// check through the ordinary signature machinery.
+type bytesKernel struct {
+	params     [][2]string
+	ret        string
+	emits      []string
+	restricted bool
+}
+
+// bytesKernels is the authority for kernel registration: call rules,
+// given rules, EmitsOf entries, exhaustiveness, dispatch, and
+// lowering all key off this table. Later slices add rows (never a
+// scattered duplicate).
+var bytesKernels = map[string]bytesKernel{
+	bytesExportKernel: {ret: bytesValueRecord, emits: []string{}, restricted: true},
+	bytesEncodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{}},
+}
+
+// isBytesKernel reports any registered Bytes kernel.
+func isBytesKernel(fname string) bool {
+	_, ok := bytesKernels[fname]
+	return ok
+}
+
 // builtinTypeDecls returns the compiler-owned record declarations.
 // B2 owns Bytes__Value only; later slices extend this list (never a
 // scattered duplicate). Callers must never insert these into source

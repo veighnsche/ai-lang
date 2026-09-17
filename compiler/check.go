@@ -131,7 +131,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			_, isFn := d.(*FnDecl)
 			_, isEx := d.(*ExternDecl)
 			if isFn || isEx {
-				if isBytesExport(name) {
+				if isBytesKernel(name) {
 					kind := "function"
 					if isEx {
 						kind = "extern"
@@ -238,10 +238,12 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			prog.Uses[base] = true
 		}
 	}
-	// v46 S2: the restricted export kernel declares its contract
-	// explicitly. The entry must exist (exhaustiveness verifies it
+	// v46 S2: every registered kernel declares its contract
+	// explicitly. Entries must exist (exhaustiveness verifies them
 	// independently); an absent entry is never an empty error set.
-	prog.EmitsOf[bytesExportKernel] = []string{}
+	for name, k := range bytesKernels {
+		prog.EmitsOf[name] = k.emits
+	}
 	return prog, out
 }
 
@@ -462,7 +464,7 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 			s := m.Scruts[0]
 			scrut[s] = true
 			fname := s.Fname
-			if isStoreOp(fname) || isDecParts(fname) || isBytesExport(fname) {
+			if isStoreOp(fname) || isDecParts(fname) || isBytesKernel(fname) {
 				continue // cells resolve in checkEffects; kernels
 				// need nothing; uses never applies to any of them
 			}
@@ -692,7 +694,7 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 			}
 			continue
 		}
-		if isBytesExport(fname) {
+		if isBytesKernel(fname) {
 			if m.Given != nil {
 				out = append(out, spanDiag(text, m.Line, "error",
 					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))

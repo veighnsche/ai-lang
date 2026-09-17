@@ -882,24 +882,40 @@ func evValueMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*V
 	return nil, fmt.Errorf("%s/%s: non-exhaustive multi-scrutinee match", owner, ctx.Test)
 }
 
-// evBytesExportOp evaluates a certified brand export (v46 S2): the
-// granted brand's string as UTF-8 bytes, NUL and BOM preserved.
-// Uncertified calls refuse loud; the refusal must never become
+// evBytesEncodeOp evaluates UTF-8 encoding (v46 S2, v47 S3): the input
+// string as UTF-8 bytes, NUL and BOM preserved. Restricted calls
+// refuse loud without a certificate; the refusal must never become
 // trusted script evidence (certificates issue before linkage for
 // exactly this reason).
-func evBytesExportOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
-	if scrut.ExportBrand == "" {
-		return nil, fmt.Errorf("%s: call to %s is not authorized by a valid exports_utf8 grant", owner, bytesExportKernel)
+func evBytesEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if isBytesExport(scrut.Fname) && scrut.ExportBrand == "" {
+		return nil, fmt.Errorf("%s: call to %s is not authorized by a valid exports_utf8 grant", owner, scrut.Fname)
 	}
-	if len(scrut.Args) != 1 || scrut.Args[0].HasName {
-		return nil, fmt.Errorf("%s: call to %s takes the bare granted value", owner, bytesExportKernel)
+	var argv *Small
+	if isBytesExport(scrut.Fname) {
+		// Restricted calls carry no static signature; their exact
+		// shape was proven by the certifier, so re-check it here.
+		if len(scrut.Args) != 1 || scrut.Args[0].HasName {
+			return nil, fmt.Errorf("%s: call to %s takes the bare granted value", owner, scrut.Fname)
+		}
+		argv = scrut.Args[0].V
+	} else {
+		slots, berr := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+		if berr != nil {
+			return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+		}
+		for i, s := range slots {
+			if s == 0 {
+				argv = scrut.Args[i].V
+			}
+		}
 	}
-	v, err := evSmall(scrut.Args[0].V, env, ctx, owner)
+	v, err := evSmall(argv, env, ctx, owner)
 	if err != nil {
 		return nil, err
 	}
 	if v.Kind != "str" {
-		return nil, fmt.Errorf("%s: call to %s takes a string-backed brand", owner, bytesExportKernel)
+		return nil, fmt.Errorf("%s: call to %s takes str", owner, scrut.Fname)
 	}
 	if !utf8.ValidString(v.S) {
 		return nil, fmt.Errorf("%s: host string is not valid UTF-8", owner)
@@ -932,11 +948,11 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				return nil, err
 			}
 			v = val
-		} else if isBytesExport(fname) {
+		} else if isBytesKernel(fname) {
 			if node.Given != nil {
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
-			val, err := evBytesExportOp(scrut, env, ctx, owner)
+			val, err := evBytesEncodeOp(scrut, env, ctx, owner)
 			if err != nil {
 				return nil, err
 			}
@@ -1389,12 +1405,12 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 		}
 		if n.Kind == MatchCall {
 			fname := n.Scruts[0].Fname
-			if isBytesExport(fname) {
-				// v46 S2: the export kernel's contract must exist
+			if isBytesKernel(fname) {
+				// v46 S2: every kernel's contract must exist
 				// explicitly; an absent entry is never an empty
 				// error set (no dec__parts shortcut).
 				if _, ok := prog.EmitsOf[fname]; !ok {
-					out = append(out, at(n.Line, fmt.Errorf("%s: export kernel %s has no registered contract", owner, fname)))
+					out = append(out, at(n.Line, fmt.Errorf("%s: bytes kernel %s has no registered contract", owner, fname)))
 				}
 			}
 			want := map[string]bool{"ok": true}
