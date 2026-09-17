@@ -464,8 +464,10 @@ type emitter struct {
 
 // divModHelper renders the Euclidean integer-division runtime: BigInt
 // / and % truncate toward zero, so a negative truncated remainder is
-// adjusted into 0 <= r < |b| (property-checked in node against the
-// contract on 20k random inputs plus fixed sign vectors).
+// adjusted into 0 <= r < |b|. The helper text is pinned by
+// TestDivEmitHelper and the Go-side contract by TestDivModVectors;
+// executing the emitted helper against the contract awaits a node
+// gate (tsc verification stays suspended per #11).
 var divModHelper = []string{
 	"// Euclidean integer division (v17): quotient and remainder with",
 	"// 0 <= r < |b| on every sign combination.",

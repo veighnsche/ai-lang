@@ -26,9 +26,11 @@ untouched.
   retires for the five blessed functions below.
 - Emit rides `$ailDivMod` (BigInt truncates toward zero, so a
   negative truncated remainder adjusts into range), emitted
-  inline only when used. Property-checked in node against the
-  contract itself: 20,000 random inputs plus fixed sign vectors,
-  zero failures.
+  inline only when used. The helper text is pinned by
+  `TestDivEmitHelper` and the Go-side contract by
+  `TestDivModVectors` (identity plus bounds on every sign
+  combination). Executing the emitted helper against the contract
+  awaits a node gate (tsc verification stays suspended per #11).
 
 ## What ships
 
