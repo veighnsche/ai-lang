@@ -194,7 +194,10 @@ specification must rule out the constant function, not merely bless examples.
   `mod.fn/test => value` line per test. Every build writes
   `errors.json` beside the emit: each kind with its fields, raisers,
   handling arms, and hitting tests. Test-per-arm law: every match arm
-  must execute across the decision-table run (`AIL4107`); `emits` is a
+  must execute across the decision-table run (`AIL4107`) or carry the
+  authorized structural certificate (certified identity relay);
+  reporting distinguishes executed, certified, and uncovered —
+  certified is never reported as taken or reachable. `emits` is a
   conservative upper bound, so unrealized entries are allowed (v12);
   coverage is assessed over green tables only. Type discipline (`AIL6xxx`): floats are ungrammatical
   (`AIL6001`, write `d"12.34"`); `dec` compares exactly in proofs;

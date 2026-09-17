@@ -11,13 +11,22 @@ proven by probe before anything was written.
   same-file worker; the entry seals the computed string, the one
   construction site in the module.
 - The worker escapes `&`, `<`, `>` and passes everything else
-  through, including the astral plane. No rejection error
-  exists: control scalars cannot be written in string literals
-  (literals are raw), so no reject arm could ever be witnessed —
-  and unwitnessed arms are compile errors. The total function
-  is forced by the coverage law, not chosen by taste. Quotes
-  stay unescaped here by the text-context contract; attributes
-  get their own constructors.
+  through, including the astral plane. No rejection error exists
+  in the shipped contract. An earlier note claimed this totality
+  was forced — control scalars allegedly inexpressible in
+  literals, hence no witnessable reject arm. Probes falsified
+  the inexpressibility premise: raw 0x00–0x08, 0x0B–0x0C,
+  0x0E–0x1F, and 0x7F all parse, evaluate, and emit faithfully
+  (only newline breaks line syntax), so control reject-arms ARE
+  witnessable and the coverage law does not force totality here.
+  The passthrough stands on HTML text semantics (controls are
+  preserved in text context), not on necessity. One open point:
+  NUL is a parse error (→ U+FFFD) in HTML text, and the encoder
+  has no explicit NUL policy yet — reject-with-error versus
+  documented passthrough is undecided. Shipped tables cover the
+  printable plus astral domain; controls need explicit rows under
+  either policy. Quotes stay unescaped here by the text-context
+  contract; attributes get their own constructors.
 
 ## Why the seal rule changed
 

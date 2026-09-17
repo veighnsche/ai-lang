@@ -44,18 +44,27 @@ the compiler.
 Every `dec` value is canonical by construction (literals
 canonicalize at parse, arithmetic re-normalizes, `-0` folds to
 `0.0`), so coefficient and scale are always defined: there is no
-missing case and no failure mode. The exhaustiveness gate proves it
-mechanically — a kernel match wants exactly `{ok}`, so an error arm
-is stale and an error-only match misses `ok` (both pinned). Static
+missing case and no failure mode. Totality rests on canonical
+input plus the terminating digit-reading algorithm; the
+exhaustiveness gate proves consumers handle the declared outcome
+mechanically — a kernel match wants exactly `{ok}`, so an error
+arm is stale and an error-only match misses `ok` (both pinned). Static
 misuse is `AIL6003`; past the gate the evaluator never fails. The
 `from_parts` round trip holds by the digit reading: `from_parts`
 of observed parts rebuilds the same canonical digits, which is why
 the reading is the canonical digits rather than a minimal scale
 (`d"10.0"` observes as `(100, 1)`, not `(1, 0)`). The identity
 runs one way only: observed parts always rebuild through
-`from_parts`, but `from_parts` accepts unnormalized pairs too, so
-`parts(from_parts(100, 1))` is `(1000, 1)` — the constructor is
-permissive, the observer normalizes.
+`from_parts`, but `from_parts` accepts pairs no observation
+produces: `parts(from_parts(0, 5))` is `(0, 1)`, not `(0, 5)` —
+the constructor is permissive (any non-negative scale), the
+observer normalizes (zero always reads scale 1, per the shipped
+`parts_zero` row). (Correction: an earlier revision wrote
+`(1000, 1)` here, contradicting the round-trip two sentences up.)
+Totality itself rests on canonical input plus the terminating
+digit-reading algorithm; the exhaustiveness gate proves consumers
+handle the declared outcome — it composes with totality, it does
+not establish it.
 
 ## Parity boundary
 

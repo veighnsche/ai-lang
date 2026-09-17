@@ -78,3 +78,14 @@ the decision table already runs at compile time, so coverage is free.
   already gates on the full suite, so it inherits this law for free).
 - Whether shadowing deserves its own earlier, clearer error instead of
   surfacing as untaken-arm (leans: no; one rule, one message).
+
+## Amendment (retrospective): the law states evidence, not execution
+
+The accurate obligation is execution evidence **or the specifically
+authorized structural certificate** (identity relay, `AIL4108`) —
+"every arm executed" is no longer literally true, and certified arms
+must never acquire fabricated hits. Likewise `emits` states Safety
+(escaping errors belong to the declared set), not Realization: the
+living requirements allow unrealized entries, and no enforcement of
+"every declared error observed escaping" exists. Report executed,
+certified, and uncovered as separate categories.

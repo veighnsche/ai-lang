@@ -49,6 +49,20 @@ functions gate explicitly (`index < #value`) and raise their own
 typed errors (`text.index_out_of_range`, `text.invalid_slice`);
 the loud fault is unreachable past the gate, the v10 pattern.
 
+Amendment (retrospective): the core is partial, and the contract
+now says so explicitly. `emits E` bounds returned language-error
+outcomes; it does not assert absence of specified primitive
+faults. Compile-time tables exercise their inputs; they do not
+establish every partial operation's domain for all future calls —
+a guarded wrapper does not guard arbitrary user-written sites.
+Loud faults are legitimate "loud" under exact-or-loud; what is
+retracted is any unqualified promise that every admitted
+invocation returns success or a declared error. Three categories
+stay distinct: typed error outcomes, primitive domain faults,
+and resource failures (e.g. production stack). Narrower library
+totality claims survive individually only with their own
+guard/algorithm argument.
+
 ## Parity boundary
 
 Both runtimes count Unicode scalar values: Go over runes, TS over
