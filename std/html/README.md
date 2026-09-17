@@ -7,12 +7,12 @@
   astral plane included. Raw strings enter `Html__Text` only
   through the entry; the brand erases to string and flows
   opaquely (never inspected, only passed to brand-typed params).
-  There is deliberately no rejection error: control scalars are
-  inexpressible in string literals, so no reject arm could ever
-  be witnessed, and unwitnessed arms are compile errors — the
-  preservation domain is all valid strings, by mechanical
-  necessity, not by policy taste. Quote handling belongs to the
-  attribute contracts, not here.
+  NUL is rejected with `html.nul_byte` — the one scalar this
+  serialization path cannot preserve as that scalar. All other
+  controls pass through per HTML text semantics (each would need
+  its own kind and justification to reject); quotes stay
+  unescaped here by the text-context contract. See
+  `docs/encoder-nul-policy.md`.
 - `html__text__node` promotes `Html__Text` to the second brand,
   `Html__Safe is str rev 1 seals_from [Html__Text]` — a serialized
   fragment for ordinary child-fragment boundaries, with no authority
@@ -30,5 +30,5 @@
   std/html/html.ail`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/v25-html-text.md`,
-`docs/v26-html-node.md`, `docs/v27-attribute-name.md`, brand scope:
-`docs/v15-brands.md`.
+`docs/v26-html-node.md`, `docs/v27-attribute-name.md`,
+`docs/encoder-nul-policy.md`, brand scope: `docs/v15-brands.md`.
