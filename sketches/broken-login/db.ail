@@ -2,7 +2,7 @@
 // Clean file: opening it shows zero diagnostics.
 
 mod db
-  provides [db__get, Db__User]
+  provides [db__get, Db__User, Db__Hash]
   uses []
   emits [db.user_not_found, db.down]
 
@@ -14,6 +14,8 @@ type Db__User rev 1 (
   pw_hash: str
   failed_attempts: int
 )
+
+brand Db__Hash is str rev 1
 
 fn db__get(id: str) -> Db__User rev 1
   emits [db.user_not_found, db.down]

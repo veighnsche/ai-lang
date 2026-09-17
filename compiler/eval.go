@@ -55,6 +55,14 @@ func decCmp(op string, c int) bool {
 // terminating decimals always terminate, which is why division waits
 // for its own spec).
 func evArith(op string, lv, rv *Value) (*Value, error) {
+	// v16: + concatenates strings; every other string computation
+	// stays a loud dynamic error past the static gate, as before.
+	if lv.Kind == "str" && rv.Kind == "str" {
+		if op != "+" {
+			return nil, fmt.Errorf("bad %s operands", op)
+		}
+		return &Value{Kind: "str", S: lv.S + rv.S}, nil
+	}
 	if lv.Kind != rv.Kind || (lv.Kind != "int" && lv.Kind != "dec") {
 		return nil, fmt.Errorf("bad %s operands", op)
 	}
@@ -64,6 +72,25 @@ func evArith(op string, lv, rv *Value) (*Value, error) {
 			return nil, err
 		}
 		return &Value{Kind: "dec", D: d}, nil
+	}
+	// v17: / and % are exact Euclidean integer division through
+	// big.Int.DivMod (verified: a == b*q + r with 0 <= r < |b| on
+	// every sign combination). A zero divisor is loud, never silent.
+	// Non-int operands are loud too: direct evaluator callers bypass
+	// the static gate, so this must error, never panic on nil.
+	if op == "/" || op == "%" {
+		if lv.Kind != "int" || rv.Kind != "int" {
+			return nil, fmt.Errorf("bad %s operands", op)
+		}
+		if rv.N.Sign() == 0 {
+			return nil, fmt.Errorf("int division by zero")
+		}
+		q, m := new(big.Int), new(big.Int)
+		q.DivMod(lv.N, rv.N, m)
+		if op == "/" {
+			return &Value{Kind: "int", N: q}, nil
+		}
+		return &Value{Kind: "int", N: m}, nil
 	}
 	r := new(big.Int)
 	switch op {
@@ -130,9 +157,14 @@ func decArith(op, l, r string) (string, error) {
 			s = rs
 		}
 		m.Sub(new(big.Int).Mul(lm, pow10(s-ls)), new(big.Int).Mul(rm, pow10(s-rs)))
-	default:
+	case "*":
 		s = ls + rs
 		m.Mul(lm, rm)
+	default:
+		// Unreachable past the static gate (dec / and % are
+		// refused in checkSem); loud here so a direct caller can
+		// never mistake silence for a quotient.
+		return "", fmt.Errorf("bad dec %s operands", op)
 	}
 	neg := ""
 	if m.Sign() < 0 {
@@ -188,11 +220,15 @@ type Program struct {
 	FnFile map[string]string
 	// Brands maps brand name to underlying type (v0: always str).
 	// The emitter erases brands through this map.
-	Brands  map[string]string
-	Errors  map[string][]string
-	EmitsOf map[string][]string
-	Uses    map[string]bool
-	Modules []*Module
+	Brands map[string]string
+	// BrandFile maps every brand name to its declaring module file.
+	// Same file means an executable seal site (checked); anything
+	// else means a foreign brand (refused in bodies, named in data).
+	BrandFile map[string]string
+	Errors    map[string][]string
+	EmitsOf   map[string][]string
+	Uses      map[string]bool
+	Modules   []*Module
 }
 
 func vField(v *Value, field string) (*Value, error) {
@@ -291,7 +327,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			return &Value{Kind: "bool", B: eq}, err
 		}
 		switch node.Op {
-		case "+", "-", "*":
+		case "+", "-", "*", "/", "%":
 			return evArith(node.Op, lv, rv)
 		}
 		if lv.Kind != rv.Kind || (lv.Kind != "int" && lv.Kind != "str" && lv.Kind != "dec") {

@@ -20,6 +20,10 @@ specs, and the rules each feature had to satisfy before it landed.
 | `v11-recursion.md` | Shipped | Program-wide recursion ban, guarded unit steps, returned-outcome theorem |
 | `v12-contracts.md` | Shipped | Producer-owned emits, complete error expectations, exchange script rows |
 | `v13-stdlib.md` | Landed (part) | Stdlib rows 0–2: linkage decision, quota-counter validation, scalar catalog |
+| `v14-tsc.md` | Landed (decision) | R11 tsc clause suspended until a real gate ships; ailc is the sole verifier |
+| `v15-brands.md` | Shipped | Bodies seal only their own module's brands (AIL6004); tests/scripts name any brand |
+| `v16-text.md` | Landed (part) | `+` concatenates strings; Unicode-scalar indexing decided; scalar-access surface open |
+| `v17-division.md` | Landed (part) | Exact Euclidean `/` and `%` on ints; dec refused (AIL6005); gcd family waits on fuel |
 
 ## Reading order for a reviewer
 

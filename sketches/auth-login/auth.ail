@@ -41,11 +41,11 @@ fn auth__login(id: str, pw: Auth__Password) -> Auth__Session rev 5
     flaky(id = "u_01", pw = seal Auth__Password("secret")) => Ok(user_id = "u_01", remaining_tries = 3)
     missing(id = "u_99", pw = seal Auth__Password("anything")) => auth.login_failed(user_id = "u_99")
     down(id = "u_01", pw = seal Auth__Password("secret")) => auth.unavailable(reason = "db down twice")
-    locked(id = "u_01", pw = seal Auth__Password("secret")) => auth.account_locked(user_id = "u_01")
-    badpw(id = "u_01", pw = seal Auth__Password("secret")) => auth.login_failed(user_id = "u_01")
-    retry_badpw(id = "u_01", pw = seal Auth__Password("secret")) => auth.login_failed(user_id = "u_01")
+    locked(id = "u_02", pw = seal Auth__Password("secret")) => auth.account_locked(user_id = "u_02")
+    badpw(id = "u_01", pw = seal Auth__Password("wrong")) => auth.login_failed(user_id = "u_01")
+    retry_badpw(id = "u_01", pw = seal Auth__Password("wrong")) => auth.login_failed(user_id = "u_01")
     retry_missing(id = "u_99", pw = seal Auth__Password("anything")) => auth.login_failed(user_id = "u_99")
-    retry_locked(id = "u_01", pw = seal Auth__Password("secret")) => auth.account_locked(user_id = "u_01")
+    retry_locked(id = "u_02", pw = seal Auth__Password("secret")) => auth.account_locked(user_id = "u_02")
 =
   match call db__get_user(id)
     given
@@ -53,11 +53,11 @@ fn auth__login(id: str, pw: Auth__Password) -> Auth__Session rev 5
       flaky => [exchange args (id = "u_01") outcome db.down()]
       missing => [exchange args (id = "u_99") outcome db.user_not_found(id = "u_99")]
       down => [exchange args (id = "u_01") outcome db.down()]
-      locked => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("secret"), failed_attempts = 5)]
-      badpw => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("wrong"), failed_attempts = 0)]
+      locked => [exchange args (id = "u_02") outcome Ok(id = "u_02", pw_hash = seal Db__Hash("second"), failed_attempts = 5)]
+      badpw => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("secret"), failed_attempts = 0)]
       retry_badpw => [exchange args (id = "u_01") outcome db.down()]
       retry_missing => [exchange args (id = "u_99") outcome db.down()]
-      retry_locked => [exchange args (id = "u_01") outcome db.down()]
+      retry_locked => [exchange args (id = "u_02") outcome db.down()]
       vh_ok => -
       vh_bad => -
       vh_locked => -
@@ -71,9 +71,9 @@ fn auth__login(id: str, pw: Auth__Password) -> Auth__Session rev 5
           down => [exchange args (id = "u_01") outcome db.down()]
           locked => -
           badpw => -
-          retry_badpw => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("wrong"), failed_attempts = 0)]
+          retry_badpw => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("secret"), failed_attempts = 0)]
           retry_missing => [exchange args (id = "u_99") outcome db.user_not_found(id = "u_99")]
-          retry_locked => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("secret"), failed_attempts = 5)]
+          retry_locked => [exchange args (id = "u_02") outcome Ok(id = "u_02", pw_hash = seal Db__Hash("second"), failed_attempts = 5)]
           vh_ok => -
           vh_bad => -
           vh_locked => -
@@ -104,8 +104,8 @@ fn auth__verify(user_id: str, failed_attempts: int, pw: Auth__Password, pw_hash:
         missing => -
         down => -
         locked => -
-        badpw => [exchange args (pw = seal Auth__Password("secret"), hash = seal Db__Hash("wrong")) outcome auth.mismatch()]
-        retry_badpw => [exchange args (pw = seal Auth__Password("secret"), hash = seal Db__Hash("wrong")) outcome auth.mismatch()]
+        badpw => [exchange args (pw = seal Auth__Password("wrong"), hash = seal Db__Hash("secret")) outcome auth.mismatch()]
+        retry_badpw => [exchange args (pw = seal Auth__Password("wrong"), hash = seal Db__Hash("secret")) outcome auth.mismatch()]
         retry_missing => -
         retry_locked => -
         vh_ok => [exchange args (pw = seal Auth__Password("secret"), hash = seal Db__Hash("secret")) outcome Ok()]

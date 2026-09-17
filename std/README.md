@@ -15,6 +15,13 @@ helpers ship as same-file locals; see `docs/v13-stdlib.md`):
 - `scalars/` — row 2: the monomorphic scalar catalog (boolean
   logic, comparisons, predicates, int/dec arithmetic,
   conversions, bounded backoff).
+- `text/` — row 3, first cut: explicit text construction
+  (`std__str__concat`). Measurement and indexing wait on the
+  scalar-access surface decision in `docs/v16-text.md`.
+- `division/` — row 4, first cut: exact Euclidean integer
+  division (`std__int__divmod` and family). Decimal division
+  stays refused; `gcd` and beyond wait on fuel patterns
+  (`docs/v17-division.md`).
 
 Admission rule (from the program doc): a module is not blessed
 until it has a real motivating `.ail` program, complete

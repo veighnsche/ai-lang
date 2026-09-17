@@ -1,0 +1,28 @@
+// std/text/text.ail — row 3 of the standard-library program, first cut.
+// Explicit text construction. Concatenation needs no indexing, so it
+// ships now; measurement and indexing wait on the scalar-access
+// surface decision recorded in docs/v16-text.md.
+// Concat preserves every scalar unchanged: quotes, ampersands, and
+// markup pass through exactly. Safety lives in context encoders,
+// never in construction. See the Html__Text contract when it lands.
+
+mod text
+  provides [std__str__concat, Str__Value]
+  uses []
+  emits []
+
+type Str__Value rev 1 (
+  value: str
+)
+
+fn std__str__concat(left: str, right: str) -> Str__Value rev 1
+  emits []
+  tests
+    basic(left = "foo", right = "bar") => Ok(value = "foobar")
+    empty_left(left = "", right = "bar") => Ok(value = "bar")
+    empty_right(left = "foo", right = "") => Ok(value = "foo")
+    both_empty(left = "", right = "") => Ok(value = "")
+    unicode(left = "héllo ", right = "世界") => Ok(value = "héllo 世界")
+    markup_passthrough(left = "<b>", right = "&amp;") => Ok(value = "<b>&amp;")
+=
+  Ok(value = left + right)

@@ -62,7 +62,9 @@ func TestArithUnbounded(t *testing.T) {
 func TestArithBadOperands(t *testing.T) {
 	// Note: `"a" + "b"` is one string literal (quotes swallow
 	// operators, as ever); str operands arrive via seals and refs.
-	for _, expr := range []string{`1 + d"1.5"`, `seal B("x") + seal B("y")`, `true * 2`} {
+	// v16: str + str concatenates (seals erase to strings at
+	// runtime), so the loud string case is now -.
+	for _, expr := range []string{`1 + d"1.5"`, `seal B("x") - seal B("y")`, `true * 2`} {
 		sm, err := parseSmall(expr)
 		if err != nil {
 			t.Fatalf("parseSmall(%q): %v", expr, err)

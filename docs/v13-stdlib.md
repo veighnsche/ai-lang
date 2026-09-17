@@ -41,18 +41,20 @@ an outcome its provider body can never produce) is the reason
 this cannot be a silent default: evaluated imports would forbid
 exactly the stub the flagship relies on.
 
-## Name mapping (R3 allows one `__` separator)
+## Name mapping (resolved by issue 5)
 
-Spec names with two separators land with one. The mapping is
-mechanical: `std__int__abs` is `int__abs`, `std__dec__abs` is
-`dec__abs`, `std__bool__not` is `bool__not`,
-`std__compare__int` is `compare__int`,
-`std__select__int` is `select__int`,
-`std__validate__int_range` is `validate__int_range`,
-`std__convert__bool_to_str` is `convert__bool_to_str`,
-and so on per domain. Two error kinds split by payload type,
-since one kind has one field list: `convert.invalid_boolean`
-for strings, `convert.invalid_boolean_encoding` for ints,
+The R3 single-separator reading was wrong: the grammar's verb
+class already admits hierarchical names, so spec names land
+verbatim — `std__int__abs`, `std__bool__not`,
+`std__compare__int`, `std__select__int`,
+`std__validate__int_range`, `std__convert__bool_to_str`, and so
+on per domain. Pinned by `TestMultiUnderscoreNameAccepted` and
+`TestMalformedNamesRejected` in `compiler/naming_test.go`, which
+also pin the remaining rejections (no separator,
+leading/trailing/doubled runs). Two error kinds split by payload
+type, since one kind has one field list:
+`convert.invalid_boolean` for strings,
+`convert.invalid_boolean_encoding` for ints,
 `convert.invalid_dec_encoding` for decs. Every function returns
 a named success record (`Int__Value`, `Dec__Value`,
 `Str__Value`, `Bool__Value`, `Quota__Usage`, `Validate__Pass`);
@@ -90,25 +92,24 @@ Pinned by `TestMultiShapeEmit` and
 
 ## Deferred with blockers (not silently dropped)
 
-- Integer division family (`divmod`, `mod`, `is_multiple`,
-  `is_even`, `is_odd`, `gcd`, `lcm`, `sqrt_floor`,
-  `is_prime`, `next_power_of_two`, `binomial`): NOW† is not
-  permission. Unit-step scans hit the 1024 evaluation-depth
-  backstop on ordinary inputs, so the honest work is an
-  efficient kernel proposal, not a guarded loop. `binomial`
-  additionally needs division.
+- Integer division family: the kernel landed as
+  `docs/v17-division.md` (`/`, `%`, `divmod`, `mod`,
+  `is_multiple`, `is_even`, `is_odd`). `binomial` still needs
+  its fuel-pattern home, and `gcd`, `lcm`, `sqrt_floor`,
+  `is_prime`, `next_power_of_two` wait on fuel-pattern
+  recursion. Issue 4 stays open.
 - `int_to_dec` (NOW†): integer-controlled accumulation needs a
   digit-extraction kernel that does not exist without
   division. `dec_to_int_exact`, `int_to_str`, `str_to_int`,
   `dec_to_str`, `str_to_dec`: need the Numeric/Text layers.
-- Text operations: strings are opaque today (equality and order
-  only, no concat, length, or slicing), so every `std__str__*`
-  entry waits on specified indexing and Unicode semantics.
-- Constructor-controlled brands: `seal` is unrestricted, so any
-  consumer can forge any brand. Protected constructors need a
-  language change; nominal distinction alone is not the safety
-  argument. `Html__Safe` and its sibling brands must not be
-  seal-constructible when they arrive.
+- Text operations: concatenation landed as `docs/v16-text.md`
+  (`+` on strings, `std__str__concat` blessed); measurement and
+  indexing wait on the scalar-access surface decision recorded
+  there. Issue 3 stays open.
+- Constructor-controlled brands: landed as `docs/v15-brands.md`.
+  Bodies seal only their own module's brands (AIL6004); tests and
+  scripts may name any declared brand. `Html__Safe` and its sibling
+  brands will arrive under this rule, unforgable by consumers.
 - HTML rendering: needs Text, Collections, and the brand change
   above. No template flavor is blessed; candidate A (ordinary
   calls, explicit child values) is the only one expressible

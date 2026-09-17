@@ -1,9 +1,9 @@
 # quota-counter — validation plus a bounded counter
 
 - `quota.ail` — `mod quota`: monomorphic scalar validators
-  (`validate__require`, `validate__int_range`,
-  `validate__int_nonnegative`, `validate__str_nonempty`,
-  `validate__exclusive_pair`) plus a quota counter
+  (`std__validate__require`, `std__validate__int_range`,
+  `std__validate__int_nonnegative`, `std__validate__str_nonempty`,
+  `std__validate__exclusive_pair`) plus a quota counter
   (`quota__consume`, `quota__usage`) that reuses them through
   same-file local calls, so every call executes its body.
   Validators return the accepted value or a producer-owned typed

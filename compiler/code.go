@@ -48,6 +48,7 @@ const (
 	CodeDeadScript       = "AIL3104"
 	CodeDanglingTest     = "AIL3105"
 	CodeNoExchange       = "AIL3109"
+	CodeInconsistentScript = "AIL3110"
 	CodeDupTest          = "AIL3201"
 	CodeUnknownArg       = "AIL3202"
 	CodeMissingArg       = "AIL3203"
@@ -70,6 +71,8 @@ const (
 	CodeFloatLiteral     = "AIL6001"
 	CodeUnknownType      = "AIL6002"
 	CodeTypeMismatch     = "AIL6003"
+	CodeSealForeign      = "AIL6004"
+	CodeInexactDivision  = "AIL6005"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -83,12 +86,12 @@ var allCodes = []string{
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
 	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard,
 	CodeUndeclaredEffect, CodeStaleEffect,
-	CodeNoGiven, CodeGivenOnLocal, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeNoExchange,
+	CodeNoGiven, CodeGivenOnLocal, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeNoExchange, CodeInconsistentScript,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken,
 	CodeTestFailed,
 	CodeSiblingParse,
-	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch,
+	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision,
 }
