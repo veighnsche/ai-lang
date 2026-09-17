@@ -34,7 +34,7 @@ var cases = []sampleCase{
 	{"constant.numeric.integer.ail", []string{"42"}},
 	{"constant.numeric.decimal.ail", []string{`d"1.5"`}},
 	{"constant.language.ail", []string{"true", "Ok", "_"}},
-	{"keyword.operator.ail", []string{"=>", "->", "==", "+", "-", "*"}},
+	{"keyword.operator.ail", []string{"=>", "->", "==", "+", "-", "*", "/", "%"}},
 	{"entity.name.function.ail", []string{"db__get_user", "auth__login"}},
 	{"entity.name.type.ail", []string{"Db__User", "Auth__Session"}},
 	{"entity.name.tag.ail", []string{"user_id:", "happy:"}},

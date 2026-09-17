@@ -1,0 +1,19 @@
+[
+  {
+    "kind": "math.zero_divisor",
+    "fields": [
+      "divisor"
+    ],
+    "raised_by": [
+      "division.std__int__divmod",
+      "division.std__int__is_multiple",
+      "division.std__int__mod"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "division.std__int__divmod/divmod_zero_divisor",
+      "division.std__int__is_multiple/multiple_zero_divisor",
+      "division.std__int__mod/mod_zero_modulus"
+    ]
+  }
+]

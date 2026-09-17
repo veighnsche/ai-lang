@@ -204,6 +204,12 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		if s.Op == "+" && lok && rok && l == "str" && r == "str" {
 			return "str", true
 		}
+		// v17: decimal division and remainder have no exact result;
+		// keep them untyped so parents stay silent and the value
+		// rule reports the one refusal.
+		if (s.Op == "/" || s.Op == "%") && lok && rok && l == "dec" && r == "dec" {
+			return "", false
+		}
 		if !lok || !rok || l != r || (l != "int" && l != "dec") {
 			return "", false
 		}
@@ -213,8 +219,10 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 }
 
 // isArith reports the computing operators: comparisons ask, these do.
+// v17 adds / and % (exact Euclidean integer division); dec operands
+// for either are refused in the value rule, not here.
 func isArith(op string) bool {
-	return op == "+" || op == "-" || op == "*"
+	return op == "+" || op == "-" || op == "*" || op == "/" || op == "%"
 }
 
 // arithVerb names the operator class for mismatch messages, so agents
@@ -225,6 +233,10 @@ func arithVerb(op string) string {
 		return "add"
 	case "-":
 		return "subtract"
+	case "/":
+		return "divide"
+	case "%":
+		return "modulo"
 	default:
 		return "multiply"
 	}
@@ -361,6 +373,14 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// even when both sides agree; neither do - and * on
 			// strings.
 			if l == r && l == "str" && s.Op == "+" {
+				return
+			}
+			// v17: 1/3 does not terminate, so decimal division and
+			// remainder are refused per operation. Integers divide
+			// exactly (Euclidean); use them.
+			if l == r && l == "dec" && (s.Op == "/" || s.Op == "%") {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("dec %s has no exact result: divide integers, not decimals", s.Op), s.Op, CodeInexactDivision))
 				return
 			}
 			if l != r || (l != "int" && l != "dec") {

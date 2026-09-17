@@ -428,9 +428,11 @@ func parseSmall(s string) (*Small, error) {
 		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
 	}
 	// Arithmetic binds tighter than comparisons. + and - split before
-	// * (lower precedence splits first); both split at the LAST
-	// top-level occurrence so chains associate left: 10 - 3 - 2 is
-	// (10-3)-2. Unary minus exists on literals only (reInt above).
+	// *, /, % (lower precedence splits first); each level splits at
+	// the LAST top-level occurrence so chains associate left:
+	// 10 - 3 - 2 is (10-3)-2. Unary minus exists on literals only
+	// (reInt above). / and % share * precedence (v17: exact
+	// Euclidean integer division; dec operands refused in checkSem).
 	if i, op := findLastTop(s, []string{"+", "-"}); i > 0 {
 		l, err := parseSmall(s[:i])
 		if err != nil {
@@ -442,7 +444,7 @@ func parseSmall(s string) (*Small, error) {
 		}
 		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
 	}
-	if i, op := findLastTop(s, []string{"*"}); i > 0 {
+	if i, op := findLastTop(s, []string{"*", "/", "%"}); i > 0 {
 		l, err := parseSmall(s[:i])
 		if err != nil {
 			return nil, err

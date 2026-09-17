@@ -139,6 +139,32 @@ func TestGoldenStdText(t *testing.T) {
 	}
 }
 
+// TestGoldenStdDivision freezes the division cut: the Euclidean
+// module must transpile byte-identical, so its decision tables and
+// the $ailDivMod helper emit can never silently rot.
+func TestGoldenStdDivision(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../std/division/division.ail",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"division.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../std/division", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+		}
+	}
+}
+
 // TestGoldenStdScalars freezes row 2 of the stdlib program: the
 // monomorphic scalar catalog must transpile byte-identical, so its
 // decision tables and exact-decimal emit can never silently rot.
