@@ -7,12 +7,16 @@
 // never in construction. See the Html__Text contract when it lands.
 
 mod text
-  provides [std__str__concat, Str__Value]
+  provides [std__str__concat, std__str__is_empty, Str__Value, Bool__Value]
   uses []
   emits []
 
 type Str__Value rev 1 (
   value: str
+)
+
+type Bool__Value rev 1 (
+  value: bool
 )
 
 fn std__str__concat(left: str, right: str) -> Str__Value rev 1
@@ -26,3 +30,14 @@ fn std__str__concat(left: str, right: str) -> Str__Value rev 1
     markup_passthrough(left = "<b>", right = "&amp;") => Ok(value = "<b>&amp;")
 =
   Ok(value = left + right)
+
+fn std__str__is_empty(value: str) -> Bool__Value rev 1
+  emits []
+  tests
+    empty(value = "") => Ok(value = true)
+    nonempty(value = "x") => Ok(value = false)
+    whitespace(value = " ") => Ok(value = false)
+=
+  match value == ""
+    true => Ok(value = true)
+    false => Ok(value = false)

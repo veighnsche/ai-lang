@@ -1,5 +1,62 @@
 [
   {
+    "kind": "validation.dec_invalid_bounds",
+    "fields": [
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "quota.std__validate__dec_range"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.std__validate__dec_range/bad_bounds"
+    ]
+  },
+  {
+    "kind": "validation.dec_negative_value",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "quota.std__validate__dec_nonnegative"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.std__validate__dec_nonnegative/negative"
+    ]
+  },
+  {
+    "kind": "validation.dec_not_positive",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "quota.std__validate__dec_positive"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.std__validate__dec_positive/negative",
+      "quota.std__validate__dec_positive/zero"
+    ]
+  },
+  {
+    "kind": "validation.dec_out_of_range",
+    "fields": [
+      "value",
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "quota.std__validate__dec_range"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.std__validate__dec_range/above",
+      "quota.std__validate__dec_range/below"
+    ]
+  },
+  {
     "kind": "validation.empty_value",
     "fields": [
       "value"
@@ -83,6 +140,20 @@
       "quota.quota__consume/negative",
       "quota.quota__usage/negative_quota",
       "quota.std__validate__int_nonnegative/negative"
+    ]
+  },
+  {
+    "kind": "validation.not_positive",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "quota.std__validate__int_positive"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "quota.std__validate__int_positive/negative",
+      "quota.std__validate__int_positive/zero"
     ]
   },
   {

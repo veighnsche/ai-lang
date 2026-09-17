@@ -97,6 +97,21 @@
     ]
   },
   {
+    "kind": "math.invalid_count",
+    "fields": [
+      "n",
+      "k"
+    ],
+    "raised_by": [
+      "scalars.std__int__binomial"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__int__binomial/k_too_big",
+      "scalars.std__int__binomial/neg_k"
+    ]
+  },
+  {
     "kind": "math.negative_exponent",
     "fields": [
       "exponent"
@@ -119,6 +134,7 @@
     "raised_by": [
       "scalars.std__backoff__delay",
       "scalars.std__int__factorial",
+      "scalars.std__int__sqrt_floor",
       "scalars.std__int__sum_to"
     ],
     "handled_by": [],
@@ -127,7 +143,35 @@
       "scalars.std__backoff__delay/backoff_negative_base",
       "scalars.std__backoff__delay/backoff_negative_cap",
       "scalars.std__int__factorial/fact_neg",
+      "scalars.std__int__sqrt_floor/sqrt_neg",
       "scalars.std__int__sum_to/sum_neg"
+    ]
+  },
+  {
+    "kind": "math.negative_scale",
+    "fields": [
+      "scale"
+    ],
+    "raised_by": [
+      "scalars.std__dec__from_parts"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__from_parts/parts_neg_scale"
+    ]
+  },
+  {
+    "kind": "math.nonpositive_input",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__int__next_power_of_two"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__int__next_power_of_two/npot_negative",
+      "scalars.std__int__next_power_of_two/npot_zero"
     ]
   },
   {
