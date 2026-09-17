@@ -1016,6 +1016,7 @@ type emitter struct {
 	errTypes  map[string][][2]string // error kind -> declared typed fields
 	divmod    bool                   // Euclidean division helper used by this module
 	utf8dec   bool                   // strict UTF-8 decode helper used by this module (v50 B6)
+	hexenc    bool                   // hex encode helper used by this module (v52 B8)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -1122,6 +1123,21 @@ var utf8DecodeHelper = []string{
 	"}",
 }
 
+// hexEncodeHelper renders the hex encode runtime (v52 B8): one
+// lowercase digit pair per octet, byte-ordered, empty to "". The
+// digit table (not arithmetic + case fixups) is what makes
+// lowercase structural; indices keep views exact.
+var hexEncodeHelper = []string{
+	"function $ailHexEncode(value: Uint8Array): string {",
+	"  const digits = \"0123456789abcdef\";",
+	"  let out = \"\";",
+	"  for (let i = 0; i < value.length; i++) {",
+	"    out += digits[value[i] >> 4] + digits[value[i] & 15];",
+	"  }",
+	"  return out;",
+	"}",
+}
+
 func (e *emitter) fresh() string {
 	e.tmp++
 	// Unspellable in ail (identifiers match \w+, so $ never appears in
@@ -1166,6 +1182,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	}
 	if isBytesDecode(scrut.Fname) {
 		return e.stmtBytesDecode(node, scrut, out)
+	}
+	if isBytesHexEncode(scrut.Fname) {
+		return e.stmtBytesHexEncode(node, scrut, out)
 	}
 	if isBytesKernel(scrut.Fname) {
 		return e.stmtBytesEncode(node, scrut, out)
@@ -1572,6 +1591,46 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 	return e.emitCallArms(node, tmp, out)
 }
 
+// stmtBytesHexEncode lowers hex encoding (v52 B8): the input Bytes
+// through $ailHexEncode into an Ok record of lowercase hex. Total
+// kernel, so matches take the Ok arm only.
+func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) error {
+	slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if err != nil {
+		return fmt.Errorf("cannot emit %s: %s", scrut.Fname, err.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := e.emitValue(argv)
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	e.hexenc = true
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: string } = { "+tsTag+": \"ok\", value: $ailHexEncode(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	for _, arm := range node.Arms {
+		pat := arm.Pats[0]
+		if pat.Kind != "variant" || pat.Name != "Ok" {
+			return fmt.Errorf("bytes__hex__encode match arm must be Ok")
+		}
+		*out = append(*out, `case "ok": {`)
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
+		if err != nil {
+			return err
+		}
+		*out = append(*out, indent(lines)...)
+		*out = append(*out, "}")
+	}
+	*out = append(*out, "}")
+	return nil
+}
+
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	// Per-function temp scope: every fresh() temporary lands as a
 	// const inside this body, so numbering restarts at $ail_m1 per
@@ -1862,6 +1921,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// kernel is called, so files without one gain no code.
 	if em.utf8dec {
 		L = append(L, utf8DecodeHelper...)
+	}
+	// Hex encode runtime: emitted inline only when the hex encode
+	// kernel is called, so files without one gain no code.
+	if em.hexenc {
+		L = append(L, hexEncodeHelper...)
 	}
 	L = append(L, fnLines...)
 	// v46 S2: compiler-owned record definitions, emitted exactly when

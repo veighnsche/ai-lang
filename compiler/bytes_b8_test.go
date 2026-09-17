@@ -1,0 +1,128 @@
+package main
+
+import (
+	"strings"
+	"testing"
+)
+
+// v52 B8: hex encode kernel. bytes__hex__encode is total and
+// deterministic: Bytes in, lowercase hex in Encoding__Text, empty
+// contract. H-rows are the acceptance rows. Lowercase, byte order,
+// and no-text-interpretation are the pinned properties.
+
+const bytesHexBase = `mod m
+  provides [m__go]
+  uses []
+  emits []
+
+fn m__go(value: Bytes) -> Encoding__Text rev 1
+  emits []
+  tests
+    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
+    zero(value = Bytes(Seq<int>[0])) => Ok(value = "00")
+    ff(value = Bytes(Seq<int>[255])) => Ok(value = "ff")
+    lower(value = Bytes(Seq<int>[171])) => Ok(value = "ab")
+    leadzero(value = Bytes(Seq<int>[1])) => Ok(value = "01")
+    sixteen(value = Bytes(Seq<int>[16])) => Ok(value = "10")
+    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
+    notext(value = Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
+    nulbyte(value = Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
+    high(value = Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
+    nibbles(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
+=
+  match call bytes__hex__encode(value)
+    on Ok r => Ok(value = r.value)
+`
+
+// H0: hex vectors, positional and named spellings. Lowercase by
+// row (ab, deadbeef), order kept, ASCII-looking bytes never pass
+// through as text, leading zeros kept.
+func TestBytesH0HexVectors(t *testing.T) {
+	seqClean(t, map[string]string{"m.ail": bytesHexBase}, "m.ail")
+	named := strings.Replace(bytesHexBase,
+		"match call bytes__hex__encode(value)",
+		"match call bytes__hex__encode(value = value)", 1)
+	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+}
+
+// H1: the deterministic kernel takes no given table.
+func TestBytesH1NoGiven(t *testing.T) {
+	body := strings.Replace(bytesHexBase,
+		"  match call bytes__hex__encode(value)\n    on Ok r => Ok(value = r.value)",
+		"  match call bytes__hex__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
+	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+		CodeGivenOnLocal, "no given table")
+}
+
+// H2: strict Bytes admission: str, int, and str-branded inputs
+// refuse naming the wanted type.
+func TestBytesH2Admission(t *testing.T) {
+	mk := func(param, arg string) string {
+		s := `mod m
+  provides [m__go]
+  uses []
+  emits []
+
+fn m__go(value: PARAM) -> Encoding__Text rev 1
+  emits []
+  tests
+    go(value = ARG) => Ok(value = "41")
+=
+  match call bytes__hex__encode(value)
+    on Ok r => Ok(value = r.value)
+`
+		s = strings.Replace(s, "PARAM", param, 1)
+		return strings.Replace(s, "ARG", arg, 1)
+	}
+	seqCode(t, map[string]string{"m.ail": mk("str", `"A"`)}, "m.ail",
+		CodeTypeMismatch, "want Bytes")
+	seqCode(t, map[string]string{"m.ail": mk("int", "3")}, "m.ail",
+		CodeTypeMismatch, "want Bytes")
+	branded := strings.Replace(mk("M__Secret", `seal M__Secret("s")`),
+		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
+	branded = strings.Replace(branded, "provides [m__go]", "provides [M__Secret, m__go]", 1)
+	seqCode(t, map[string]string{"m.ail": branded}, "m.ail",
+		CodeTypeMismatch, "want Bytes")
+}
+
+// H3: the kernel contract exists explicitly (never absent).
+func TestBytesH3ContractsRegistered(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.ail": bytesHexBase})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	prog, _ := buildWorld(mods[0], mods, texts)
+	emits, ok := prog.EmitsOf["bytes__hex__encode"]
+	if !ok {
+		t.Fatalf("missing EmitsOf entry for bytes__hex__encode")
+	}
+	if len(emits) != 0 {
+		t.Fatalf("EmitsOf[hex__encode] = %v, want empty", emits)
+	}
+}
+
+// H4: the encoder lowers through the hex helper, not TextEncoder.
+func TestBytesH4EmitPin(t *testing.T) {
+	ts := compileEmit(t, bytesHexBase)
+	if !strings.Contains(ts, "$ailHexEncode(value)") {
+		t.Fatalf("emit missing hex helper lowering:\n%s", ts)
+	}
+	if strings.Contains(ts, "TextEncoder") {
+		t.Fatalf("hex emit must not touch TextEncoder:\n%s", ts)
+	}
+}
+
+// H5: the empty contract is consulted: a stale error arm refuses.
+func TestBytesH5StaleArm(t *testing.T) {
+	body := strings.Replace(bytesHexBase,
+		"    on Ok r => Ok(value = r.value)",
+		"    on Ok r => Ok(value = r.value)\n    on m.boom e => Ok(value = \"\")", 1)
+	body = strings.Replace(body, "fn m__go(value: Bytes)",
+		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
+	dir := writeLSPDir(t, map[string]string{"m.ail": body})
+	diags := diagnose(dir, "m.ail", body)
+	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.boom") {
+		t.Fatalf("expected stale-arm rejection, got %v", diags)
+	}
+}

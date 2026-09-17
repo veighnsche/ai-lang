@@ -49,6 +49,11 @@ const bytesDecodeKernel = "bytes__utf8__decode"
 const encodingTextRecord = "Encoding__Text"
 const encodingInvalidUtf8 = "encoding.invalid_utf8"
 
+// bytesHexEncodeKernel is the public hex encode intrinsic (v52 B8):
+// total over Bytes, deterministic, certificate-free. Lowercase,
+// byte-ordered, no text interpretation.
+const bytesHexEncodeKernel = "bytes__hex__encode"
+
 // bytesKernel describes one compiler kernel: its static signature,
 // result record, declared emits, and whether calls need a grant
 // certificate. Only the export kernel is restricted; public kernels
@@ -65,9 +70,10 @@ type bytesKernel struct {
 // lowering all key off this table. Later slices add rows (never a
 // scattered duplicate).
 var bytesKernels = map[string]bytesKernel{
-	bytesExportKernel: {ret: bytesValueRecord, emits: []string{}, restricted: true},
-	bytesEncodeKernel: {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{}},
-	bytesDecodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{encodingInvalidUtf8}},
+	bytesExportKernel:    {ret: bytesValueRecord, emits: []string{}, restricted: true},
+	bytesEncodeKernel:    {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{}},
+	bytesDecodeKernel:    {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{encodingInvalidUtf8}},
+	bytesHexEncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
 }
 
 // isBytesKernel reports any registered Bytes kernel.
@@ -121,6 +127,12 @@ func isBuiltinError(name string) bool {
 // its own evaluator and lowering (never the encoder path).
 func isBytesDecode(fname string) bool {
 	return fname == bytesDecodeKernel
+}
+
+// isBytesHexEncode reports the hex encode intrinsic, which needs
+// its own evaluator and lowering (never the UTF-8 paths).
+func isBytesHexEncode(fname string) bool {
+	return fname == bytesHexEncodeKernel
 }
 
 // exportGrantSite retains a grant with its owning module: ownership is

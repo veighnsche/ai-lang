@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"regexp"
@@ -958,6 +959,30 @@ func evBytesDecodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: string(v.Bytes)}}}, nil
 }
 
+// evBytesHexEncodeOp evaluates hex encoding (v52 B8): the input
+// Bytes as lowercase hex, byte-ordered, empty to "". Bytes are
+// never read as text: ASCII-looking octets encode as digits.
+func evBytesHexEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	slots, berr := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
+	if berr != nil {
+		return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+	}
+	var argv *Small
+	for i, s := range slots {
+		if s == 0 {
+			argv = scrut.Args[i].V
+		}
+	}
+	v, err := evSmall(argv, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if v.Kind != "bytes" {
+		return nil, fmt.Errorf("%s: call to %s takes Bytes", owner, scrut.Fname)
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "str", S: hex.EncodeToString(v.Bytes)}}}, nil
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -989,6 +1014,8 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			var err error
 			if isBytesDecode(fname) {
 				val, err = evBytesDecodeOp(scrut, env, ctx, owner)
+			} else if isBytesHexEncode(fname) {
+				val, err = evBytesHexEncodeOp(scrut, env, ctx, owner)
 			} else {
 				val, err = evBytesEncodeOp(scrut, env, ctx, owner)
 			}
