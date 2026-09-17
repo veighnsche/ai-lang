@@ -1,4 +1,4 @@
-# v55 — Scenario tests (Gherkin-shaped journeys, sketch)
+# v56 — Scenario tests (Gherkin-shaped journeys, sketch)
 
 Status: sketch (pre-decision). No rule, no code, no golden. This
 records what first-class given/when/then could look like, why it
