@@ -631,7 +631,7 @@ var (
 	reGiven     = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
 	reArm       = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
 	reDecreases       = regexp.MustCompile(`^decreases\s+(\w+)$`)
-	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+),\s*(\w+)\s+by\s+(euclid|narrowing)$`)
+	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+)\s*,\s*(\w+)\s+by\s+(euclid|narrowing)$`)
 	reEffects   = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
 	reState     = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+)\s*=\s*(.+)$`)
 	reRevWord   = regexp.MustCompile(`\brev\b`)

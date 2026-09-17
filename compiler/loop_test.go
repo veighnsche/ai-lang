@@ -180,9 +180,12 @@ fn m__gcd(a: int, b: int) -> M__S rev 1
 `
 
 func TestLoopEuclidClean(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": loopEuclid})
-	if diags := diagnose(dir, "m.ail", loopEuclid); len(diags) != 0 {
-		t.Fatalf("expected no diagnostics, got %v", diags)
+	for _, line := range []string{"decreases a, b by euclid", "decreases a,b by euclid", "decreases a , b by euclid"} {
+		variant := strings.Replace(loopEuclid, "decreases a, b by euclid", line, 1)
+		dir := writeLSPDir(t, map[string]string{"m.ail": variant})
+		if diags := diagnose(dir, "m.ail", variant); len(diags) != 0 {
+			t.Fatalf("%s: expected no diagnostics, got %v", line, diags)
+		}
 	}
 }
 
