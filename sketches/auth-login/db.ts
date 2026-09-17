@@ -6,5 +6,8 @@ export function db__get_user(id: string): DbResult {
   if (id === "u_01") {
     return { kind: "ok", id: "u_01", pw_hash: "secret", failed_attempts: 0n };
   }
+  else if (id === "u_02") {
+    return { kind: "ok", id: "u_02", pw_hash: "second", failed_attempts: 5n };
+  }
   return { kind: "db.user_not_found", id: id };
 }
