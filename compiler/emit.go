@@ -229,6 +229,79 @@ func leafType(s *Small) string {
 	return ""
 }
 
+// isScalar reports whether an operand type compares exactly with
+// native identity: base types (bigint by value, canonical dec
+// strings, strings, booleans) and str-backed brands.
+func (e *emitter) isScalar(ot string) bool {
+	if _, ok := tsBase[ot]; ok {
+		return true
+	}
+	return e.brands[ot] == "str"
+}
+
+// emitEquality lowers ==/!= by resolved operand type. Scalars and
+// brands compare natively; records and error payloads compare
+// field-by-field over their declared shape, ignoring the outcome
+// envelope; cell wrappers compare their .value payloads. Unknown or
+// unsupported operand types fail (AIL5005) instead of falling back to
+// object identity.
+func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
+	ll, rr, shape := l, r, ot
+	if strings.HasPrefix(shape, "cell:") {
+		// Cell wrappers compare their .value payloads, never the
+		// wrapper identity.
+		ll += ".value"
+		rr += ".value"
+		shape = strings.TrimPrefix(shape, "cell:")
+	}
+	native := e.isScalar(shape)
+	var expr string
+	if native {
+		if op == "==" {
+			expr = fmt.Sprintf("(%s === %s)", ll, rr)
+		} else {
+			expr = fmt.Sprintf("(%s !== %s)", ll, rr)
+		}
+		return expr, nil
+	}
+	fields, err := e.equalityFields(shape)
+	if err != nil {
+		return "", err
+	}
+	var fs []string
+	for _, f := range fields {
+		fs = append(fs, strconv.Quote(f))
+	}
+	e.recEq = true
+	expr = fmt.Sprintf("$ailEqRec(%s, %s, [%s])", ll, rr, strings.Join(fs, ", "))
+	if op == "!=" {
+		expr = "(!" + expr + ")"
+	}
+	return expr, nil
+}
+
+// equalityFields resolves the declared comparison shape for a record
+// or error-payload operand: record names to their type fields, err:
+// kinds to their error fields. Anything else is not structurally
+// comparable (AIL5005).
+func (e *emitter) equalityFields(ot string) ([]string, error) {
+	if strings.HasPrefix(ot, "err:") {
+		fs, ok := e.errFields[strings.TrimPrefix(ot, "err:")]
+		if !ok {
+			return nil, fmt.Errorf("cannot emit comparison over %s (%s)", ot, CodeBadCompare)
+		}
+		return fs, nil
+	}
+	if fs, ok := e.recs[ot]; ok {
+		var names []string
+		for _, f := range fs {
+			names = append(names, f[0])
+		}
+		return names, nil
+	}
+	return nil, fmt.Errorf("cannot emit comparison over %s (%s)", ot, CodeBadCompare)
+}
+
 // binopOperandType reports the static ail type of a binop's operands
 // for dispatch. Same-type operands are enforced by the checker, so one
 // type describes both sides. Checker annotations win; literal kinds
@@ -277,17 +350,24 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		// Equality is exact natively for both representations:
-		// bigint compares by value, dec strings are canonical.
-		switch node.Op {
-		case "==":
-			return fmt.Sprintf("(%s === %s)", l, r), nil
-		case "!=":
-			return fmt.Sprintf("(%s !== %s)", l, r), nil
-		}
 		ot := binopOperandType(node)
 		if ot == "" {
 			return "", fmt.Errorf("cannot emit %s: operand type unknown (run checkSem first)", node.Op)
+		}
+		// Equality lowers by resolved operand type, preserving the
+		// evaluator's structural semantics: scalars (and brands,
+		// erased to strings) are exact natively — bigint compares by
+		// value, dec strings are canonical — while records, error
+		// payloads, and cell wrappers compare field-by-field over
+		// their declared shape, ignoring the outcome envelope.
+		// Anything else fails instead of falling back to object
+		// identity (AIL5005).
+		if node.Op == "==" || node.Op == "!=" {
+			eq, err := e.emitEquality(node.Op, ot, l, r)
+			if err != nil {
+				return "", err
+			}
+			return eq, nil
 		}
 		if ot == "dec" {
 			// Decs are canonical-digit strings: route through the
@@ -531,6 +611,47 @@ var strRuntimeOps = []struct {
 	}},
 }
 
+// eqHelpers renders the structural equality runtime: $ailEqRec
+// compares exactly the declared fields (ignoring the outcome
+// envelope, requiring own presence on both sides, matching vEq),
+// delegating per-field to $ailEqVal, which recurses into nested
+// objects and compares scalars exactly (bigint by value, canonical
+// dec strings and strings by content, booleans natively).
+var eqHelpers = []string{
+	"function $ailEqVal(x: any, y: any): boolean {",
+	"  if (typeof x === \"object\" && x !== null && typeof y === \"object\" && y !== null) {",
+	"    const kx = Object.keys(x);",
+	"    if (kx.length !== Object.keys(y).length) {",
+	"      return false;",
+	"    }",
+	"    for (const k of kx) {",
+	"      if (!Object.prototype.hasOwnProperty.call(y, k)) {",
+	"        return false;",
+	"      }",
+	"      if (!$ailEqVal((x as any)[k], (y as any)[k])) {",
+	"        return false;",
+	"      }",
+	"    }",
+	"    return true;",
+	"  }",
+	"  return x === y;",
+	"}",
+	"function $ailEqRec(a: any, b: any, fields: string[]): boolean {",
+	"  for (const f of fields) {",
+	"    if (!Object.prototype.hasOwnProperty.call(a, f)) {",
+	"      return false;",
+	"    }",
+	"    if (!Object.prototype.hasOwnProperty.call(b, f)) {",
+	"      return false;",
+	"    }",
+	"    if (!$ailEqVal((a as any)[f], (b as any)[f])) {",
+	"      return false;",
+	"    }",
+	"  }",
+	"  return true;",
+	"}",
+}
+
 // strHelpers renders the byte-order string runtime for exactly the used
 // comparisons, shared plumbing first, then ops in fixed order.
 func strHelpers(used map[string]bool) []string {
@@ -566,9 +687,12 @@ type emitter struct {
 	brands    map[string]string      // brand -> underlying, for erasure
 	cellTypes map[string]string      // cell -> TS type, this module only
 	tailUnion string
-	decOps    map[string]bool // exact-decimal helpers used by this module
-	strOps    map[string]bool // byte-order string helpers used by this module
-	divmod    bool            // Euclidean division helper used by this module
+	decOps    map[string]bool        // exact-decimal helpers used by this module
+	strOps    map[string]bool        // byte-order string helpers used by this module
+	recEq     bool                   // structural record comparison used by this module
+	recs      map[string][][2]string // record name -> declared fields
+	errFields map[string][]string    // error kind -> declared field names
+	divmod    bool                   // Euclidean division helper used by this module
 }
 
 // divModHelper renders the Euclidean integer-division runtime: BigInt
@@ -965,7 +1089,17 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, divmod: false}
+	recs := map[string][][2]string{}
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			if td, ok := d.(*TypeDecl); ok {
+				if _, seen := recs[td.Name]; !seen {
+					recs[td.Name] = td.Fields
+				}
+			}
+		}
+	}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, recs: recs, errFields: prog.Errors, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
@@ -1005,6 +1139,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// ordering is used, so files without one gain no code.
 	if len(em.strOps) > 0 {
 		L = append(L, strHelpers(em.strOps)...)
+	}
+	// Structural equality runtime: emitted inline only when a record,
+	// error-payload, or cell comparison is used.
+	if em.recEq {
+		L = append(L, eqHelpers...)
 	}
 	if em.divmod {
 		L = append(L, divModHelper...)
