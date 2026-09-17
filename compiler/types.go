@@ -402,31 +402,21 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if sig == nil {
 			return
 		}
-		if len(s.Args) != len(sig.params) {
-			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("call %s takes %d args for %d params", s.Fname, len(s.Args), len(sig.params)), s.Fname, CodeTypeMismatch))
+		slots, berr := bindSlots(s.Fname, s.Args, sig.params)
+		if berr != nil {
+			c.out = append(c.out, spanDiag(c.text, line, "error", berr.Error(), s.Fname, CodeBadBinding))
+			// Still check the argument expressions themselves so one
+			// bad vector never hides nested errors inside the args.
+			for _, a := range s.Args {
+				c.value(a.V, "", line, env, "call "+s.Fname+" arg")
+			}
+			return
 		}
 		for i, a := range s.Args {
-			want := ""
-			label := ""
-			if a.HasName {
-				found := false
-				for _, p := range sig.params {
-					if p[0] == a.Name {
-						want, label = p[1], "call "+s.Fname+" arg "+a.Name
-						found = true
-						break
-					}
-				}
-				if !found {
-					c.out = append(c.out, spanDiag(c.text, line, "error",
-						fmt.Sprintf("call %s has no param %s", s.Fname, a.Name), a.Name, CodeTypeMismatch))
-				}
-			} else if i < len(sig.params) {
-				want, label = sig.params[i][1], fmt.Sprintf("call %s arg %d", s.Fname, i+1)
-			}
+			p := sig.params[slots[i]]
+			want, label := p[1], "call "+s.Fname+" arg "+p[0]
 			c.value(a.V, "", line, env, label)
-			if want != "" && c.knownType(want) {
+			if c.knownType(want) {
 				if got, ok := c.typeOf(a.V, env); ok && got != want {
 					c.mismatch(line, label, got, want, tokenOf(a.V))
 				}

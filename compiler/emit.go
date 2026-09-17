@@ -329,8 +329,28 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		}
 		return `{ kind: "` + node.Ctor + `", ` + inner + ` }`, nil
 	case "call":
+		// One binding rule (bindSlots): the call is invoked in the
+		// resolved parameter order, not source order, so a reordered
+		// named call means the same thing here as in evaluation.
+		// Store ops are positional-only with a fixed spelling and keep
+		// their source order.
+		ordered := node.Args
+		if !isStoreOp(node.Fname) {
+			params, ok := e.params[node.Fname]
+			if !ok {
+				return "", fmt.Errorf("no params for callee %s", node.Fname)
+			}
+			slots, err := bindSlots(node.Fname, node.Args, params)
+			if err != nil {
+				return "", err
+			}
+			ordered = make([]Arg, len(node.Args))
+			for i, a := range node.Args {
+				ordered[slots[i]] = a
+			}
+		}
 		var parts []string
-		for _, a := range node.Args {
+		for _, a := range ordered {
 			v, err := e.emitValue(a.V)
 			if err != nil {
 				return "", err
@@ -454,9 +474,10 @@ func decHelpers(used map[string]bool) []string {
 
 type emitter struct {
 	tmp       int
-	fnUnions  map[string]string // callee fn -> its TS Result type
-	brands    map[string]string // brand -> underlying, for erasure
-	cellTypes map[string]string // cell -> TS type, this module only
+	fnUnions  map[string]string      // callee fn -> its TS Result type
+	params    map[string][][2]string // callee fn/extern -> params in order
+	brands    map[string]string      // brand -> underlying, for erasure
+	cellTypes map[string]string      // cell -> TS type, this module only
 	tailUnion string
 	decOps    map[string]bool // exact-decimal helpers used by this module
 	divmod    bool            // Euclidean division helper used by this module
@@ -837,7 +858,14 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// decl literal. Tests prove per-scenario behavior from init;
 	// prod shares the cell across calls (documented boundary).
 	cellTypes := map[string]string{}
-	em := &emitter{fnUnions: fnUnions, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, divmod: false}
+	params := map[string][][2]string{}
+	for n, f := range prog.Fns {
+		params[n] = f.Params
+	}
+	for n, ex := range prog.Externs {
+		params[n] = ex.Params
+	}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, divmod: false}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {

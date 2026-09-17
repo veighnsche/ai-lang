@@ -453,40 +453,24 @@ func evLocalCall(helper *FnDecl, scrut *Small, env map[string]*Value, ctx *Ctx, 
 	if ctx.Depth >= 1024 {
 		return nil, fmt.Errorf("%s: local call depth exceeded calling %s", owner, helper.Name)
 	}
+	// One binding rule (bindSlots): argument expressions evaluate in
+	// source order here, then land in the resolved parameter slots.
+	// Checked programs already passed the same rule, so a bind failure
+	// below is a loud internal refusal, never a silent mis-call.
+	slots, berr := bindSlots(helper.Name, scrut.Args, helper.Params)
+	if berr != nil {
+		return nil, fmt.Errorf("%s: %s", owner, berr.Error())
+	}
 	vals := make([]*Value, len(helper.Params))
-	named := map[string]bool{}
 	for i, a := range scrut.Args {
 		v, err := evSmall(a.V, env, ctx, owner)
 		if err != nil {
 			return nil, err
 		}
-		if a.HasName {
-			idx := -1
-			for j, p := range helper.Params {
-				if p[0] == a.Name {
-					idx = j
-					break
-				}
-			}
-			if idx < 0 {
-				return nil, fmt.Errorf("%s: call %s has no param %s", owner, helper.Name, a.Name)
-			}
-			if named[a.Name] {
-				return nil, fmt.Errorf("%s: call %s repeats arg %s", owner, helper.Name, a.Name)
-			}
-			named[a.Name] = true
-			vals[idx] = v
-		} else if i < len(vals) {
-			vals[i] = v
-		} else {
-			return nil, fmt.Errorf("%s: call %s takes %d args for %d params", owner, helper.Name, len(scrut.Args), len(helper.Params))
-		}
+		vals[slots[i]] = v
 	}
 	env2 := map[string]*Value{}
 	for i, p := range helper.Params {
-		if vals[i] == nil {
-			return nil, fmt.Errorf("%s: call %s is missing arg %s", owner, helper.Name, p[0])
-		}
 		env2[p[0]] = vals[i]
 	}
 	// No negative-entry check here (v11): every admitted self-call
