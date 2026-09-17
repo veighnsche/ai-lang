@@ -124,6 +124,13 @@ type variantCase struct {
 	fields [][2]string
 }
 
+// isCaseType reports whether t is a qualified case name (v75): a
+// binder's static identity. Parents are variants, never cases.
+func isCaseType(c *tycker, t string) bool {
+	_, ok := c.cases[t]
+	return ok
+}
+
 // seqElemName splits a sequence annotation Seq<T> into its element
 // type name (v36 S1). ok=false for anything else, including nested
 // sequences: Seq<Seq<str>> is not a v1 shape.
@@ -213,6 +220,12 @@ func (c *tycker) resolveRef(ref []string, env map[string]string) (string, bool) 
 		var fields [][2]string
 		if strings.HasPrefix(t, "err:") {
 			fields = c.errs[strings.TrimPrefix(t, "err:")]
+		} else if cc, ok := c.cases[t]; ok {
+			// v75: a case binder views its own payload. The
+			// binder's static type is the qualified case, so a
+			// same-named field of a sibling case never resolves
+			// here — projection is case-specific by construction.
+			fields = cc.fields
 		} else {
 			fields = c.recs[t]
 			if fields == nil && !c.brands[t] && t != "str" && t != "int" && t != "bool" && t != "dec" {
@@ -280,6 +293,15 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		// param/field declaration owns the AIL6002, and comparing
 		// through it would cascade one typo into many.
 		if !c.knownType(t) {
+			// v75: a case binder carries its qualified case as
+			// its static type. It is not a known annotation, but
+			// it must compare — otherwise a binder smuggled into
+			// a parent-typed position would pass silently. The
+			// case name never equals the parent, so the mismatch
+			// fires exactly where whole-union smuggling is tried.
+			if _, ok := c.cases[t]; ok {
+				return t, true
+			}
 			return "", false
 		}
 		return t, true
@@ -619,14 +641,16 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// evaluator (vEq) only, so expectations still verify.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: sequence equality is not in v1", l, r), s.Op, CodeTypeMismatch))
-		} else if c.variants[l] {
+		} else if c.variants[l] || isCaseType(c, l) {
 			// v74: cases compare by matching (v75), never by ==.
 			// The refusal lands here so no variant operand sails
 			// through to a loud emit failure. Structural
 			// comparison lives in the test evaluator (vEq) only,
 			// so expectations over variant payloads still verify.
 			// A future slice may amend this explicitly if it
-			// carries its own comparison convention.
+			// carries its own comparison convention. v75: case
+			// binders compare through their case identity, so the
+			// refusal covers them too.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: variant equality is not in v1", l, r), s.Op, CodeTypeMismatch))
 		}
@@ -970,6 +994,10 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		// and mistyped fields; the constructor's nominal type
 		// is the parent, never the payload shape.
 		fields, label = cc.fields, name
+		// v75: the nominal type annotates outward like Bytes, so
+		// emit's typed dispatch reads the parent for scrutinees
+		// built inline. Anything else ignores constructor T.
+		s.T = cc.parent
 		if want != "" && want != cc.parent {
 			c.mismatch(line, where, cc.parent, want, name)
 		}
@@ -1083,8 +1111,107 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		}
 		return
 	}
+	// v75: variant elimination. A single scrutinee resolving to a
+	// variant parent takes the case path; a case-typed scrutinee
+	// (an already-eliminated binder) is refused; any variant slot
+	// in a multi match refuses the second scrutinee. Everything
+	// else keeps the legacy bool/str/wild rules, with case-shaped
+	// patterns rejected as non-variant matches.
+	variantSlot, parent := -1, ""
+	for i, s := range n.Scruts {
+		if st, ok := c.typeOf(s, env); ok && c.variants[st] {
+			variantSlot, parent = i, st
+			break
+		}
+	}
+	if variantSlot >= 0 && len(n.Scruts) > 1 {
+		c.out = append(c.out, spanDiag(c.text, n.Line, "error",
+			fmt.Sprintf("match over %s takes exactly one scrutinee", parent), "match", CodeBadArmKind))
+		for _, a := range n.Arms {
+			c.node(a.Rhs, env, want)
+		}
+		return
+	}
+	if len(n.Scruts) == 1 {
+		if st, ok := c.typeOf(n.Scruts[0], env); ok && c.variants[st] {
+			c.nodeVariantArms(n, env, want, st)
+			return
+		}
+		if st, ok := c.typeOf(n.Scruts[0], env); ok && isCaseType(c, st) {
+			c.out = append(c.out, spanDiag(c.text, n.Line, "error",
+				fmt.Sprintf("match over %s eliminates unions, not cases: match the union scrutinee", st), "match", CodeBadArmKind))
+			for _, a := range n.Arms {
+				c.node(a.Rhs, env, want)
+			}
+			return
+		}
+	}
 	for _, a := range n.Arms {
+		for _, p := range a.Pats {
+			if p.isCase() {
+				c.out = append(c.out, spanDiag(c.text, a.Line, "error",
+					fmt.Sprintf("variant pattern on a non-variant match"), "on", CodeVariantOnVal))
+				break
+			}
+		}
 		c.node(a.Rhs, env, want)
+	}
+}
+
+// nodeVariantArms checks one variant elimination (v75): every arm
+// carries exactly one case pattern of the scrutinee's union, each
+// case exactly once, no other pattern kinds. Binders enter the arm
+// env typed as their qualified case, so projection resolves through
+// the case's own fields. Missing cases report one diagnostic per
+// case, mirroring the call-match missing-outcome shape.
+func (c *tycker) nodeVariantArms(n *Node, env map[string]string, want, parent string) {
+	seen := map[string]bool{}
+	for _, a := range n.Arms {
+		if len(a.Pats) != 1 {
+			c.out = append(c.out, spanDiag(c.text, a.Line, "error",
+				fmt.Sprintf("match arm has %d patterns; this match has 1 scrutinee", len(a.Pats)), "on", CodeBadArmKind))
+			c.node(a.Rhs, env, want)
+			continue
+		}
+		p := a.Pats[0]
+		if !p.isCase() {
+			desc, tok := patDesc(p)
+			c.out = append(c.out, spanDiag(c.text, a.Line, "error",
+				fmt.Sprintf("match over %s takes case arms only, not %s", parent, desc), tok, CodeBadArmKind))
+			c.node(a.Rhs, env, want)
+			continue
+		}
+		cc, ok := c.cases[p.Name]
+		if !ok || cc.parent != parent {
+			c.out = append(c.out, spanDiag(c.text, a.Line, "error",
+				fmt.Sprintf("stale match arm %s", p.Name), p.Name, CodeStaleArm))
+			c.node(a.Rhs, env, want)
+			continue
+		}
+		if seen[p.Name] {
+			c.out = append(c.out, spanDiag(c.text, a.Line, "error",
+				fmt.Sprintf("duplicate match arm %s", p.Name), p.Name, CodeBadArmKind))
+		}
+		seen[p.Name] = true
+		env2 := map[string]string{}
+		for k, v := range env {
+			env2[k] = v
+		}
+		if p.Kind == "variant" && p.Var != "" && p.Var != "_" {
+			env2[p.Var] = p.Name
+		}
+		c.node(a.Rhs, env2, want)
+	}
+	var missing []string
+	for q, cc := range c.cases {
+		if cc.parent == parent && !seen[q] {
+			missing = append(missing, q)
+		}
+	}
+	slices.Sort(missing)
+	for _, q := range missing {
+		c.out = append(c.out, spanDiag(c.text, n.Line, "error",
+			fmt.Sprintf("non-exhaustive match over %s, missing %s", parent, q), "match", CodeMissingArm))
 	}
 }
 

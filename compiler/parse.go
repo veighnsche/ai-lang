@@ -63,10 +63,24 @@ type Pattern struct {
 	Str  string
 	Name string
 	Var  string
+
 	// Raw is the source spelling of a str pattern (v66): the
 	// squiggle locator needs the verbatim token because a
 	// decoded interpreted literal is not searchable in source.
 	Raw string
+}
+
+// isCase reports whether a pattern names a variant case by shape
+// (v75): a qualified __ name that is neither Ok nor a dotted
+// error kind. Shape only — membership is the checker's job, so
+// unknown and wrong-union names still parse. Every phase uses
+// this one predicate, so error-protocol patterns (Ok, dotted)
+// never leak into the elimination path.
+func (p Pattern) isCase() bool {
+	if p.Kind != "variant" && p.Kind != "variantWild" {
+		return false
+	}
+	return p.Name != "Ok" && !strings.Contains(p.Name, ".")
 }
 
 // ContractArm is one ensures arm (v69): the outcome it
@@ -1610,10 +1624,12 @@ func parsePattern(s string) (Pattern, error) {
 		}
 		return Pattern{Kind: "str", Str: decoded, Raw: s}, nil
 	}
-	if m := rePatVar.FindStringSubmatch(s); m != nil && (m[1] == "Ok" || strings.Contains(m[1], ".")) {
+	if m := rePatVar.FindStringSubmatch(s); m != nil && (m[1] == "Ok" || strings.Contains(m[1], ".") || strings.Contains(m[1], "__")) {
+		// v75: qualified case names parse as patterns; the
+		// checker proves membership, so any __ shape parses.
 		return Pattern{Kind: "variant", Name: m[1], Var: m[2]}, nil
 	}
-	if m := rePatWild.FindStringSubmatch(s); m != nil && strings.Contains(m[1], ".") {
+	if m := rePatWild.FindStringSubmatch(s); m != nil && (strings.Contains(m[1], ".") || strings.Contains(m[1], "__")) {
 		return Pattern{Kind: "variantWild", Name: m[1]}, nil
 	}
 	return Pattern{}, fmt.Errorf("bad match pattern: %s", s)

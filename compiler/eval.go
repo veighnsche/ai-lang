@@ -323,7 +323,10 @@ type Program struct {
 func vField(v *Value, field string) (*Value, error) {
 	var d map[string]*Value
 	switch v.Kind {
-	case "rec", "ok", "err":
+	case "rec", "ok", "err", "variant":
+		// v75: a bound case value projects its payload fields
+		// like a record. The checker proves the field belongs
+		// to the arm's case; here it fails closed.
 		d = v.Dict
 	default:
 		return nil, fmt.Errorf("no field %s on %s", field, v.Kind)
@@ -884,8 +887,6 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 		return v.Kind == "bool" && v.B == p.B
 	case "str":
 		return v.Kind == "str" && v.S == p.Str
-	case "variantWild":
-		return v.Kind == "err" && v.ErrKind == p.Name
 	case "variant":
 		if p.Name == "Ok" && v.Kind == "ok" {
 			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
@@ -895,7 +896,22 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
 			return true
 		}
+		// v75: a case pattern matches its carrier by qualified
+		// tag and binds the whole case value, so payload
+		// projects through field access. Error kinds never match
+		// here: p.Name carries no dot by the isCase shape, and
+		// the checker proves membership before execution.
+		if p.isCase() && v.Kind == "variant" && v.Tag == p.Name {
+			bind[p.Var] = v
+			return true
+		}
 		return false
+	case "variantWild":
+		if v.Kind == "err" && v.ErrKind == p.Name {
+			return true
+		}
+		// v75: discarding a case matches by tag with no binding.
+		return p.isCase() && v.Kind == "variant" && v.Tag == p.Name
 	default:
 		return false
 	}
@@ -2052,6 +2068,7 @@ func verifyValueMatch(n *Node, owner string) []error {
 		seenLit[i] = map[string]bool{}
 	}
 	shapeOK := true
+	hasCase := false
 	for _, a := range n.Arms {
 		if len(a.Pats) != nslot {
 			out = append(out, at(a.Line, fmt.Errorf("%s: match arm has %d patterns; this match has %d scrutinees", owner, len(a.Pats), nslot)))
@@ -2069,6 +2086,18 @@ func verifyValueMatch(n *Node, owner string) []error {
 				}
 			case "wild":
 			default:
+				// v75: case-shaped patterns belong to the
+				// checker, which proves membership,
+				// exhaustiveness, and placement against typed
+				// scrutinees this proof cannot see. The proof
+				// stays silent so it never contradicts that
+				// verdict with a legacy bool/str ruling.
+				// Error-protocol patterns (Ok, dotted) keep the
+				// historical refusal verbatim.
+				if p.isCase() {
+					hasCase = true
+					continue
+				}
 				if nslot == 1 {
 					out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match", owner)))
 				} else {
@@ -2079,6 +2108,9 @@ func verifyValueMatch(n *Node, owner string) []error {
 		}
 	}
 	if !shapeOK {
+		return out
+	}
+	if hasCase {
 		return out
 	}
 	if nslot == 1 {

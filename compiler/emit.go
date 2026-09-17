@@ -1438,6 +1438,14 @@ func (e *emitter) emitCallArms(node *Node, tmp string, out *[]string) error {
 // tested condition. Exhaustiveness already proven; emit assumes it.
 func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
 	nslot := len(node.Scruts)
+	// v75: variant elimination lowers through a tag switch, never
+	// the bool/str condition chain. The checker proves the arms
+	// total before emission, so this path assumes it.
+	if nslot == 1 {
+		if ot := childType(node.Scruts[0]); e.variants[ot] != nil {
+			return e.emitVariantMatch(node, out)
+		}
+	}
 	for _, arm := range node.Arms {
 		if len(arm.Pats) != nslot {
 			return fmt.Errorf("match arm has %d patterns; this match has %d scrutinees", len(arm.Pats), nslot)
@@ -1513,6 +1521,54 @@ func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
 		*out = append(*out, indent(lines)...)
 		*out = append(*out, "}")
 	}
+	return nil
+}
+
+// emitVariantMatch lowers one variant elimination (v75): the
+// scrutinee evaluates once into a generated temporary, the switch
+// reads that temporary's tag, and each payload arm binds the same
+// temporary so field access narrows through it. Case order follows
+// source arms. The defensive default mirrors call matches: the
+// checker proves totality, so reaching it throws instead of
+// returning undefined.
+func (e *emitter) emitVariantMatch(node *Node, out *[]string) error {
+	sv, err := e.emitValue(node.Scruts[0])
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	*out = append(*out, fmt.Sprintf("const %s = %s;", tmp, sv))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	for _, arm := range node.Arms {
+		if len(arm.Pats) != 1 {
+			return fmt.Errorf("match arm has %d patterns; this match has 1 scrutinee", len(arm.Pats))
+		}
+		pat := arm.Pats[0]
+		if !pat.isCase() {
+			return fmt.Errorf("variant match arm must be a case")
+		}
+		*out = append(*out, fmt.Sprintf("case \"%s\": {", pat.Name))
+		binder := pat.Var
+		if pat.Kind == "variant" && binder != "" {
+			*out = append(*out, fmt.Sprintf("  const %s = %s;", binder, tmp))
+			lines, err := e.retLines(arm.Rhs, map[string]string{binder: binder})
+			if err != nil {
+				return err
+			}
+			*out = append(*out, indent(lines)...)
+		} else {
+			lines, err := e.retLines(arm.Rhs, nil)
+			if err != nil {
+				return err
+			}
+			*out = append(*out, indent(lines)...)
+		}
+		*out = append(*out, "}")
+	}
+	*out = append(*out, "default: {")
+	*out = append(*out, "  throw new Error(\"unreachable\");")
+	*out = append(*out, "}")
+	*out = append(*out, "}")
 	return nil
 }
 
