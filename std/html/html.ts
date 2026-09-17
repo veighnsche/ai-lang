@@ -1,6 +1,6 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -19,6 +19,8 @@ export type Html__CheckedUrl = { value: string; len: bigint };
 export type Html__Children = { items: string[] };
 export type Html__NamedAttribute = { name: string; attribute: string };
 export type Html__NamedAttributeResult = { item: Html__NamedAttribute };
+export type Html__AttributesResult = { attributes: string };
+export type Html__ContainsResult = { value: boolean };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -1136,6 +1138,137 @@ export function html__attribute__named_src(url: string): { $ail_kind: "ok"; item
   case "html.nul_byte": {
     const e = $ail_m1;
     return { $ail_kind: "html.nul_byte", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__attributes__contains(names: string[], name: string, position: bigint, fuel: bigint): { $ail_kind: "ok"; value: boolean } {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", value: false };
+  }
+  else {
+    if ((position < (BigInt([...names].length)))) {
+      if (($ailSeqAt(names, position) === name)) {
+        return { $ail_kind: "ok", value: true };
+      }
+      else {
+        const $ail_m1: { $ail_kind: "ok"; value: boolean } = html__attributes__contains(names, name, (position + 1n), (fuel - 1n));
+        switch ($ail_m1.$ail_kind) {
+        case "ok": {
+          const r = $ail_m1;
+          return { $ail_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $ail_kind: "ok", value: false };
+    }
+  }
+}
+export function html__named_item_at(items: Html__NamedAttribute[], position: bigint): { $ail_kind: "ok"; item: Html__NamedAttribute } {
+  return { $ail_kind: "ok", item: $ailSeqAt(items, position) };
+}
+export function html__attributes__make_from(items: Html__NamedAttribute[], position: bigint, fuel: bigint, acc: string, kept: string[]): { $ail_kind: "ok"; attributes: string } | { $ail_kind: "html.duplicate_attribute"; name: string } {
+  if ((fuel <= 0n)) {
+    return { $ail_kind: "ok", attributes: acc };
+  }
+  else {
+    if ((position < (BigInt([...items].length)))) {
+      const $ail_m1: { $ail_kind: "ok"; item: Html__NamedAttribute } = html__named_item_at(items, position);
+      switch ($ail_m1.$ail_kind) {
+      case "ok": {
+        const it = $ail_m1;
+        if ((it.item.attribute === "")) {
+          const $ail_m2: { $ail_kind: "ok"; attributes: string } | { $ail_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), acc, kept);
+          switch ($ail_m2.$ail_kind) {
+          case "html.duplicate_attribute": {
+            const e = $ail_m2;
+            return { $ail_kind: "html.duplicate_attribute", name: e.name };
+          }
+          case "ok": {
+            const r = $ail_m2;
+            return { $ail_kind: "ok", attributes: r.attributes };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $ail_m3: { $ail_kind: "ok"; value: boolean } = html__attributes__contains(kept, it.item.name, 0n, ((BigInt([...kept].length)) + 1n));
+          switch ($ail_m3.$ail_kind) {
+          case "ok": {
+            const c = $ail_m3;
+            if (c.value) {
+              return { $ail_kind: "html.duplicate_attribute", name: it.item.name };
+            }
+            else {
+              if (((BigInt([...kept].length)) === 0n)) {
+                const $ail_m4: { $ail_kind: "ok"; attributes: string } | { $ail_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), it.item.attribute, [...kept, it.item.name]);
+                switch ($ail_m4.$ail_kind) {
+                case "html.duplicate_attribute": {
+                  const e = $ail_m4;
+                  return { $ail_kind: "html.duplicate_attribute", name: e.name };
+                }
+                case "ok": {
+                  const r = $ail_m4;
+                  return { $ail_kind: "ok", attributes: r.attributes };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              else {
+                const $ail_m5: { $ail_kind: "ok"; attributes: string } | { $ail_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), ((acc + " ") + it.item.attribute), [...kept, it.item.name]);
+                switch ($ail_m5.$ail_kind) {
+                case "html.duplicate_attribute": {
+                  const e = $ail_m5;
+                  return { $ail_kind: "html.duplicate_attribute", name: e.name };
+                }
+                case "ok": {
+                  const r = $ail_m5;
+                  return { $ail_kind: "ok", attributes: r.attributes };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $ail_kind: "ok", attributes: acc };
+    }
+  }
+}
+export function html__attributes__make(items: Html__NamedAttribute[]): { $ail_kind: "ok"; attributes: string } | { $ail_kind: "html.duplicate_attribute"; name: string } {
+  const $ail_m1: { $ail_kind: "ok"; attributes: string } | { $ail_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, 0n, ((BigInt([...items].length)) + 1n), "", []);
+  switch ($ail_m1.$ail_kind) {
+  case "html.duplicate_attribute": {
+    const e = $ail_m1;
+    return { $ail_kind: "html.duplicate_attribute", name: e.name };
+  }
+  case "ok": {
+    const r = $ail_m1;
+    return { $ail_kind: "ok", attributes: r.attributes };
   }
   default: {
     throw new Error("unreachable");

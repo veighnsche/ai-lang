@@ -47,6 +47,33 @@
     ]
   },
   {
+    "kind": "html.duplicate_attribute",
+    "fields": [
+      "name"
+    ],
+    "raised_by": [
+      "html.html__attributes__make",
+      "html.html__attributes__make_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "html.html__attributes__make",
+        "arm": "on html.duplicate_attribute e =\u003e html.duplicate_attribute(name = e.name)"
+      },
+      {
+        "fn": "html.html__attributes__make_from",
+        "arm": "on html.duplicate_attribute e =\u003e html.duplicate_attribute(name = e.name)"
+      }
+    ],
+    "hit_by_tests": [
+      "html.html__attributes__make/dup_after_skip",
+      "html.html__attributes__make/dup_disabled",
+      "html.html__attributes__make/dup_first_repeated",
+      "html.html__attributes__make/dup_id_nonadjacent",
+      "html.html__attributes__make/dup_title"
+    ]
+  },
+  {
     "kind": "html.invalid_attribute_name",
     "fields": [
       "value"
