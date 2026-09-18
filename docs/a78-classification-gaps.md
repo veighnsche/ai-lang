@@ -1,9 +1,12 @@
 # a78: classification gaps (verified investigation + proposal)
 
-Status: investigation closed (all four gaps verified against
-source and compiler probes, 2026-09-18); proposals below are
-pre-decision. No rule, no code, no golden. Each item
-graduates separately.
+Status: decided — see [a78-gap-closures.md](a78-gap-closures.md),
+the final design record (build order: constants → forward arms
+→ ranges → or-patterns → boolean operators → unary minus,
+plus the LSP transport prerequisite). The investigation below
+is unchanged; its proposal direction is superseded by that
+record. No rule, no code, no golden yet. Each item graduates
+separately.
 
 ## Motivating case
 
