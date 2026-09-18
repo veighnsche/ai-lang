@@ -652,7 +652,7 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 			s := m.Scruts[0]
 			scrut[s] = true
 			fname := s.Fname
-			if isStoreOp(fname) || isDecParts(fname) || isBytesKernel(fname) {
+			if classifyCallee(prog, fn.Name, fname).IsIntrinsic() {
 				continue // cells resolve in checkEffects; kernels
 				// need nothing; uses never applies to any of them
 			}
@@ -904,31 +904,16 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 		if calleeUnknown(prog, fname) {
 			continue // checkCalls owns the unknown-callee error
 		}
-		if isStoreOp(fname) {
+		// Intrinsics and local helpers are deterministic: one
+		// branch for the whole deterministic family, not one
+		// copy per callee kind.
+		if kind := classifyCallee(prog, fn.Name, fname); kind.IsIntrinsic() || kind == CalleeLocal {
 			if m.Given != nil {
-				out = append(out, spanDiag(text, m.Line, "error",
-					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
-			}
-			continue
-		}
-		if isDecParts(fname) {
-			if m.Given != nil {
-				out = append(out, spanDiag(text, m.Line, "error",
-					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
-			}
-			continue
-		}
-		if isBytesKernel(fname) {
-			if m.Given != nil {
-				out = append(out, spanDiag(text, m.Line, "error",
-					fmt.Sprintf("call to %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
-			}
-			continue
-		}
-		if localCallee(prog, fn.Name, fname) != nil {
-			if m.Given != nil {
-				out = append(out, spanDiag(text, m.Line, "error",
-					fmt.Sprintf("call to local helper %s takes no given table: it is deterministic", fname), fname, CodeGivenOnLocal))
+				what := fmt.Sprintf("call to %s takes no given table: it is deterministic", fname)
+				if kind == CalleeLocal {
+					what = fmt.Sprintf("call to local helper %s takes no given table: it is deterministic", fname)
+				}
+				out = append(out, spanDiag(text, m.Line, "error", what, fname, CodeGivenOnLocal))
 			}
 			continue
 		}

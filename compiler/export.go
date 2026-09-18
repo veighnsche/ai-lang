@@ -100,7 +100,7 @@ type bytesKernel struct {
 // (its name only looks out of place; renaming the table would churn
 // every call site for zero behavior gain).
 var bytesKernels = map[string]bytesKernel{
-	bytesExportKernel:    {ret: bytesValueRecord, emits: []string{}, restricted: true},
+	bytesExportKernel: {ret: bytesValueRecord, emits: []string{}, restricted: true},
 	// The asset kernel carries a static signature (unlike the export
 	// kernel, whose brand varies per grant): its brands are always
 	// the schema pair, so call args type-check wherever the grant
@@ -202,6 +202,85 @@ func isFallibleDecode(fname string) bool {
 // decoders, with its own codec helper, union, and error contract.
 func isBytesB64Decode(fname string) bool {
 	return fname == bytesB64DecodeKernel
+}
+
+// CalleeKind is the single classification of a call scrutinee's
+// callee: one ordered chain replaces the per-stage ladders in
+// emit (stmtMatch), eval (evCallMatch), check (checkCalls,
+// checkGiven) and linked (checkLinkedGraph), so a new callee
+// kind is added once, not once per stage. The order is
+// load-bearing and mirrors every ladder it replaces: store ops,
+// dec__parts, bytes kernels (finest first, generic last), local
+// helper, known foreign, unknown. BytesOther covers registered
+// kernels with no dedicated branch (today the export kernel):
+// sites keep their historical else-branch behavior for it.
+// A nil prog (emit has no program context at codegen) only
+// answers the intrinsic question; every non-intrinsic reports
+// CalleeUnknown there, and both lower through the union path.
+type CalleeKind int
+
+const (
+	CalleeStoreOp CalleeKind = iota
+	CalleeDecParts
+	CalleeBytesDecode
+	CalleeBytesHexDecode
+	CalleeBytesB64Decode
+	CalleeBytesHexEncode
+	CalleeBytesB64Encode
+	CalleeBytesAsset
+	CalleeBytesOther
+	CalleeLocal
+	CalleeForeign
+	CalleeUnknown
+)
+
+func classifyCallee(prog *Program, owner, fname string) CalleeKind {
+	switch {
+	case isStoreOp(fname):
+		return CalleeStoreOp
+	case isDecParts(fname):
+		return CalleeDecParts
+	case isBytesDecode(fname):
+		return CalleeBytesDecode
+	case isBytesHexDecode(fname):
+		return CalleeBytesHexDecode
+	case isBytesB64Decode(fname):
+		return CalleeBytesB64Decode
+	case isBytesHexEncode(fname):
+		return CalleeBytesHexEncode
+	case isBytesB64Encode(fname):
+		return CalleeBytesB64Encode
+	case isAssetFields(fname):
+		return CalleeBytesAsset
+	case isBytesKernel(fname):
+		return CalleeBytesOther
+	}
+	if localCallee(prog, owner, fname) != nil {
+		return CalleeLocal
+	}
+	if prog != nil {
+		if _, ok := prog.Fns[fname]; ok {
+			return CalleeForeign
+		}
+		if prog.Externs[fname] != nil {
+			return CalleeForeign
+		}
+	}
+	return CalleeUnknown
+}
+
+// IsIntrinsic reports compiler-owned deterministic callees:
+// store ops, dec__parts, and every bytes kernel. Intrinsics
+// need no uses entry and take no given table.
+func (k CalleeKind) IsIntrinsic() bool {
+	switch k {
+	case CalleeStoreOp, CalleeDecParts,
+		CalleeBytesDecode, CalleeBytesHexDecode, CalleeBytesB64Decode,
+		CalleeBytesHexEncode, CalleeBytesB64Encode,
+		CalleeBytesAsset, CalleeBytesOther:
+		return true
+	}
+	return false
 }
 
 // exportGrantSite retains a grant with its owning module: ownership is

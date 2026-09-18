@@ -1391,7 +1391,9 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 	var v *Value
 	if scrut.Kind == "call" {
 		fname := scrut.Fname
-		if isStoreOp(fname) {
+		kind := classifyCallee(ctx.Prog, owner, fname)
+		switch kind {
+		case CalleeStoreOp:
 			if node.Given != nil {
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
@@ -1400,7 +1402,7 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				return nil, err
 			}
 			v = val
-		} else if isDecParts(fname) {
+		case CalleeDecParts:
 			if node.Given != nil {
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
@@ -1409,32 +1411,36 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				return nil, err
 			}
 			v = val
-		} else if isBytesKernel(fname) {
+		case CalleeBytesDecode, CalleeBytesHexDecode, CalleeBytesB64Decode,
+			CalleeBytesHexEncode, CalleeBytesB64Encode,
+			CalleeBytesAsset, CalleeBytesOther:
 			if node.Given != nil {
 				return nil, fmt.Errorf("%s: call to %s takes no given table", owner, fname)
 			}
 			var val *Value
 			var err error
-			if isBytesDecode(fname) {
+			switch kind {
+			case CalleeBytesDecode:
 				val, err = evBytesDecodeOp(scrut, env, ctx, owner)
-			} else if isBytesHexDecode(fname) {
+			case CalleeBytesHexDecode:
 				val, err = evBytesHexDecodeOp(scrut, env, ctx, owner)
-			} else if isBytesB64Decode(fname) {
+			case CalleeBytesB64Decode:
 				val, err = evBytesB64DecodeOp(scrut, env, ctx, owner)
-			} else if isBytesHexEncode(fname) {
+			case CalleeBytesHexEncode:
 				val, err = evBytesHexEncodeOp(scrut, env, ctx, owner)
-			} else if isBytesB64Encode(fname) {
+			case CalleeBytesB64Encode:
 				val, err = evBytesB64EncodeOp(scrut, env, ctx, owner)
-			} else if isAssetFields(fname) {
+			case CalleeBytesAsset:
 				val, err = evAssetFieldsOp(scrut, env, ctx, owner)
-			} else {
+			default:
 				val, err = evBytesEncodeOp(scrut, env, ctx, owner)
 			}
 			if err != nil {
 				return nil, err
 			}
 			v = val
-		} else if helper := localCallee(ctx.Prog, owner, fname); helper != nil {
+		case CalleeLocal:
+			helper := localCallee(ctx.Prog, owner, fname)
 			if node.Given != nil {
 				return nil, fmt.Errorf("%s: call to local helper %s takes no given table", owner, fname)
 			}
@@ -1443,7 +1449,7 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				return nil, err
 			}
 			v = val
-		} else {
+		default:
 			// Externs are module-local foreign imports: no uses pin, but
 			// still scripted through given tables like can calls.
 			if calleeUnknown(ctx.Prog, fname) {
@@ -1501,9 +1507,6 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				perTest[ctx.Test] = script[1:]
 				if item.Kind != "exchange" {
 					return nil, fmt.Errorf("%s/%s: script row must be an exchange with args and outcome", owner, ctx.Test)
-				}
-				if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
-					return nil, err
 				}
 				if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
 					return nil, err

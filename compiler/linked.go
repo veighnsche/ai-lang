@@ -34,10 +34,12 @@ func checkLinkedGraph(prog *Program, root string) error {
 			continue
 		}
 		seen[name] = true
-		if isStoreOp(name) {
-			return fmt.Errorf("linked execution refused: state operation %s", name)
-		}
-		if isDecParts(name) || isBytesKernel(name) {
+		// Intrinsics other than state ops are admitted
+		// deterministic kernels; state ops refuse.
+		if kind := classifyCallee(prog, "", name); kind.IsIntrinsic() {
+			if kind == CalleeStoreOp {
+				return fmt.Errorf("linked execution refused: state operation %s", name)
+			}
 			continue
 		}
 		if prog.Externs[name] != nil {

@@ -1419,25 +1419,23 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 		return e.emitValueMatch(node, out)
 	}
 	scrut := node.Scruts[0]
-	if isStoreOp(scrut.Fname) {
+	// Codegen has no program context, so the classifier answers
+	// only the intrinsic question here; every non-intrinsic
+	// (local, foreign, unknown) lowers through the union path.
+	switch classifyCallee(nil, "", scrut.Fname) {
+	case CalleeStoreOp:
 		return e.stmtStoreOp(node, scrut, out)
-	}
-	if isDecParts(scrut.Fname) {
+	case CalleeDecParts:
 		return e.stmtDecParts(node, scrut, out)
-	}
-	if isFallibleDecode(scrut.Fname) {
+	case CalleeBytesDecode, CalleeBytesHexDecode, CalleeBytesB64Decode:
 		return e.stmtBytesDecode(node, scrut, out)
-	}
-	if isBytesHexEncode(scrut.Fname) {
+	case CalleeBytesHexEncode:
 		return e.stmtBytesHexEncode(node, scrut, out)
-	}
-	if isBytesB64Encode(scrut.Fname) {
+	case CalleeBytesB64Encode:
 		return e.stmtBytesB64Encode(node, scrut, out)
-	}
-	if isAssetFields(scrut.Fname) {
+	case CalleeBytesAsset:
 		return e.stmtAssetFields(node, scrut, out)
-	}
-	if isBytesKernel(scrut.Fname) {
+	case CalleeBytesOther:
 		return e.stmtBytesEncode(node, scrut, out)
 	}
 	union, ok := e.fnUnions[scrut.Fname]
