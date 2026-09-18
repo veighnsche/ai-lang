@@ -1410,9 +1410,8 @@ func indent(lines []string) []string {
 }
 
 func (e *emitter) stmtMatch(node *Node, out *[]string) error {
-	if node.Kind == MatchChain {
-		// a86: chains elaborate in buildWorld before emit;
-		// reaching codegen unelaborated is a compiler bug.
+	if !elaborated(node) {
+		// Reaching codegen unelaborated is a compiler bug.
 		return fmt.Errorf("match chain reached emit unelaborated")
 	}
 	if node.Kind != MatchCall {

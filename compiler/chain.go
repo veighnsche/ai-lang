@@ -320,6 +320,16 @@ func elaborateChains(open *Module, prog *Program, text string) []Diag {
 	return out
 }
 
+// elaborated reports the post-buildWorld invariant: no MatchChain
+// survives. Elaboration needs EmitsOf, so the parser cannot build
+// ladders natively — chains vanish here, once, in place — and
+// every later stage (emit, evaluation, proof) works on ladders
+// only. Each stage guards with this predicate and fails closed;
+// one definition so the invariant cannot drift between stages.
+func elaborated(n *Node) bool {
+	return n == nil || n.Kind != MatchChain
+}
+
 // elabChainNode elaborates post-order: nested tails first, then the
 // chain itself, so every MatchChain vanishes in one pass and a
 // second run is a no-op. Ordinary matches recurse through arm
