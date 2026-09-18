@@ -26,7 +26,8 @@ func TestReserveRuntimeParity(t *testing.T) {
 	// extensionless same-dir specifiers become explicit .ts paths
 	// in the temp copy only; goldens pin emitted bytes verbatim.
 	rewriteSpecifier(t, filepath.Join(out, "reserve.ts"), "./quota", "./quota.ts")
-	rewriteSpecifier(t, filepath.Join(out, "reserve.ts"), "./scalars", "./scalars.ts")
+	// No ./scalars rewrite since migration: reserve never calls
+	// the converter directly, so its emit imports quota alone.
 	rewriteSpecifier(t, filepath.Join(out, "quota.ts"), "./scalars", "./scalars.ts")
 	driver := `import { reserve__request__validate, reserve__request__admit } from "./reserve.ts";
 const show = (x) => JSON.stringify(x, (k, v) => typeof v === "bigint" ? { $bigint: v.toString() } : v);

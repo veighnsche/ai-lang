@@ -1,23 +1,19 @@
 // sketches/reserve/reserve.can — S2 second consumer: a dinner-reservation
 // desk admitting requests against a program-owned policy. Independent
 // program from the quota pilot (different domain, different policy
-// values), but a genuine client of the same shared scalar validators
-// and canonical converter: the S2 question is what binding and
-// interpretation work repeats per record that shared calls do not
-// remove, so nothing here is vendored.
+// values), migrated onto the S2a closed check ops per
+// docs/a92-schema-s2b-call.md: the validator binds one check per
+// field and forwards check outcomes unchanged — no reconstruction
+// arms, no converter calls, no producer kinds.
 // A validator returns the accepted value or the frozen violation
 // triple. It never clamps, trims, or supplies a default.
 
 mod reserve
   provides [reserve__request__validate, reserve__request__admit, Reserve__Request, Reserve__RequestSchema, Reserve__RequestValue, Reserve__Confirmation]
-  uses [std__validate__str_length@1, std__validate__int_range@1, std__validate__str_one_of@1, std__convert__int_to_str@1]
+  uses [std__validate__length_check@1, std__validate__range_check@1, std__validate__membership_check@1, Validate__Length@1, Validate__Range@1, Validate__Membership@1]
   emits [validation.schema_violation]
 
 error validation.schema_violation(path: str, rule: str, value: str)
-error validation.invalid_bounds(lower: int, upper: int)
-error validation.invalid_length(value: str, minimum: int, maximum: int)
-error validation.out_of_range(value: int, lower: int, upper: int)
-error validation.not_allowed(value: str)
 
 type Reserve__Request rev 1 (
   guest: str
@@ -73,90 +69,69 @@ fn reserve__request__validate(request: Reserve__Request, schema: Reserve__Reques
     slots_empty(Reserve__Request("Ada", 3, "dinner"), Reserve__RequestSchema(1, 24, 1, 8, Seq<str>[])) => validation.schema_violation("slot", "str.one_of", "dinner")
     slot_case(Reserve__Request("Ada", 3, "Dinner"), Reserve__RequestSchema(1, 24, 1, 8, Seq<str>["lunch", "dinner"])) => validation.schema_violation("slot", "str.one_of", "Dinner")
     ws_preserved(Reserve__Request(" ab ", 3, "dinner"), Reserve__RequestSchema(1, 24, 1, 8, Seq<str>["lunch", "dinner"])) => Ok(Reserve__Request(" ab ", 3, "dinner"))
-  match schema.guest_minimum >= 0
-    true => match call std__validate__str_length(request.guest, schema.guest_minimum, schema.guest_maximum)
+  // Migrated onto the S2a closed checks (docs/a92-schema-s2b-call.md):
+  // one check per field, outcomes forwarded unchanged. Field order
+  // and every expectation above are unchanged.
+  match call std__validate__length_check(request.guest, Validate__Length("guest", "guest", schema.guest_minimum, schema.guest_maximum))
+    given
+      ok => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      guest_short => [exchange args (value = "", constraint = Validate__Length("guest", "guest", 1, 24)) outcome validation.schema_violation(path = "guest", rule = "str.length_scalars", value = "")]
+      guest_long => [exchange args (value = "abcdefghijklmnopqrstuvwxy", constraint = Validate__Length("guest", "guest", 1, 24)) outcome validation.schema_violation(path = "guest", rule = "str.length_scalars", value = "abcdefghijklmnopqrstuvwxy")]
+      guest_min_negative => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", -1, 24)) outcome validation.schema_violation(path = "", rule = "schema.guest_minimum", value = "-1")]
+      guest_bounds => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 5, 1)) outcome validation.schema_violation(path = "", rule = "schema.guest_bounds", value = "minimum=5;maximum=1")]
+      party_below => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      party_above => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      party_bounds => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      slot_bad => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      guest_beats_policy => [exchange args (value = "", constraint = Validate__Length("guest", "guest", 1, 24)) outcome validation.schema_violation(path = "guest", rule = "str.length_scalars", value = "")]
+      guest_beats_party => [exchange args (value = "", constraint = Validate__Length("guest", "guest", 1, 24)) outcome validation.schema_violation(path = "guest", rule = "str.length_scalars", value = "")]
+      party_beats_slot => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      guest_min_edge => [exchange args (value = "A", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("A")]
+      guest_max_edge => [exchange args (value = "abcdefghijklmnopqrstuvwx", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("abcdefghijklmnopqrstuvwx")]
+      party_low_edge => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      party_high_edge => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      unicode_ok => [exchange args (value = "héllo世界ab12", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("héllo世界ab12")]
+      bigint => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      slots_empty => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      slot_case => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      ws_preserved => [exchange args (value = " ab ", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok(" ab ")]
+      admitted => [exchange args (value = "Ada", constraint = Validate__Length("guest", "guest", 1, 24)) outcome Ok("Ada")]
+      rejected => [exchange args (value = "", constraint = Validate__Length("guest", "guest", 1, 24)) outcome validation.schema_violation(path = "guest", rule = "str.length_scalars", value = "")]
+    on validation.schema_violation e => forward e
+    on Ok _ => match call std__validate__range_check(request.party, Validate__Range("party", "party", schema.party_lower, schema.party_upper))
       given
-        ok => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        guest_short => [exchange args (value = "", minimum = 1, maximum = 24) outcome validation.invalid_length(value = "", minimum = 1, maximum = 24)]
-        guest_long => [exchange args (value = "abcdefghijklmnopqrstuvwxy", minimum = 1, maximum = 24) outcome validation.invalid_length(value = "abcdefghijklmnopqrstuvwxy", minimum = 1, maximum = 24)]
-        guest_bounds => [exchange args (value = "Ada", minimum = 5, maximum = 1) outcome validation.invalid_bounds(lower = 5, upper = 1)]
-        party_below => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        party_above => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        party_bounds => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        slot_bad => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        guest_beats_policy => [exchange args (value = "", minimum = 1, maximum = 24) outcome validation.invalid_length(value = "", minimum = 1, maximum = 24)]
-        guest_beats_party => [exchange args (value = "", minimum = 1, maximum = 24) outcome validation.invalid_length(value = "", minimum = 1, maximum = 24)]
-        party_beats_slot => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        guest_min_edge => [exchange args (value = "A", minimum = 1, maximum = 24) outcome Ok("A")]
-        guest_max_edge => [exchange args (value = "abcdefghijklmnopqrstuvwx", minimum = 1, maximum = 24) outcome Ok("abcdefghijklmnopqrstuvwx")]
-        party_low_edge => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        party_high_edge => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        unicode_ok => [exchange args (value = "héllo世界ab12", minimum = 1, maximum = 24) outcome Ok("héllo世界ab12")]
-        bigint => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        slots_empty => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        slot_case => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        ws_preserved => [exchange args (value = " ab ", minimum = 1, maximum = 24) outcome Ok(" ab ")]
-        admitted => [exchange args (value = "Ada", minimum = 1, maximum = 24) outcome Ok("Ada")]
-        rejected => [exchange args (value = "", minimum = 1, maximum = 24) outcome validation.invalid_length(value = "", minimum = 1, maximum = 24)]
-      on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.guest_minimum)
+        ok => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        party_below => [exchange args (value = 0, constraint = Validate__Range("party", "party", 1, 8)) outcome validation.schema_violation(path = "party", rule = "int.closed_range", value = "0")]
+        party_above => [exchange args (value = 9, constraint = Validate__Range("party", "party", 1, 8)) outcome validation.schema_violation(path = "party", rule = "int.closed_range", value = "9")]
+        party_bounds => [exchange args (value = 3, constraint = Validate__Range("party", "party", 8, 1)) outcome validation.schema_violation(path = "", rule = "schema.party_bounds", value = "lower=8;upper=1")]
+        slot_bad => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        party_beats_slot => [exchange args (value = 99, constraint = Validate__Range("party", "party", 1, 8)) outcome validation.schema_violation(path = "party", rule = "int.closed_range", value = "99")]
+        guest_min_edge => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        guest_max_edge => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        party_low_edge => [exchange args (value = 1, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(1)]
+        party_high_edge => [exchange args (value = 8, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(8)]
+        unicode_ok => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        bigint => [exchange args (value = -9007199254740993, constraint = Validate__Range("party", "party", 1, 8)) outcome validation.schema_violation(path = "party", rule = "int.closed_range", value = "-9007199254740993")]
+        slots_empty => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        slot_case => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        ws_preserved => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+        admitted => [exchange args (value = 3, constraint = Validate__Range("party", "party", 1, 8)) outcome Ok(3)]
+      on validation.schema_violation e => forward e
+      on Ok _ => match call std__validate__membership_check(request.slot, Validate__Membership("slot", schema.allowed_slots))
         given
-          guest_bounds => [exchange args (value = 5) outcome Ok("5")]
-        on Ok lo => match call std__convert__int_to_str(schema.guest_maximum)
-          given
-            guest_bounds => [exchange args (value = 1) outcome Ok("1")]
-          on Ok hi => validation.schema_violation("", "schema.guest_bounds", "minimum=" + lo.value + ";maximum=" + hi.value)
-      on validation.invalid_length _ => validation.schema_violation("guest", "str.length_scalars", request.guest)
-      on Ok _ => match call std__validate__int_range(request.party, schema.party_lower, schema.party_upper)
-        given
-          ok => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          party_below => [exchange args (value = 0, lower = 1, upper = 8) outcome validation.out_of_range(value = 0, lower = 1, upper = 8)]
-          party_above => [exchange args (value = 9, lower = 1, upper = 8) outcome validation.out_of_range(value = 9, lower = 1, upper = 8)]
-          party_bounds => [exchange args (value = 3, lower = 8, upper = 1) outcome validation.invalid_bounds(lower = 8, upper = 1)]
-          slot_bad => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          party_beats_slot => [exchange args (value = 99, lower = 1, upper = 8) outcome validation.out_of_range(value = 99, lower = 1, upper = 8)]
-          guest_min_edge => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          guest_max_edge => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          party_low_edge => [exchange args (value = 1, lower = 1, upper = 8) outcome Ok(1)]
-          party_high_edge => [exchange args (value = 8, lower = 1, upper = 8) outcome Ok(8)]
-          unicode_ok => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          bigint => [exchange args (value = -9007199254740993, lower = 1, upper = 8) outcome validation.out_of_range(value = -9007199254740993, lower = 1, upper = 8)]
-          slots_empty => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          slot_case => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          ws_preserved => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-          admitted => [exchange args (value = 3, lower = 1, upper = 8) outcome Ok(3)]
-        on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.party_lower)
-          given
-            party_bounds => [exchange args (value = 8) outcome Ok("8")]
-          on Ok lo => match call std__convert__int_to_str(schema.party_upper)
-            given
-              party_bounds => [exchange args (value = 1) outcome Ok("1")]
-            on Ok hi => validation.schema_violation("", "schema.party_bounds", "lower=" + lo.value + ";upper=" + hi.value)
-        on validation.out_of_range _ => match call std__convert__int_to_str(request.party)
-          given
-            party_below => [exchange args (value = 0) outcome Ok("0")]
-            party_above => [exchange args (value = 9) outcome Ok("9")]
-            party_beats_slot => [exchange args (value = 99) outcome Ok("99")]
-            bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
-          on Ok r => validation.schema_violation("party", "int.closed_range", r.value)
-        on Ok _ => match call std__validate__str_one_of(request.slot, schema.allowed_slots)
-          given
-            ok => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            slot_bad => [exchange args (value = "brunch", allowed = Seq<str>["lunch", "dinner"]) outcome validation.not_allowed(value = "brunch")]
-            guest_min_edge => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            guest_max_edge => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            party_low_edge => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            party_high_edge => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            unicode_ok => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            slots_empty => [exchange args (value = "dinner", allowed = Seq<str>[]) outcome validation.not_allowed(value = "dinner")]
-            slot_case => [exchange args (value = "Dinner", allowed = Seq<str>["lunch", "dinner"]) outcome validation.not_allowed(value = "Dinner")]
-            ws_preserved => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-            admitted => [exchange args (value = "dinner", allowed = Seq<str>["lunch", "dinner"]) outcome Ok("dinner")]
-          on validation.not_allowed _ => validation.schema_violation("slot", "str.one_of", request.slot)
-          on Ok _ => Ok(request)
-    false => match call std__convert__int_to_str(schema.guest_minimum)
-      given
-        guest_min_negative => [exchange args (value = -1) outcome Ok("-1")]
-      on Ok r => validation.schema_violation("", "schema.guest_minimum", r.value)
+          ok => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          slot_bad => [exchange args (value = "brunch", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome validation.schema_violation(path = "slot", rule = "str.one_of", value = "brunch")]
+          guest_min_edge => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          guest_max_edge => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          party_low_edge => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          party_high_edge => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          unicode_ok => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          slots_empty => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>[])) outcome validation.schema_violation(path = "slot", rule = "str.one_of", value = "dinner")]
+          slot_case => [exchange args (value = "Dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome validation.schema_violation(path = "slot", rule = "str.one_of", value = "Dinner")]
+          ws_preserved => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+          admitted => [exchange args (value = "dinner", constraint = Validate__Membership("slot", Seq<str>["lunch", "dinner"])) outcome Ok("dinner")]
+        on validation.schema_violation e => forward e
+        on Ok _ => Ok(request)
 
 // Admission stays pure: a rejected request never reaches
 // confirmation, and the whole path executes under linked-pure

@@ -80,3 +80,26 @@ check ops, and three consumers on one idiom. S3
 (generic `Schema<T>`) still needs order-8 generics plus
 the checked field-binding mechanism; nothing here
 advances those except the exhibits they will consume.
+
+## Execution record (green, same day)
+
+Both migrations held the rule: bodies and `given`
+tables only, zero test-row lines changed (verified by
+diff — the only non-script `=>` changes are the
+removed boolean-dispatch match lines).
+
+- Consumer 1: validate body 35 lines → 10, its own
+  givens → zero. Scripts conserved, not deleted: the
+  12 deleted exchanges reappear keyed by validate and
+  envelope rows in the check ops' converter givens
+  (same-file transitivity), leaving `quota.can` at 28.
+  The win is reconstruction arms, not scripts.
+- Consumer 2: 171 → 138 lines, 58 → 50 exchanges, 5 →
+  1 kind declarations, TS imports 2 → 1 — converging
+  exactly onto consumer 3's shape (50 exchanges),
+  which is the migration's external validity check:
+  the migrated consumer is indistinguishable in cost
+  structure from the natively-written one.
+- Full gates green (`go test -count=1 ./...`,
+  `modcheck`, `gramcheck`); goldens, linked vectors,
+  and parity re-verify every frozen expectation.

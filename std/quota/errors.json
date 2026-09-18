@@ -485,14 +485,6 @@
         "arm": "on validation.invalid_bounds e =\u003e forward e"
       },
       {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.amount_lower)"
-      },
-      {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.label_minimum)"
-      },
-      {
         "fn": "quota.std__validate__length_check",
         "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(constraint.minimum)"
       },
@@ -519,10 +511,6 @@
       "quota.std__validate__str_length"
     ],
     "handled_by": [
-      {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(\"label\", \"str.length_scalars\", request.label)"
-      },
       {
         "fn": "quota.std__validate__length_check",
         "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(constraint.path, \"str.length_scalars\", value)"
@@ -575,10 +563,6 @@
       "quota.std__validate__str_one_of_from"
     ],
     "handled_by": [
-      {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(\"mode\", \"str.one_of\", request.mode)"
-      },
       {
         "fn": "quota.std__validate__membership_check",
         "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(constraint.path, \"str.one_of\", value)"
@@ -641,10 +625,6 @@
         "arm": "on validation.out_of_range e =\u003e forward e"
       },
       {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(request.amount)"
-      },
-      {
         "fn": "quota.std__validate__range_check",
         "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(value)"
       }
@@ -678,6 +658,10 @@
       },
       {
         "fn": "quota.quota__request__admit",
+        "arm": "on validation.schema_violation e =\u003e forward e"
+      },
+      {
+        "fn": "quota.quota__request__validate",
         "arm": "on validation.schema_violation e =\u003e forward e"
       }
     ],

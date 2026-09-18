@@ -485,37 +485,19 @@
         "arm": "on validation.invalid_bounds e =\u003e forward e"
       },
       {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.amount_lower)"
-      },
-      {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.label_minimum)"
-      },
-      {
         "fn": "quota.std__validate__length_check",
         "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(constraint.minimum)"
       },
       {
         "fn": "quota.std__validate__range_check",
         "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(constraint.lower)"
-      },
-      {
-        "fn": "reserve.reserve__request__validate",
-        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.guest_minimum)"
-      },
-      {
-        "fn": "reserve.reserve__request__validate",
-        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.party_lower)"
       }
     ],
     "hit_by_tests": [
       "quota.quota__consume/bad_quota",
       "quota.quota__request__admit/bad_quota",
       "quota.std__validate__int_range/bad_bounds",
-      "quota.std__validate__str_length/length_bad_bounds",
-      "reserve.reserve__request__validate/guest_bounds",
-      "reserve.reserve__request__validate/party_bounds"
+      "quota.std__validate__str_length/length_bad_bounds"
     ]
   },
   {
@@ -530,25 +512,13 @@
     ],
     "handled_by": [
       {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(\"label\", \"str.length_scalars\", request.label)"
-      },
-      {
         "fn": "quota.std__validate__length_check",
         "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(constraint.path, \"str.length_scalars\", value)"
-      },
-      {
-        "fn": "reserve.reserve__request__validate",
-        "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(\"guest\", \"str.length_scalars\", request.guest)"
       }
     ],
     "hit_by_tests": [
       "quota.std__validate__str_length/length_long",
-      "quota.std__validate__str_length/length_short",
-      "reserve.reserve__request__validate/guest_beats_party",
-      "reserve.reserve__request__validate/guest_beats_policy",
-      "reserve.reserve__request__validate/guest_long",
-      "reserve.reserve__request__validate/guest_short"
+      "quota.std__validate__str_length/length_short"
     ]
   },
   {
@@ -594,10 +564,6 @@
     ],
     "handled_by": [
       {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(\"mode\", \"str.one_of\", request.mode)"
-      },
-      {
         "fn": "quota.std__validate__membership_check",
         "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(constraint.path, \"str.one_of\", value)"
       },
@@ -608,10 +574,6 @@
       {
         "fn": "quota.std__validate__str_one_of_from",
         "arm": "on validation.not_allowed e =\u003e forward e"
-      },
-      {
-        "fn": "reserve.reserve__request__validate",
-        "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(\"slot\", \"str.one_of\", request.slot)"
       }
     ],
     "hit_by_tests": [
@@ -624,10 +586,7 @@
       "quota.std__validate__str_one_of/unicode_miss",
       "quota.std__validate__str_one_of_from/exhausted",
       "quota.std__validate__str_one_of_from/miss",
-      "quota.std__validate__str_one_of_from/over",
-      "reserve.reserve__request__validate/slot_bad",
-      "reserve.reserve__request__validate/slot_case",
-      "reserve.reserve__request__validate/slots_empty"
+      "quota.std__validate__str_one_of_from/over"
     ]
   },
   {
@@ -666,27 +625,15 @@
         "arm": "on validation.out_of_range e =\u003e forward e"
       },
       {
-        "fn": "quota.quota__request__validate",
-        "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(request.amount)"
-      },
-      {
         "fn": "quota.std__validate__range_check",
         "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(value)"
-      },
-      {
-        "fn": "reserve.reserve__request__validate",
-        "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(request.party)"
       }
     ],
     "hit_by_tests": [
       "quota.quota__consume/over",
       "quota.quota__request__admit/over",
       "quota.std__validate__int_range/above",
-      "quota.std__validate__int_range/below",
-      "reserve.reserve__request__validate/bigint",
-      "reserve.reserve__request__validate/party_above",
-      "reserve.reserve__request__validate/party_beats_slot",
-      "reserve.reserve__request__validate/party_below"
+      "quota.std__validate__int_range/below"
     ]
   },
   {
@@ -716,7 +663,15 @@
         "arm": "on validation.schema_violation e =\u003e forward e"
       },
       {
+        "fn": "quota.quota__request__validate",
+        "arm": "on validation.schema_violation e =\u003e forward e"
+      },
+      {
         "fn": "reserve.reserve__request__admit",
+        "arm": "on validation.schema_violation e =\u003e forward e"
+      },
+      {
+        "fn": "reserve.reserve__request__validate",
         "arm": "on validation.schema_violation e =\u003e forward e"
       }
     ],

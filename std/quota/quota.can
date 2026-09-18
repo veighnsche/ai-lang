@@ -281,11 +281,15 @@ fn std__validate__length_check(value: str, constraint: Validate__Length) -> Str_
           len_bounds => [exchange args (value = 5) outcome Ok("5")]
           len_other_bounds => [exchange args (value = 5) outcome Ok("5")]
           len_bigint_bounds => [exchange args (value = 9007199254740993) outcome Ok("9007199254740993")]
+          label_bounds => [exchange args (value = 5) outcome Ok("5")]
+          env_root => [exchange args (value = 5) outcome Ok("5")]
         on Ok lo => match call std__convert__int_to_str(constraint.maximum)
           given
             len_bounds => [exchange args (value = 1) outcome Ok("1")]
             len_other_bounds => [exchange args (value = 1) outcome Ok("1")]
             len_bigint_bounds => [exchange args (value = 1) outcome Ok("1")]
+            label_bounds => [exchange args (value = 1) outcome Ok("1")]
+            env_root => [exchange args (value = 1) outcome Ok("1")]
           on Ok hi => validation.schema_violation("", "schema." + constraint.tag + "_bounds", "minimum=" + lo.value + ";maximum=" + hi.value)
       on validation.invalid_length _ => validation.schema_violation(constraint.path, "str.length_scalars", value)
       on Ok v => Ok(v.value)
@@ -293,6 +297,7 @@ fn std__validate__length_check(value: str, constraint: Validate__Length) -> Str_
       given
         len_min_negative => [exchange args (value = -1) outcome Ok("-1")]
         len_min_negative_beats_data => [exchange args (value = -1) outcome Ok("-1")]
+        label_min_negative => [exchange args (value = -1) outcome Ok("-1")]
       on Ok r => validation.schema_violation("", "schema." + constraint.tag + "_minimum", r.value)
 
 fn std__validate__range_check(value: int, constraint: Validate__Range) -> Int__Value rev 1
@@ -310,10 +315,12 @@ fn std__validate__range_check(value: int, constraint: Validate__Range) -> Int__V
       given
         range_bounds => [exchange args (value = 8) outcome Ok("8")]
         range_other_bounds => [exchange args (value = 10) outcome Ok("10")]
+        amount_bounds => [exchange args (value = 10) outcome Ok("10")]
       on Ok lo => match call std__convert__int_to_str(constraint.upper)
         given
           range_bounds => [exchange args (value = 1) outcome Ok("1")]
           range_other_bounds => [exchange args (value = 0) outcome Ok("0")]
+          amount_bounds => [exchange args (value = 0) outcome Ok("0")]
         on Ok hi => validation.schema_violation("", "schema." + constraint.tag + "_bounds", "lower=" + lo.value + ";upper=" + hi.value)
     on validation.out_of_range _ => match call std__convert__int_to_str(value)
       given
@@ -321,6 +328,11 @@ fn std__validate__range_check(value: int, constraint: Validate__Range) -> Int__V
         range_above => [exchange args (value = 9) outcome Ok("9")]
         range_other_path => [exchange args (value = 11) outcome Ok("11")]
         range_bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
+        amount_below => [exchange args (value = 0) outcome Ok("0")]
+        amount_above => [exchange args (value = 11) outcome Ok("11")]
+        amount_beats_mode => [exchange args (value = 99) outcome Ok("99")]
+        bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
+        env_rendered => [exchange args (value = 11) outcome Ok("11")]
       on Ok r => validation.schema_violation(constraint.path, "int.closed_range", r.value)
     on Ok v => Ok(v.value)
 
@@ -360,41 +372,17 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
     modes_empty(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>[])) => validation.schema_violation("mode", "str.one_of", "batch")
     mode_case(Quota__Request("Ada", 5, "Batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("mode", "str.one_of", "Batch")
     ws_preserved(Quota__Request(" ab ", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request(" ab ", 5, "batch"))
-  match schema.label_minimum >= 0
-    true => match call std__validate__str_length(request.label, schema.label_minimum, schema.label_maximum)
-      on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.label_minimum)
-        given
-          label_bounds => [exchange args (value = 5) outcome Ok("5")]
-          env_root => [exchange args (value = 5) outcome Ok("5")]
-        on Ok lo => match call std__convert__int_to_str(schema.label_maximum)
-          given
-            label_bounds => [exchange args (value = 1) outcome Ok("1")]
-            env_root => [exchange args (value = 1) outcome Ok("1")]
-          on Ok hi => validation.schema_violation("", "schema.label_bounds", "minimum=" + lo.value + ";maximum=" + hi.value)
-      on validation.invalid_length _ => validation.schema_violation("label", "str.length_scalars", request.label)
-      on Ok _ => match call std__validate__int_range(request.amount, schema.amount_lower, schema.amount_upper)
-        on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.amount_lower)
-          given
-            amount_bounds => [exchange args (value = 10) outcome Ok("10")]
-          on Ok lo => match call std__convert__int_to_str(schema.amount_upper)
-            given
-              amount_bounds => [exchange args (value = 0) outcome Ok("0")]
-            on Ok hi => validation.schema_violation("", "schema.amount_bounds", "lower=" + lo.value + ";upper=" + hi.value)
-        on validation.out_of_range _ => match call std__convert__int_to_str(request.amount)
-          given
-            amount_below => [exchange args (value = 0) outcome Ok("0")]
-            amount_above => [exchange args (value = 11) outcome Ok("11")]
-            amount_beats_mode => [exchange args (value = 99) outcome Ok("99")]
-            bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
-            env_rendered => [exchange args (value = 11) outcome Ok("11")]
-          on Ok r => validation.schema_violation("amount", "int.closed_range", r.value)
-        on Ok _ => match call std__validate__str_one_of(request.mode, schema.allowed_modes)
-          on validation.not_allowed _ => validation.schema_violation("mode", "str.one_of", request.mode)
-          on Ok _ => Ok(request)
-    false => match call std__convert__int_to_str(schema.label_minimum)
-      given
-        label_min_negative => [exchange args (value = -1) outcome Ok("-1")]
-      on Ok r => validation.schema_violation("", "schema.label_minimum", r.value)
+  // Migrated onto the S2a closed checks (docs/a92-schema-s2b-call.md):
+  // one check per field, outcomes forwarded unchanged. Same-file
+  // calls, so no `given` scripts remain in this body. Field order
+  // and every expectation above are unchanged.
+  match call std__validate__length_check(request.label, Validate__Length("label", "label", schema.label_minimum, schema.label_maximum))
+    on validation.schema_violation e => forward e
+    on Ok _ => match call std__validate__range_check(request.amount, Validate__Range("amount", "amount", schema.amount_lower, schema.amount_upper))
+      on validation.schema_violation e => forward e
+      on Ok _ => match call std__validate__membership_check(request.mode, Validate__Membership("mode", schema.allowed_modes))
+        on validation.schema_violation e => forward e
+        on Ok _ => Ok(request)
 
 fn quota__request__admit(request: Quota__Request, schema: Quota__RequestSchema, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]
