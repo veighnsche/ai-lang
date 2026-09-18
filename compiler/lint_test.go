@@ -1001,3 +1001,32 @@ func TestLintIdempotent(t *testing.T) {
 		}
 	}
 }
+
+// TestLintStdClean pins the stdlib migration (can-idioms C13):
+// every blessed std module lints clean — no redundant names,
+// no unfolded ladders, no handwritten relays. All files lint
+// together so cross-module signatures resolve as in
+// `canlc lint std/`.
+func TestLintStdClean(t *testing.T) {
+	mods := []string{"ascii", "division", "html", "quota", "ratio", "scalars", "schema", "text"}
+	files := map[string]string{}
+	for _, m := range mods {
+		name := m + ".can"
+		raw, err := os.ReadFile(filepath.Join("../std", m, name))
+		if err != nil {
+			t.Fatalf("read std/%s/%s: %v", m, name, err)
+		}
+		files[name] = string(raw)
+	}
+	got, skipped := lintFiles(files)
+	if len(skipped) != 0 {
+		t.Fatalf("std must parse, skipped: %v", skipped)
+	}
+	if len(got) != 0 {
+		var msgs []string
+		for _, f := range got {
+			msgs = append(msgs, f.String())
+		}
+		t.Fatalf("std must lint clean, got %d findings:\n%s", len(got), strings.Join(msgs, "\n"))
+	}
+}

@@ -279,7 +279,6 @@ export function html__attribute__text(name: string, raw: string): { $can_kind: "
       return { $can_kind: "ok", attribute: (((w.spelling + "='") + v.value) + "'") };
     }
     case "html.nul_byte": {
-      const e = $can_m2;
       return { $can_kind: "html.nul_byte", value: raw };
     }
     default: {

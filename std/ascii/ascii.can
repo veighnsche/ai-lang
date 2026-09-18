@@ -62,36 +62,36 @@ const std__ascii__SMALL_Z: int rev 1 = 122
 fn std__ascii__is_digit(code: int) -> Bool__Value rev 1
   emits []
   tests
-    digit_zero(code = 48) => Ok(value = true)
-    digit_five(code = 53) => Ok(value = true)
-    digit_nine(code = 57) => Ok(value = true)
-    below_digits(code = 47) => Ok(value = false)
-    above_digits(code = 58) => Ok(value = false)
+    digit_zero(48) => Ok(value = true)
+    digit_five(53) => Ok(value = true)
+    digit_nine(57) => Ok(value = true)
+    below_digits(47) => Ok(value = false)
+    above_digits(58) => Ok(value = false)
 =
   Ok(value = (code >= std__ascii__ZERO) and (code <= std__ascii__NINE))
 
 fn std__ascii__is_alpha(code: int) -> Bool__Value rev 1
   emits []
   tests
-    upper_a(code = 65) => Ok(value = true)
-    upper_z(code = 90) => Ok(value = true)
-    lower_a(code = 97) => Ok(value = true)
-    lower_z(code = 122) => Ok(value = true)
-    below_upper(code = 64) => Ok(value = false)
-    above_upper(code = 91) => Ok(value = false)
-    below_lower(code = 96) => Ok(value = false)
-    above_lower(code = 123) => Ok(value = false)
+    upper_a(65) => Ok(value = true)
+    upper_z(90) => Ok(value = true)
+    lower_a(97) => Ok(value = true)
+    lower_z(122) => Ok(value = true)
+    below_upper(64) => Ok(value = false)
+    above_upper(91) => Ok(value = false)
+    below_lower(96) => Ok(value = false)
+    above_lower(123) => Ok(value = false)
 =
   Ok(value = ((code >= std__ascii__SMALL_A) and (code <= std__ascii__SMALL_Z)) or ((code >= std__ascii__A) and (code <= std__ascii__Z)))
 
 fn std__ascii__is_alnum(code: int) -> Bool__Value rev 1
   emits []
   tests
-    alnum_digit(code = 53) => Ok(value = true)
-    alnum_lower(code = 109) => Ok(value = true)
-    alnum_upper(code = 77) => Ok(value = true)
-    alnum_underscore(code = 95) => Ok(value = false)
-    alnum_space(code = 32) => Ok(value = false)
+    alnum_digit(53) => Ok(value = true)
+    alnum_lower(109) => Ok(value = true)
+    alnum_upper(77) => Ok(value = true)
+    alnum_underscore(95) => Ok(value = false)
+    alnum_space(32) => Ok(value = false)
 =
   match call std__ascii__is_alpha(code)
     on Ok a => match call std__ascii__is_digit(code)

@@ -50,33 +50,33 @@ type Split__Result rev 1 (
 fn std__str__concat(left: str, right: str) -> Str__Value rev 1
   emits []
   tests
-    basic(left = "foo", right = "bar") => Ok(value = "foobar")
-    empty_left(left = "", right = "bar") => Ok(value = "bar")
-    empty_right(left = "foo", right = "") => Ok(value = "foo")
-    both_empty(left = "", right = "") => Ok(value = "")
-    unicode(left = "héllo ", right = "世界") => Ok(value = "héllo 世界")
-    markup_passthrough(left = "<b>", right = "&amp;") => Ok(value = "<b>&amp;")
+    basic("foo", "bar") => Ok(value = "foobar")
+    empty_left("", "bar") => Ok(value = "bar")
+    empty_right("foo", "") => Ok(value = "foo")
+    both_empty("", "") => Ok(value = "")
+    unicode("héllo ", "世界") => Ok(value = "héllo 世界")
+    markup_passthrough("<b>", "&amp;") => Ok(value = "<b>&amp;")
 =
   Ok(value = left + right)
 
 fn std__str__is_empty(value: str) -> Bool__Value rev 1
   emits []
   tests
-    empty(value = "") => Ok(value = true)
-    nonempty(value = "x") => Ok(value = false)
-    whitespace(value = " ") => Ok(value = false)
+    empty("") => Ok(value = true)
+    nonempty("x") => Ok(value = false)
+    whitespace(" ") => Ok(value = false)
 =
   Ok(value = value == "")
 
 fn std__str__is_whitespace(scalar: int) -> Bool__Value rev 1
   emits []
   tests
-    space(scalar = 32) => Ok(value = true)
-    tab(scalar = 9) => Ok(value = true)
-    lf(scalar = 10) => Ok(value = true)
-    cr(scalar = 13) => Ok(value = true)
-    letter(scalar = 65) => Ok(value = false)
-    nul(scalar = 0) => Ok(value = false)
+    space(32) => Ok(value = true)
+    tab(9) => Ok(value = true)
+    lf(10) => Ok(value = true)
+    cr(13) => Ok(value = true)
+    letter(65) => Ok(value = false)
+    nul(0) => Ok(value = false)
 =
   match scalar
     32 | 9 | 10 | 13 => Ok(value = true)
@@ -85,22 +85,22 @@ fn std__str__is_whitespace(scalar: int) -> Bool__Value rev 1
 fn std__str__length_scalars(value: str) -> Int__Value rev 1
   emits []
   tests
-    ascii(value = "abc") => Ok(value = 3)
-    mixed(value = "héllo世界") => Ok(value = 7)
-    astral(value = "a𝄞b") => Ok(value = 3)
-    empty(value = "") => Ok(value = 0)
+    ascii("abc") => Ok(value = 3)
+    mixed("héllo世界") => Ok(value = 7)
+    astral("a𝄞b") => Ok(value = 3)
+    empty("") => Ok(value = 0)
 =
   Ok(value = #value)
 
 fn std__str__scalar_at(value: str, index: int) -> Int__Value rev 1
   emits [text.index_out_of_range]
   tests
-    ascii(value = "abc", index = 1) => Ok(value = 98)
-    mixed(value = "héllo世界", index = 5) => Ok(value = 19990)
-    astral(value = "a𝄞b", index = 1) => Ok(value = 119070)
-    negative(value = "abc", index = -1) => text.index_out_of_range(value = "abc", index = -1)
-    past_end(value = "abc", index = 3) => text.index_out_of_range(value = "abc", index = 3)
-    empty(value = "", index = 0) => text.index_out_of_range(value = "", index = 0)
+    ascii("abc", 1) => Ok(value = 98)
+    mixed("héllo世界", 5) => Ok(value = 19990)
+    astral("a𝄞b", 1) => Ok(value = 119070)
+    negative("abc", -1) => text.index_out_of_range(value = "abc", index = -1)
+    past_end("abc", 3) => text.index_out_of_range(value = "abc", index = 3)
+    empty("", 0) => text.index_out_of_range(value = "", index = 0)
 =
   match index >= 0
     true => match index < #value
@@ -111,12 +111,12 @@ fn std__str__scalar_at(value: str, index: int) -> Int__Value rev 1
 fn std__str__slice_scalars(value: str, start: int, end: int) -> Str__Value rev 1
   emits [text.invalid_slice]
   tests
-    inner(value = "héllo", start = 1, end = 4) => Ok(value = "éll")
-    full(value = "abc", start = 0, end = 3) => Ok(value = "abc")
-    empty_slice(value = "abc", start = 2, end = 2) => Ok(value = "")
-    neg_start(value = "abc", start = -1, end = 2) => text.invalid_slice(value = "abc", start = -1, end = 2)
-    inverted(value = "abc", start = 2, end = 1) => text.invalid_slice(value = "abc", start = 2, end = 1)
-    past_end(value = "abc", start = 0, end = 4) => text.invalid_slice(value = "abc", start = 0, end = 4)
+    inner("héllo", 1, 4) => Ok(value = "éll")
+    full("abc", 0, 3) => Ok(value = "abc")
+    empty_slice("abc", 2, 2) => Ok(value = "")
+    neg_start("abc", -1, 2) => text.invalid_slice(value = "abc", start = -1, end = 2)
+    inverted("abc", 2, 1) => text.invalid_slice(value = "abc", start = 2, end = 1)
+    past_end("abc", 0, 4) => text.invalid_slice(value = "abc", start = 0, end = 4)
 =
   match start >= 0, end >= start, end <= #value
     true, true, true => Ok(value = value[start:end])
@@ -128,10 +128,10 @@ fn std__str__find_from(orig: str, value: str, pattern: str, pos: int, n: int) ->
   decreases n
   emits [text.not_found]
   tests
-    exhausted(orig = "x", value = "yz", pattern = "z", pos = 0, n = 0) => text.not_found(value = "x", pattern = "z")
-    immediate(orig = "abc", value = "abc", pattern = "a", pos = 0, n = 3) => Ok(value = 0)
-    later(orig = "abc", value = "abc", pattern = "bc", pos = 0, n = 3) => Ok(value = 1)
-    shorter(orig = "ab", value = "ab", pattern = "abcd", pos = 0, n = 2) => text.not_found(value = "ab", pattern = "abcd")
+    exhausted("x", "yz", "z", 0, 0) => text.not_found(value = "x", pattern = "z")
+    immediate("abc", "abc", "a", 0, 3) => Ok(value = 0)
+    later("abc", "abc", "bc", 0, 3) => Ok(value = 1)
+    shorter("ab", "ab", "abcd", 0, 2) => text.not_found(value = "ab", pattern = "abcd")
 =
   match n <= 0
     true => text.not_found(value = orig, pattern = pattern)
@@ -139,32 +139,32 @@ fn std__str__find_from(orig: str, value: str, pattern: str, pos: int, n: int) ->
       true => match value[0:#pattern] == pattern
         true => Ok(value = pos)
         false => match call std__str__find_from(orig, value[1:#value], pattern, pos + 1, n - 1)
-          on text.not_found e => text.not_found(value = e.value, pattern = e.pattern)
+          on text.not_found e => forward e
           on Ok r => Ok(value = r.value)
       false => text.not_found(value = orig, pattern = pattern)
 
 fn std__str__find(value: str, pattern: str) -> Int__Value rev 1
   emits [text.not_found]
   tests
-    at_start(value = "abc", pattern = "a") => Ok(value = 0)
-    middle(value = "abc", pattern = "bc") => Ok(value = 1)
-    whole(value = "abc", pattern = "abc") => Ok(value = 0)
-    absent(value = "abc", pattern = "z") => text.not_found(value = "abc", pattern = "z")
-    longer(value = "ab", pattern = "abcd") => text.not_found(value = "ab", pattern = "abcd")
-    empty_pattern(value = "abc", pattern = "") => Ok(value = 0)
+    at_start("abc", "a") => Ok(value = 0)
+    middle("abc", "bc") => Ok(value = 1)
+    whole("abc", "abc") => Ok(value = 0)
+    absent("abc", "z") => text.not_found(value = "abc", pattern = "z")
+    longer("ab", "abcd") => text.not_found(value = "ab", pattern = "abcd")
+    empty_pattern("abc", "") => Ok(value = 0)
 =
   match #pattern == 0
     true => Ok(value = 0)
     false => match call std__str__find_from(value, value, pattern, 0, #value)
-      on text.not_found e => text.not_found(value = e.value, pattern = e.pattern)
+      on text.not_found e => forward e
       on Ok r => Ok(value = r.value)
 
 fn std__str__contains(value: str, pattern: str) -> Bool__Value rev 1
   emits []
   tests
-    yes(value = "abc", pattern = "b") => Ok(value = true)
-    no(value = "abc", pattern = "z") => Ok(value = false)
-    empty_pattern(value = "abc", pattern = "") => Ok(value = true)
+    yes("abc", "b") => Ok(value = true)
+    no("abc", "z") => Ok(value = false)
+    empty_pattern("abc", "") => Ok(value = true)
 =
   match call std__str__find(value, pattern)
     on text.not_found _ => Ok(value = false)
@@ -173,10 +173,10 @@ fn std__str__contains(value: str, pattern: str) -> Bool__Value rev 1
 fn std__str__starts_with(value: str, pattern: str) -> Bool__Value rev 1
   emits []
   tests
-    yes(value = "abc", pattern = "ab") => Ok(value = true)
-    no(value = "abc", pattern = "bc") => Ok(value = false)
-    longer(value = "ab", pattern = "abc") => Ok(value = false)
-    empty_pattern(value = "abc", pattern = "") => Ok(value = true)
+    yes("abc", "ab") => Ok(value = true)
+    no("abc", "bc") => Ok(value = false)
+    longer("ab", "abc") => Ok(value = false)
+    empty_pattern("abc", "") => Ok(value = true)
 =
   match #pattern <= #value
     true => match value[0:#pattern] == pattern
@@ -187,10 +187,10 @@ fn std__str__starts_with(value: str, pattern: str) -> Bool__Value rev 1
 fn std__str__ends_with(value: str, pattern: str) -> Bool__Value rev 1
   emits []
   tests
-    yes(value = "abc", pattern = "bc") => Ok(value = true)
-    no(value = "abc", pattern = "ab") => Ok(value = false)
-    longer(value = "ab", pattern = "abc") => Ok(value = false)
-    empty_pattern(value = "abc", pattern = "") => Ok(value = true)
+    yes("abc", "bc") => Ok(value = true)
+    no("abc", "ab") => Ok(value = false)
+    longer("ab", "abc") => Ok(value = false)
+    empty_pattern("abc", "") => Ok(value = true)
 =
   match #pattern <= #value
     true => match value[#value - #pattern:#value] == pattern
@@ -202,10 +202,10 @@ fn std__str__replace_all_from(value: str, old: str, replacement: str, acc: str, 
   decreases n
   emits []
   tests
-    replace_from_base(value = "", old = "a", replacement = "x", acc = "q", n = 0) => Ok(value = "q")
-    replace_from_short(value = "ab", old = "abcd", replacement = "x", acc = "", n = 2) => Ok(value = "ab")
-    replace_from_match(value = "aa", old = "a", replacement = "X", acc = "", n = 2) => Ok(value = "XX")
-    replace_from_skip(value = "ab", old = "b", replacement = "X", acc = "", n = 2) => Ok(value = "aX")
+    replace_from_base("", "a", "x", "q", 0) => Ok(value = "q")
+    replace_from_short("ab", "abcd", "x", "", 2) => Ok(value = "ab")
+    replace_from_match("aa", "a", "X", "", 2) => Ok(value = "XX")
+    replace_from_skip("ab", "b", "X", "", 2) => Ok(value = "aX")
 =
   match n <= 0
     true => Ok(value = acc + value)
@@ -220,11 +220,11 @@ fn std__str__replace_all_from(value: str, old: str, replacement: str, acc: str, 
 fn std__str__replace_all(value: str, old: str, replacement: str) -> Str__Value rev 1
   emits [text.empty_pattern]
   tests
-    replace_basic(value = "hello world", old = "o", replacement = "0") => Ok(value = "hell0 w0rld")
-    replace_overlap(value = "aaa", old = "aa", replacement = "b") => Ok(value = "ba")
-    replace_absent(value = "abc", old = "z", replacement = "q") => Ok(value = "abc")
-    replace_empty_old(value = "abc", old = "", replacement = "q") => text.empty_pattern()
-    replace_empty_value(value = "", old = "a", replacement = "b") => Ok(value = "")
+    replace_basic("hello world", "o", "0") => Ok(value = "hell0 w0rld")
+    replace_overlap("aaa", "aa", "b") => Ok(value = "ba")
+    replace_absent("abc", "z", "q") => Ok(value = "abc")
+    replace_empty_old("abc", "", "q") => text.empty_pattern()
+    replace_empty_value("", "a", "b") => Ok(value = "")
 =
   match #old == 0
     true => text.empty_pattern()
@@ -235,9 +235,9 @@ fn std__str__trim_left(value: str, n: int) -> Str__Value rev 1
   decreases n
   emits []
   tests
-    trim_left_empty(value = "", n = 0) => Ok(value = "")
-    trim_left_nowhite(value = "ab", n = 2) => Ok(value = "ab")
-    trim_left_spaces(value = "  ab", n = 4) => Ok(value = "ab")
+    trim_left_empty("", 0) => Ok(value = "")
+    trim_left_nowhite("ab", 2) => Ok(value = "ab")
+    trim_left_spaces("  ab", 4) => Ok(value = "ab")
 =
   match n <= 0
     true => Ok(value = value)
@@ -252,26 +252,26 @@ fn std__str__trim_right(value: str, n: int) -> Str__Value rev 1
   decreases n
   emits []
   tests
-    trim_right_empty(value = "", n = 0) => Ok(value = "")
-    trim_right_nowhite(value = "ab", n = 2) => Ok(value = "ab")
-    trim_right_spaces(value = "ab  ", n = 4) => Ok(value = "ab")
+    trim_right_empty("", 0) => Ok(value = "")
+    trim_right_nowhite("ab", 2) => Ok(value = "ab")
+    trim_right_spaces("ab  ", 4) => Ok(value = "ab")
 =
   match n <= 0
     true => Ok(value = value)
-    false => match call std__str__is_whitespace(value[n - 1])
-      on Ok w => match w.value
-        true => match call std__str__trim_right(value[0:n - 1], n - 1)
-          on Ok r => Ok(value = r.value)
-        false => Ok(value = value)
+    false => match chain
+      call std__str__is_whitespace(value[n - 1]) as w when w.value
+      call std__str__trim_right(value[0:n - 1], n - 1) as r
+      then Ok(value = r.value)
+      else Ok(value = value)
 
 fn std__str__trim_ascii(value: str) -> Str__Value rev 1
   emits []
   tests
-    trim_both(value = "  ab  ") => Ok(value = "ab")
-    trim_none(value = "ab") => Ok(value = "ab")
-    trim_all(value = "   ") => Ok(value = "")
-    trim_empty(value = "") => Ok(value = "")
-    trim_inner(value = "a b") => Ok(value = "a b")
+    trim_both("  ab  ") => Ok(value = "ab")
+    trim_none("ab") => Ok(value = "ab")
+    trim_all("   ") => Ok(value = "")
+    trim_empty("") => Ok(value = "")
+    trim_inner("a b") => Ok(value = "a b")
 =
   match call std__str__trim_left(value, #value)
     on Ok r => Ok(value = r.value)
@@ -280,9 +280,9 @@ fn std__str__upper_ascii_from(value: str, acc: str, n: int) -> Str__Value rev 1
   decreases n
   emits []
   tests
-    upper_from_letters(value = "abc", acc = "", n = 3) => Ok(value = "ABC")
-    upper_from_mixed(value = "a5b", acc = "", n = 3) => Ok(value = "A5B")
-    upper_from_empty(value = "", acc = "q", n = 0) => Ok(value = "q")
+    upper_from_letters("abc", "", 3) => Ok(value = "ABC")
+    upper_from_mixed("a5b", "", 3) => Ok(value = "A5B")
+    upper_from_empty("", "q", 0) => Ok(value = "q")
 =
   match n <= 0
     true => Ok(value = acc)
@@ -295,10 +295,10 @@ fn std__str__upper_ascii_from(value: str, acc: str, n: int) -> Str__Value rev 1
 fn std__str__upper_ascii(value: str) -> Str__Value rev 1
   emits []
   tests
-    upper_lower(value = "abc") => Ok(value = "ABC")
-    upper_mixed(value = "a5b") => Ok(value = "A5B")
-    upper_already(value = "ABC") => Ok(value = "ABC")
-    upper_empty(value = "") => Ok(value = "")
+    upper_lower("abc") => Ok(value = "ABC")
+    upper_mixed("a5b") => Ok(value = "A5B")
+    upper_already("ABC") => Ok(value = "ABC")
+    upper_empty("") => Ok(value = "")
 =
   match call std__str__upper_ascii_from(value, "", #value)
     on Ok r => Ok(value = r.value)
@@ -307,9 +307,9 @@ fn std__str__lower_ascii_from(value: str, acc: str, n: int) -> Str__Value rev 1
   decreases n
   emits []
   tests
-    lower_from_letters(value = "ABC", acc = "", n = 3) => Ok(value = "abc")
-    lower_from_mixed(value = "A5B", acc = "", n = 3) => Ok(value = "a5b")
-    lower_from_empty(value = "", acc = "q", n = 0) => Ok(value = "q")
+    lower_from_letters("ABC", "", 3) => Ok(value = "abc")
+    lower_from_mixed("A5B", "", 3) => Ok(value = "a5b")
+    lower_from_empty("", "q", 0) => Ok(value = "q")
 =
   match n <= 0
     true => Ok(value = acc)
@@ -322,10 +322,10 @@ fn std__str__lower_ascii_from(value: str, acc: str, n: int) -> Str__Value rev 1
 fn std__str__lower_ascii(value: str) -> Str__Value rev 1
   emits []
   tests
-    lower_upper(value = "ABC") => Ok(value = "abc")
-    lower_mixed(value = "A5B") => Ok(value = "a5b")
-    lower_already(value = "abc") => Ok(value = "abc")
-    lower_empty(value = "") => Ok(value = "")
+    lower_upper("ABC") => Ok(value = "abc")
+    lower_mixed("A5B") => Ok(value = "a5b")
+    lower_already("abc") => Ok(value = "abc")
+    lower_empty("") => Ok(value = "")
 =
   match call std__str__lower_ascii_from(value, "", #value)
     on Ok r => Ok(value = r.value)
@@ -334,45 +334,45 @@ fn std__str__join_from(values: Seq<str>, separator: str, position: int, fuel: in
   decreases fuel
   emits []
   tests
-    zero_budget(values = Seq<str>["x"], separator = "/", position = 0, fuel = 0, acc = "kept") => Ok(value = "kept")
-    empty(values = Seq<str>[], separator = "/", position = 0, fuel = 1, acc = "") => Ok(value = "")
-    singleton_empty(values = Seq<str>[""], separator = "/", position = 0, fuel = 2, acc = "") => Ok(value = "")
-    two_empties(values = Seq<str>["", ""], separator = "/", position = 0, fuel = 3, acc = "") => Ok(value = "/")
-    middle_empty(values = Seq<str>["b", "", "a"], separator = "/", position = 0, fuel = 4, acc = "") => Ok(value = "b//a")
-    empty_separator(values = Seq<str>["a", "", "b"], separator = "", position = 0, fuel = 4, acc = "") => Ok(value = "ab")
+    zero_budget(Seq<str>["x"], "/", 0, 0, "kept") => Ok(value = "kept")
+    empty(Seq<str>[], "/", 0, 1, "") => Ok(value = "")
+    singleton_empty(Seq<str>[""], "/", 0, 2, "") => Ok(value = "")
+    two_empties(Seq<str>["", ""], "/", 0, 3, "") => Ok(value = "/")
+    middle_empty(Seq<str>["b", "", "a"], "/", 0, 4, "") => Ok(value = "b//a")
+    empty_separator(Seq<str>["a", "", "b"], "", 0, 4, "") => Ok(value = "ab")
 =
   match fuel <= 0
     true => Ok(value = acc)
     false => match position < #values
       true => match position == 0
-        true => match call std__str__join_from(values = values, separator = separator, position = position + 1, fuel = fuel - 1, acc = acc + values[position])
+        true => match call std__str__join_from(values, separator, position + 1, fuel - 1, acc + values[position])
           on Ok r => Ok(value = r.value)
-        false => match call std__str__join_from(values = values, separator = separator, position = position + 1, fuel = fuel - 1, acc = acc + separator + values[position])
+        false => match call std__str__join_from(values, separator, position + 1, fuel - 1, acc + separator + values[position])
           on Ok r => Ok(value = r.value)
       false => Ok(value = acc)
 
 fn std__str__join(values: Seq<str>, separator: str) -> Str__Value rev 1
   emits []
   tests
-    empty(values = Seq<str>[], separator = "/") => Ok(value = "")
-    singleton_empty(values = Seq<str>[""], separator = "/") => Ok(value = "")
-    two_empties(values = Seq<str>["", ""], separator = "/") => Ok(value = "/")
-    middle_empty(values = Seq<str>["b", "", "a"], separator = "/") => Ok(value = "b//a")
-    empty_separator(values = Seq<str>["a", "", "b"], separator = "") => Ok(value = "ab")
+    empty(Seq<str>[], "/") => Ok(value = "")
+    singleton_empty(Seq<str>[""], "/") => Ok(value = "")
+    two_empties(Seq<str>["", ""], "/") => Ok(value = "/")
+    middle_empty(Seq<str>["b", "", "a"], "/") => Ok(value = "b//a")
+    empty_separator(Seq<str>["a", "", "b"], "") => Ok(value = "ab")
 =
-  match call std__str__join_from(values = values, separator = separator, position = 0, fuel = #values + 1, acc = "")
+  match call std__str__join_from(values, separator, 0, #values + 1, "")
     on Ok r => Ok(value = r.value)
 
 fn std__str__split_from(value: str, separator: str, current: str, acc: Seq<str>, fuel: int) -> Split__Result rev 1
   decreases fuel
   emits []
   tests
-    zero_budget(value = "abc", separator = ",", current = "cur", acc = Seq<str>["done"], fuel = 0) => Ok(values = Seq<str>["done", "cur"])
-    empty_input(value = "", separator = ",", current = "", acc = Seq<str>[], fuel = 1) => Ok(values = Seq<str>[""])
-    hit(value = ",a,,", separator = ",", current = "", acc = Seq<str>[], fuel = 5) => Ok(values = Seq<str>["", "a", "", ""])
-    miss(value = "abc", separator = ",", current = "", acc = Seq<str>[], fuel = 4) => Ok(values = Seq<str>["abc"])
-    short(value = "abc", separator = "abcd", current = "", acc = Seq<str>[], fuel = 4) => Ok(values = Seq<str>["abc"])
-    overlap(value = "aaa", separator = "aa", current = "", acc = Seq<str>[], fuel = 4) => Ok(values = Seq<str>["", "a"])
+    zero_budget("abc", ",", "cur", Seq<str>["done"], 0) => Ok(values = Seq<str>["done", "cur"])
+    empty_input("", ",", "", Seq<str>[], 1) => Ok(values = Seq<str>[""])
+    hit(",a,,", ",", "", Seq<str>[], 5) => Ok(values = Seq<str>["", "a", "", ""])
+    miss("abc", ",", "", Seq<str>[], 4) => Ok(values = Seq<str>["abc"])
+    short("abc", "abcd", "", Seq<str>[], 4) => Ok(values = Seq<str>["abc"])
+    overlap("aaa", "aa", "", Seq<str>[], 4) => Ok(values = Seq<str>["", "a"])
 =
   match fuel <= 0
     true => Ok(values = acc + current)
@@ -380,39 +380,39 @@ fn std__str__split_from(value: str, separator: str, current: str, acc: Seq<str>,
       true => Ok(values = acc + current)
       false => match #value >= #separator
         true => match value[0:#separator] == separator
-          true => match call std__str__split_from(value = value[#separator:#value], separator = separator, current = "", acc = acc + current, fuel = fuel - 1)
+          true => match call std__str__split_from(value[#separator:#value], separator, "", acc + current, fuel - 1)
             on Ok r => Ok(values = r.values)
-          false => match call std__str__split_from(value = value[1:#value], separator = separator, current = current + value[0:1], acc = acc, fuel = fuel - 1)
+          false => match call std__str__split_from(value[1:#value], separator, current + value[0:1], acc, fuel - 1)
             on Ok r => Ok(values = r.values)
-        false => match call std__str__split_from(value = value[1:#value], separator = separator, current = current + value[0:1], acc = acc, fuel = fuel - 1)
+        false => match call std__str__split_from(value[1:#value], separator, current + value[0:1], acc, fuel - 1)
           on Ok r => Ok(values = r.values)
 
 fn std__str__split(value: str, separator: str) -> Split__Result rev 1
   emits [text.empty_separator]
   tests
-    empty_input(value = "", separator = ",") => Ok(values = Seq<str>[""])
-    fields(value = ",a,,", separator = ",") => Ok(values = Seq<str>["", "a", "", ""])
-    no_separator(value = "abc", separator = ",") => Ok(values = Seq<str>["abc"])
-    empty_value_empty_separator(value = "", separator = "") => text.empty_separator()
-    nonempty_empty_separator(value = "abc", separator = "") => text.empty_separator()
-    markup(value = " a&<b> ,X ", separator = ",") => Ok(values = Seq<str>[" a&<b> ", "X "])
-    overlap_leftmost(value = "aaa", separator = "aa") => Ok(values = Seq<str>["", "a"])
-    separator_longer(value = "abc", separator = "abcd") => Ok(values = Seq<str>["abc"])
+    empty_input("", ",") => Ok(values = Seq<str>[""])
+    fields(",a,,", ",") => Ok(values = Seq<str>["", "a", "", ""])
+    no_separator("abc", ",") => Ok(values = Seq<str>["abc"])
+    empty_value_empty_separator("", "") => text.empty_separator()
+    nonempty_empty_separator("abc", "") => text.empty_separator()
+    markup(" a&<b> ,X ", ",") => Ok(values = Seq<str>[" a&<b> ", "X "])
+    overlap_leftmost("aaa", "aa") => Ok(values = Seq<str>["", "a"])
+    separator_longer("abc", "abcd") => Ok(values = Seq<str>["abc"])
 =
   match separator == ""
     true => text.empty_separator()
-    false => match call std__str__split_from(value = value, separator = separator, current = "", acc = Seq<str>[], fuel = #value + 1)
+    false => match call std__str__split_from(value, separator, "", Seq<str>[], #value + 1)
       on Ok r => Ok(values = r.values)
 
 fn std__utf8__encode(value: str) -> Bytes__Value rev 1
   emits []
   tests
-    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
-    ascii(value = "A") => Ok(value = Bytes(Seq<int>[65]))
-    latin(value = "é") => Ok(value = Bytes(Seq<int>[195, 169]))
-    cjk(value = "世界") => Ok(value = Bytes(Seq<int>[228, 184, 150, 231, 149, 140]))
-    astral(value = "😀") => Ok(value = Bytes(Seq<int>[240, 159, 152, 128]))
-    markup(value = "&<>") => Ok(value = Bytes(Seq<int>[38, 60, 62]))
+    empty("") => Ok(value = Bytes(Seq<int>[]))
+    ascii("A") => Ok(value = Bytes(Seq<int>[65]))
+    latin("é") => Ok(value = Bytes(Seq<int>[195, 169]))
+    cjk("世界") => Ok(value = Bytes(Seq<int>[228, 184, 150, 231, 149, 140]))
+    astral("😀") => Ok(value = Bytes(Seq<int>[240, 159, 152, 128]))
+    markup("&<>") => Ok(value = Bytes(Seq<int>[38, 60, 62]))
 =
   match call bytes__utf8__encode(value)
     on Ok r => Ok(value = r.value)
@@ -420,39 +420,39 @@ fn std__utf8__encode(value: str) -> Bytes__Value rev 1
 fn std__utf8__decode(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    ascii(value = Bytes(Seq<int>[65])) => Ok(value = "A")
-    latin(value = Bytes(Seq<int>[195, 169])) => Ok(value = "é")
-    cjk(value = Bytes(Seq<int>[228, 184, 150, 231, 149, 140])) => Ok(value = "世界")
-    astral(value = Bytes(Seq<int>[240, 159, 152, 128])) => Ok(value = "😀")
-    ufffd(value = Bytes(Seq<int>[239, 191, 189])) => Ok(value = "�")
-    markup(value = Bytes(Seq<int>[38, 60, 62])) => Ok(value = "&<>")
-    overlong_nul(value = Bytes(Seq<int>[192, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[192, 128]))
-    surrogate(value = Bytes(Seq<int>[237, 160, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[237, 160, 128]))
-    above_max(value = Bytes(Seq<int>[244, 144, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[244, 144, 128, 128]))
-    stray_cont(value = Bytes(Seq<int>[128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[128]))
-    trunc_e2b(value = Bytes(Seq<int>[226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226, 130]))
-    trunc_after_ascii(value = Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
-    mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    ascii(Bytes(Seq<int>[65])) => Ok(value = "A")
+    latin(Bytes(Seq<int>[195, 169])) => Ok(value = "é")
+    cjk(Bytes(Seq<int>[228, 184, 150, 231, 149, 140])) => Ok(value = "世界")
+    astral(Bytes(Seq<int>[240, 159, 152, 128])) => Ok(value = "😀")
+    ufffd(Bytes(Seq<int>[239, 191, 189])) => Ok(value = "�")
+    markup(Bytes(Seq<int>[38, 60, 62])) => Ok(value = "&<>")
+    overlong_nul(Bytes(Seq<int>[192, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[192, 128]))
+    surrogate(Bytes(Seq<int>[237, 160, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[237, 160, 128]))
+    above_max(Bytes(Seq<int>[244, 144, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[244, 144, 128, 128]))
+    stray_cont(Bytes(Seq<int>[128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[128]))
+    trunc_e2b(Bytes(Seq<int>[226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226, 130]))
+    trunc_after_ascii(Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
+    mid_bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
 =
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
+    on encoding.invalid_utf8 e => forward e
 
 fn std__hex__encode(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    zero(value = Bytes(Seq<int>[0])) => Ok(value = "00")
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "ff")
-    lower(value = Bytes(Seq<int>[171])) => Ok(value = "ab")
-    leadzero(value = Bytes(Seq<int>[1])) => Ok(value = "01")
-    sixteen(value = Bytes(Seq<int>[16])) => Ok(value = "10")
-    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
-    notext(value = Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
-    nulbyte(value = Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
-    high(value = Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
-    nibbles(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    zero(Bytes(Seq<int>[0])) => Ok(value = "00")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
+    lower(Bytes(Seq<int>[171])) => Ok(value = "ab")
+    leadzero(Bytes(Seq<int>[1])) => Ok(value = "01")
+    sixteen(Bytes(Seq<int>[16])) => Ok(value = "10")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
+    notext(Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
+    nulbyte(Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
+    high(Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
+    nibbles(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
 =
   match call bytes__hex__encode(value)
     on Ok r => Ok(value = r.value)
@@ -460,38 +460,38 @@ fn std__hex__encode(value: Bytes) -> Encoding__Text rev 1
 fn std__hex__decode(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
-    hex00(value = "00") => Ok(value = Bytes(Seq<int>[0]))
-    lower(value = "ff") => Ok(value = Bytes(Seq<int>[255]))
-    upper(value = "FF") => Ok(value = Bytes(Seq<int>[255]))
-    mixed(value = "aF") => Ok(value = Bytes(Seq<int>[175]))
-    deadbeef(value = "deadbeef") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
-    eda080(value = "eda080") => Ok(value = Bytes(Seq<int>[237, 160, 128]))
-    odd_f(value = "f") => encoding.invalid_hex(value = "f")
-    odd_abc(value = "abc") => encoding.invalid_hex(value = "abc")
-    prefix_0x(value = "0x41") => encoding.invalid_hex(value = "0x41")
-    sp_mid(value = "41 2") => encoding.invalid_hex(value = "41 2")
-    slash(value = "4/") => encoding.invalid_hex(value = "4/")
-    fidelity(value = "aFzz") => encoding.invalid_hex(value = "aFzz")
-    prefix_attack(value = "41zz42") => encoding.invalid_hex(value = "41zz42")
-    trunc_a(value = "a") => encoding.invalid_hex(value = "a")
+    empty("") => Ok(value = Bytes(Seq<int>[]))
+    hex00("00") => Ok(value = Bytes(Seq<int>[0]))
+    lower("ff") => Ok(value = Bytes(Seq<int>[255]))
+    upper("FF") => Ok(value = Bytes(Seq<int>[255]))
+    mixed("aF") => Ok(value = Bytes(Seq<int>[175]))
+    deadbeef("deadbeef") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
+    eda080("eda080") => Ok(value = Bytes(Seq<int>[237, 160, 128]))
+    odd_f("f") => encoding.invalid_hex(value = "f")
+    odd_abc("abc") => encoding.invalid_hex(value = "abc")
+    prefix_0x("0x41") => encoding.invalid_hex(value = "0x41")
+    sp_mid("41 2") => encoding.invalid_hex(value = "41 2")
+    slash("4/") => encoding.invalid_hex(value = "4/")
+    fidelity("aFzz") => encoding.invalid_hex(value = "aFzz")
+    prefix_attack("41zz42") => encoding.invalid_hex(value = "41zz42")
+    trunc_a("a") => encoding.invalid_hex(value = "a")
 =
   match call bytes__hex__decode(value)
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
+    on encoding.invalid_hex e => forward e
 
 fn std__base64__encode(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    zero(value = Bytes(Seq<int>[0])) => Ok(value = "AA==")
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "/w==")
-    one(value = Bytes(Seq<int>[65])) => Ok(value = "QQ==")
-    two(value = Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
-    three(value = Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
-    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
-    notext(value = Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
-    sweep(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    zero(Bytes(Seq<int>[0])) => Ok(value = "AA==")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "/w==")
+    one(Bytes(Seq<int>[65])) => Ok(value = "QQ==")
+    two(Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
+    three(Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
+    notext(Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
+    sweep(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
 =
   match call bytes__base64__encode(value)
     on Ok r => Ok(value = r.value)
@@ -499,37 +499,37 @@ fn std__base64__encode(value: Bytes) -> Encoding__Text rev 1
 fn std__base64__decode(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
-    nulbyte(value = "AA==") => Ok(value = Bytes(Seq<int>[0]))
-    one(value = "QQ==") => Ok(value = Bytes(Seq<int>[65]))
-    two(value = "QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
-    three(value = "QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
-    foo(value = "Zm9v") => Ok(value = Bytes(Seq<int>[102, 111, 111]))
-    high(value = "+/8=") => Ok(value = Bytes(Seq<int>[251, 255]))
-    notext(value = "AEE=") => Ok(value = Bytes(Seq<int>[0, 65]))
-    odd(value = "QUI") => encoding.invalid_base64(value = "QUI")
-    misplaced(value = "=QUI") => encoding.invalid_base64(value = "=QUI")
-    sp_mid(value = "QU JD") => encoding.invalid_base64(value = "QU JD")
-    dash(value = "QUJ-") => encoding.invalid_base64(value = "QUJ-")
-    under(value = "QUJ_") => encoding.invalid_base64(value = "QUJ_")
-    padbits4(value = "AE==") => encoding.invalid_base64(value = "AE==")
-    padbits2(value = "QUJ=") => encoding.invalid_base64(value = "QUJ=")
-    fidelity(value = "QUI=QUJD") => encoding.invalid_base64(value = "QUI=QUJD")
+    empty("") => Ok(value = Bytes(Seq<int>[]))
+    nulbyte("AA==") => Ok(value = Bytes(Seq<int>[0]))
+    one("QQ==") => Ok(value = Bytes(Seq<int>[65]))
+    two("QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
+    three("QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    foo("Zm9v") => Ok(value = Bytes(Seq<int>[102, 111, 111]))
+    high("+/8=") => Ok(value = Bytes(Seq<int>[251, 255]))
+    notext("AEE=") => Ok(value = Bytes(Seq<int>[0, 65]))
+    odd("QUI") => encoding.invalid_base64(value = "QUI")
+    misplaced("=QUI") => encoding.invalid_base64(value = "=QUI")
+    sp_mid("QU JD") => encoding.invalid_base64(value = "QU JD")
+    dash("QUJ-") => encoding.invalid_base64(value = "QUJ-")
+    under("QUJ_") => encoding.invalid_base64(value = "QUJ_")
+    padbits4("AE==") => encoding.invalid_base64(value = "AE==")
+    padbits2("QUJ=") => encoding.invalid_base64(value = "QUJ=")
+    fidelity("QUI=QUJD") => encoding.invalid_base64(value = "QUI=QUJD")
 =
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
+    on encoding.invalid_base64 e => forward e
 
 fn std__base64url__strip_from(value: str, fuel: int) -> Str__Value rev 1
   decreases fuel
   emits []
   tests
-    empty(value = "", fuel = 0) => Ok(value = "")
-    empty_fuel(value = "", fuel = 3) => Ok(value = "")
-    none(value = "QUJD", fuel = 4) => Ok(value = "QUJD")
-    one(value = "QUI=", fuel = 4) => Ok(value = "QUI")
-    two(value = "QQ==", fuel = 4) => Ok(value = "QQ")
-    spent(value = "QQ==", fuel = 0) => Ok(value = "QQ==")
+    empty("", 0) => Ok(value = "")
+    empty_fuel("", 3) => Ok(value = "")
+    none("QUJD", 4) => Ok(value = "QUJD")
+    one("QUI=", 4) => Ok(value = "QUI")
+    two("QQ==", 4) => Ok(value = "QQ")
+    spent("QQ==", 0) => Ok(value = "QQ==")
 =
   match fuel <= 0
     true => Ok(value = value)
@@ -544,12 +544,12 @@ fn std__base64url__translate_from(value: str, acc: str, n: int) -> Str__Value re
   decreases n
   emits []
   tests
-    empty(value = "", acc = "q", n = 0) => Ok(value = "q")
-    short(value = "a", acc = "", n = 5) => Ok(value = "a")
-    plus(value = "+w==", acc = "", n = 4) => Ok(value = "-w==")
-    slash(value = "a/bc", acc = "", n = 4) => Ok(value = "a_bc")
-    both(value = "+/", acc = "", n = 2) => Ok(value = "-_")
-    plain(value = "QUJD", acc = "", n = 4) => Ok(value = "QUJD")
+    empty("", "q", 0) => Ok(value = "q")
+    short("a", "", 5) => Ok(value = "a")
+    plus("+w==", "", 4) => Ok(value = "-w==")
+    slash("a/bc", "", 4) => Ok(value = "a_bc")
+    both("+/", "", 2) => Ok(value = "-_")
+    plain("QUJD", "", 4) => Ok(value = "QUJD")
 =
   match n <= 0
     true => Ok(value = acc + value)
@@ -568,12 +568,12 @@ fn std__base64url__untranslate_from(value: str, acc: str, n: int) -> Str__Value 
   decreases n
   emits []
   tests
-    empty(value = "", acc = "q", n = 0) => Ok(value = "q")
-    short(value = "a", acc = "", n = 5) => Ok(value = "a")
-    dash(value = "-w", acc = "", n = 2) => Ok(value = "+w")
-    under(value = "a_b", acc = "", n = 3) => Ok(value = "a/b")
-    both(value = "-_", acc = "", n = 2) => Ok(value = "+/")
-    plain(value = "QUJD", acc = "", n = 4) => Ok(value = "QUJD")
+    empty("", "q", 0) => Ok(value = "q")
+    short("a", "", 5) => Ok(value = "a")
+    dash("-w", "", 2) => Ok(value = "+w")
+    under("a_b", "", 3) => Ok(value = "a/b")
+    both("-_", "", 2) => Ok(value = "+/")
+    plain("QUJD", "", 4) => Ok(value = "QUJD")
 =
   match n <= 0
     true => Ok(value = acc + value)
@@ -592,11 +592,11 @@ fn std__base64url__rem_from(remaining: int, fuel: int) -> Int__Value rev 1
   decreases fuel
   emits []
   tests
-    zero(remaining = 0, fuel = 0) => Ok(value = 0)
-    four(remaining = 4, fuel = 4) => Ok(value = 0)
-    five(remaining = 5, fuel = 5) => Ok(value = 1)
-    seven(remaining = 7, fuel = 7) => Ok(value = 3)
-    spent(remaining = 9, fuel = 0) => Ok(value = 9)
+    zero(0, 0) => Ok(value = 0)
+    four(4, 4) => Ok(value = 0)
+    five(5, 5) => Ok(value = 1)
+    seven(7, 7) => Ok(value = 3)
+    spent(9, 0) => Ok(value = 9)
 =
   match fuel <= 0
     true => Ok(value = remaining)
@@ -608,9 +608,9 @@ fn std__base64url__rem_from(remaining: int, fuel: int) -> Int__Value rev 1
 fn std__base64url__pad(value: str, rem: int) -> Str__Value rev 1
   emits []
   tests
-    none(value = "QUJD", rem = 0) => Ok(value = "QUJD")
-    two(value = "QQ", rem = 2) => Ok(value = "QQ==")
-    one(value = "QUI", rem = 3) => Ok(value = "QUI=")
+    none("QUJD", 0) => Ok(value = "QUJD")
+    two("QQ", 2) => Ok(value = "QQ==")
+    one("QUI", 3) => Ok(value = "QUI=")
 =
   match rem == 2
     true => Ok(value = value + "==")
@@ -621,14 +621,14 @@ fn std__base64url__pad(value: str, rem: int) -> Str__Value rev 1
 fn std__base64url__encode(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    zero(value = Bytes(Seq<int>[0])) => Ok(value = "AA")
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "_w")
-    one(value = Bytes(Seq<int>[65])) => Ok(value = "QQ")
-    two(value = Bytes(Seq<int>[65, 66])) => Ok(value = "QUI")
-    three(value = Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
-    plus(value = Bytes(Seq<int>[251])) => Ok(value = "-w")
-    std(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2-7w")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    zero(Bytes(Seq<int>[0])) => Ok(value = "AA")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "_w")
+    one(Bytes(Seq<int>[65])) => Ok(value = "QQ")
+    two(Bytes(Seq<int>[65, 66])) => Ok(value = "QUI")
+    three(Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
+    plus(Bytes(Seq<int>[251])) => Ok(value = "-w")
+    std(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2-7w")
 =
   match call std__base64__encode(value)
     on Ok b => match call std__base64url__translate_from(b.value, "", #b.value)
@@ -638,17 +638,17 @@ fn std__base64url__encode(value: Bytes) -> Encoding__Text rev 1
 fn std__base64url__decode(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64url]
   tests
-    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
-    two(value = "QQ") => Ok(value = Bytes(Seq<int>[65]))
-    three(value = "QUI") => Ok(value = Bytes(Seq<int>[65, 66]))
-    full(value = "QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
-    url(value = "-_8") => Ok(value = Bytes(Seq<int>[251, 255]))
-    padded(value = "QQ==") => encoding.invalid_base64url(value = "QQ==")
-    single(value = "QUI=") => encoding.invalid_base64url(value = "QUI=")
-    plus(value = "Q+JD") => encoding.invalid_base64url(value = "Q+JD")
-    slash(value = "Q/JD") => encoding.invalid_base64url(value = "Q/JD")
-    short(value = "Q") => encoding.invalid_base64url(value = "Q")
-    space(value = "Q UJ") => encoding.invalid_base64url(value = "Q UJ")
+    empty("") => Ok(value = Bytes(Seq<int>[]))
+    two("QQ") => Ok(value = Bytes(Seq<int>[65]))
+    three("QUI") => Ok(value = Bytes(Seq<int>[65, 66]))
+    full("QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    url("-_8") => Ok(value = Bytes(Seq<int>[251, 255]))
+    padded("QQ==") => encoding.invalid_base64url(value = "QQ==")
+    single("QUI=") => encoding.invalid_base64url(value = "QUI=")
+    plus("Q+JD") => encoding.invalid_base64url(value = "Q+JD")
+    slash("Q/JD") => encoding.invalid_base64url(value = "Q/JD")
+    short("Q") => encoding.invalid_base64url(value = "Q")
+    space("Q UJ") => encoding.invalid_base64url(value = "Q UJ")
 =
   match call std__str__find(value, "=")
     on Ok _ => encoding.invalid_base64url(value = value)
@@ -656,11 +656,10 @@ fn std__base64url__decode(value: str) -> Bytes__Value rev 1
       on Ok _ => encoding.invalid_base64url(value = value)
       on text.not_found _ => match call std__str__find(value, "/")
         on Ok _ => encoding.invalid_base64url(value = value)
-        on text.not_found _ => match call std__base64url__untranslate_from(value, "", #value)
-          on Ok t => match call std__base64url__rem_from(#t.value, #t.value)
-            on Ok m => match m.value == 1
-              true => encoding.invalid_base64url(value = value)
-              false => match call std__base64url__pad(t.value, m.value)
-                on Ok p => match call bytes__base64__decode(p.value)
-                  on Ok r => Ok(value = r.value)
-                  on encoding.invalid_base64 _ => encoding.invalid_base64url(value = value)
+        on text.not_found _ => match chain
+          call std__base64url__untranslate_from(value, "", #value) as t
+          call std__base64url__rem_from(#t.value, #t.value) as m when m.value != 1
+          call std__base64url__pad(t.value, m.value) as p
+          call bytes__base64__decode(p.value) as r
+          then Ok(value = r.value)
+          else encoding.invalid_base64url(value = value)

@@ -947,10 +947,7 @@ export function std__base64url__decode(value: string): { $can_kind: "ok"; value:
           switch ($can_m5.$can_kind) {
           case "ok": {
             const m = $can_m5;
-            if ((m.value === 1n)) {
-              return { $can_kind: "encoding.invalid_base64url", value: value };
-            }
-            else {
+            if ((m.value !== 1n)) {
               const $can_m6: { $can_kind: "ok"; value: string } = std__base64url__pad(t.value, m.value);
               switch ($can_m6.$can_kind) {
               case "ok": {
@@ -962,7 +959,6 @@ export function std__base64url__decode(value: string): { $can_kind: "ok"; value:
                   return { $can_kind: "ok", value: r.value };
                 }
                 case "encoding.invalid_base64": {
-                  const _ = $can_m7;
                   return { $can_kind: "encoding.invalid_base64url", value: value };
                 }
                 default: {
@@ -974,6 +970,9 @@ export function std__base64url__decode(value: string): { $can_kind: "ok"; value:
                 throw new Error("unreachable");
               }
               }
+            }
+            else {
+              return { $can_kind: "encoding.invalid_base64url", value: value };
             }
           }
           default: {

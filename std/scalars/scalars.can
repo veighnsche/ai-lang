@@ -86,8 +86,8 @@ type Dec__RoundedQuotient rev 1 (
 fn std__bool__not(value: bool) -> Bool__Value rev 1
   emits []
   tests
-    not_true(value = true) => Ok(value = false)
-    not_false(value = false) => Ok(value = true)
+    not_true(true) => Ok(value = false)
+    not_false(false) => Ok(value = true)
 =
   match value
     true => Ok(value = false)
@@ -96,10 +96,10 @@ fn std__bool__not(value: bool) -> Bool__Value rev 1
 fn std__bool__and(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
-    and_tt(left = true, right = true) => Ok(value = true)
-    and_tf(left = true, right = false) => Ok(value = false)
-    and_ft(left = false, right = true) => Ok(value = false)
-    and_ff(left = false, right = false) => Ok(value = false)
+    and_tt(true, true) => Ok(value = true)
+    and_tf(true, false) => Ok(value = false)
+    and_ft(false, true) => Ok(value = false)
+    and_ff(false, false) => Ok(value = false)
 =
   match left, right
     true, true => Ok(value = true)
@@ -109,10 +109,10 @@ fn std__bool__and(left: bool, right: bool) -> Bool__Value rev 1
 fn std__bool__or(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
-    or_tt(left = true, right = true) => Ok(value = true)
-    or_tf(left = true, right = false) => Ok(value = true)
-    or_ft(left = false, right = true) => Ok(value = true)
-    or_ff(left = false, right = false) => Ok(value = false)
+    or_tt(true, true) => Ok(value = true)
+    or_tf(true, false) => Ok(value = true)
+    or_ft(false, true) => Ok(value = true)
+    or_ff(false, false) => Ok(value = false)
 =
   match left, right
     true, _ => Ok(value = true)
@@ -122,10 +122,10 @@ fn std__bool__or(left: bool, right: bool) -> Bool__Value rev 1
 fn std__bool__xor(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
-    xor_tt(left = true, right = true) => Ok(value = false)
-    xor_tf(left = true, right = false) => Ok(value = true)
-    xor_ft(left = false, right = true) => Ok(value = true)
-    xor_ff(left = false, right = false) => Ok(value = false)
+    xor_tt(true, true) => Ok(value = false)
+    xor_tf(true, false) => Ok(value = true)
+    xor_ft(false, true) => Ok(value = true)
+    xor_ff(false, false) => Ok(value = false)
 =
   match left, right
     true, true => Ok(value = false)
@@ -136,10 +136,10 @@ fn std__bool__xor(left: bool, right: bool) -> Bool__Value rev 1
 fn std__bool__implies(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
-    imp_tt(left = true, right = true) => Ok(value = true)
-    imp_tf(left = true, right = false) => Ok(value = false)
-    imp_ft(left = false, right = true) => Ok(value = true)
-    imp_ff(left = false, right = false) => Ok(value = true)
+    imp_tt(true, true) => Ok(value = true)
+    imp_tf(true, false) => Ok(value = false)
+    imp_ft(false, true) => Ok(value = true)
+    imp_ff(false, false) => Ok(value = true)
 =
   match left, right
     true, true => Ok(value = true)
@@ -149,10 +149,10 @@ fn std__bool__implies(left: bool, right: bool) -> Bool__Value rev 1
 fn std__bool__equivalent(left: bool, right: bool) -> Bool__Value rev 1
   emits []
   tests
-    equiv_tt(left = true, right = true) => Ok(value = true)
-    equiv_tf(left = true, right = false) => Ok(value = false)
-    equiv_ft(left = false, right = true) => Ok(value = false)
-    equiv_ff(left = false, right = false) => Ok(value = true)
+    equiv_tt(true, true) => Ok(value = true)
+    equiv_tf(true, false) => Ok(value = false)
+    equiv_ft(false, true) => Ok(value = false)
+    equiv_ff(false, false) => Ok(value = true)
 =
   match left, right
     true, true => Ok(value = true)
@@ -163,9 +163,9 @@ fn std__bool__equivalent(left: bool, right: bool) -> Bool__Value rev 1
 fn std__compare__int(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    cmp_int_eq(left = 4, right = 4) => Ok(value = 0)
-    cmp_int_gt(left = 5, right = 4) => Ok(value = 1)
-    cmp_int_lt(left = 3, right = 4) => Ok(value = -1)
+    cmp_int_eq(4, 4) => Ok(value = 0)
+    cmp_int_gt(5, 4) => Ok(value = 1)
+    cmp_int_lt(3, 4) => Ok(value = -1)
 =
   match left == right, left >= right
     true, _ => Ok(value = 0)
@@ -175,9 +175,9 @@ fn std__compare__int(left: int, right: int) -> Int__Value rev 1
 fn std__compare__dec(left: dec, right: dec) -> Int__Value rev 1
   emits []
   tests
-    cmp_dec_eq(left = d"1.5", right = d"1.5") => Ok(value = 0)
-    cmp_dec_gt(left = d"1.6", right = d"1.5") => Ok(value = 1)
-    cmp_dec_lt(left = d"1.4", right = d"1.5") => Ok(value = -1)
+    cmp_dec_eq(d"1.5", d"1.5") => Ok(value = 0)
+    cmp_dec_gt(d"1.6", d"1.5") => Ok(value = 1)
+    cmp_dec_lt(d"1.4", d"1.5") => Ok(value = -1)
 =
   match left == right, left >= right
     true, _ => Ok(value = 0)
@@ -187,9 +187,9 @@ fn std__compare__dec(left: dec, right: dec) -> Int__Value rev 1
 fn std__compare__str(left: str, right: str) -> Int__Value rev 1
   emits []
   tests
-    cmp_str_eq(left = "a", right = "a") => Ok(value = 0)
-    cmp_str_gt(left = "b", right = "a") => Ok(value = 1)
-    cmp_str_lt(left = "a", right = "b") => Ok(value = -1)
+    cmp_str_eq("a", "a") => Ok(value = 0)
+    cmp_str_gt("b", "a") => Ok(value = 1)
+    cmp_str_lt("a", "b") => Ok(value = -1)
 =
   match left == right, left >= right
     true, _ => Ok(value = 0)
@@ -199,10 +199,10 @@ fn std__compare__str(left: str, right: str) -> Int__Value rev 1
 fn std__compare__bool(left: bool, right: bool) -> Int__Value rev 1
   emits []
   tests
-    cmp_bool_tt(left = true, right = true) => Ok(value = 0)
-    cmp_bool_ff(left = false, right = false) => Ok(value = 0)
-    cmp_bool_tf(left = true, right = false) => Ok(value = 1)
-    cmp_bool_ft(left = false, right = true) => Ok(value = -1)
+    cmp_bool_tt(true, true) => Ok(value = 0)
+    cmp_bool_ff(false, false) => Ok(value = 0)
+    cmp_bool_tf(true, false) => Ok(value = 1)
+    cmp_bool_ft(false, true) => Ok(value = -1)
 =
   match left == right, left
     true, _ => Ok(value = 0)
@@ -212,8 +212,8 @@ fn std__compare__bool(left: bool, right: bool) -> Int__Value rev 1
 fn std__select__int(condition: bool, when_true: int, when_false: int) -> Int__Value rev 1
   emits []
   tests
-    sel_int_t(condition = true, when_true = 1, when_false = 2) => Ok(value = 1)
-    sel_int_f(condition = false, when_true = 1, when_false = 2) => Ok(value = 2)
+    sel_int_t(true, 1, 2) => Ok(value = 1)
+    sel_int_f(false, 1, 2) => Ok(value = 2)
 =
   match condition
     true => Ok(value = when_true)
@@ -222,8 +222,8 @@ fn std__select__int(condition: bool, when_true: int, when_false: int) -> Int__Va
 fn std__select__bool(condition: bool, when_true: bool, when_false: bool) -> Bool__Value rev 1
   emits []
   tests
-    sel_bool_t(condition = true, when_true = true, when_false = false) => Ok(value = true)
-    sel_bool_f(condition = false, when_true = true, when_false = false) => Ok(value = false)
+    sel_bool_t(true, true, false) => Ok(value = true)
+    sel_bool_f(false, true, false) => Ok(value = false)
 =
   match condition
     true => Ok(value = when_true)
@@ -232,8 +232,8 @@ fn std__select__bool(condition: bool, when_true: bool, when_false: bool) -> Bool
 fn std__select__str(condition: bool, when_true: str, when_false: str) -> Str__Value rev 1
   emits []
   tests
-    sel_str_t(condition = true, when_true = "a", when_false = "b") => Ok(value = "a")
-    sel_str_f(condition = false, when_true = "a", when_false = "b") => Ok(value = "b")
+    sel_str_t(true, "a", "b") => Ok(value = "a")
+    sel_str_f(false, "a", "b") => Ok(value = "b")
 =
   match condition
     true => Ok(value = when_true)
@@ -242,8 +242,8 @@ fn std__select__str(condition: bool, when_true: str, when_false: str) -> Str__Va
 fn std__select__dec(condition: bool, when_true: dec, when_false: dec) -> Dec__Value rev 1
   emits []
   tests
-    sel_dec_t(condition = true, when_true = d"1.5", when_false = d"2.5") => Ok(value = d"1.5")
-    sel_dec_f(condition = false, when_true = d"1.5", when_false = d"2.5") => Ok(value = d"2.5")
+    sel_dec_t(true, d"1.5", d"2.5") => Ok(value = d"1.5")
+    sel_dec_f(false, d"1.5", d"2.5") => Ok(value = d"2.5")
 =
   match condition
     true => Ok(value = when_true)
@@ -252,9 +252,9 @@ fn std__select__dec(condition: bool, when_true: dec, when_false: dec) -> Dec__Va
 fn std__int__is_zero(value: int) -> Bool__Value rev 1
   emits []
   tests
-    is_zero_z(value = 0) => Ok(value = true)
-    is_zero_p(value = 3) => Ok(value = false)
-    is_zero_n(value = -3) => Ok(value = false)
+    is_zero_z(0) => Ok(value = true)
+    is_zero_p(3) => Ok(value = false)
+    is_zero_n(-3) => Ok(value = false)
 =
   match value == 0
     true => Ok(value = true)
@@ -263,9 +263,9 @@ fn std__int__is_zero(value: int) -> Bool__Value rev 1
 fn std__int__is_positive(value: int) -> Bool__Value rev 1
   emits []
   tests
-    is_pos_z(value = 0) => Ok(value = false)
-    is_pos_p(value = 3) => Ok(value = true)
-    is_pos_n(value = -3) => Ok(value = false)
+    is_pos_z(0) => Ok(value = false)
+    is_pos_p(3) => Ok(value = true)
+    is_pos_n(-3) => Ok(value = false)
 =
   match value == 0, value >= 0
     true, _ => Ok(value = false)
@@ -275,9 +275,9 @@ fn std__int__is_positive(value: int) -> Bool__Value rev 1
 fn std__int__is_negative(value: int) -> Bool__Value rev 1
   emits []
   tests
-    is_neg_z(value = 0) => Ok(value = false)
-    is_neg_p(value = 3) => Ok(value = false)
-    is_neg_n(value = -3) => Ok(value = true)
+    is_neg_z(0) => Ok(value = false)
+    is_neg_p(3) => Ok(value = false)
+    is_neg_n(-3) => Ok(value = true)
 =
   match value == 0, value <= 0
     true, _ => Ok(value = false)
@@ -287,12 +287,12 @@ fn std__int__is_negative(value: int) -> Bool__Value rev 1
 fn std__int__in_closed_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
   emits [math.invalid_bounds]
   tests
-    closed_in(value = 5, lower = 0, upper = 10) => Ok(value = true)
-    closed_low_edge(value = 0, lower = 0, upper = 10) => Ok(value = true)
-    closed_high_edge(value = 10, lower = 0, upper = 10) => Ok(value = true)
-    closed_below(value = -1, lower = 0, upper = 10) => Ok(value = false)
-    closed_above(value = 11, lower = 0, upper = 10) => Ok(value = false)
-    closed_bad(value = 5, lower = 10, upper = 0) => math.invalid_bounds(lower = 10, upper = 0)
+    closed_in(5, 0, 10) => Ok(value = true)
+    closed_low_edge(0, 0, 10) => Ok(value = true)
+    closed_high_edge(10, 0, 10) => Ok(value = true)
+    closed_below(-1, 0, 10) => Ok(value = false)
+    closed_above(11, 0, 10) => Ok(value = false)
+    closed_bad(5, 10, 0) => math.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, value >= lower, value <= upper
     true, true, true => Ok(value = true)
@@ -303,12 +303,12 @@ fn std__int__in_closed_range(value: int, lower: int, upper: int) -> Bool__Value 
 fn std__int__in_open_range(value: int, lower: int, upper: int) -> Bool__Value rev 1
   emits [math.invalid_bounds]
   tests
-    open_in(value = 5, lower = 0, upper = 10) => Ok(value = true)
-    open_low_edge(value = 0, lower = 0, upper = 10) => Ok(value = false)
-    open_high_edge(value = 10, lower = 0, upper = 10) => Ok(value = false)
-    open_below(value = -1, lower = 0, upper = 10) => Ok(value = false)
-    open_above(value = 11, lower = 0, upper = 10) => Ok(value = false)
-    open_bad(value = 5, lower = 10, upper = 0) => math.invalid_bounds(lower = 10, upper = 0)
+    open_in(5, 0, 10) => Ok(value = true)
+    open_low_edge(0, 0, 10) => Ok(value = false)
+    open_high_edge(10, 0, 10) => Ok(value = false)
+    open_below(-1, 0, 10) => Ok(value = false)
+    open_above(11, 0, 10) => Ok(value = false)
+    open_bad(5, 10, 0) => math.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, value <= lower, value >= upper
     true, true, _ => Ok(value = false)
@@ -319,9 +319,9 @@ fn std__int__in_open_range(value: int, lower: int, upper: int) -> Bool__Value re
 fn std__dec__is_zero(value: dec) -> Bool__Value rev 1
   emits []
   tests
-    dec_zero_z(value = d"0.0") => Ok(value = true)
-    dec_zero_p(value = d"1.5") => Ok(value = false)
-    dec_zero_n(value = d"-1.5") => Ok(value = false)
+    dec_zero_z(d"0.0") => Ok(value = true)
+    dec_zero_p(d"1.5") => Ok(value = false)
+    dec_zero_n(d"-1.5") => Ok(value = false)
 =
   match value == d"0.0"
     true => Ok(value = true)
@@ -330,9 +330,9 @@ fn std__dec__is_zero(value: dec) -> Bool__Value rev 1
 fn std__dec__is_positive(value: dec) -> Bool__Value rev 1
   emits []
   tests
-    dec_pos_z(value = d"0.0") => Ok(value = false)
-    dec_pos_p(value = d"1.5") => Ok(value = true)
-    dec_pos_n(value = d"-1.5") => Ok(value = false)
+    dec_pos_z(d"0.0") => Ok(value = false)
+    dec_pos_p(d"1.5") => Ok(value = true)
+    dec_pos_n(d"-1.5") => Ok(value = false)
 =
   match value == d"0.0", value >= d"0.0"
     true, _ => Ok(value = false)
@@ -342,9 +342,9 @@ fn std__dec__is_positive(value: dec) -> Bool__Value rev 1
 fn std__dec__is_negative(value: dec) -> Bool__Value rev 1
   emits []
   tests
-    dec_neg_z(value = d"0.0") => Ok(value = false)
-    dec_neg_p(value = d"1.5") => Ok(value = false)
-    dec_neg_n(value = d"-1.5") => Ok(value = true)
+    dec_neg_z(d"0.0") => Ok(value = false)
+    dec_neg_p(d"1.5") => Ok(value = false)
+    dec_neg_n(d"-1.5") => Ok(value = true)
 =
   match value == d"0.0", value <= d"0.0"
     true, _ => Ok(value = false)
@@ -354,10 +354,10 @@ fn std__dec__is_negative(value: dec) -> Bool__Value rev 1
 fn std__dec__in_closed_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
   emits [math.dec_invalid_bounds]
   tests
-    dec_closed_in(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = true)
-    dec_closed_below(value = d"-0.5", lower = d"0.0", upper = d"10.0") => Ok(value = false)
-    dec_closed_above(value = d"10.5", lower = d"0.0", upper = d"10.0") => Ok(value = false)
-    dec_closed_bad(value = d"5.0", lower = d"10.0", upper = d"0.0") => math.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
+    dec_closed_in(d"5.0", d"0.0", d"10.0") => Ok(value = true)
+    dec_closed_below(d"-0.5", d"0.0", d"10.0") => Ok(value = false)
+    dec_closed_above(d"10.5", d"0.0", d"10.0") => Ok(value = false)
+    dec_closed_bad(d"5.0", d"10.0", d"0.0") => math.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
 =
   match lower <= upper, value >= lower, value <= upper
     true, true, true => Ok(value = true)
@@ -368,11 +368,11 @@ fn std__dec__in_closed_range(value: dec, lower: dec, upper: dec) -> Bool__Value 
 fn std__dec__in_open_range(value: dec, lower: dec, upper: dec) -> Bool__Value rev 1
   emits [math.dec_invalid_bounds]
   tests
-    dec_open_in(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = true)
-    dec_open_edge(value = d"0.0", lower = d"0.0", upper = d"10.0") => Ok(value = false)
-    dec_open_high(value = d"10.0", lower = d"0.0", upper = d"10.0") => Ok(value = false)
-    dec_open_above(value = d"10.5", lower = d"0.0", upper = d"10.0") => Ok(value = false)
-    dec_open_bad(value = d"5.0", lower = d"10.0", upper = d"0.0") => math.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
+    dec_open_in(d"5.0", d"0.0", d"10.0") => Ok(value = true)
+    dec_open_edge(d"0.0", d"0.0", d"10.0") => Ok(value = false)
+    dec_open_high(d"10.0", d"0.0", d"10.0") => Ok(value = false)
+    dec_open_above(d"10.5", d"0.0", d"10.0") => Ok(value = false)
+    dec_open_bad(d"5.0", d"10.0", d"0.0") => math.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
 =
   match lower <= upper, value <= lower, value >= upper
     true, true, _ => Ok(value = false)
@@ -383,9 +383,9 @@ fn std__dec__in_open_range(value: dec, lower: dec, upper: dec) -> Bool__Value re
 fn std__int__abs(value: int) -> Int__Value rev 1
   emits []
   tests
-    abs_neg(value = -3) => Ok(value = 3)
-    abs_pos(value = 3) => Ok(value = 3)
-    abs_zero(value = 0) => Ok(value = 0)
+    abs_neg(-3) => Ok(value = 3)
+    abs_pos(3) => Ok(value = 3)
+    abs_zero(0) => Ok(value = 0)
 =
   match value >= 0
     true => Ok(value = value)
@@ -394,18 +394,18 @@ fn std__int__abs(value: int) -> Int__Value rev 1
 fn std__int__negate(value: int) -> Int__Value rev 1
   emits []
   tests
-    neg_pos(value = 3) => Ok(value = -3)
-    neg_neg(value = -3) => Ok(value = 3)
-    neg_zero(value = 0) => Ok(value = 0)
+    neg_pos(3) => Ok(value = -3)
+    neg_neg(-3) => Ok(value = 3)
+    neg_zero(0) => Ok(value = 0)
 =
   Ok(value = -value)
 
 fn std__int__sign(value: int) -> Int__Value rev 1
   emits []
   tests
-    sign_zero(value = 0) => Ok(value = 0)
-    sign_pos(value = 3) => Ok(value = 1)
-    sign_neg(value = -3) => Ok(value = -1)
+    sign_zero(0) => Ok(value = 0)
+    sign_pos(3) => Ok(value = 1)
+    sign_neg(-3) => Ok(value = -1)
 =
   match value == 0, value >= 0
     true, _ => Ok(value = 0)
@@ -415,9 +415,9 @@ fn std__int__sign(value: int) -> Int__Value rev 1
 fn std__int__min(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    min_lt(left = 3, right = 4) => Ok(value = 3)
-    min_gt(left = 5, right = 4) => Ok(value = 4)
-    min_eq(left = 4, right = 4) => Ok(value = 4)
+    min_lt(3, 4) => Ok(value = 3)
+    min_gt(5, 4) => Ok(value = 4)
+    min_eq(4, 4) => Ok(value = 4)
 =
   match left <= right
     true => Ok(value = left)
@@ -426,9 +426,9 @@ fn std__int__min(left: int, right: int) -> Int__Value rev 1
 fn std__int__max(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    max_lt(left = 3, right = 4) => Ok(value = 4)
-    max_gt(left = 5, right = 4) => Ok(value = 5)
-    max_eq(left = 4, right = 4) => Ok(value = 4)
+    max_lt(3, 4) => Ok(value = 4)
+    max_gt(5, 4) => Ok(value = 5)
+    max_eq(4, 4) => Ok(value = 4)
 =
   match left >= right
     true => Ok(value = left)
@@ -437,10 +437,10 @@ fn std__int__max(left: int, right: int) -> Int__Value rev 1
 fn std__int__clamp(value: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds]
   tests
-    clamp_in(value = 5, lower = 0, upper = 10) => Ok(value = 5)
-    clamp_low(value = -3, lower = 0, upper = 10) => Ok(value = 0)
-    clamp_high(value = 14, lower = 0, upper = 10) => Ok(value = 10)
-    clamp_bad(value = 5, lower = 10, upper = 0) => math.invalid_bounds(lower = 10, upper = 0)
+    clamp_in(5, 0, 10) => Ok(value = 5)
+    clamp_low(-3, 0, 10) => Ok(value = 0)
+    clamp_high(14, 0, 10) => Ok(value = 10)
+    clamp_bad(5, 10, 0) => math.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, value >= lower, value <= upper
     true, true, true => Ok(value = value)
@@ -451,9 +451,9 @@ fn std__int__clamp(value: int, lower: int, upper: int) -> Int__Value rev 1
 fn std__int__distance(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    dist_gt(left = 5, right = 2) => Ok(value = 3)
-    dist_lt(left = 2, right = 5) => Ok(value = 3)
-    dist_eq(left = 4, right = 4) => Ok(value = 0)
+    dist_gt(5, 2) => Ok(value = 3)
+    dist_lt(2, 5) => Ok(value = 3)
+    dist_eq(4, 4) => Ok(value = 0)
 =
   match left >= right
     true => Ok(value = left - right)
@@ -462,9 +462,9 @@ fn std__int__distance(left: int, right: int) -> Int__Value rev 1
 fn std__int__square(value: int) -> Int__Value rev 1
   emits []
   tests
-    sq_pos(value = 4) => Ok(value = 16)
-    sq_neg(value = -4) => Ok(value = 16)
-    sq_zero(value = 0) => Ok(value = 0)
+    sq_pos(4) => Ok(value = 16)
+    sq_neg(-4) => Ok(value = 16)
+    sq_zero(0) => Ok(value = 0)
 =
   Ok(value = value * value)
 
@@ -472,8 +472,8 @@ fn std__int__pow_from(base: int, exponent: int) -> Int__Value rev 1
   decreases exponent
   emits []
   tests
-    pow_from_zero(base = 5, exponent = 0) => Ok(value = 1)
-    pow_from_three(base = 2, exponent = 3) => Ok(value = 8)
+    pow_from_zero(5, 0) => Ok(value = 1)
+    pow_from_three(2, 3) => Ok(value = 8)
 =
   match exponent <= 0
     true => Ok(value = 1)
@@ -483,10 +483,10 @@ fn std__int__pow_from(base: int, exponent: int) -> Int__Value rev 1
 fn std__int__pow(base: int, exponent: int) -> Int__Value rev 1
   emits [math.negative_exponent]
   tests
-    pow_zero_exp(base = 5, exponent = 0) => Ok(value = 1)
-    pow_pos(base = 2, exponent = 3) => Ok(value = 8)
-    pow_zero_zero(base = 0, exponent = 0) => Ok(value = 1)
-    pow_neg(base = 2, exponent = -1) => math.negative_exponent(exponent = -1)
+    pow_zero_exp(5, 0) => Ok(value = 1)
+    pow_pos(2, 3) => Ok(value = 8)
+    pow_zero_zero(0, 0) => Ok(value = 1)
+    pow_neg(2, -1) => math.negative_exponent(exponent = -1)
 =
   match exponent >= 0
     true => match call std__int__pow_from(base, exponent)
@@ -496,10 +496,10 @@ fn std__int__pow(base: int, exponent: int) -> Int__Value rev 1
 fn std__int__add_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds, math.out_of_range]
   tests
-    add_ok(left = 3, right = 4, lower = 0, upper = 10) => Ok(value = 7)
-    add_low(left = -3, right = -4, lower = 0, upper = 10) => math.out_of_range(value = -7, lower = 0, upper = 10)
-    add_high(left = 6, right = 7, lower = 0, upper = 10) => math.out_of_range(value = 13, lower = 0, upper = 10)
-    add_bad(left = 1, right = 1, lower = 10, upper = 0) => math.invalid_bounds(lower = 10, upper = 0)
+    add_ok(3, 4, 0, 10) => Ok(value = 7)
+    add_low(-3, -4, 0, 10) => math.out_of_range(value = -7, lower = 0, upper = 10)
+    add_high(6, 7, 0, 10) => math.out_of_range(value = 13, lower = 0, upper = 10)
+    add_bad(1, 1, 10, 0) => math.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, left + right >= lower, left + right <= upper
     true, true, true => Ok(value = left + right)
@@ -510,10 +510,10 @@ fn std__int__add_bounded(left: int, right: int, lower: int, upper: int) -> Int__
 fn std__int__subtract_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds, math.out_of_range]
   tests
-    sub_ok(left = 9, right = 4, lower = 0, upper = 10) => Ok(value = 5)
-    sub_low(left = 2, right = 9, lower = 0, upper = 10) => math.out_of_range(value = -7, lower = 0, upper = 10)
-    sub_high(left = 20, right = 3, lower = 0, upper = 10) => math.out_of_range(value = 17, lower = 0, upper = 10)
-    sub_bad(left = 1, right = 1, lower = 10, upper = 0) => math.invalid_bounds(lower = 10, upper = 0)
+    sub_ok(9, 4, 0, 10) => Ok(value = 5)
+    sub_low(2, 9, 0, 10) => math.out_of_range(value = -7, lower = 0, upper = 10)
+    sub_high(20, 3, 0, 10) => math.out_of_range(value = 17, lower = 0, upper = 10)
+    sub_bad(1, 1, 10, 0) => math.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, left - right >= lower, left - right <= upper
     true, true, true => Ok(value = left - right)
@@ -524,10 +524,10 @@ fn std__int__subtract_bounded(left: int, right: int, lower: int, upper: int) -> 
 fn std__int__multiply_bounded(left: int, right: int, lower: int, upper: int) -> Int__Value rev 1
   emits [math.invalid_bounds, math.out_of_range]
   tests
-    mul_ok(left = 3, right = 4, lower = 0, upper = 20) => Ok(value = 12)
-    mul_low(left = -3, right = 4, lower = 0, upper = 20) => math.out_of_range(value = -12, lower = 0, upper = 20)
-    mul_high(left = 6, right = 7, lower = 0, upper = 20) => math.out_of_range(value = 42, lower = 0, upper = 20)
-    mul_bad(left = 1, right = 1, lower = 10, upper = 0) => math.invalid_bounds(lower = 10, upper = 0)
+    mul_ok(3, 4, 0, 20) => Ok(value = 12)
+    mul_low(-3, 4, 0, 20) => math.out_of_range(value = -12, lower = 0, upper = 20)
+    mul_high(6, 7, 0, 20) => math.out_of_range(value = 42, lower = 0, upper = 20)
+    mul_bad(1, 1, 10, 0) => math.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, left * right >= lower, left * right <= upper
     true, true, true => Ok(value = left * right)
@@ -539,8 +539,8 @@ fn std__int__factorial_from(value: int) -> Int__Value rev 1
   decreases value
   emits []
   tests
-    fact_from_zero(value = 0) => Ok(value = 1)
-    fact_from_three(value = 3) => Ok(value = 6)
+    fact_from_zero(0) => Ok(value = 1)
+    fact_from_three(3) => Ok(value = 6)
 =
   match value <= 0
     true => Ok(value = 1)
@@ -550,9 +550,9 @@ fn std__int__factorial_from(value: int) -> Int__Value rev 1
 fn std__int__factorial(value: int) -> Int__Value rev 1
   emits [math.negative_input]
   tests
-    fact_zero(value = 0) => Ok(value = 1)
-    fact_five(value = 5) => Ok(value = 120)
-    fact_neg(value = -2) => math.negative_input(value = -2)
+    fact_zero(0) => Ok(value = 1)
+    fact_five(5) => Ok(value = 120)
+    fact_neg(-2) => math.negative_input(value = -2)
 =
   match value >= 0
     true => match call std__int__factorial_from(value)
@@ -563,8 +563,8 @@ fn std__int__sum_from(upper: int) -> Int__Value rev 1
   decreases upper
   emits []
   tests
-    sum_from_zero(upper = 0) => Ok(value = 0)
-    sum_from_four(upper = 4) => Ok(value = 10)
+    sum_from_zero(0) => Ok(value = 0)
+    sum_from_four(4) => Ok(value = 10)
 =
   match upper <= 0
     true => Ok(value = 0)
@@ -574,9 +574,9 @@ fn std__int__sum_from(upper: int) -> Int__Value rev 1
 fn std__int__sum_to(upper: int) -> Int__Value rev 1
   emits [math.negative_input]
   tests
-    sum_zero(upper = 0) => Ok(value = 0)
-    sum_four(upper = 4) => Ok(value = 10)
-    sum_neg(upper = -2) => math.negative_input(value = -2)
+    sum_zero(0) => Ok(value = 0)
+    sum_four(4) => Ok(value = 10)
+    sum_neg(-2) => math.negative_input(value = -2)
 =
   match upper >= 0
     true => match call std__int__sum_from(upper)
@@ -587,8 +587,8 @@ fn std__int__binomial_from(n: int, k: int, i: int, num: int, den: int) -> Int__V
   decreases i
   emits []
   tests
-    bin_from_done(n = 5, k = 2, i = 0, num = 20, den = 2) => Ok(value = 10)
-    bin_from_step(n = 5, k = 2, i = 2, num = 1, den = 1) => Ok(value = 10)
+    bin_from_done(5, 2, 0, 20, 2) => Ok(value = 10)
+    bin_from_step(5, 2, 2, 1, 1) => Ok(value = 10)
 =
   match i <= 0
     true => Ok(value = num / den)
@@ -598,12 +598,12 @@ fn std__int__binomial_from(n: int, k: int, i: int, num: int, den: int) -> Int__V
 fn std__int__binomial(n: int, k: int) -> Int__Value rev 1
   emits [math.invalid_count]
   tests
-    choose(n = 5, k = 2) => Ok(value = 10)
-    full(n = 6, k = 6) => Ok(value = 1)
-    none(n = 5, k = 0) => Ok(value = 1)
-    zero_zero(n = 0, k = 0) => Ok(value = 1)
-    neg_k(n = 5, k = -1) => math.invalid_count(n = 5, k = -1)
-    k_too_big(n = 3, k = 5) => math.invalid_count(n = 3, k = 5)
+    choose(5, 2) => Ok(value = 10)
+    full(6, 6) => Ok(value = 1)
+    none(5, 0) => Ok(value = 1)
+    zero_zero(0, 0) => Ok(value = 1)
+    neg_k(5, -1) => math.invalid_count(n = 5, k = -1)
+    k_too_big(3, 5) => math.invalid_count(n = 3, k = 5)
 =
   match k >= 0, k <= n
     true, true => match call std__int__binomial_from(n, k, k, 1, 1)
@@ -615,9 +615,9 @@ fn std__int__is_prime_from(value: int, e: int) -> Bool__Value rev 1
   decreases e
   emits []
   tests
-    prime_from_two(value = 2, e = 0) => Ok(value = true)
-    prime_from_nine(value = 9, e = 7) => Ok(value = false)
-    prime_from_three(value = 3, e = 1) => Ok(value = true)
+    prime_from_two(2, 0) => Ok(value = true)
+    prime_from_nine(9, 7) => Ok(value = false)
+    prime_from_three(3, 1) => Ok(value = true)
 =
   match e <= 0
     true => Ok(value = true)
@@ -629,13 +629,13 @@ fn std__int__is_prime_from(value: int, e: int) -> Bool__Value rev 1
 fn std__int__is_prime(value: int) -> Bool__Value rev 1
   emits []
   tests
-    two(value = 2) => Ok(value = true)
-    three(value = 3) => Ok(value = true)
-    four(value = 4) => Ok(value = false)
-    nine(value = 9) => Ok(value = false)
-    one(value = 1) => Ok(value = false)
-    zero(value = 0) => Ok(value = false)
-    negative(value = -5) => Ok(value = false)
+    two(2) => Ok(value = true)
+    three(3) => Ok(value = true)
+    four(4) => Ok(value = false)
+    nine(9) => Ok(value = false)
+    one(1) => Ok(value = false)
+    zero(0) => Ok(value = false)
+    negative(-5) => Ok(value = false)
 =
   match value >= 2
     true => match call std__int__is_prime_from(value, value - 2)
@@ -646,8 +646,8 @@ fn std__int__next_power_of_two_pow2(e: int) -> Int__Value rev 1
   decreases e
   emits []
   tests
-    pow2_zero(e = 0) => Ok(value = 1)
-    pow2_three(e = 3) => Ok(value = 8)
+    pow2_zero(0) => Ok(value = 1)
+    pow2_three(3) => Ok(value = 8)
 =
   match e <= 0
     true => Ok(value = 1)
@@ -658,10 +658,10 @@ fn std__int__next_power_of_two_from(value: int, e: int, best: int) -> Int__Value
   decreases e
   emits []
   tests
-    npot_from_one(value = 1, e = 0, best = 2) => Ok(value = 1)
-    npot_from_five(value = 5, e = 0, best = 8) => Ok(value = 8)
-    npot_from_step(value = 5, e = 3, best = 32) => Ok(value = 8)
-    npot_from_keep(value = 5, e = 2, best = 8) => Ok(value = 8)
+    npot_from_one(1, 0, 2) => Ok(value = 1)
+    npot_from_five(5, 0, 8) => Ok(value = 8)
+    npot_from_step(5, 3, 32) => Ok(value = 8)
+    npot_from_keep(5, 2, 8) => Ok(value = 8)
 =
   match e <= 0
     true => match 1 >= value
@@ -677,11 +677,11 @@ fn std__int__next_power_of_two_from(value: int, e: int, best: int) -> Int__Value
 fn std__int__next_power_of_two(value: int) -> Int__Value rev 1
   emits [math.nonpositive_input]
   tests
-    npot_one(value = 1) => Ok(value = 1)
-    npot_five(value = 5) => Ok(value = 8)
-    npot_sixteen(value = 16) => Ok(value = 16)
-    npot_zero(value = 0) => math.nonpositive_input(value = 0)
-    npot_negative(value = -3) => math.nonpositive_input(value = -3)
+    npot_one(1) => Ok(value = 1)
+    npot_five(5) => Ok(value = 8)
+    npot_sixteen(16) => Ok(value = 16)
+    npot_zero(0) => math.nonpositive_input(value = 0)
+    npot_negative(-3) => math.nonpositive_input(value = -3)
 =
   match value >= 1
     true => match call std__int__next_power_of_two_from(value, value, 1)
@@ -692,9 +692,9 @@ fn std__int__sqrt_floor_search(value: int, lo: int, hi: int) -> Int__Value rev 1
   decreases lo, hi by narrowing
   emits []
   tests
-    search_ten(value = 10, lo = 0, hi = 11) => Ok(value = 3)
-    search_exact(value = 9, lo = 3, hi = 4) => Ok(value = 3)
-    search_nine(value = 9, lo = 0, hi = 10) => Ok(value = 3)
+    search_ten(10, 0, 11) => Ok(value = 3)
+    search_exact(9, 3, 4) => Ok(value = 3)
+    search_nine(9, 0, 10) => Ok(value = 3)
 =
   match (hi - lo) <= 1
     true => Ok(value = lo)
@@ -707,11 +707,11 @@ fn std__int__sqrt_floor_search(value: int, lo: int, hi: int) -> Int__Value rev 1
 fn std__int__sqrt_floor(value: int) -> Int__Root rev 1
   emits [math.negative_input]
   tests
-    sqrt_zero(value = 0) => Ok(root = 0, remainder = 0)
-    sqrt_one(value = 1) => Ok(root = 1, remainder = 0)
-    sqrt_four(value = 4) => Ok(root = 2, remainder = 0)
-    sqrt_ten(value = 10) => Ok(root = 3, remainder = 1)
-    sqrt_neg(value = -4) => math.negative_input(value = -4)
+    sqrt_zero(0) => Ok(root = 0, remainder = 0)
+    sqrt_one(1) => Ok(root = 1, remainder = 0)
+    sqrt_four(4) => Ok(root = 2, remainder = 0)
+    sqrt_ten(10) => Ok(root = 3, remainder = 1)
+    sqrt_neg(-4) => math.negative_input(value = -4)
 =
   match value >= 0
     true => match call std__int__sqrt_floor_search(value, 0, value + 1)
@@ -722,9 +722,9 @@ fn std__int__gcd_euclid(a: int, b: int) -> Int__Value rev 1
   decreases a, b by euclid
   emits []
   tests
-    euclid_basic(a = 12, b = 8) => Ok(value = 4)
-    euclid_coprime(a = 8, b = 9) => Ok(value = 1)
-    euclid_zero_b(a = 5, b = 0) => Ok(value = 5)
+    euclid_basic(12, 8) => Ok(value = 4)
+    euclid_coprime(8, 9) => Ok(value = 1)
+    euclid_zero_b(5, 0) => Ok(value = 5)
 =
   match b <= 0
     true => Ok(value = a)
@@ -734,13 +734,13 @@ fn std__int__gcd_euclid(a: int, b: int) -> Int__Value rev 1
 fn std__int__gcd(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    gcd_basic(left = 12, right = 8) => Ok(value = 4)
-    gcd_coprime(left = 8, right = 9) => Ok(value = 1)
-    gcd_zero_left(left = 0, right = 5) => Ok(value = 5)
-    gcd_zero_right(left = 5, right = 0) => Ok(value = 5)
-    gcd_zero_zero(left = 0, right = 0) => Ok(value = 0)
-    gcd_negative(left = -12, right = 8) => Ok(value = 4)
-    gcd_equal(left = 7, right = 7) => Ok(value = 7)
+    gcd_basic(12, 8) => Ok(value = 4)
+    gcd_coprime(8, 9) => Ok(value = 1)
+    gcd_zero_left(0, 5) => Ok(value = 5)
+    gcd_zero_right(5, 0) => Ok(value = 5)
+    gcd_zero_zero(0, 0) => Ok(value = 0)
+    gcd_negative(-12, 8) => Ok(value = 4)
+    gcd_equal(7, 7) => Ok(value = 7)
 =
   match call std__int__abs(left)
     on Ok a => match call std__int__abs(right)
@@ -750,11 +750,11 @@ fn std__int__gcd(left: int, right: int) -> Int__Value rev 1
 fn std__int__lcm(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    lcm_basic(left = 4, right = 6) => Ok(value = 12)
-    lcm_zero_left(left = 0, right = 5) => Ok(value = 0)
-    lcm_zero_right(left = 5, right = 0) => Ok(value = 0)
-    lcm_equal(left = 7, right = 7) => Ok(value = 7)
-    lcm_negative(left = -4, right = 6) => Ok(value = 12)
+    lcm_basic(4, 6) => Ok(value = 12)
+    lcm_zero_left(0, 5) => Ok(value = 0)
+    lcm_zero_right(5, 0) => Ok(value = 0)
+    lcm_equal(7, 7) => Ok(value = 7)
+    lcm_negative(-4, 6) => Ok(value = 12)
 =
   match left == 0, right == 0
     true, _ => Ok(value = 0)
@@ -767,9 +767,9 @@ fn std__int__lcm(left: int, right: int) -> Int__Value rev 1
 fn std__dec__abs(value: dec) -> Dec__Value rev 1
   emits []
   tests
-    dec_abs_neg(value = d"-2.5") => Ok(value = d"2.5")
-    dec_abs_pos(value = d"2.5") => Ok(value = d"2.5")
-    dec_abs_zero(value = d"0.0") => Ok(value = d"0.0")
+    dec_abs_neg(d"-2.5") => Ok(value = d"2.5")
+    dec_abs_pos(d"2.5") => Ok(value = d"2.5")
+    dec_abs_zero(d"0.0") => Ok(value = d"0.0")
 =
   match value >= d"0.0"
     true => Ok(value = value)
@@ -778,18 +778,18 @@ fn std__dec__abs(value: dec) -> Dec__Value rev 1
 fn std__dec__negate(value: dec) -> Dec__Value rev 1
   emits []
   tests
-    dec_neg_pos(value = d"2.5") => Ok(value = d"-2.5")
-    dec_neg_neg(value = d"-2.5") => Ok(value = d"2.5")
-    dec_neg_zero(value = d"0.0") => Ok(value = d"0.0")
+    dec_neg_pos(d"2.5") => Ok(value = d"-2.5")
+    dec_neg_neg(d"-2.5") => Ok(value = d"2.5")
+    dec_neg_zero(d"0.0") => Ok(value = d"0.0")
 =
   Ok(value = d"0.0" - value)
 
 fn std__dec__sign(value: dec) -> Int__Value rev 1
   emits []
   tests
-    dec_sign_zero(value = d"0.0") => Ok(value = 0)
-    dec_sign_pos(value = d"2.5") => Ok(value = 1)
-    dec_sign_neg(value = d"-2.5") => Ok(value = -1)
+    dec_sign_zero(d"0.0") => Ok(value = 0)
+    dec_sign_pos(d"2.5") => Ok(value = 1)
+    dec_sign_neg(d"-2.5") => Ok(value = -1)
 =
   match value == d"0.0", value >= d"0.0"
     true, _ => Ok(value = 0)
@@ -799,9 +799,9 @@ fn std__dec__sign(value: dec) -> Int__Value rev 1
 fn std__dec__min(left: dec, right: dec) -> Dec__Value rev 1
   emits []
   tests
-    dec_min_lt(left = d"1.5", right = d"2.5") => Ok(value = d"1.5")
-    dec_min_gt(left = d"3.5", right = d"2.5") => Ok(value = d"2.5")
-    dec_min_eq(left = d"2.5", right = d"2.5") => Ok(value = d"2.5")
+    dec_min_lt(d"1.5", d"2.5") => Ok(value = d"1.5")
+    dec_min_gt(d"3.5", d"2.5") => Ok(value = d"2.5")
+    dec_min_eq(d"2.5", d"2.5") => Ok(value = d"2.5")
 =
   match left <= right
     true => Ok(value = left)
@@ -810,9 +810,9 @@ fn std__dec__min(left: dec, right: dec) -> Dec__Value rev 1
 fn std__dec__max(left: dec, right: dec) -> Dec__Value rev 1
   emits []
   tests
-    dec_max_lt(left = d"1.5", right = d"2.5") => Ok(value = d"2.5")
-    dec_max_gt(left = d"3.5", right = d"2.5") => Ok(value = d"3.5")
-    dec_max_eq(left = d"2.5", right = d"2.5") => Ok(value = d"2.5")
+    dec_max_lt(d"1.5", d"2.5") => Ok(value = d"2.5")
+    dec_max_gt(d"3.5", d"2.5") => Ok(value = d"3.5")
+    dec_max_eq(d"2.5", d"2.5") => Ok(value = d"2.5")
 =
   match left >= right
     true => Ok(value = left)
@@ -821,10 +821,10 @@ fn std__dec__max(left: dec, right: dec) -> Dec__Value rev 1
 fn std__dec__clamp(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
   emits [math.dec_invalid_bounds]
   tests
-    dec_clamp_in(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"5.0")
-    dec_clamp_low(value = d"-3.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"0.0")
-    dec_clamp_high(value = d"14.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"10.0")
-    dec_clamp_bad(value = d"5.0", lower = d"10.0", upper = d"0.0") => math.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
+    dec_clamp_in(d"5.0", d"0.0", d"10.0") => Ok(value = d"5.0")
+    dec_clamp_low(d"-3.0", d"0.0", d"10.0") => Ok(value = d"0.0")
+    dec_clamp_high(d"14.0", d"0.0", d"10.0") => Ok(value = d"10.0")
+    dec_clamp_bad(d"5.0", d"10.0", d"0.0") => math.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
 =
   match lower <= upper, value >= lower, value <= upper
     true, true, true => Ok(value = value)
@@ -835,9 +835,9 @@ fn std__dec__clamp(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
 fn std__dec__distance(left: dec, right: dec) -> Dec__Value rev 1
   emits []
   tests
-    dec_dist_gt(left = d"5.5", right = d"2.5") => Ok(value = d"3.0")
-    dec_dist_lt(left = d"2.5", right = d"5.5") => Ok(value = d"3.0")
-    dec_dist_eq(left = d"2.5", right = d"2.5") => Ok(value = d"0.0")
+    dec_dist_gt(d"5.5", d"2.5") => Ok(value = d"3.0")
+    dec_dist_lt(d"2.5", d"5.5") => Ok(value = d"3.0")
+    dec_dist_eq(d"2.5", d"2.5") => Ok(value = d"0.0")
 =
   match left >= right
     true => Ok(value = left - right)
@@ -846,9 +846,9 @@ fn std__dec__distance(left: dec, right: dec) -> Dec__Value rev 1
 fn std__dec__square(value: dec) -> Dec__Value rev 1
   emits []
   tests
-    dec_sq_pos(value = d"4.0") => Ok(value = d"16.0")
-    dec_sq_neg(value = d"-4.0") => Ok(value = d"16.0")
-    dec_sq_frac(value = d"1.5") => Ok(value = d"2.25")
+    dec_sq_pos(d"4.0") => Ok(value = d"16.0")
+    dec_sq_neg(d"-4.0") => Ok(value = d"16.0")
+    dec_sq_frac(d"1.5") => Ok(value = d"2.25")
 =
   Ok(value = value * value)
 
@@ -856,8 +856,8 @@ fn std__dec__pow_from(base: dec, exponent: int) -> Dec__Value rev 1
   decreases exponent
   emits []
   tests
-    dec_pow_from_zero(base = d"2.5", exponent = 0) => Ok(value = d"1.0")
-    dec_pow_from_two(base = d"1.5", exponent = 2) => Ok(value = d"2.25")
+    dec_pow_from_zero(d"2.5", 0) => Ok(value = d"1.0")
+    dec_pow_from_two(d"1.5", 2) => Ok(value = d"2.25")
 =
   match exponent <= 0
     true => Ok(value = d"1.0")
@@ -867,9 +867,9 @@ fn std__dec__pow_from(base: dec, exponent: int) -> Dec__Value rev 1
 fn std__dec__pow(base: dec, exponent: int) -> Dec__Value rev 1
   emits [math.negative_exponent]
   tests
-    dec_pow_zero_exp(base = d"2.5", exponent = 0) => Ok(value = d"1.0")
-    dec_pow_pos(base = d"1.5", exponent = 2) => Ok(value = d"2.25")
-    dec_pow_neg(base = d"1.5", exponent = -1) => math.negative_exponent(exponent = -1)
+    dec_pow_zero_exp(d"2.5", 0) => Ok(value = d"1.0")
+    dec_pow_pos(d"1.5", 2) => Ok(value = d"2.25")
+    dec_pow_neg(d"1.5", -1) => math.negative_exponent(exponent = -1)
 =
   match exponent >= 0
     true => match call std__dec__pow_from(base, exponent)
@@ -879,11 +879,11 @@ fn std__dec__pow(base: dec, exponent: int) -> Dec__Value rev 1
 fn std__dec__lerp(start: dec, end: dec, fraction: dec) -> Dec__Value rev 1
   emits [math.dec_out_of_range]
   tests
-    lerp_zero(start = d"10.0", end = d"20.0", fraction = d"0.0") => Ok(value = d"10.0")
-    lerp_one(start = d"10.0", end = d"20.0", fraction = d"1.0") => Ok(value = d"20.0")
-    lerp_mid(start = d"10.0", end = d"20.0", fraction = d"0.5") => Ok(value = d"15.0")
-    lerp_below(start = d"10.0", end = d"20.0", fraction = d"-0.5") => math.dec_out_of_range(value = d"-0.5", lower = d"0.0", upper = d"1.0")
-    lerp_above(start = d"10.0", end = d"20.0", fraction = d"1.5") => math.dec_out_of_range(value = d"1.5", lower = d"0.0", upper = d"1.0")
+    lerp_zero(d"10.0", d"20.0", d"0.0") => Ok(value = d"10.0")
+    lerp_one(d"10.0", d"20.0", d"1.0") => Ok(value = d"20.0")
+    lerp_mid(d"10.0", d"20.0", d"0.5") => Ok(value = d"15.0")
+    lerp_below(d"10.0", d"20.0", d"-0.5") => math.dec_out_of_range(value = d"-0.5", lower = d"0.0", upper = d"1.0")
+    lerp_above(d"10.0", d"20.0", d"1.5") => math.dec_out_of_range(value = d"1.5", lower = d"0.0", upper = d"1.0")
 =
   match fraction >= d"0.0", fraction <= d"1.0"
     true, true => Ok(value = start + (end - start) * fraction)
@@ -894,9 +894,9 @@ fn std__dec__scale_by_power_of_ten_from(value: dec, e: int, factor: dec) -> Dec_
   decreases e
   emits []
   tests
-    scale_from_zero_e(value = d"1.5", e = 0, factor = d"10.0") => Ok(value = d"1.5")
-    scale_from_two(value = d"1.5", e = 2, factor = d"10.0") => Ok(value = d"150.0")
-    scale_from_down(value = d"150.0", e = 2, factor = d"0.1") => Ok(value = d"1.5")
+    scale_from_zero_e(d"1.5", 0, d"10.0") => Ok(value = d"1.5")
+    scale_from_two(d"1.5", 2, d"10.0") => Ok(value = d"150.0")
+    scale_from_down(d"150.0", 2, d"0.1") => Ok(value = d"1.5")
 =
   match e <= 0
     true => Ok(value = value)
@@ -906,10 +906,10 @@ fn std__dec__scale_by_power_of_ten_from(value: dec, e: int, factor: dec) -> Dec_
 fn std__dec__scale_by_power_of_ten(value: dec, exponent: int) -> Dec__Value rev 1
   emits []
   tests
-    scale_up(value = d"1.5", exponent = 2) => Ok(value = d"150.0")
-    scale_same(value = d"1.5", exponent = 0) => Ok(value = d"1.5")
-    scale_down(value = d"150.0", exponent = -2) => Ok(value = d"1.5")
-    scale_down_neg(value = d"-2.5", exponent = -1) => Ok(value = d"-0.25")
+    scale_up(d"1.5", 2) => Ok(value = d"150.0")
+    scale_same(d"1.5", 0) => Ok(value = d"1.5")
+    scale_down(d"150.0", -2) => Ok(value = d"1.5")
+    scale_down_neg(d"-2.5", -1) => Ok(value = d"-0.25")
 =
   match exponent >= 0
     true => match call std__dec__scale_by_power_of_ten_from(value, exponent, d"10.0")
@@ -920,10 +920,10 @@ fn std__dec__scale_by_power_of_ten(value: dec, exponent: int) -> Dec__Value rev 
 fn std__dec__from_parts(coefficient: int, scale: int) -> Dec__Value rev 1
   emits [math.negative_scale]
   tests
-    parts_cents(coefficient = 25, scale = 2) => Ok(value = d"0.25")
-    parts_units(coefficient = 7, scale = 0) => Ok(value = d"7.0")
-    parts_neg(coefficient = -5, scale = 1) => Ok(value = d"-0.5")
-    parts_neg_scale(coefficient = 3, scale = -1) => math.negative_scale(scale = -1)
+    parts_cents(25, 2) => Ok(value = d"0.25")
+    parts_units(7, 0) => Ok(value = d"7.0")
+    parts_neg(-5, 1) => Ok(value = d"-0.5")
+    parts_neg_scale(3, -1) => math.negative_scale(scale = -1)
 =
   match scale >= 0
     true => match call std__convert__int_to_dec(coefficient)
@@ -934,14 +934,14 @@ fn std__dec__from_parts(coefficient: int, scale: int) -> Dec__Value rev 1
 fn std__dec__parts(value: dec) -> Dec__Parts rev 1
   emits []
   tests
-    parts_whole(value = d"7.0") => Ok(coefficient = 70, scale = 1)
-    parts_cents(value = d"0.25") => Ok(coefficient = 25, scale = 2)
-    parts_neg(value = d"-0.5") => Ok(coefficient = -5, scale = 1)
-    parts_trailing(value = d"12.340") => Ok(coefficient = 1234, scale = 2)
-    parts_zero(value = d"0.00") => Ok(coefficient = 0, scale = 1)
-    parts_neg_zero(value = d"-0.0") => Ok(coefficient = 0, scale = 1)
-    parts_hundreds(value = d"100.0") => Ok(coefficient = 1000, scale = 1)
-    parts_big(value = d"123456789.123456789") => Ok(coefficient = 123456789123456789, scale = 9)
+    parts_whole(d"7.0") => Ok(coefficient = 70, scale = 1)
+    parts_cents(d"0.25") => Ok(coefficient = 25, scale = 2)
+    parts_neg(d"-0.5") => Ok(coefficient = -5, scale = 1)
+    parts_trailing(d"12.340") => Ok(coefficient = 1234, scale = 2)
+    parts_zero(d"0.00") => Ok(coefficient = 0, scale = 1)
+    parts_neg_zero(d"-0.0") => Ok(coefficient = 0, scale = 1)
+    parts_hundreds(d"100.0") => Ok(coefficient = 1000, scale = 1)
+    parts_big(d"123456789.123456789") => Ok(coefficient = 123456789123456789, scale = 9)
 =
   match call dec__parts(value)
     on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)
@@ -950,12 +950,12 @@ fn std__dec__strip_from(remaining: int, current: int, exact: bool) -> Dec__Strip
   decreases remaining
   emits []
   tests
-    strip_done(remaining = 0, current = 27, exact = true) => Ok(stripped = 27, exact = true)
-    strip_done_neg(remaining = 0, current = -5, exact = true) => Ok(stripped = -5, exact = true)
-    strip_step(remaining = 1, current = 27, exact = true) => Ok(stripped = 2, exact = false)
-    strip_exact_kept(remaining = 1, current = 20, exact = true) => Ok(stripped = 2, exact = true)
-    strip_neg(remaining = 1, current = -27, exact = true) => Ok(stripped = -3, exact = false)
-    strip_already_inexact(remaining = 2, current = 27, exact = false) => Ok(stripped = 0, exact = false)
+    strip_done(0, 27, true) => Ok(stripped = 27, exact = true)
+    strip_done_neg(0, -5, true) => Ok(stripped = -5, exact = true)
+    strip_step(1, 27, true) => Ok(stripped = 2, exact = false)
+    strip_exact_kept(1, 20, true) => Ok(stripped = 2, exact = true)
+    strip_neg(1, -27, true) => Ok(stripped = -3, exact = false)
+    strip_already_inexact(2, 27, false) => Ok(stripped = 0, exact = false)
 =
   match remaining <= 0
     true => Ok(stripped = current, exact = exact)
@@ -968,14 +968,14 @@ fn std__dec__strip_from(remaining: int, current: int, exact: bool) -> Dec__Strip
 fn std__dec__truncate(value: dec) -> Dec__Value rev 1
   emits []
   tests
-    trunc_pos(value = d"2.7") => Ok(value = d"2.0")
-    trunc_neg(value = d"-2.7") => Ok(value = d"-2.0")
-    trunc_neg_frac(value = d"-0.5") => Ok(value = d"0.0")
-    trunc_exact(value = d"2.0") => Ok(value = d"2.0")
-    trunc_exact_neg(value = d"-2.0") => Ok(value = d"-2.0")
-    trunc_multi(value = d"123.456") => Ok(value = d"123.0")
-    trunc_multi_neg(value = d"-123.456") => Ok(value = d"-123.0")
-    trunc_zero(value = d"0.0") => Ok(value = d"0.0")
+    trunc_pos(d"2.7") => Ok(value = d"2.0")
+    trunc_neg(d"-2.7") => Ok(value = d"-2.0")
+    trunc_neg_frac(d"-0.5") => Ok(value = d"0.0")
+    trunc_exact(d"2.0") => Ok(value = d"2.0")
+    trunc_exact_neg(d"-2.0") => Ok(value = d"-2.0")
+    trunc_multi(d"123.456") => Ok(value = d"123.0")
+    trunc_multi_neg(d"-123.456") => Ok(value = d"-123.0")
+    trunc_zero(d"0.0") => Ok(value = d"0.0")
 =
   match call std__dec__parts(value)
     on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
@@ -991,13 +991,13 @@ fn std__dec__truncate(value: dec) -> Dec__Value rev 1
 fn std__dec__floor(value: dec) -> Dec__Value rev 1
   emits []
   tests
-    floor_pos(value = d"2.7") => Ok(value = d"2.0")
-    floor_neg(value = d"-2.7") => Ok(value = d"-3.0")
-    floor_neg_frac(value = d"-0.5") => Ok(value = d"-1.0")
-    floor_exact(value = d"2.0") => Ok(value = d"2.0")
-    floor_exact_neg(value = d"-2.0") => Ok(value = d"-2.0")
-    floor_multi(value = d"123.456") => Ok(value = d"123.0")
-    floor_zero(value = d"0.0") => Ok(value = d"0.0")
+    floor_pos(d"2.7") => Ok(value = d"2.0")
+    floor_neg(d"-2.7") => Ok(value = d"-3.0")
+    floor_neg_frac(d"-0.5") => Ok(value = d"-1.0")
+    floor_exact(d"2.0") => Ok(value = d"2.0")
+    floor_exact_neg(d"-2.0") => Ok(value = d"-2.0")
+    floor_multi(d"123.456") => Ok(value = d"123.0")
+    floor_zero(d"0.0") => Ok(value = d"0.0")
 =
   match call std__dec__parts(value)
     on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
@@ -1007,14 +1007,14 @@ fn std__dec__floor(value: dec) -> Dec__Value rev 1
 fn std__dec__ceil(value: dec) -> Dec__Value rev 1
   emits []
   tests
-    ceil_pos(value = d"2.7") => Ok(value = d"3.0")
-    ceil_neg(value = d"-2.7") => Ok(value = d"-2.0")
-    ceil_frac(value = d"0.5") => Ok(value = d"1.0")
-    ceil_neg_frac(value = d"-0.5") => Ok(value = d"0.0")
-    ceil_exact(value = d"2.0") => Ok(value = d"2.0")
-    ceil_exact_neg(value = d"-2.0") => Ok(value = d"-2.0")
-    ceil_multi(value = d"123.456") => Ok(value = d"124.0")
-    ceil_zero(value = d"0.0") => Ok(value = d"0.0")
+    ceil_pos(d"2.7") => Ok(value = d"3.0")
+    ceil_neg(d"-2.7") => Ok(value = d"-2.0")
+    ceil_frac(d"0.5") => Ok(value = d"1.0")
+    ceil_neg_frac(d"-0.5") => Ok(value = d"0.0")
+    ceil_exact(d"2.0") => Ok(value = d"2.0")
+    ceil_exact_neg(d"-2.0") => Ok(value = d"-2.0")
+    ceil_multi(d"123.456") => Ok(value = d"124.0")
+    ceil_zero(d"0.0") => Ok(value = d"0.0")
 =
   match call std__dec__parts(value)
     on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
@@ -1028,12 +1028,12 @@ fn std__dec__strip257_from(fuel: int, current: int, twos: int, fives: int) -> De
   decreases fuel
   emits []
   tests
-    factors_done(fuel = 5, current = 1, twos = 0, fives = 0) => Ok(rest = 1, twos = 0, fives = 0)
-    factors_fuel_out(fuel = 0, current = 6, twos = 0, fives = 0) => Ok(rest = 6, twos = 0, fives = 0)
-    factors_two(fuel = 4, current = 12, twos = 0, fives = 0) => Ok(rest = 3, twos = 2, fives = 0)
-    factors_five(fuel = 3, current = 25, twos = 0, fives = 0) => Ok(rest = 1, twos = 0, fives = 2)
-    factors_mixed(fuel = 6, current = 40, twos = 0, fives = 0) => Ok(rest = 1, twos = 3, fives = 1)
-    factors_odd(fuel = 4, current = 7, twos = 0, fives = 0) => Ok(rest = 7, twos = 0, fives = 0)
+    factors_done(5, 1, 0, 0) => Ok(rest = 1, twos = 0, fives = 0)
+    factors_fuel_out(0, 6, 0, 0) => Ok(rest = 6, twos = 0, fives = 0)
+    factors_two(4, 12, 0, 0) => Ok(rest = 3, twos = 2, fives = 0)
+    factors_five(3, 25, 0, 0) => Ok(rest = 1, twos = 0, fives = 2)
+    factors_mixed(6, 40, 0, 0) => Ok(rest = 1, twos = 3, fives = 1)
+    factors_odd(4, 7, 0, 0) => Ok(rest = 7, twos = 0, fives = 0)
 =
   match fuel <= 0
     true => Ok(rest = current, twos = twos, fives = fives)
@@ -1050,94 +1050,94 @@ fn std__dec__strip257_from(fuel: int, current: int, twos: int, fives: int) -> De
 fn std__dec__divide_exact(dividend: dec, divisor: dec) -> Dec__Value rev 1
   emits [math.dec_zero_divisor, math.nonterminating_decimal]
   tests
-    div_exact_basic(dividend = d"7.0", divisor = d"2.0") => Ok(value = d"3.5")
-    div_exact_eighth(dividend = d"1.0", divisor = d"8.0") => Ok(value = d"0.125")
-    div_exact_whole(dividend = d"6.0", divisor = d"3.0") => Ok(value = d"2.0")
-    div_exact_scaled(dividend = d"0.3", divisor = d"0.2") => Ok(value = d"1.5")
-    div_exact_neg_num(dividend = d"-7.0", divisor = d"2.0") => Ok(value = d"-3.5")
-    div_exact_neg_den(dividend = d"7.0", divisor = d"-2.0") => Ok(value = d"-3.5")
-    div_exact_neg_both(dividend = d"-7.0", divisor = d"-2.0") => Ok(value = d"3.5")
-    div_exact_zero_num(dividend = d"0.0", divisor = d"5.0") => Ok(value = d"0.0")
-    div_exact_zero_den(dividend = d"5.0", divisor = d"0.0") => math.dec_zero_divisor(divisor = d"0.0")
-    div_exact_third(dividend = d"1.0", divisor = d"3.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"3.0")
-    div_exact_sixth(dividend = d"1.0", divisor = d"6.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"6.0")
-    div_exact_seventh(dividend = d"1.0", divisor = d"7.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"7.0")
+    div_exact_basic(d"7.0", d"2.0") => Ok(value = d"3.5")
+    div_exact_eighth(d"1.0", d"8.0") => Ok(value = d"0.125")
+    div_exact_whole(d"6.0", d"3.0") => Ok(value = d"2.0")
+    div_exact_scaled(d"0.3", d"0.2") => Ok(value = d"1.5")
+    div_exact_neg_num(d"-7.0", d"2.0") => Ok(value = d"-3.5")
+    div_exact_neg_den(d"7.0", d"-2.0") => Ok(value = d"-3.5")
+    div_exact_neg_both(d"-7.0", d"-2.0") => Ok(value = d"3.5")
+    div_exact_zero_num(d"0.0", d"5.0") => Ok(value = d"0.0")
+    div_exact_zero_den(d"5.0", d"0.0") => math.dec_zero_divisor(divisor = d"0.0")
+    div_exact_third(d"1.0", d"3.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"3.0")
+    div_exact_sixth(d"1.0", d"6.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"6.0")
+    div_exact_seventh(d"1.0", d"7.0") => math.nonterminating_decimal(dividend = d"1.0", divisor = d"7.0")
 =
   match call std__dec__parts(divisor)
     on Ok d => match d.coefficient == 0
       true => math.dec_zero_divisor(divisor = divisor)
-      false => match call std__dec__parts(dividend)
-        on Ok n => match call std__int__pow_from(10, d.scale)
-          on Ok pds => match call std__int__pow_from(10, n.scale)
-            on Ok pns => match call std__int__abs(n.coefficient * pns.value)
-              on Ok an => match call std__int__abs(d.coefficient * pds.value)
-                on Ok ad => match call std__int__gcd(an.value, ad.value)
-                  on Ok g => match call std__dec__strip257_from(ad.value / g.value, ad.value / g.value, 0, 0)
-                    on Ok f => match f.rest == 1
-                      true => match call std__int__max(f.twos, f.fives)
-                        on Ok m => match call std__int__pow_from(10, m.value)
-                          on Ok p10 => match call std__convert__int_to_dec((an.value / g.value) * (p10.value / (ad.value / g.value)))
-                            on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -m.value)
-                              on Ok q => match (n.coefficient * pns.value) < 0, (d.coefficient * pds.value) < 0
-                                true, true => Ok(value = q.value)
-                                true, false => Ok(value = q.value * d"-1.0")
-                                false, true => Ok(value = q.value * d"-1.0")
-                                false, false => Ok(value = q.value)
-                      false => math.nonterminating_decimal(dividend = dividend, divisor = divisor)
+      false => match chain
+        call std__dec__parts(dividend) as n
+        call std__int__pow_from(10, d.scale) as pds
+        call std__int__pow_from(10, n.scale) as pns
+        call std__int__abs(n.coefficient * pns.value) as an
+        call std__int__abs(d.coefficient * pds.value) as ad
+        call std__int__gcd(an.value, ad.value) as g
+        call std__dec__strip257_from(ad.value / g.value, ad.value / g.value, 0, 0) as f when f.rest == 1
+        call std__int__max(f.twos, f.fives) as m
+        call std__int__pow_from(10, m.value) as p10
+        call std__convert__int_to_dec((an.value / g.value) * (p10.value / (ad.value / g.value))) as qi
+        call std__dec__scale_by_power_of_ten(qi.value, -m.value) as q
+        then match (n.coefficient * pns.value) < 0, (d.coefficient * pds.value) < 0
+          true, true => Ok(value = q.value)
+          true, false => Ok(value = q.value * d"-1.0")
+          false, true => Ok(value = q.value * d"-1.0")
+          false, false => Ok(value = q.value)
+        else math.nonterminating_decimal(dividend = dividend, divisor = divisor)
 
 fn std__dec__round_half_even(value: dec, scale: int) -> Dec__Rounded rev 1
   emits [math.negative_scale]
   tests
-    round_even_tie(value = d"2.5", scale = 0) => Ok(value = d"2.0", discarded = d"0.5")
-    round_odd_tie(value = d"3.5", scale = 0) => Ok(value = d"4.0", discarded = d"-0.5")
-    round_up(value = d"2.7", scale = 0) => Ok(value = d"3.0", discarded = d"-0.3")
-    round_down(value = d"2.3", scale = 0) => Ok(value = d"2.0", discarded = d"0.3")
-    round_neg_tie(value = d"-2.5", scale = 0) => Ok(value = d"-2.0", discarded = d"-0.5")
-    round_neg_tie_odd(value = d"-3.5", scale = 0) => Ok(value = d"-4.0", discarded = d"0.5")
-    round_neg_up(value = d"-2.7", scale = 0) => Ok(value = d"-3.0", discarded = d"0.3")
-    round_neg_down(value = d"-2.3", scale = 0) => Ok(value = d"-2.0", discarded = d"-0.3")
-    round_multi(value = d"12.345", scale = 1) => Ok(value = d"12.3", discarded = d"0.045")
-    round_wider_scale(value = d"2.7", scale = 2) => Ok(value = d"2.7", discarded = d"0.0")
-    round_zero(value = d"0.0", scale = 0) => Ok(value = d"0.0", discarded = d"0.0")
-    round_half_up(value = d"0.5", scale = 0) => Ok(value = d"0.0", discarded = d"0.5")
-    round_neg_scale(value = d"2.7", scale = -1) => math.negative_scale(scale = -1)
+    round_even_tie(d"2.5", 0) => Ok(value = d"2.0", discarded = d"0.5")
+    round_odd_tie(d"3.5", 0) => Ok(value = d"4.0", discarded = d"-0.5")
+    round_up(d"2.7", 0) => Ok(value = d"3.0", discarded = d"-0.3")
+    round_down(d"2.3", 0) => Ok(value = d"2.0", discarded = d"0.3")
+    round_neg_tie(d"-2.5", 0) => Ok(value = d"-2.0", discarded = d"-0.5")
+    round_neg_tie_odd(d"-3.5", 0) => Ok(value = d"-4.0", discarded = d"0.5")
+    round_neg_up(d"-2.7", 0) => Ok(value = d"-3.0", discarded = d"0.3")
+    round_neg_down(d"-2.3", 0) => Ok(value = d"-2.0", discarded = d"-0.3")
+    round_multi(d"12.345", 1) => Ok(value = d"12.3", discarded = d"0.045")
+    round_wider_scale(d"2.7", 2) => Ok(value = d"2.7", discarded = d"0.0")
+    round_zero(d"0.0", 0) => Ok(value = d"0.0", discarded = d"0.0")
+    round_half_up(d"0.5", 0) => Ok(value = d"0.0", discarded = d"0.5")
+    round_neg_scale(d"2.7", -1) => math.negative_scale(scale = -1)
 =
   match scale >= 0
-    true => match call std__dec__parts(value)
-      on Ok p => match p.scale <= scale
-        true => Ok(value = value, discarded = d"0.0")
-        false => match call std__int__pow_from(10, p.scale - scale)
-          on Ok pd => match call std__int__abs(p.coefficient)
-            on Ok a => match (a.value % pd.value) * 2 == pd.value, (a.value / pd.value) % 2 == 0, (a.value % pd.value) * 2 > pd.value
-              true, true, _ => match call std__convert__int_to_dec(a.value / pd.value)
-                on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
-                  on Ok q => match value < d"0.0"
-                    true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
-                    false => Ok(value = q.value, discarded = value - q.value)
-              true, false, _ => match call std__convert__int_to_dec(a.value / pd.value + 1)
-                on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
-                  on Ok q => match value < d"0.0"
-                    true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
-                    false => Ok(value = q.value, discarded = value - q.value)
-              false, _, true => match call std__convert__int_to_dec(a.value / pd.value + 1)
-                on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
-                  on Ok q => match value < d"0.0"
-                    true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
-                    false => Ok(value = q.value, discarded = value - q.value)
-              false, _, false => match call std__convert__int_to_dec(a.value / pd.value)
-                on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
-                  on Ok q => match value < d"0.0"
-                    true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
-                    false => Ok(value = q.value, discarded = value - q.value)
+    true => match chain
+      call std__dec__parts(value) as p when p.scale > scale
+      call std__int__pow_from(10, p.scale - scale) as pd
+      call std__int__abs(p.coefficient) as a
+      then match (a.value % pd.value) * 2 == pd.value, (a.value / pd.value) % 2 == 0, (a.value % pd.value) * 2 > pd.value
+        true, true, _ => match call std__convert__int_to_dec(a.value / pd.value)
+          on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+            on Ok q => match value < d"0.0"
+              true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+              false => Ok(value = q.value, discarded = value - q.value)
+        true, false, _ => match call std__convert__int_to_dec(a.value / pd.value + 1)
+          on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+            on Ok q => match value < d"0.0"
+              true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+              false => Ok(value = q.value, discarded = value - q.value)
+        false, _, true => match call std__convert__int_to_dec(a.value / pd.value + 1)
+          on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+            on Ok q => match value < d"0.0"
+              true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+              false => Ok(value = q.value, discarded = value - q.value)
+        false, _, false => match call std__convert__int_to_dec(a.value / pd.value)
+          on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+            on Ok q => match value < d"0.0"
+              true => Ok(value = q.value * d"-1.0", discarded = value - (q.value * d"-1.0"))
+              false => Ok(value = q.value, discarded = value - q.value)
+      else Ok(value = value, discarded = d"0.0")
     false => math.negative_scale(scale = scale)
 
 fn std__dec__divide_round_half_even_result(qm: int, scale: int, num: int, den: int, dividend: dec, divisor: dec) -> Dec__RoundedQuotient rev 1
   emits []
   tests
-    div_result_pos(qm = 35, scale = 1, num = 700, den = 200, dividend = d"7.0", divisor = d"2.0") => Ok(value = d"3.5", remainder = d"0.0")
-    div_result_neg_num(qm = 35, scale = 1, num = -700, den = 200, dividend = d"-7.0", divisor = d"2.0") => Ok(value = d"-3.5", remainder = d"0.0")
-    div_result_neg_den(qm = 35, scale = 1, num = 700, den = -200, dividend = d"7.0", divisor = d"-2.0") => Ok(value = d"-3.5", remainder = d"0.0")
-    div_result_neg_both(qm = 35, scale = 1, num = -700, den = -200, dividend = d"-7.0", divisor = d"-2.0") => Ok(value = d"3.5", remainder = d"0.0")
+    div_result_pos(35, 1, 700, 200, d"7.0", d"2.0") => Ok(value = d"3.5", remainder = d"0.0")
+    div_result_neg_num(35, 1, -700, 200, d"-7.0", d"2.0") => Ok(value = d"-3.5", remainder = d"0.0")
+    div_result_neg_den(35, 1, 700, -200, d"7.0", d"-2.0") => Ok(value = d"-3.5", remainder = d"0.0")
+    div_result_neg_both(35, 1, -700, -200, d"-7.0", d"-2.0") => Ok(value = d"3.5", remainder = d"0.0")
 =
   match call std__convert__int_to_dec(qm)
     on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -scale)
@@ -1150,19 +1150,19 @@ fn std__dec__divide_round_half_even_result(qm: int, scale: int, num: int, den: i
 fn std__dec__divide_round_half_even(dividend: dec, divisor: dec, scale: int) -> Dec__RoundedQuotient rev 1
   emits [math.dec_zero_divisor, math.negative_scale]
   tests
-    div_round_basic(dividend = d"7.0", divisor = d"2.0", scale = 1) => Ok(value = d"3.5", remainder = d"0.0")
-    div_round_third(dividend = d"1.0", divisor = d"3.0", scale = 2) => Ok(value = d"0.33", remainder = d"0.01")
-    div_round_tie_even(dividend = d"2.5", divisor = d"1.0", scale = 0) => Ok(value = d"2.0", remainder = d"0.5")
-    div_round_tie_odd(dividend = d"3.5", divisor = d"1.0", scale = 0) => Ok(value = d"4.0", remainder = d"-0.5")
-    div_round_up(dividend = d"2.7", divisor = d"1.0", scale = 0) => Ok(value = d"3.0", remainder = d"-0.3")
-    div_round_down(dividend = d"2.3", divisor = d"1.0", scale = 0) => Ok(value = d"2.0", remainder = d"0.3")
-    div_round_neg_num(dividend = d"-7.0", divisor = d"2.0", scale = 1) => Ok(value = d"-3.5", remainder = d"0.0")
-    div_round_neg_den(dividend = d"7.0", divisor = d"-2.0", scale = 1) => Ok(value = d"-3.5", remainder = d"0.0")
-    div_round_neg_both(dividend = d"-7.0", divisor = d"-2.0", scale = 1) => Ok(value = d"3.5", remainder = d"0.0")
-    div_round_zero_num(dividend = d"0.0", divisor = d"5.0", scale = 1) => Ok(value = d"0.0", remainder = d"0.0")
-    div_round_zero_den(dividend = d"5.0", divisor = d"0.0", scale = 1) => math.dec_zero_divisor(divisor = d"0.0")
-    div_round_neg_scale(dividend = d"1.0", divisor = d"2.0", scale = -1) => math.negative_scale(scale = -1)
-    div_round_zero_neg_scale(dividend = d"5.0", divisor = d"0.0", scale = -1) => math.dec_zero_divisor(divisor = d"0.0")
+    div_round_basic(d"7.0", d"2.0", 1) => Ok(value = d"3.5", remainder = d"0.0")
+    div_round_third(d"1.0", d"3.0", 2) => Ok(value = d"0.33", remainder = d"0.01")
+    div_round_tie_even(d"2.5", d"1.0", 0) => Ok(value = d"2.0", remainder = d"0.5")
+    div_round_tie_odd(d"3.5", d"1.0", 0) => Ok(value = d"4.0", remainder = d"-0.5")
+    div_round_up(d"2.7", d"1.0", 0) => Ok(value = d"3.0", remainder = d"-0.3")
+    div_round_down(d"2.3", d"1.0", 0) => Ok(value = d"2.0", remainder = d"0.3")
+    div_round_neg_num(d"-7.0", d"2.0", 1) => Ok(value = d"-3.5", remainder = d"0.0")
+    div_round_neg_den(d"7.0", d"-2.0", 1) => Ok(value = d"-3.5", remainder = d"0.0")
+    div_round_neg_both(d"-7.0", d"-2.0", 1) => Ok(value = d"3.5", remainder = d"0.0")
+    div_round_zero_num(d"0.0", d"5.0", 1) => Ok(value = d"0.0", remainder = d"0.0")
+    div_round_zero_den(d"5.0", d"0.0", 1) => math.dec_zero_divisor(divisor = d"0.0")
+    div_round_neg_scale(d"1.0", d"2.0", -1) => math.negative_scale(scale = -1)
+    div_round_zero_neg_scale(d"5.0", d"0.0", -1) => math.dec_zero_divisor(divisor = d"0.0")
 =
   match call std__dec__parts(divisor)
     on Ok d => match d.coefficient == 0
@@ -1188,14 +1188,14 @@ fn std__dec__divide_round_half_even(dividend: dec, divisor: dec, scale: int) -> 
 fn std__convert__dec_to_str(value: dec) -> Str__Value rev 1
   emits []
   tests
-    s2s_simple(value = d"12.34") => Ok(value = "12.34")
-    s2s_cents(value = d"0.25") => Ok(value = "0.25")
-    s2s_neg(value = d"-0.5") => Ok(value = "-0.5")
-    s2s_units(value = d"7.0") => Ok(value = "7.0")
-    s2s_zero(value = d"0.0") => Ok(value = "0.0")
-    s2s_hundreds(value = d"100.0") => Ok(value = "100.0")
-    s2s_pad(value = d"0.05") => Ok(value = "0.05")
-    s2s_large(value = d"999.99") => Ok(value = "999.99")
+    s2s_simple(d"12.34") => Ok(value = "12.34")
+    s2s_cents(d"0.25") => Ok(value = "0.25")
+    s2s_neg(d"-0.5") => Ok(value = "-0.5")
+    s2s_units(d"7.0") => Ok(value = "7.0")
+    s2s_zero(d"0.0") => Ok(value = "0.0")
+    s2s_hundreds(d"100.0") => Ok(value = "100.0")
+    s2s_pad(d"0.05") => Ok(value = "0.05")
+    s2s_large(d"999.99") => Ok(value = "999.99")
 =
   match call std__dec__parts(value)
     on Ok p => match call std__int__abs(p.coefficient)
@@ -1209,13 +1209,13 @@ fn std__convert__dec_to_str(value: dec) -> Str__Value rev 1
 fn std__convert__dec_to_int_exact(value: dec) -> Int__Value rev 1
   emits [convert.fractional_value]
   tests
-    s2i_whole(value = d"7.0") => Ok(value = 7)
-    s2i_neg_whole(value = d"-7.0") => Ok(value = -7)
-    s2i_zero(value = d"0.0") => Ok(value = 0)
-    s2i_hundreds(value = d"100.0") => Ok(value = 100)
-    s2i_frac(value = d"2.5") => convert.fractional_value(value = d"2.5")
-    s2i_neg_frac(value = d"-2.5") => convert.fractional_value(value = d"-2.5")
-    s2i_cents(value = d"0.25") => convert.fractional_value(value = d"0.25")
+    s2i_whole(d"7.0") => Ok(value = 7)
+    s2i_neg_whole(d"-7.0") => Ok(value = -7)
+    s2i_zero(d"0.0") => Ok(value = 0)
+    s2i_hundreds(d"100.0") => Ok(value = 100)
+    s2i_frac(d"2.5") => convert.fractional_value(value = d"2.5")
+    s2i_neg_frac(d"-2.5") => convert.fractional_value(value = d"-2.5")
+    s2i_cents(d"0.25") => convert.fractional_value(value = d"0.25")
 =
   match call std__dec__parts(value)
     on Ok p => match call std__dec__strip_from(p.scale, p.coefficient, true)
@@ -1226,36 +1226,36 @@ fn std__convert__dec_to_int_exact(value: dec) -> Int__Value rev 1
 fn std__dec__sqrt_exact(value: dec) -> Dec__Value rev 1
   emits [math.dec_negative_input, math.nonrepresentable_result]
   tests
-    sqrt_exact_whole(value = d"4.0") => Ok(value = d"2.0")
-    sqrt_exact_frac(value = d"2.25") => Ok(value = d"1.5")
-    sqrt_exact_small(value = d"0.25") => Ok(value = d"0.5")
-    sqrt_exact_zero(value = d"0.0") => Ok(value = d"0.0")
-    sqrt_exact_even_refuse(value = d"2.26") => math.nonrepresentable_result(value = d"2.26")
-    sqrt_exact_odd_refuse(value = d"2.0") => math.nonrepresentable_result(value = d"2.0")
-    sqrt_exact_neg(value = d"-4.0") => math.dec_negative_input(value = d"-4.0")
+    sqrt_exact_whole(d"4.0") => Ok(value = d"2.0")
+    sqrt_exact_frac(d"2.25") => Ok(value = d"1.5")
+    sqrt_exact_small(d"0.25") => Ok(value = d"0.5")
+    sqrt_exact_zero(d"0.0") => Ok(value = d"0.0")
+    sqrt_exact_even_refuse(d"2.26") => math.nonrepresentable_result(value = d"2.26")
+    sqrt_exact_odd_refuse(d"2.0") => math.nonrepresentable_result(value = d"2.0")
+    sqrt_exact_neg(d"-4.0") => math.dec_negative_input(value = d"-4.0")
 =
   match call std__dec__parts(value)
     on Ok p => match p.coefficient < 0
       true => math.dec_negative_input(value = value)
       false => match p.scale % 2 == 0
-        true => match call std__int__sqrt_floor_search(p.coefficient, 0, p.coefficient + 1)
-          on Ok r => match p.coefficient - r.value * r.value == 0
-            true => match call std__convert__int_to_dec(r.value)
-              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -(p.scale / 2))
-                on Ok q => Ok(value = q.value)
-            false => math.nonrepresentable_result(value = value)
-        false => match call std__int__sqrt_floor_search(p.coefficient * 10, 0, p.coefficient * 10 + 1)
-          on Ok r => match p.coefficient * 10 - r.value * r.value == 0
-            true => match call std__convert__int_to_dec(r.value)
-              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -((p.scale + 1) / 2))
-                on Ok q => Ok(value = q.value)
-            false => math.nonrepresentable_result(value = value)
+        true => match chain
+          call std__int__sqrt_floor_search(p.coefficient, 0, p.coefficient + 1) as r when p.coefficient - r.value * r.value == 0
+          call std__convert__int_to_dec(r.value) as qi
+          call std__dec__scale_by_power_of_ten(qi.value, -(p.scale / 2)) as q
+          then Ok(value = q.value)
+          else math.nonrepresentable_result(value = value)
+        false => match chain
+          call std__int__sqrt_floor_search(p.coefficient * 10, 0, p.coefficient * 10 + 1) as r when p.coefficient * 10 - r.value * r.value == 0
+          call std__convert__int_to_dec(r.value) as qi
+          call std__dec__scale_by_power_of_ten(qi.value, -((p.scale + 1) / 2)) as q
+          then Ok(value = q.value)
+          else math.nonrepresentable_result(value = value)
 
 fn std__convert__bool_to_str(value: bool) -> Str__Value rev 1
   emits []
   tests
-    b2s_t(value = true) => Ok(value = "true")
-    b2s_f(value = false) => Ok(value = "false")
+    b2s_t(true) => Ok(value = "true")
+    b2s_f(false) => Ok(value = "false")
 =
   match value
     true => Ok(value = "true")
@@ -1264,9 +1264,9 @@ fn std__convert__bool_to_str(value: bool) -> Str__Value rev 1
 fn std__convert__str_to_bool(value: str) -> Bool__Value rev 1
   emits [convert.invalid_boolean]
   tests
-    s2b_t(value = "true") => Ok(value = true)
-    s2b_f(value = "false") => Ok(value = false)
-    s2b_bogus(value = "yes") => convert.invalid_boolean(value = "yes")
+    s2b_t("true") => Ok(value = true)
+    s2b_f("false") => Ok(value = false)
+    s2b_bogus("yes") => convert.invalid_boolean(value = "yes")
 =
   match value
     "true" => Ok(value = true)
@@ -1276,8 +1276,8 @@ fn std__convert__str_to_bool(value: str) -> Bool__Value rev 1
 fn std__convert__bool_to_int(value: bool) -> Int__Value rev 1
   emits []
   tests
-    b2i_t(value = true) => Ok(value = 1)
-    b2i_f(value = false) => Ok(value = 0)
+    b2i_t(true) => Ok(value = 1)
+    b2i_f(false) => Ok(value = 0)
 =
   match value
     true => Ok(value = 1)
@@ -1286,9 +1286,9 @@ fn std__convert__bool_to_int(value: bool) -> Int__Value rev 1
 fn std__convert__int_to_bool(value: int) -> Bool__Value rev 1
   emits [convert.invalid_boolean_encoding]
   tests
-    i2b_zero(value = 0) => Ok(value = false)
-    i2b_one(value = 1) => Ok(value = true)
-    i2b_two(value = 2) => convert.invalid_boolean_encoding(value = 2)
+    i2b_zero(0) => Ok(value = false)
+    i2b_one(1) => Ok(value = true)
+    i2b_two(2) => convert.invalid_boolean_encoding(value = 2)
 =
   match value == 0, value == 1
     true, _ => Ok(value = false)
@@ -1298,8 +1298,8 @@ fn std__convert__int_to_bool(value: int) -> Bool__Value rev 1
 fn std__convert__bool_to_dec(value: bool) -> Dec__Value rev 1
   emits []
   tests
-    b2d_t(value = true) => Ok(value = d"1.0")
-    b2d_f(value = false) => Ok(value = d"0.0")
+    b2d_t(true) => Ok(value = d"1.0")
+    b2d_f(false) => Ok(value = d"0.0")
 =
   match value
     true => Ok(value = d"1.0")
@@ -1308,9 +1308,9 @@ fn std__convert__bool_to_dec(value: bool) -> Dec__Value rev 1
 fn std__convert__dec_to_bool(value: dec) -> Bool__Value rev 1
   emits [convert.invalid_dec_encoding]
   tests
-    d2b_zero(value = d"0.0") => Ok(value = false)
-    d2b_one(value = d"1.0") => Ok(value = true)
-    d2b_two(value = d"2.0") => convert.invalid_dec_encoding(value = d"2.0")
+    d2b_zero(d"0.0") => Ok(value = false)
+    d2b_one(d"1.0") => Ok(value = true)
+    d2b_two(d"2.0") => convert.invalid_dec_encoding(value = d"2.0")
 =
   match value == d"0.0"
     true => Ok(value = false)
@@ -1322,9 +1322,9 @@ fn std__convert__int_to_dec_from(m: int, acc: dec, step: dec) -> Dec__Value rev 
   decreases m
   emits []
   tests
-    from_zero(m = 0, acc = d"0.0", step = d"1.0") => Ok(value = d"0.0")
-    from_two(m = 2, acc = d"0.0", step = d"1.0") => Ok(value = d"2.0")
-    from_neg_step(m = 2, acc = d"0.0", step = d"-1.0") => Ok(value = d"-2.0")
+    from_zero(0, d"0.0", d"1.0") => Ok(value = d"0.0")
+    from_two(2, d"0.0", d"1.0") => Ok(value = d"2.0")
+    from_neg_step(2, d"0.0", d"-1.0") => Ok(value = d"-2.0")
 =
   match m <= 0
     true => Ok(value = acc)
@@ -1335,9 +1335,9 @@ fn std__convert__int_to_str_from(n: int, acc: str, m: int) -> Str__Value rev 1
   decreases m
   emits []
   tests
-    str_from_fuel_out(n = 5, acc = "x", m = 0) => Ok(value = "x")
-    str_from_digit(n = 5, acc = "", m = 6) => Ok(value = "5")
-    str_from_multi(n = 42, acc = "", m = 3) => Ok(value = "42")
+    str_from_fuel_out(5, "x", 0) => Ok(value = "x")
+    str_from_digit(5, "", 6) => Ok(value = "5")
+    str_from_multi(42, "", 3) => Ok(value = "42")
 =
   match m <= 0
     true => Ok(value = acc)
@@ -1349,10 +1349,10 @@ fn std__convert__int_to_str_from(n: int, acc: str, m: int) -> Str__Value rev 1
 fn std__convert__int_to_str(value: int) -> Str__Value rev 1
   emits []
   tests
-    i2s_zero(value = 0) => Ok(value = "0")
-    i2s_pos(value = 42) => Ok(value = "42")
-    i2s_thousand(value = 1000) => Ok(value = "1000")
-    i2s_neg(value = -7) => Ok(value = "-7")
+    i2s_zero(0) => Ok(value = "0")
+    i2s_pos(42) => Ok(value = "42")
+    i2s_thousand(1000) => Ok(value = "1000")
+    i2s_neg(-7) => Ok(value = "-7")
 =
   match value < 0
     true => match call std__convert__int_to_str_from(-value, "", -value + 1)
@@ -1364,17 +1364,17 @@ fn std__convert__str_to_int_from(orig: str, value: str, pos: int, acc: int, n: i
   decreases n
   emits [convert.invalid_integer]
   tests
-    sti_done(orig = "42", value = "42", pos = 2, acc = 42, n = 0) => Ok(value = 42)
-    sti_step(orig = "42", value = "42", pos = 0, acc = 0, n = 2) => Ok(value = 42)
-    sti_bad_high(orig = "1a", value = "1a", pos = 1, acc = 1, n = 1) => convert.invalid_integer(value = "1a")
-    sti_bad_low(orig = "1-2", value = "1-2", pos = 1, acc = 1, n = 2) => convert.invalid_integer(value = "1-2")
+    sti_done("42", "42", 2, 42, 0) => Ok(value = 42)
+    sti_step("42", "42", 0, 0, 2) => Ok(value = 42)
+    sti_bad_high("1a", "1a", 1, 1, 1) => convert.invalid_integer(value = "1a")
+    sti_bad_low("1-2", "1-2", 1, 1, 2) => convert.invalid_integer(value = "1-2")
 =
   match n <= 0
     true => Ok(value = acc)
     false => match value[pos] >= 48
       true => match value[pos] <= 57
         true => match call std__convert__str_to_int_from(orig, value, pos + 1, acc * 10 + (value[pos] - 48), n - 1)
-          on convert.invalid_integer e => convert.invalid_integer(value = e.value)
+          on convert.invalid_integer e => forward e
           on Ok r => Ok(value = r.value)
         false => convert.invalid_integer(value = orig)
       false => convert.invalid_integer(value = orig)
@@ -1382,39 +1382,39 @@ fn std__convert__str_to_int_from(orig: str, value: str, pos: int, acc: int, n: i
 fn std__convert__str_to_int(value: str) -> Int__Value rev 1
   emits [convert.invalid_integer]
   tests
-    s2i_zero(value = "0") => Ok(value = 0)
-    s2i_pos(value = "42") => Ok(value = 42)
-    s2i_neg(value = "-7") => Ok(value = -7)
-    s2i_empty(value = "") => convert.invalid_integer(value = "")
-    s2i_bare_minus(value = "-") => convert.invalid_integer(value = "-")
-    s2i_bad(value = "12a") => convert.invalid_integer(value = "12a")
-    s2i_neg_bad(value = "-1a") => convert.invalid_integer(value = "-1a")
+    s2i_zero("0") => Ok(value = 0)
+    s2i_pos("42") => Ok(value = 42)
+    s2i_neg("-7") => Ok(value = -7)
+    s2i_empty("") => convert.invalid_integer(value = "")
+    s2i_bare_minus("-") => convert.invalid_integer(value = "-")
+    s2i_bad("12a") => convert.invalid_integer(value = "12a")
+    s2i_neg_bad("-1a") => convert.invalid_integer(value = "-1a")
 =
   match #value == 0
     true => convert.invalid_integer(value = value)
     false => match value[0:1] == "-"
       true => match #value >= 2
         true => match call std__convert__str_to_int_from(value, value, 1, 0, #value - 1)
-          on convert.invalid_integer e => convert.invalid_integer(value = e.value)
+          on convert.invalid_integer e => forward e
           on Ok r => Ok(value = -r.value)
         false => convert.invalid_integer(value = value)
       false => match call std__convert__str_to_int_from(value, value, 0, 0, #value)
-        on convert.invalid_integer e => convert.invalid_integer(value = e.value)
+        on convert.invalid_integer e => forward e
         on Ok r => Ok(value = r.value)
 
 fn std__convert__str_to_dec_from(orig: str, value: str, pos: int, coeff: int, scale: int, dot: int, n: int) -> Dec__Value rev 1
   decreases n
   emits [convert.invalid_decimal]
   tests
-    std_done_int(orig = "42", value = "42", pos = 2, coeff = 42, scale = 0, dot = 0, n = 0) => Ok(value = d"42.0")
-    std_done_frac(orig = "1.5", value = "1.5", pos = 3, coeff = 15, scale = 1, dot = 1, n = 0) => Ok(value = d"1.5")
-    std_trailing_dot(orig = "1.", value = "1.", pos = 2, coeff = 1, scale = 0, dot = 1, n = 0) => convert.invalid_decimal(value = "1.")
-    std_step_int(orig = "42", value = "42", pos = 0, coeff = 0, scale = 0, dot = 0, n = 2) => Ok(value = d"42.0")
-    std_step_frac(orig = "1.5", value = "1.5", pos = 2, coeff = 1, scale = 0, dot = 1, n = 1) => Ok(value = d"1.5")
-    std_step_dot(orig = "1.5", value = "1.5", pos = 1, coeff = 1, scale = 0, dot = 0, n = 2) => Ok(value = d"1.5")
-    std_double_dot(orig = "1.2.3", value = "1.2.3", pos = 3, coeff = 12, scale = 1, dot = 1, n = 2) => convert.invalid_decimal(value = "1.2.3")
-    std_bad_high(orig = "12a", value = "12a", pos = 2, coeff = 12, scale = 0, dot = 0, n = 1) => convert.invalid_decimal(value = "12a")
-    std_bad_low(orig = "1-2", value = "1-2", pos = 1, coeff = 1, scale = 0, dot = 0, n = 2) => convert.invalid_decimal(value = "1-2")
+    std_done_int("42", "42", 2, 42, 0, 0, 0) => Ok(value = d"42.0")
+    std_done_frac("1.5", "1.5", 3, 15, 1, 1, 0) => Ok(value = d"1.5")
+    std_trailing_dot("1.", "1.", 2, 1, 0, 1, 0) => convert.invalid_decimal(value = "1.")
+    std_step_int("42", "42", 0, 0, 0, 0, 2) => Ok(value = d"42.0")
+    std_step_frac("1.5", "1.5", 2, 1, 0, 1, 1) => Ok(value = d"1.5")
+    std_step_dot("1.5", "1.5", 1, 1, 0, 0, 2) => Ok(value = d"1.5")
+    std_double_dot("1.2.3", "1.2.3", 3, 12, 1, 1, 2) => convert.invalid_decimal(value = "1.2.3")
+    std_bad_high("12a", "12a", 2, 12, 0, 0, 1) => convert.invalid_decimal(value = "12a")
+    std_bad_low("1-2", "1-2", 1, 1, 0, 0, 2) => convert.invalid_decimal(value = "1-2")
 =
   match n <= 0
     true => match dot == 0
@@ -1428,17 +1428,17 @@ fn std__convert__str_to_dec_from(orig: str, value: str, pos: int, coeff: int, sc
     false => match value[pos:pos + 1] == "."
       true => match dot == 0
         true => match call std__convert__str_to_dec_from(orig, value, pos + 1, coeff, scale, 1, n - 1)
-          on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+          on convert.invalid_decimal e => forward e
           on Ok r => Ok(value = r.value)
         false => convert.invalid_decimal(value = orig)
       false => match value[pos] >= 48
         true => match value[pos] <= 57
           true => match dot == 0
             true => match call std__convert__str_to_dec_from(orig, value, pos + 1, coeff * 10 + (value[pos] - 48), scale, dot, n - 1)
-              on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+              on convert.invalid_decimal e => forward e
               on Ok r => Ok(value = r.value)
             false => match call std__convert__str_to_dec_from(orig, value, pos + 1, coeff * 10 + (value[pos] - 48), scale + 1, dot, n - 1)
-              on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+              on convert.invalid_decimal e => forward e
               on Ok r => Ok(value = r.value)
           false => convert.invalid_decimal(value = orig)
         false => convert.invalid_decimal(value = orig)
@@ -1446,38 +1446,38 @@ fn std__convert__str_to_dec_from(orig: str, value: str, pos: int, coeff: int, sc
 fn std__convert__str_to_dec(value: str) -> Dec__Value rev 1
   emits [convert.invalid_decimal]
   tests
-    s2d_zero(value = "0") => Ok(value = d"0.0")
-    s2d_int(value = "42") => Ok(value = d"42.0")
-    s2d_neg(value = "-7") => Ok(value = d"-7.0")
-    s2d_frac(value = "1.5") => Ok(value = d"1.5")
-    s2d_neg_frac(value = "-0.5") => Ok(value = d"-0.5")
-    s2d_lead_dot(value = ".5") => Ok(value = d"0.5")
-    s2d_lead_dot_neg(value = "-.5") => Ok(value = d"-0.5")
-    s2d_empty(value = "") => convert.invalid_decimal(value = "")
-    s2d_bare_minus(value = "-") => convert.invalid_decimal(value = "-")
-    s2d_double_dot(value = "1.2.3") => convert.invalid_decimal(value = "1.2.3")
-    s2d_bad(value = "12a") => convert.invalid_decimal(value = "12a")
-    s2d_neg_bad(value = "-12a") => convert.invalid_decimal(value = "-12a")
-    s2d_trailing_dot(value = "1.") => convert.invalid_decimal(value = "1.")
+    s2d_zero("0") => Ok(value = d"0.0")
+    s2d_int("42") => Ok(value = d"42.0")
+    s2d_neg("-7") => Ok(value = d"-7.0")
+    s2d_frac("1.5") => Ok(value = d"1.5")
+    s2d_neg_frac("-0.5") => Ok(value = d"-0.5")
+    s2d_lead_dot(".5") => Ok(value = d"0.5")
+    s2d_lead_dot_neg("-.5") => Ok(value = d"-0.5")
+    s2d_empty("") => convert.invalid_decimal(value = "")
+    s2d_bare_minus("-") => convert.invalid_decimal(value = "-")
+    s2d_double_dot("1.2.3") => convert.invalid_decimal(value = "1.2.3")
+    s2d_bad("12a") => convert.invalid_decimal(value = "12a")
+    s2d_neg_bad("-12a") => convert.invalid_decimal(value = "-12a")
+    s2d_trailing_dot("1.") => convert.invalid_decimal(value = "1.")
 =
   match #value == 0
     true => convert.invalid_decimal(value = value)
     false => match value[0:1] == "-"
       true => match #value >= 2
         true => match call std__convert__str_to_dec_from(value, value, 1, 0, 0, 0, #value - 1)
-          on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+          on convert.invalid_decimal e => forward e
           on Ok r => Ok(value = d"0.0" - r.value)
         false => convert.invalid_decimal(value = value)
       false => match call std__convert__str_to_dec_from(value, value, 0, 0, 0, 0, #value)
-        on convert.invalid_decimal e => convert.invalid_decimal(value = e.value)
+        on convert.invalid_decimal e => forward e
         on Ok r => Ok(value = r.value)
 
 fn std__convert__int_to_dec(value: int) -> Dec__Value rev 1
   emits []
   tests
-    i2d_zero(value = 0) => Ok(value = d"0.0")
-    i2d_pos(value = 3) => Ok(value = d"3.0")
-    i2d_neg(value = -2) => Ok(value = d"-2.0")
+    i2d_zero(0) => Ok(value = d"0.0")
+    i2d_pos(3) => Ok(value = d"3.0")
+    i2d_neg(-2) => Ok(value = d"-2.0")
 =
   match value >= 0
     true => match call std__convert__int_to_dec_from(value, d"0.0", d"1.0")
@@ -1488,13 +1488,13 @@ fn std__convert__int_to_dec(value: int) -> Dec__Value rev 1
 fn std__backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value rev 1
   emits [math.negative_input]
   tests
-    backoff_zero(attempt = 0, base_ms = 100, cap_ms = 1000) => Ok(value = 100)
-    backoff_grows(attempt = 2, base_ms = 100, cap_ms = 1000) => Ok(value = 400)
-    backoff_capped_product(attempt = 4, base_ms = 100, cap_ms = 1000) => Ok(value = 1000)
-    backoff_capped_attempt(attempt = 31, base_ms = 100, cap_ms = 1000) => Ok(value = 1000)
-    backoff_negative_attempt(attempt = -1, base_ms = 100, cap_ms = 1000) => math.negative_input(value = -1)
-    backoff_negative_base(attempt = 1, base_ms = -5, cap_ms = 1000) => math.negative_input(value = -5)
-    backoff_negative_cap(attempt = 1, base_ms = 100, cap_ms = -7) => math.negative_input(value = -7)
+    backoff_zero(0, 100, 1000) => Ok(value = 100)
+    backoff_grows(2, 100, 1000) => Ok(value = 400)
+    backoff_capped_product(4, 100, 1000) => Ok(value = 1000)
+    backoff_capped_attempt(31, 100, 1000) => Ok(value = 1000)
+    backoff_negative_attempt(-1, 100, 1000) => math.negative_input(value = -1)
+    backoff_negative_base(1, -5, 1000) => math.negative_input(value = -5)
+    backoff_negative_cap(1, 100, -7) => math.negative_input(value = -7)
 =
   match base_ms >= 0, cap_ms >= 0, attempt >= 0, attempt <= 30
     true, true, true, true => match call std__int__pow_from(2, attempt)

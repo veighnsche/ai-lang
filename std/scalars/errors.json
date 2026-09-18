@@ -65,11 +65,11 @@
     "handled_by": [
       {
         "fn": "scalars.std__convert__str_to_dec",
-        "arm": "on convert.invalid_decimal e =\u003e convert.invalid_decimal(value = e.value)"
+        "arm": "on convert.invalid_decimal e =\u003e forward e"
       },
       {
         "fn": "scalars.std__convert__str_to_dec_from",
-        "arm": "on convert.invalid_decimal e =\u003e convert.invalid_decimal(value = e.value)"
+        "arm": "on convert.invalid_decimal e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -97,11 +97,11 @@
     "handled_by": [
       {
         "fn": "scalars.std__convert__str_to_int",
-        "arm": "on convert.invalid_integer e =\u003e convert.invalid_integer(value = e.value)"
+        "arm": "on convert.invalid_integer e =\u003e forward e"
       },
       {
         "fn": "scalars.std__convert__str_to_int_from",
-        "arm": "on convert.invalid_integer e =\u003e convert.invalid_integer(value = e.value)"
+        "arm": "on convert.invalid_integer e =\u003e forward e"
       }
     ],
     "hit_by_tests": [

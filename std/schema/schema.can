@@ -146,13 +146,13 @@ const schema__POLICY_PROD: Schema__AssetPolicy rev 1 = seal Schema__AssetPolicy(
 fn schema__role__check(role: str) -> Schema__BoolResult rev 1
   emits []
   tests
-    role_stylesheet(role = "stylesheet") => Ok(value = true)
-    role_script(role = "script") => Ok(value = true)
-    role_module(role = "module") => Ok(value = false)
-    role_worker(role = "worker") => Ok(value = false)
-    role_preload(role = "preload") => Ok(value = false)
-    role_empty(role = "") => Ok(value = false)
-    role_upper(role = "Stylesheet") => Ok(value = false)
+    role_stylesheet("stylesheet") => Ok(value = true)
+    role_script("script") => Ok(value = true)
+    role_module("module") => Ok(value = false)
+    role_worker("worker") => Ok(value = false)
+    role_preload("preload") => Ok(value = false)
+    role_empty("") => Ok(value = false)
+    role_upper("Stylesheet") => Ok(value = false)
 =
   match role
     "stylesheet" | "script" => Ok(value = true)
@@ -164,15 +164,15 @@ fn schema__role__check(role: str) -> Schema__BoolResult rev 1
 fn schema__url__prefix(url: str) -> Schema__BoolResult rev 1
   emits []
   tests
-    prefix_ok(url = "https://cdn.example/app.css") => Ok(value = true)
-    prefix_bare(url = "https://") => Ok(value = true)
-    prefix_http(url = "http://cdn.example/app.css") => Ok(value = false)
-    prefix_upper(url = "HTTPS://cdn.example/app.css") => Ok(value = false)
-    prefix_short(url = "https:/") => Ok(value = false)
-    prefix_empty(url = "") => Ok(value = false)
-    prefix_relative(url = "/app.css") => Ok(value = false)
-    prefix_protocol_relative(url = "//cdn.example/app.css") => Ok(value = false)
-    prefix_data(url = "data:text/css,hi") => Ok(value = false)
+    prefix_ok("https://cdn.example/app.css") => Ok(value = true)
+    prefix_bare("https://") => Ok(value = true)
+    prefix_http("http://cdn.example/app.css") => Ok(value = false)
+    prefix_upper("HTTPS://cdn.example/app.css") => Ok(value = false)
+    prefix_short("https:/") => Ok(value = false)
+    prefix_empty("") => Ok(value = false)
+    prefix_relative("/app.css") => Ok(value = false)
+    prefix_protocol_relative("//cdn.example/app.css") => Ok(value = false)
+    prefix_data("data:text/css,hi") => Ok(value = false)
 =
   match #url < 8
     true => Ok(value = false)
@@ -188,14 +188,14 @@ fn schema__url__prefix(url: str) -> Schema__BoolResult rev 1
 fn schema__url__ws(code: int) -> Schema__BoolResult rev 1
   emits []
   tests
-    ws_tab(code = 9) => Ok(value = true)
-    ws_lf(code = 10) => Ok(value = true)
-    ws_ff(code = 12) => Ok(value = true)
-    ws_cr(code = 13) => Ok(value = true)
-    ws_space(code = 32) => Ok(value = true)
-    ws_nul(code = 0) => Ok(value = false)
-    ws_slash(code = 47) => Ok(value = false)
-    ws_letter(code = 97) => Ok(value = false)
+    ws_tab(9) => Ok(value = true)
+    ws_lf(10) => Ok(value = true)
+    ws_ff(12) => Ok(value = true)
+    ws_cr(13) => Ok(value = true)
+    ws_space(32) => Ok(value = true)
+    ws_nul(0) => Ok(value = false)
+    ws_slash(47) => Ok(value = false)
+    ws_letter(97) => Ok(value = false)
 =
   match code
     9 | 10 | 12 | 13 | 32 => Ok(value = true)
@@ -221,24 +221,24 @@ fn schema__url__tail_check(s: str, n: int, in_authority: bool) -> Schema__BoolRe
   decreases n
   emits []
   tests
-    tail_empty(s = "", n = 0, in_authority = true) => Ok(value = true)
-    tail_zero_budget(s = "/a", n = 0, in_authority = true) => Ok(value = true)
-    tail_plain(s = "ab", n = 2, in_authority = false) => Ok(value = true)
-    tail_path_query(s = "/a.css?v=2", n = 10, in_authority = false) => Ok(value = true)
-    tail_authority_flip(s = "h/a@b", n = 5, in_authority = true) => Ok(value = true)
-    tail_at_path(s = "/a@b", n = 4, in_authority = false) => Ok(value = true)
-    tail_fragment(s = "/a#b", n = 4, in_authority = false) => Ok(value = false)
-    tail_userinfo(s = "u@h/a", n = 5, in_authority = true) => Ok(value = false)
-    tail_space(s = "/a b", n = 4, in_authority = false) => Ok(value = false)
-    tail_pipe(s = "/a|b", n = 4, in_authority = false) => Ok(value = false)
-    tail_backslash(s = "/a\b", n = 4, in_authority = false) => Ok(value = false)
-    tail_squote(s = "/a'b", n = 4, in_authority = false) => Ok(value = false)
-    tail_dquote(s = e"/a\"b", n = 4, in_authority = false) => Ok(value = false)
-    tail_angle_open(s = "/a<b", n = 4, in_authority = false) => Ok(value = false)
-    tail_angle_close(s = "/a>b", n = 4, in_authority = false) => Ok(value = false)
-    tail_nul(s = "/a b", n = 4, in_authority = false) => Ok(value = false)
-    tail_ctrl(s = "/ab", n = 4, in_authority = false) => Ok(value = false)
-    tail_del(s = "/ab", n = 4, in_authority = false) => Ok(value = false)
+    tail_empty("", 0, true) => Ok(value = true)
+    tail_zero_budget("/a", 0, true) => Ok(value = true)
+    tail_plain("ab", 2, false) => Ok(value = true)
+    tail_path_query("/a.css?v=2", 10, false) => Ok(value = true)
+    tail_authority_flip("h/a@b", 5, true) => Ok(value = true)
+    tail_at_path("/a@b", 4, false) => Ok(value = true)
+    tail_fragment("/a#b", 4, false) => Ok(value = false)
+    tail_userinfo("u@h/a", 5, true) => Ok(value = false)
+    tail_space("/a b", 4, false) => Ok(value = false)
+    tail_pipe("/a|b", 4, false) => Ok(value = false)
+    tail_backslash("/a\b", 4, false) => Ok(value = false)
+    tail_squote("/a'b", 4, false) => Ok(value = false)
+    tail_dquote(e"/a\"b", 4, false) => Ok(value = false)
+    tail_angle_open("/a<b", 4, false) => Ok(value = false)
+    tail_angle_close("/a>b", 4, false) => Ok(value = false)
+    tail_nul("/a b", 4, false) => Ok(value = false)
+    tail_ctrl("/ab", 4, false) => Ok(value = false)
+    tail_del("/ab", 4, false) => Ok(value = false)
 =
   match n <= 0
     true => Ok(value = true)
@@ -259,11 +259,11 @@ fn schema__token__check(s: str, n: int) -> Schema__BoolResult rev 1
   decreases n
   emits []
   tests
-    token_empty(s = "", n = 0) => Ok(value = true)
-    token_zero_budget(s = "ab", n = 0) => Ok(value = true)
-    token_clean(s = "1.0.0", n = 5) => Ok(value = true)
-    token_pipe(s = "a|b", n = 3) => Ok(value = false)
-    token_nul(s = "a b", n = 3) => Ok(value = false)
+    token_empty("", 0) => Ok(value = true)
+    token_zero_budget("ab", 0) => Ok(value = true)
+    token_clean("1.0.0", 5) => Ok(value = true)
+    token_pipe("a|b", 3) => Ok(value = false)
+    token_nul("a b", 3) => Ok(value = false)
 =
   match n <= 0
     true => Ok(value = true)
@@ -278,12 +278,12 @@ fn schema__token__check(s: str, n: int) -> Schema__BoolResult rev 1
 fn schema__tokens__check(id: str, revision: str, site: Schema__Site) -> Schema__BoolResult rev 1
   emits []
   tests
-    tokens_clean(id = "app-css", revision = "1.0.0", site = schema__SITE_HOME) => Ok(value = true)
-    tokens_bad_id(id = "a|b", revision = "1.0.0", site = schema__SITE_HOME) => Ok(value = false)
-    tokens_bad_revision(id = "app-css", revision = "1|0", site = schema__SITE_HOME) => Ok(value = false)
-    tokens_bad_program(id = "app-css", revision = "1.0.0", site = Schema__Site(program = "sh|op", module = "pages", function = "home")) => Ok(value = false)
-    tokens_bad_module(id = "app-css", revision = "1.0.0", site = Schema__Site(program = "shop", module = "pa|ges", function = "home")) => Ok(value = false)
-    tokens_bad_function(id = "app-css", revision = "1.0.0", site = Schema__Site(program = "shop", module = "pages", function = "ho|me")) => Ok(value = false)
+    tokens_clean("app-css", "1.0.0", schema__SITE_HOME) => Ok(value = true)
+    tokens_bad_id("a|b", "1.0.0", schema__SITE_HOME) => Ok(value = false)
+    tokens_bad_revision("app-css", "1|0", schema__SITE_HOME) => Ok(value = false)
+    tokens_bad_program("app-css", "1.0.0", Schema__Site(program = "sh|op", module = "pages", function = "home")) => Ok(value = false)
+    tokens_bad_module("app-css", "1.0.0", Schema__Site(program = "shop", module = "pa|ges", function = "home")) => Ok(value = false)
+    tokens_bad_function("app-css", "1.0.0", Schema__Site(program = "shop", module = "pages", function = "ho|me")) => Ok(value = false)
 =
   match chain
     call schema__token__check(id, #id) as a when a.value
@@ -300,20 +300,20 @@ fn schema__tokens__check(id: str, revision: str, site: Schema__Site) -> Schema__
 fn schema__digest__char(code: int) -> Schema__BoolResult rev 1
   emits []
   tests
-    char_plus(code = 43) => Ok(value = true)
-    char_slash(code = 47) => Ok(value = true)
-    char_equals(code = 61) => Ok(value = true)
-    char_digit(code = 48) => Ok(value = true)
-    char_upper(code = 65) => Ok(value = true)
-    char_lower(code = 97) => Ok(value = true)
-    char_dash(code = 45) => Ok(value = false)
-    char_colon(code = 58) => Ok(value = false)
-    char_space(code = 32) => Ok(value = false)
-    char_digit_nine(code = 57) => Ok(value = true)
-    char_upper_z(code = 90) => Ok(value = true)
-    char_lower_z(code = 122) => Ok(value = true)
-    char_above_upper(code = 91) => Ok(value = false)
-    char_above_lower(code = 123) => Ok(value = false)
+    char_plus(43) => Ok(value = true)
+    char_slash(47) => Ok(value = true)
+    char_equals(61) => Ok(value = true)
+    char_digit(48) => Ok(value = true)
+    char_upper(65) => Ok(value = true)
+    char_lower(97) => Ok(value = true)
+    char_dash(45) => Ok(value = false)
+    char_colon(58) => Ok(value = false)
+    char_space(32) => Ok(value = false)
+    char_digit_nine(57) => Ok(value = true)
+    char_upper_z(90) => Ok(value = true)
+    char_lower_z(122) => Ok(value = true)
+    char_above_upper(91) => Ok(value = false)
+    char_above_lower(123) => Ok(value = false)
 =
   match code
     43 | 47 | 61 | 48..57 | 65..90 | 97..122 => Ok(value = true)
@@ -324,10 +324,10 @@ fn schema__digest__tail(s: str, n: int) -> Schema__BoolResult rev 1
   decreases n
   emits []
   tests
-    dtail_empty(s = "", n = 0) => Ok(value = true)
-    dtail_zero_budget(s = "AB", n = 0) => Ok(value = true)
-    dtail_good(s = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", n = 64) => Ok(value = true)
-    dtail_bad(s = "AAAAAAAAAAAA-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", n = 64) => Ok(value = false)
+    dtail_empty("", 0) => Ok(value = true)
+    dtail_zero_budget("AB", 0) => Ok(value = true)
+    dtail_good("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64) => Ok(value = true)
+    dtail_bad("AAAAAAAAAAAA-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64) => Ok(value = false)
 =
   match n <= 0
     true => Ok(value = true)
@@ -344,12 +344,12 @@ fn schema__digest__tail(s: str, n: int) -> Schema__BoolResult rev 1
 fn schema__digest__check(digest: str) -> Schema__BoolResult rev 1
   emits []
   tests
-    digest_good(digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = true)
-    digest_short(digest = "sha384-AAAA") => Ok(value = false)
-    digest_empty(digest = "") => Ok(value = false)
-    digest_sha256(digest = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
-    digest_bare(digest = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
-    digest_badchar(digest = "sha384-AAAAAAAAAAAA-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
+    digest_good("sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = true)
+    digest_short("sha384-AAAA") => Ok(value = false)
+    digest_empty("") => Ok(value = false)
+    digest_sha256("sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
+    digest_bare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
+    digest_badchar("sha384-AAAAAAAAAAAA-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
 =
   match #digest == 71
     true => match digest[0:7] == "sha384-"
@@ -366,9 +366,9 @@ fn schema__digest__check(digest: str) -> Schema__BoolResult rev 1
 fn schema__entry__matches(entry: Schema__RegistryEntry, request: Schema__AssetRequest, site: Schema__Site) -> Schema__BoolResult rev 1
   emits []
   tests
-    entry_hit(entry = schema__ENTRY_CSS, request = schema__REQ_CSS, site = schema__SITE_HOME) => Ok(value = true)
-    entry_url_miss(entry = schema__ENTRY_CSS, request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/other.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), site = schema__SITE_HOME) => Ok(value = false)
-    entry_site_miss(entry = schema__ENTRY_CSS, request = schema__REQ_CSS, site = schema__SITE_ADMIN) => Ok(value = false)
+    entry_hit(schema__ENTRY_CSS, schema__REQ_CSS, schema__SITE_HOME) => Ok(value = true)
+    entry_url_miss(schema__ENTRY_CSS, Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/other.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SITE_HOME) => Ok(value = false)
+    entry_site_miss(schema__ENTRY_CSS, schema__REQ_CSS, schema__SITE_ADMIN) => Ok(value = false)
 =
   match entry.id == request.id, entry.revision == request.revision, entry.url == request.url, entry.digest == request.digest, entry.role == request.role, entry.program == site.program, entry.module == site.module, entry.function == site.function
     true, true, true, true, true, true, true, true => Ok(value = true)
@@ -383,11 +383,11 @@ fn schema__snapshot__scan(entries: Seq<Schema__RegistryEntry>, request: Schema__
   decreases fuel
   emits []
   tests
-    scan_zero_fuel(entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], request = schema__REQ_A, site = schema__SITE_P, position = 0, fuel = 0) => Ok(first = 0, count = 0)
-    scan_empty(entries = Seq<Schema__RegistryEntry>[], request = schema__REQ_A, site = schema__SITE_P, position = 0, fuel = 1) => Ok(first = 0, count = 0)
-    scan_single(entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], request = schema__REQ_A, site = schema__SITE_P, position = 0, fuel = 2) => Ok(first = 0, count = 1)
-    scan_nomatch(entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], request = schema__REQ_A, site = schema__SITE_P, position = 0, fuel = 2) => Ok(first = 1, count = 0)
-    scan_conflict(entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9), Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], request = schema__REQ_A, site = schema__SITE_P, position = 0, fuel = 3) => Ok(first = 0, count = 2)
+    scan_zero_fuel(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 0) => Ok(first = 0, count = 0)
+    scan_empty(Seq<Schema__RegistryEntry>[], schema__REQ_A, schema__SITE_P, 0, 1) => Ok(first = 0, count = 0)
+    scan_single(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 2) => Ok(first = 0, count = 1)
+    scan_nomatch(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 2) => Ok(first = 1, count = 0)
+    scan_conflict(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9), Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 3) => Ok(first = 0, count = 2)
 =
   match fuel <= 0
     true => Ok(first = position, count = 0)
@@ -404,7 +404,7 @@ fn schema__snapshot__scan(entries: Seq<Schema__RegistryEntry>, request: Schema__
 fn schema__snapshot__entry_at(entries: Seq<Schema__RegistryEntry>, position: int) -> Schema__EntryResult rev 1
   emits []
   tests
-    entry_at_first(entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9), Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], position = 1) => Ok(entry = Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9))
+    entry_at_first(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9), Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], 1) => Ok(entry = Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9))
 =
   Ok(entry = entries[position])
 
@@ -415,10 +415,10 @@ fn schema__revoked__contains(revoked: Seq<Schema__Revoked>, id: str, revision: s
   decreases fuel
   emits []
   tests
-    revoked_zero_fuel(revoked = Seq<Schema__Revoked>[Schema__Revoked(id = "a", revision = "1")], id = "a", revision = "1", position = 0, fuel = 0) => Ok(value = false)
-    revoked_empty(revoked = Seq<Schema__Revoked>[], id = "a", revision = "1", position = 0, fuel = 1) => Ok(value = false)
-    revoked_hit(revoked = Seq<Schema__Revoked>[Schema__Revoked(id = "b", revision = "2"), Schema__Revoked(id = "a", revision = "1")], id = "a", revision = "1", position = 0, fuel = 3) => Ok(value = true)
-    revoked_miss(revoked = Seq<Schema__Revoked>[Schema__Revoked(id = "b", revision = "2")], id = "a", revision = "1", position = 0, fuel = 2) => Ok(value = false)
+    revoked_zero_fuel(Seq<Schema__Revoked>[Schema__Revoked(id = "a", revision = "1")], "a", "1", 0, 0) => Ok(value = false)
+    revoked_empty(Seq<Schema__Revoked>[], "a", "1", 0, 1) => Ok(value = false)
+    revoked_hit(Seq<Schema__Revoked>[Schema__Revoked(id = "b", revision = "2"), Schema__Revoked(id = "a", revision = "1")], "a", "1", 0, 3) => Ok(value = true)
+    revoked_miss(Seq<Schema__Revoked>[Schema__Revoked(id = "b", revision = "2")], "a", "1", 0, 2) => Ok(value = false)
 =
   match fuel <= 0
     true => Ok(value = false)
@@ -433,7 +433,7 @@ fn schema__revoked__contains(revoked: Seq<Schema__Revoked>, id: str, revision: s
 fn schema__revoked__entry_at(revoked: Seq<Schema__Revoked>, position: int) -> Schema__RevokedResult rev 1
   emits []
   tests
-    revoked_at_first(revoked = Seq<Schema__Revoked>[Schema__Revoked(id = "a", revision = "1")], position = 0) => Ok(entry = Schema__Revoked(id = "a", revision = "1"))
+    revoked_at_first(Seq<Schema__Revoked>[Schema__Revoked(id = "a", revision = "1")], 0) => Ok(entry = Schema__Revoked(id = "a", revision = "1"))
 =
   Ok(entry = revoked[position])
 
@@ -455,23 +455,23 @@ fn schema__revoked__entry_at(revoked: Seq<Schema__Revoked>, position: int) -> Sc
 fn schema__asset__recheck(request: Schema__AssetRequest, snapshot: Schema__RegistrySnapshot, policy: Schema__AssetPolicy, site: Schema__Site, head: int, t: int, asset: Schema__ApprovedAsset) -> Schema__BoolResult rev 1
   emits [schema.asset_not_approved]
   tests
-    recheck_ok(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150, asset = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => Ok(value = true)
-    recheck_tampered(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150, asset = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|script|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    recheck_mixed_policy(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = seal Schema__AssetPolicy("shop|dev"), site = schema__SITE_HOME, head = 7, t = 150, asset = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    recheck_wrong_site(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_ADMIN, head = 7, t = 150, asset = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    recheck_stale(request = schema__REQ_CSS, snapshot = schema__SNAP_STALE, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150, asset = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    recheck_ok(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => Ok(value = true)
+    recheck_tampered(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|script|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    recheck_mixed_policy(schema__REQ_CSS, schema__SNAP_OK, seal Schema__AssetPolicy("shop|dev"), schema__SITE_HOME, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    recheck_wrong_site(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_ADMIN, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    recheck_stale(schema__REQ_CSS, schema__SNAP_STALE, schema__POLICY_PROD, schema__SITE_HOME, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
 =
   match call schema__asset__approve(request, snapshot, policy, site, head, t)
     on Ok a => match a.approval == asset
       true => Ok(value = true)
       false => schema.asset_not_approved(asset = request)
-    on schema.asset_not_approved e => schema.asset_not_approved(asset = e.asset)
+    on schema.asset_not_approved e => forward e
 
 fn schema__policy__admit(program: str, policy: str) -> Schema__PolicyResult rev 1
   emits []
   tests
-    admit_prod(program = "shop", policy = "prod") => Ok(policy = seal Schema__AssetPolicy("shop|prod"))
-    admit_dev(program = "shop", policy = "dev") => Ok(policy = seal Schema__AssetPolicy("shop|dev"))
+    admit_prod("shop", "prod") => Ok(policy = seal Schema__AssetPolicy("shop|prod"))
+    admit_dev("shop", "dev") => Ok(policy = seal Schema__AssetPolicy("shop|dev"))
 =
   Ok(policy = seal Schema__AssetPolicy(program + "|" + policy))
 
@@ -486,30 +486,30 @@ fn schema__policy__admit(program: str, policy: str) -> Schema__PolicyResult rev 
 fn schema__asset__approve(request: Schema__AssetRequest, snapshot: Schema__RegistrySnapshot, policy: Schema__AssetPolicy, site: Schema__Site, head: int, t: int) -> Schema__ApprovalResult rev 1
   emits [schema.asset_not_approved]
   tests
-    approve_ok(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => Ok(approval = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home"))
-    approve_ok_script(request = Schema__AssetRequest(id = "app-js", revision = "2.0.0", url = "https://cdn.example/app.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), snapshot = schema__SNAP_JS, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => Ok(approval = seal Schema__ApprovedAsset("app-js|2.0.0|https://cdn.example/app.js|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|script|shop|pages|home"))
-    approve_lower_edge(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 100) => Ok(approval = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home"))
-    approve_inner_upper(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 199) => Ok(approval = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home"))
-    approve_unknown_role(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "module"), snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "module"))
-    approve_http(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "http://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = schema__SNAP_EMPTY, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "http://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_fragment(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css#x", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = schema__SNAP_EMPTY, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css#x", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_userinfo(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://user@cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = schema__SNAP_EMPTY, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://user@cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_bad_token(request = Schema__AssetRequest(id = "a|b", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = schema__SNAP_EMPTY, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "a|b", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_quote_url(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/a'b.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "app-css", revision = "1.0.0", url = "https://cdn.example/a'b.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200)], revoked = Seq<Schema__Revoked>[]), policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/a'b.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_control_url(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/ab.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "app-css", revision = "1.0.0", url = "https://cdn.example/ab.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200)], revoked = Seq<Schema__Revoked>[]), policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/ab.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_bad_digest(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = schema__SNAP_EMPTY, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
-    approve_policy_mismatch(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = seal Schema__AssetPolicy("shop|dev"), site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_program_mismatch(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = Schema__Site(program = "blog", module = "pages", function = "home"), head = 7, t = 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_stale_sequence(request = schema__REQ_CSS, snapshot = schema__SNAP_STALE, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_unknown_url(request = Schema__AssetRequest(id = "evil", revision = "9.9.9", url = "https://evil.example/x.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "evil", revision = "9.9.9", url = "https://evil.example/x.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
-    approve_wrong_digest(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", role = "stylesheet"), snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", role = "stylesheet"))
-    approve_role_mismatch(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
-    approve_site_mismatch(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_ADMIN, head = 7, t = 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_revoked(request = schema__REQ_CSS, snapshot = Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 8, entries = Seq<Schema__RegistryEntry>[schema__ENTRY_CSS], revoked = Seq<Schema__Revoked>[Schema__Revoked(id = "app-css", revision = "1.0.0")]), policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 8, t = 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_expired(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 200) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_not_yet(request = schema__REQ_CSS, snapshot = schema__SNAP_OK, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 99) => schema.asset_not_approved(asset = schema__REQ_CSS)
-    approve_no_transitive(request = Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), snapshot = schema__SNAP_JS, policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
-    approve_conflict(request = schema__REQ_CSS, snapshot = Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[schema__ENTRY_CSS, schema__ENTRY_CSS], revoked = Seq<Schema__Revoked>[]), policy = schema__POLICY_PROD, site = schema__SITE_HOME, head = 7, t = 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_ok(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => Ok(approval = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home"))
+    approve_ok_script(Schema__AssetRequest(id = "app-js", revision = "2.0.0", url = "https://cdn.example/app.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), schema__SNAP_JS, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => Ok(approval = seal Schema__ApprovedAsset("app-js|2.0.0|https://cdn.example/app.js|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|script|shop|pages|home"))
+    approve_lower_edge(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 100) => Ok(approval = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home"))
+    approve_inner_upper(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 199) => Ok(approval = seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home"))
+    approve_unknown_role(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "module"), schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "module"))
+    approve_http(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "http://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SNAP_EMPTY, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "http://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_fragment(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css#x", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SNAP_EMPTY, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css#x", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_userinfo(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://user@cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SNAP_EMPTY, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://user@cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_bad_token(Schema__AssetRequest(id = "a|b", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SNAP_EMPTY, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "a|b", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_quote_url(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/a'b.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "app-css", revision = "1.0.0", url = "https://cdn.example/a'b.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200)], revoked = Seq<Schema__Revoked>[]), schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/a'b.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_control_url(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/ab.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "app-css", revision = "1.0.0", url = "https://cdn.example/ab.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200)], revoked = Seq<Schema__Revoked>[]), schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/ab.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_bad_digest(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SNAP_EMPTY, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
+    approve_policy_mismatch(schema__REQ_CSS, schema__SNAP_OK, seal Schema__AssetPolicy("shop|dev"), schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_program_mismatch(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, Schema__Site(program = "blog", module = "pages", function = "home"), 7, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_stale_sequence(schema__REQ_CSS, schema__SNAP_STALE, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_unknown_url(Schema__AssetRequest(id = "evil", revision = "9.9.9", url = "https://evil.example/x.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "evil", revision = "9.9.9", url = "https://evil.example/x.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
+    approve_wrong_digest(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", role = "stylesheet"), schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", role = "stylesheet"))
+    approve_role_mismatch(Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
+    approve_site_mismatch(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_ADMIN, 7, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_revoked(schema__REQ_CSS, Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 8, entries = Seq<Schema__RegistryEntry>[schema__ENTRY_CSS], revoked = Seq<Schema__Revoked>[Schema__Revoked(id = "app-css", revision = "1.0.0")]), schema__POLICY_PROD, schema__SITE_HOME, 8, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_expired(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 200) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_not_yet(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 99) => schema.asset_not_approved(asset = schema__REQ_CSS)
+    approve_no_transitive(Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), schema__SNAP_JS, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
+    approve_conflict(schema__REQ_CSS, Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[schema__ENTRY_CSS, schema__ENTRY_CSS], revoked = Seq<Schema__Revoked>[]), schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
 =
   match snapshot.policy == policy and snapshot.program == site.program and snapshot.sequence == head
     true => match chain

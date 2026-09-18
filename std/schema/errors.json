@@ -44,7 +44,7 @@
     "handled_by": [
       {
         "fn": "schema.schema__asset__recheck",
-        "arm": "on schema.asset_not_approved e =\u003e schema.asset_not_approved(asset = e.asset)"
+        "arm": "on schema.asset_not_approved e =\u003e forward e"
       }
     ],
     "hit_by_tests": [

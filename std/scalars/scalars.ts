@@ -1485,10 +1485,7 @@ export function std__dec__round_half_even(value: string, scale: bigint): { $can_
     switch ($can_m1.$can_kind) {
     case "ok": {
       const p = $can_m1;
-      if ((p.scale <= scale)) {
-        return { $can_kind: "ok", value: value, discarded: "0.0" };
-      }
-      else {
+      if ((p.scale > scale)) {
         const $can_m2: { $can_kind: "ok"; value: bigint } = std__int__pow_from(10n, (p.scale - scale));
         switch ($can_m2.$can_kind) {
         case "ok": {
@@ -1614,6 +1611,9 @@ export function std__dec__round_half_even(value: string, scale: bigint): { $can_
           throw new Error("unreachable");
         }
         }
+      }
+      else {
+        return { $can_kind: "ok", value: value, discarded: "0.0" };
       }
     }
     default: {

@@ -180,11 +180,11 @@
     "handled_by": [
       {
         "fn": "quota.quota__consume",
-        "arm": "on validation.negative_value _ =\u003e validation.negative_value(value = amount)"
+        "arm": "call std__validate__int_nonnegative(amount) as _"
       },
       {
         "fn": "quota.quota__usage",
-        "arm": "on validation.negative_value _ =\u003e validation.negative_value(value = quota)"
+        "arm": "call std__validate__int_nonnegative(quota) as _"
       }
     ],
     "hit_by_tests": [

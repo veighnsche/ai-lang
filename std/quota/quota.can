@@ -50,8 +50,8 @@ type Str__Value rev 1 (
 fn std__validate__require(condition: bool, field: str, rule: str) -> Validate__Pass rev 1
   emits [validation.failed]
   tests
-    pass(condition = true, field = "quota", rule = "nonnegative") => Ok()
-    fail(condition = false, field = "quota", rule = "nonnegative") => validation.failed(field = "quota", rule = "nonnegative")
+    pass(true, "quota", "nonnegative") => Ok()
+    fail(false, "quota", "nonnegative") => validation.failed(field = "quota", rule = "nonnegative")
 =
   match condition
     true => Ok()
@@ -60,12 +60,12 @@ fn std__validate__require(condition: bool, field: str, rule: str) -> Validate__P
 fn std__validate__int_range(value: int, lower: int, upper: int) -> Int__Value rev 1
   emits [validation.invalid_bounds, validation.out_of_range]
   tests
-    inside(value = 5, lower = 0, upper = 10) => Ok(value = 5)
-    at_lower(value = 0, lower = 0, upper = 10) => Ok(value = 0)
-    at_upper(value = 10, lower = 0, upper = 10) => Ok(value = 10)
-    below(value = -1, lower = 0, upper = 10) => validation.out_of_range(value = -1, lower = 0, upper = 10)
-    above(value = 11, lower = 0, upper = 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
-    bad_bounds(value = 5, lower = 10, upper = 0) => validation.invalid_bounds(lower = 10, upper = 0)
+    inside(5, 0, 10) => Ok(value = 5)
+    at_lower(0, 0, 10) => Ok(value = 0)
+    at_upper(10, 0, 10) => Ok(value = 10)
+    below(-1, 0, 10) => validation.out_of_range(value = -1, lower = 0, upper = 10)
+    above(11, 0, 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
+    bad_bounds(5, 10, 0) => validation.invalid_bounds(lower = 10, upper = 0)
 =
   match lower <= upper, value >= lower, value <= upper
     true, true, true => Ok(value = value)
@@ -76,9 +76,9 @@ fn std__validate__int_range(value: int, lower: int, upper: int) -> Int__Value re
 fn std__validate__int_nonnegative(value: int) -> Int__Value rev 1
   emits [validation.negative_value]
   tests
-    zero(value = 0) => Ok(value = 0)
-    positive(value = 4) => Ok(value = 4)
-    negative(value = -1) => validation.negative_value(value = -1)
+    zero(0) => Ok(value = 0)
+    positive(4) => Ok(value = 4)
+    negative(-1) => validation.negative_value(value = -1)
 =
   match value >= 0
     true => Ok(value = value)
@@ -87,9 +87,9 @@ fn std__validate__int_nonnegative(value: int) -> Int__Value rev 1
 fn std__validate__int_positive(value: int) -> Int__Value rev 1
   emits [validation.not_positive]
   tests
-    positive(value = 3) => Ok(value = 3)
-    zero(value = 0) => validation.not_positive(value = 0)
-    negative(value = -2) => validation.not_positive(value = -2)
+    positive(3) => Ok(value = 3)
+    zero(0) => validation.not_positive(value = 0)
+    negative(-2) => validation.not_positive(value = -2)
 =
   match value > 0
     true => Ok(value = value)
@@ -98,12 +98,12 @@ fn std__validate__int_positive(value: int) -> Int__Value rev 1
 fn std__validate__dec_range(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
   emits [validation.dec_invalid_bounds, validation.dec_out_of_range]
   tests
-    inside(value = d"5.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"5.0")
-    at_lower(value = d"0.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"0.0")
-    at_upper(value = d"10.0", lower = d"0.0", upper = d"10.0") => Ok(value = d"10.0")
-    below(value = d"-0.5", lower = d"0.0", upper = d"10.0") => validation.dec_out_of_range(value = d"-0.5", lower = d"0.0", upper = d"10.0")
-    above(value = d"10.5", lower = d"0.0", upper = d"10.0") => validation.dec_out_of_range(value = d"10.5", lower = d"0.0", upper = d"10.0")
-    bad_bounds(value = d"5.0", lower = d"10.0", upper = d"0.0") => validation.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
+    inside(d"5.0", d"0.0", d"10.0") => Ok(value = d"5.0")
+    at_lower(d"0.0", d"0.0", d"10.0") => Ok(value = d"0.0")
+    at_upper(d"10.0", d"0.0", d"10.0") => Ok(value = d"10.0")
+    below(d"-0.5", d"0.0", d"10.0") => validation.dec_out_of_range(value = d"-0.5", lower = d"0.0", upper = d"10.0")
+    above(d"10.5", d"0.0", d"10.0") => validation.dec_out_of_range(value = d"10.5", lower = d"0.0", upper = d"10.0")
+    bad_bounds(d"5.0", d"10.0", d"0.0") => validation.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
 =
   match lower <= upper, value >= lower, value <= upper
     true, true, true => Ok(value = value)
@@ -114,9 +114,9 @@ fn std__validate__dec_range(value: dec, lower: dec, upper: dec) -> Dec__Value re
 fn std__validate__dec_positive(value: dec) -> Dec__Value rev 1
   emits [validation.dec_not_positive]
   tests
-    positive(value = d"0.5") => Ok(value = d"0.5")
-    zero(value = d"0.0") => validation.dec_not_positive(value = d"0.0")
-    negative(value = d"-2.0") => validation.dec_not_positive(value = d"-2.0")
+    positive(d"0.5") => Ok(value = d"0.5")
+    zero(d"0.0") => validation.dec_not_positive(value = d"0.0")
+    negative(d"-2.0") => validation.dec_not_positive(value = d"-2.0")
 =
   match value > d"0.0"
     true => Ok(value = value)
@@ -125,9 +125,9 @@ fn std__validate__dec_positive(value: dec) -> Dec__Value rev 1
 fn std__validate__dec_nonnegative(value: dec) -> Dec__Value rev 1
   emits [validation.dec_negative_value]
   tests
-    zero(value = d"0.0") => Ok(value = d"0.0")
-    positive(value = d"4.0") => Ok(value = d"4.0")
-    negative(value = d"-1.0") => validation.dec_negative_value(value = d"-1.0")
+    zero(d"0.0") => Ok(value = d"0.0")
+    positive(d"4.0") => Ok(value = d"4.0")
+    negative(d"-1.0") => validation.dec_negative_value(value = d"-1.0")
 =
   match value >= d"0.0"
     true => Ok(value = value)
@@ -136,12 +136,12 @@ fn std__validate__dec_nonnegative(value: dec) -> Dec__Value rev 1
 fn std__validate__str_length(value: str, minimum: int, maximum: int) -> Str__Value rev 1
   emits [validation.invalid_bounds, validation.invalid_length]
   tests
-    length_ok(value = "abc", minimum = 1, maximum = 5) => Ok(value = "abc")
-    length_at_min(value = "a", minimum = 1, maximum = 5) => Ok(value = "a")
-    length_at_max(value = "abcde", minimum = 1, maximum = 5) => Ok(value = "abcde")
-    length_short(value = "ab", minimum = 3, maximum = 5) => validation.invalid_length(value = "ab", minimum = 3, maximum = 5)
-    length_long(value = "abcdef", minimum = 1, maximum = 5) => validation.invalid_length(value = "abcdef", minimum = 1, maximum = 5)
-    length_bad_bounds(value = "abc", minimum = 5, maximum = 1) => validation.invalid_bounds(lower = 5, upper = 1)
+    length_ok("abc", 1, 5) => Ok(value = "abc")
+    length_at_min("a", 1, 5) => Ok(value = "a")
+    length_at_max("abcde", 1, 5) => Ok(value = "abcde")
+    length_short("ab", 3, 5) => validation.invalid_length(value = "ab", minimum = 3, maximum = 5)
+    length_long("abcdef", 1, 5) => validation.invalid_length(value = "abcdef", minimum = 1, maximum = 5)
+    length_bad_bounds("abc", 5, 1) => validation.invalid_bounds(lower = 5, upper = 1)
 =
   match minimum <= maximum, #value >= minimum, #value <= maximum
     true, true, true => Ok(value = value)
@@ -152,8 +152,8 @@ fn std__validate__str_length(value: str, minimum: int, maximum: int) -> Str__Val
 fn std__validate__str_nonempty(value: str) -> Str__Value rev 1
   emits [validation.empty_value]
   tests
-    nonempty(value = "u_01") => Ok(value = "u_01")
-    empty(value = "") => validation.empty_value(value = "")
+    nonempty("u_01") => Ok(value = "u_01")
+    empty("") => validation.empty_value(value = "")
 =
   match value
     "" => validation.empty_value(value = value)
@@ -162,10 +162,10 @@ fn std__validate__str_nonempty(value: str) -> Str__Value rev 1
 fn std__validate__exclusive_pair(left: bool, right: bool) -> Validate__Pass rev 1
   emits [validation.exclusive_choice]
   tests
-    neither(left = false, right = false) => validation.exclusive_choice()
-    left_only(left = true, right = false) => Ok()
-    right_only(left = false, right = true) => Ok()
-    both(left = true, right = true) => validation.exclusive_choice()
+    neither(false, false) => validation.exclusive_choice()
+    left_only(true, false) => Ok()
+    right_only(false, true) => Ok()
+    both(true, true) => validation.exclusive_choice()
 =
   match left, right
     true, true => validation.exclusive_choice()
@@ -177,32 +177,34 @@ fn quota__consume(amount: int, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]
   emits [validation.negative_value, validation.invalid_bounds, validation.out_of_range]
   tests
-    first(amount = 3, quota = 10) => Ok(used = 3, remaining = 7)
-    exact(amount = 10, quota = 10) => Ok(used = 10, remaining = 0)
-    over(amount = 11, quota = 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
-    negative(amount = -2, quota = 10) => validation.negative_value(value = -2)
-    bad_quota(amount = 1, quota = -1) => validation.invalid_bounds(lower = 0, upper = -1)
+    first(3, 10) => Ok(used = 3, remaining = 7)
+    exact(10, 10) => Ok(used = 10, remaining = 0)
+    over(11, 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
+    negative(-2, 10) => validation.negative_value(value = -2)
+    bad_quota(1, -1) => validation.invalid_bounds(lower = 0, upper = -1)
 =
-  match call state__get(Quota__used)
-    on Ok s => match call std__validate__int_nonnegative(amount)
-      on validation.negative_value _ => validation.negative_value(value = amount)
-      on Ok _ => match call std__validate__int_range(s.value + amount, 0, quota)
-        on validation.invalid_bounds _ => validation.invalid_bounds(lower = 0, upper = quota)
-        on validation.out_of_range _ => validation.out_of_range(value = s.value + amount, lower = 0, upper = quota)
-        on Ok checked => match call state__put(Quota__used, checked.value)
-          on Ok _ => Ok(used = checked.value, remaining = quota - checked.value)
+  match chain
+    call state__get(Quota__used) as s
+    call std__validate__int_nonnegative(amount) as _
+    then match call std__validate__int_range(s.value + amount, 0, quota)
+      on validation.invalid_bounds _ => validation.invalid_bounds(lower = 0, upper = quota)
+      on validation.out_of_range _ => validation.out_of_range(value = s.value + amount, lower = 0, upper = quota)
+      on Ok checked => match call state__put(Quota__used, checked.value)
+        on Ok _ => Ok(used = checked.value, remaining = quota - checked.value)
+    else validation.negative_value(value = amount)
 
 fn quota__usage(quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read]
   emits [validation.negative_value]
   tests
-    fresh(quota = 10) => Ok(used = 0, remaining = 10)
-    negative_quota(quota = -1) => validation.negative_value(value = -1)
+    fresh(10) => Ok(used = 0, remaining = 10)
+    negative_quota(-1) => validation.negative_value(value = -1)
 =
-  match call state__get(Quota__used)
-    on Ok s => match call std__validate__int_nonnegative(quota)
-      on validation.negative_value _ => validation.negative_value(value = quota)
-      on Ok _ => Ok(used = s.value, remaining = quota - s.value)
+  match chain
+    call state__get(Quota__used) as s
+    call std__validate__int_nonnegative(quota) as _
+    then Ok(used = s.value, remaining = quota - s.value)
+    else validation.negative_value(value = quota)
 
 // Shape notes, kept with the program, not in a second file.
 // 1. Validators take values and return them. Callers keep ownership of

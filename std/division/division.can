@@ -29,12 +29,12 @@ type Bool__Value rev 1 (
 fn std__int__divmod(dividend: int, divisor: int) -> Int__DivMod rev 1
   emits [math.zero_divisor]
   tests
-    divmod_pos_pos(dividend = 7, divisor = 3) => Ok(quotient = 2, remainder = 1)
-    divmod_neg_pos(dividend = -7, divisor = 3) => Ok(quotient = -3, remainder = 2)
-    divmod_pos_neg(dividend = 7, divisor = -3) => Ok(quotient = -2, remainder = 1)
-    divmod_neg_neg(dividend = -7, divisor = -3) => Ok(quotient = 3, remainder = 2)
-    divmod_zero_dividend(dividend = 0, divisor = 5) => Ok(quotient = 0, remainder = 0)
-    divmod_zero_divisor(dividend = 5, divisor = 0) => math.zero_divisor(divisor = 0)
+    divmod_pos_pos(7, 3) => Ok(quotient = 2, remainder = 1)
+    divmod_neg_pos(-7, 3) => Ok(quotient = -3, remainder = 2)
+    divmod_pos_neg(7, -3) => Ok(quotient = -2, remainder = 1)
+    divmod_neg_neg(-7, -3) => Ok(quotient = 3, remainder = 2)
+    divmod_zero_dividend(0, 5) => Ok(quotient = 0, remainder = 0)
+    divmod_zero_divisor(5, 0) => math.zero_divisor(divisor = 0)
 =
   match divisor == 0
     true => math.zero_divisor(divisor = divisor)
@@ -43,11 +43,11 @@ fn std__int__divmod(dividend: int, divisor: int) -> Int__DivMod rev 1
 fn std__int__mod(value: int, modulus: int) -> Int__Value rev 1
   emits [math.zero_divisor]
   tests
-    mod_pos(value = 7, modulus = 3) => Ok(value = 1)
-    mod_neg(value = -7, modulus = 3) => Ok(value = 2)
-    mod_neg_modulus(value = 7, modulus = -3) => Ok(value = 1)
-    mod_zero(value = 0, modulus = 5) => Ok(value = 0)
-    mod_zero_modulus(value = 5, modulus = 0) => math.zero_divisor(divisor = 0)
+    mod_pos(7, 3) => Ok(value = 1)
+    mod_neg(-7, 3) => Ok(value = 2)
+    mod_neg_modulus(7, -3) => Ok(value = 1)
+    mod_zero(0, 5) => Ok(value = 0)
+    mod_zero_modulus(5, 0) => math.zero_divisor(divisor = 0)
 =
   match modulus == 0
     true => math.zero_divisor(divisor = modulus)
@@ -56,10 +56,10 @@ fn std__int__mod(value: int, modulus: int) -> Int__Value rev 1
 fn std__int__is_multiple(value: int, divisor: int) -> Bool__Value rev 1
   emits [math.zero_divisor]
   tests
-    multiple_yes(value = 6, divisor = 3) => Ok(value = true)
-    multiple_no(value = 7, divisor = 3) => Ok(value = false)
-    multiple_zero(value = 0, divisor = 5) => Ok(value = true)
-    multiple_zero_divisor(value = 5, divisor = 0) => math.zero_divisor(divisor = 0)
+    multiple_yes(6, 3) => Ok(value = true)
+    multiple_no(7, 3) => Ok(value = false)
+    multiple_zero(0, 5) => Ok(value = true)
+    multiple_zero_divisor(5, 0) => math.zero_divisor(divisor = 0)
 =
   match divisor == 0
     true => math.zero_divisor(divisor = divisor)
@@ -68,22 +68,22 @@ fn std__int__is_multiple(value: int, divisor: int) -> Bool__Value rev 1
 fn std__int__is_even(value: int) -> Bool__Value rev 1
   emits []
   tests
-    even_pos(value = 4) => Ok(value = true)
-    even_neg(value = -4) => Ok(value = true)
-    even_odd_pos(value = 3) => Ok(value = false)
-    even_odd_neg(value = -3) => Ok(value = false)
-    even_zero(value = 0) => Ok(value = true)
+    even_pos(4) => Ok(value = true)
+    even_neg(-4) => Ok(value = true)
+    even_odd_pos(3) => Ok(value = false)
+    even_odd_neg(-3) => Ok(value = false)
+    even_zero(0) => Ok(value = true)
 =
   Ok(value = value % 2 == 0)
 
 fn std__int__is_odd(value: int) -> Bool__Value rev 1
   emits []
   tests
-    odd_pos(value = 3) => Ok(value = true)
-    odd_neg(value = -3) => Ok(value = true)
-    odd_even_pos(value = 4) => Ok(value = false)
-    odd_even_neg(value = -4) => Ok(value = false)
-    odd_zero(value = 0) => Ok(value = false)
+    odd_pos(3) => Ok(value = true)
+    odd_neg(-3) => Ok(value = true)
+    odd_even_pos(4) => Ok(value = false)
+    odd_even_neg(-4) => Ok(value = false)
+    odd_zero(0) => Ok(value = false)
 =
   Ok(value = value % 2 == 1)
 

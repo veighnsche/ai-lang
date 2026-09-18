@@ -186,10 +186,6 @@ export function quota__consume(amount: bigint, quota: bigint): { $can_kind: "ok"
     const s = $can_m1;
     const $can_m2: { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } = std__validate__int_nonnegative(amount);
     switch ($can_m2.$can_kind) {
-    case "validation.negative_value": {
-      const _ = $can_m2;
-      return { $can_kind: "validation.negative_value", value: amount };
-    }
     case "ok": {
       const _ = $can_m2;
       const $can_m3: { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } = std__validate__int_range((s.value + amount), 0n, quota);
@@ -218,6 +214,9 @@ export function quota__consume(amount: bigint, quota: bigint): { $can_kind: "ok"
       }
       }
     }
+    case "validation.negative_value": {
+      return { $can_kind: "validation.negative_value", value: amount };
+    }
     default: {
       throw new Error("unreachable");
     }
@@ -232,13 +231,12 @@ export function quota__usage(quota: bigint): { $can_kind: "ok"; remaining: bigin
     const s = $can_m1;
     const $can_m2: { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } = std__validate__int_nonnegative(quota);
     switch ($can_m2.$can_kind) {
-    case "validation.negative_value": {
-      const _ = $can_m2;
-      return { $can_kind: "validation.negative_value", value: quota };
-    }
     case "ok": {
       const _ = $can_m2;
       return { $can_kind: "ok", used: s.value, remaining: (quota - s.value) };
+    }
+    case "validation.negative_value": {
+      return { $can_kind: "validation.negative_value", value: quota };
     }
     default: {
       throw new Error("unreachable");

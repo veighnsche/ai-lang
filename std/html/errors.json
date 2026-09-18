@@ -65,11 +65,11 @@
     "handled_by": [
       {
         "fn": "scalars.std__convert__str_to_dec",
-        "arm": "on convert.invalid_decimal e =\u003e convert.invalid_decimal(value = e.value)"
+        "arm": "on convert.invalid_decimal e =\u003e forward e"
       },
       {
         "fn": "scalars.std__convert__str_to_dec_from",
-        "arm": "on convert.invalid_decimal e =\u003e convert.invalid_decimal(value = e.value)"
+        "arm": "on convert.invalid_decimal e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -97,11 +97,11 @@
     "handled_by": [
       {
         "fn": "scalars.std__convert__str_to_int",
-        "arm": "on convert.invalid_integer e =\u003e convert.invalid_integer(value = e.value)"
+        "arm": "on convert.invalid_integer e =\u003e forward e"
       },
       {
         "fn": "scalars.std__convert__str_to_int_from",
-        "arm": "on convert.invalid_integer e =\u003e convert.invalid_integer(value = e.value)"
+        "arm": "on convert.invalid_integer e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -191,23 +191,23 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__href",
-        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+        "arm": "on html.disallowed_scheme e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_href",
-        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+        "arm": "on html.disallowed_scheme e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_src",
-        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+        "arm": "on html.disallowed_scheme e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__src",
-        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+        "arm": "on html.disallowed_scheme e =\u003e forward e"
       },
       {
         "fn": "html.html__url__check",
-        "arm": "on html.disallowed_scheme e =\u003e html.disallowed_scheme(value = e.value)"
+        "arm": "on html.disallowed_scheme e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -234,7 +234,7 @@
     "handled_by": [
       {
         "fn": "html.html__attributes__make",
-        "arm": "on html.duplicate_attribute e =\u003e html.duplicate_attribute(name = e.name)"
+        "arm": "on html.duplicate_attribute e =\u003e forward e"
       },
       {
         "fn": "html.html__attributes__make_from",
@@ -302,19 +302,19 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__classes",
-        "arm": "on html.invalid_class_token e =\u003e html.invalid_class_token(value = e.value)"
+        "arm": "on html.invalid_class_token e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__classes_check",
-        "arm": "on html.invalid_class_token e =\u003e html.invalid_class_token(value = e.value)"
+        "arm": "on html.invalid_class_token e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__classes_from",
-        "arm": "on html.invalid_class_token e =\u003e html.invalid_class_token(value = e.value)"
+        "arm": "on html.invalid_class_token e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__classes_from",
-        "arm": "on html.invalid_class_token e3 =\u003e html.invalid_class_token(value = e3.value)"
+        "arm": "on html.invalid_class_token e3 =\u003e forward e3"
       }
     ],
     "hit_by_tests": [
@@ -355,15 +355,15 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__id",
-        "arm": "on html.invalid_identifier e =\u003e html.invalid_identifier(value = e.value)"
+        "arm": "on html.invalid_identifier e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__id_check",
-        "arm": "on html.invalid_identifier e =\u003e html.invalid_identifier(value = e.value)"
+        "arm": "on html.invalid_identifier e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_id",
-        "arm": "on html.invalid_identifier e =\u003e html.invalid_identifier(value = e.value)"
+        "arm": "on html.invalid_identifier e =\u003e forward e"
       },
       {
         "fn": "html.html__render__document",
@@ -399,27 +399,27 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__href",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_href",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_src",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__src",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__url__absolute",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__url__admit",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__url__authority",
@@ -427,11 +427,11 @@
       },
       {
         "fn": "html.html__url__check",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__url__tail",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -505,15 +505,15 @@
     "handled_by": [
       {
         "fn": "html.html__attribute__classes",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__classes_from",
-        "arm": "on html.nul_byte e2 =\u003e html.nul_byte(value = e2.value)"
+        "arm": "on html.nul_byte e2 =\u003e forward e2"
       },
       {
         "fn": "html.html__attribute__classes_from",
-        "arm": "on html.nul_byte e4 =\u003e html.nul_byte(value = e4.value)"
+        "arm": "on html.nul_byte e4 =\u003e forward e4"
       },
       {
         "fn": "html.html__attribute__href",
@@ -525,19 +525,19 @@
       },
       {
         "fn": "html.html__attribute__named_href",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_id",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_src",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__named_text",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       },
       {
         "fn": "html.html__attribute__src",
@@ -545,7 +545,7 @@
       },
       {
         "fn": "html.html__attribute__text",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = raw)"
+        "arm": "call html__attribute__value_from(raw, raw, \"\", #raw) as v"
       },
       {
         "fn": "html.html__attribute__value_from",
@@ -553,7 +553,7 @@
       },
       {
         "fn": "html.html__render__document",
-        "arm": "on html.nul_byte e2 =\u003e html.nul_byte(value = e2.value)"
+        "arm": "on html.nul_byte e2 =\u003e forward e2"
       },
       {
         "fn": "html.html__text__escape",

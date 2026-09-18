@@ -130,7 +130,10 @@ names exactly what the file defines, no more, no less
 (CAN2301, CAN2302) — helpers included. Cross-file names pin
 revs, functions and types alike (`uses [db__get_user@5,
 Db__User@4, Db__Hash@1]`, `sketches/auth-login/`), one
-provider per name (CAN2101–2103, CAN2201/2202). Every
+provider per name (CAN2101–2103, CAN2201/2202). The editor
+resolves pins directory-first, then to provider files elsewhere
+under the `go.mod`-anchored tree (transitively, deterministically);
+without a `go.mod` ancestor the world stays dir-confined. Every
 declaration carries `rev`; a changed fingerprint at the same
 rev is drift (CAN6013). State authority rides `effects
 [Cell.read, Cell.write]` beside `emits`, transitive through
@@ -290,12 +293,10 @@ business. Fixture: `sketches/lint-errors/ranges.can`.
 Call-match arm order is mixed in blessed code (`Ok` first in
 `std__base64__decode`, errors first in
 `std__convert__str_to_dec`) — order carries no meaning.
-Blessed `std/` predates the linter and is not migrated: it still
-carries thousands of redundant names (rule 1), unfolded ladders
-(rule 3), and handwritten relays (`std/text` writes out what
-rule 6 shortens to `forward`). Gallery sketches are held to the
-new idiom (their rows, calls, and relays are migrated, so they
-open clean). Everywhere else, `canlc lint` and the editor agree:
+Blessed `std/` predates the linter but is migrated: its rows,
+calls, and relays follow the new idiom, so blessed modules open
+clean. Gallery sketches are held to the same idiom. Everywhere,
+`canlc lint` and the editor agree:
 every finding is an error (CAN3410–3416, error-severity, no
 warnings level), published through `canlc lsp` on files the
 compiler otherwise accepts.

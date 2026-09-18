@@ -45,11 +45,11 @@
     "handled_by": [
       {
         "fn": "ratio.std__ratio__digits_from",
-        "arm": "on math.nonterminating_decimal e =\u003e math.nonterminating_decimal(numerator = e.numerator, denominator = e.denominator)"
+        "arm": "on math.nonterminating_decimal e =\u003e forward e"
       },
       {
         "fn": "ratio.std__ratio__to_dec_exact",
-        "arm": "on math.nonterminating_decimal e =\u003e math.nonterminating_decimal(numerator = e.numerator, denominator = e.denominator)"
+        "arm": "on math.nonterminating_decimal e =\u003e forward e"
       }
     ],
     "hit_by_tests": [

@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -158,8 +159,203 @@ func needsSiblingWarn(world []Diag) bool {
 	return false
 }
 
+// usesFallback extends the editor world with provider files for
+// uses pins no loaded module satisfies, so an open file sees the
+// same world a group CLI build would: the open file first, its
+// same-dir siblings next, then provider files found elsewhere
+// under the go.mod-anchored tree, appended in sorted path order
+// and closed transitively (a loaded provider's own pins resolve
+// the same way). Only well-formed name@rev pins trigger the
+// search, and only files providing a needed name join — never a
+// whole tree at once. Selection is by name; revision matching,
+// self-pin rejection, and duplicate reporting stay exactly the
+// buildWorld rules, so a pin that fails there fails here
+// identically. Without a go.mod ancestor (temp dirs, go.mod-less
+// projects) the world stays dir-confined, exactly as before.
+func usesFallback(dir string, all []*Module, texts map[string]string) ([]*Module, map[string]string) {
+	root := findModuleRoot(dir)
+	if root == "" {
+		return all, texts
+	}
+	index := indexRootProviders(root)
+	if len(index) == 0 {
+		return all, texts
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return all, texts
+	}
+	loaded := map[string]bool{}
+	for _, m := range all {
+		loaded[filepath.Clean(filepath.Join(absDir, m.ID))] = true
+	}
+	// loaded starts with the open file plus every sibling: their
+	// keys are dir-relative, so absolutize against dir. A pin a
+	// loaded module already satisfies (including a sibling's pin
+	// the open file answers) never searches.
+	for {
+		provided := worldProvidedNames(all)
+		var toLoad []string
+		seen := map[string]bool{}
+		for _, m := range all {
+			for _, u := range m.Hdr["uses"] {
+				if !strings.Contains(u, "@") {
+					continue
+				}
+				base := pinRe.ReplaceAllString(u, "")
+				if base == "" {
+					continue
+				}
+				if owner, ok := provided[base]; ok && owner != m {
+					continue
+				}
+				for _, cand := range index[base] {
+					if !loaded[cand] && !seen[cand] {
+						seen[cand] = true
+						toLoad = append(toLoad, cand)
+					}
+				}
+			}
+		}
+		if len(toLoad) == 0 {
+			return all, texts
+		}
+		sort.Strings(toLoad)
+		for _, abs := range toLoad {
+			loaded[abs] = true
+			data, err := os.ReadFile(abs)
+			if err != nil {
+				continue
+			}
+			key, err := filepath.Rel(absDir, abs)
+			if err != nil {
+				continue
+			}
+			mod, err := parseModuleText(key, string(data))
+			if err != nil {
+				continue
+			}
+			all = append(all, mod)
+			texts[key] = string(data)
+		}
+	}
+}
+
+// worldProvidedNames mirrors the buildWorld provider map
+// (first declaration wins) over the loaded modules: functions,
+// consts, externs, types, variants, and brands all satisfy pins.
+func worldProvidedNames(mods []*Module) map[string]*Module {
+	p := map[string]*Module{}
+	put := func(n string, m *Module) {
+		if _, ok := p[n]; !ok {
+			p[n] = m
+		}
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			switch d := d.(type) {
+			case *FnDecl:
+				put(d.Name, m)
+			case *ConstDecl:
+				put(d.Name, m)
+			case *ExternDecl:
+				put(d.Name, m)
+			case *TypeDecl:
+				put(d.Name, m)
+			case *VariantDecl:
+				put(d.Name, m)
+			case *BrandDecl:
+				put(d.Name, m)
+			}
+		}
+	}
+	return p
+}
+
+// findModuleRoot walks up from dir to the nearest ancestor holding
+// go.mod. "" confines the world to dir: temp test dirs and
+// go.mod-less projects diagnose exactly as before, deterministically
+// (no sibling-test or scratch-file leakage through shared parents).
+func findModuleRoot(dir string) string {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return ""
+	}
+	for i := 0; i < 64; i++ {
+		if st, err := os.Stat(filepath.Join(abs, "go.mod")); err == nil && !st.IsDir() {
+			return abs
+		}
+		parent := filepath.Dir(abs)
+		if parent == abs {
+			return ""
+		}
+		abs = parent
+	}
+	return ""
+}
+
+// indexRootProviders maps every provided declaration name to the
+// sorted absolute paths of the .can files declaring it under root.
+// Dot directories and node_modules never scan; unparseable files
+// cannot provide and are skipped silently (their pins, if any were
+// needed, keep today's error).
+func indexRootProviders(root string) map[string][]string {
+	index := map[string][]string{}
+	add := func(name, abs string) {
+		index[name] = append(index[name], abs)
+	}
+	filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if d.IsDir() {
+			if path != root && (strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !strings.HasSuffix(path, ".can") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		m, err := parseModuleText(path, string(data))
+		if err != nil {
+			return nil
+		}
+		abs, err := filepath.Abs(path)
+		if err != nil {
+			return nil
+		}
+		for _, dd := range m.Decls {
+			switch dd := dd.(type) {
+			case *FnDecl:
+				add(dd.Name, abs)
+			case *ConstDecl:
+				add(dd.Name, abs)
+			case *ExternDecl:
+				add(dd.Name, abs)
+			case *TypeDecl:
+				add(dd.Name, abs)
+			case *VariantDecl:
+				add(dd.Name, abs)
+			case *BrandDecl:
+				add(dd.Name, abs)
+			}
+		}
+		return nil
+	})
+	for _, v := range index {
+		sort.Strings(v)
+	}
+	return index
+}
+
 // diagnose runs every check on the open file (sibling .can files in dir
-// provide the uses/provides world) and returns sorted diagnostics.
+// provide the uses/provides world, extended by the usesFallback
+// provider search above) and returns sorted diagnostics.
 // Without a baseline no identity findings report: the editor stays
 // quiet exactly as before.
 func diagnose(dir, name, text string) []Diag {
@@ -215,6 +411,7 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 			texts[f] = string(data)
 		}
 	}
+	all, texts = usesFallback(dir, all, texts)
 	out = append(out, checkStatic(open, text)...)
 	prog, world := buildWorld(open, all, texts)
 	out = append(out, world...)
