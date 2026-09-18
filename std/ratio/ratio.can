@@ -27,7 +27,7 @@
 // with d"0.1", which is exact. Large numerators pay linear fuel.
 
 mod ratio
-  provides [std__ratio__make, std__ratio__add, std__ratio__multiply, std__ratio__divide, std__ratio__to_dec_exact, std__ratio__abs, std__ratio__gcd_from, std__ratio__seen_from, std__ratio__digits_from, std__ratio__digit_from, std__ratio__fold_from, Ratio__Fraction, Ratio__Int, Ratio__Bool, Ratio__Dec, Ratio__Digits]
+  provides [std__ratio__make, std__ratio__add, std__ratio__multiply, std__ratio__divide, std__ratio__to_dec_exact, std__ratio__abs, std__ratio__gcd_from, std__ratio__seen_from, std__ratio__digits_from, std__ratio__digit_from, std__ratio__fold_from, Ratio__Fraction, Ratio__Value, Ratio__Digits]
   uses []
   emits [math.zero_divisor, math.nonterminating_decimal]
 
@@ -39,23 +39,18 @@ type Ratio__Fraction rev 1 (
   denominator: int
 )
 
-type Ratio__Int rev 1 (
-  value: int
-)
-
-type Ratio__Bool rev 1 (
-  value: bool
-)
-
-type Ratio__Dec rev 1 (
-  value: dec
+// G2 pilot (a97): one value shape stamps the int, bool, and
+// dec instances; annotations pin one shape each. Rows stay
+// positional Ok(...) and projections stay .value.
+type Ratio__Value<T> rev 1 (
+  value: T
 )
 
 type Ratio__Digits rev 1 (
   values: Seq<int>
 )
 
-fn std__ratio__abs(value: int) -> Ratio__Int rev 1
+fn std__ratio__abs(value: int) -> Ratio__Value<int> rev 1
   emits []
   tests
     neg(-3) => Ok(3)
@@ -65,7 +60,7 @@ fn std__ratio__abs(value: int) -> Ratio__Int rev 1
     true => Ok(0 - value)
     false => Ok(value)
 
-fn std__ratio__gcd_from(a: int, b: int) -> Ratio__Int rev 1
+fn std__ratio__gcd_from(a: int, b: int) -> Ratio__Value<int> rev 1
   decreases a, b by euclid
   emits []
   tests
@@ -139,7 +134,7 @@ fn std__ratio__divide(left: Ratio__Fraction, right: Ratio__Fraction) -> Ratio__F
       on Ok r => Ok(r.numerator, r.denominator)
       on math.zero_divisor e => forward e
 
-fn std__ratio__seen_from(seen: Seq<int>, target: int, pos: int, fuel: int) -> Ratio__Bool rev 1
+fn std__ratio__seen_from(seen: Seq<int>, target: int, pos: int, fuel: int) -> Ratio__Value<bool> rev 1
   decreases fuel
   emits []
   tests
@@ -176,7 +171,7 @@ fn std__ratio__digits_from(orig_n: int, orig_d: int, rem: int, denom: int, digit
             on Ok r => Ok(r.values)
             on math.nonterminating_decimal e => forward e
 
-fn std__ratio__digit_from(remaining: int, acc: dec, fuel: int) -> Ratio__Dec rev 1
+fn std__ratio__digit_from(remaining: int, acc: dec, fuel: int) -> Ratio__Value<dec> rev 1
   decreases fuel
   emits []
   tests
@@ -191,7 +186,7 @@ fn std__ratio__digit_from(remaining: int, acc: dec, fuel: int) -> Ratio__Dec rev
       false => match call std__ratio__digit_from(remaining - 1, acc + d"1.0", fuel - 1)
         on Ok r => Ok(r.value)
 
-fn std__ratio__fold_from(digits: Seq<int>, pos: int, place: dec, acc: dec, fuel: int) -> Ratio__Dec rev 1
+fn std__ratio__fold_from(digits: Seq<int>, pos: int, place: dec, acc: dec, fuel: int) -> Ratio__Value<dec> rev 1
   decreases fuel
   emits []
   tests
@@ -207,7 +202,7 @@ fn std__ratio__fold_from(digits: Seq<int>, pos: int, place: dec, acc: dec, fuel:
           on Ok r => Ok(r.value)
       false => Ok(acc)
 
-fn std__ratio__to_dec_exact(value: Ratio__Fraction) -> Ratio__Dec rev 1
+fn std__ratio__to_dec_exact(value: Ratio__Fraction) -> Ratio__Value<dec> rev 1
   emits [math.zero_divisor, math.nonterminating_decimal]
   tests
     half(Ratio__Fraction(1, 2)) => Ok(d"0.5")

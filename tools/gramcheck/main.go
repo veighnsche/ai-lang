@@ -37,6 +37,8 @@ var cases = []sampleCase{
 	{"keyword.control.can", []string{"on", "rev", "match", "given", "brand", "const", "forward", "extern", "seal", "seals_from", "decreases", "requires", "ensures", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge", "and", "or", "not", "as", "variant"}},
 	{"storage.type.primitive.can", []string{"str", "int", "dec"}},
 	{"storage.type.builtin.can", []string{"Seq", "Bytes"}},
+	{"storage.type.generic.can", []string{"<T>", "<T=str>", "<str>", "<str,int>"}},
+	{"punctuation.definition.generic.can", []string{"<T>"}},
 	{"constant.numeric.integer.can", []string{"42"}},
 	{"constant.numeric.decimal.can", []string{`d"1.5"`}},
 	{"constant.language.can", []string{"true", "Ok", "_"}},

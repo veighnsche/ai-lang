@@ -1402,3 +1402,80 @@ func TestDiagnoseGenericErrorSurfaces(t *testing.T) {
 		t.Fatalf("expected CAN3014 missing-args error, got %v", diags)
 	}
 }
+
+const lspGenericTypeLib = `mod m
+  provides [m__wrap, m__pick, M__Box, M__O]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  value: T
+)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__wrap(v: str) -> M__Box<str> rev 1
+  emits []
+  tests
+    one("a") => Ok("a")
+  Ok(v)
+
+fn m__pick(b: M__Box<str>) -> M__O rev 1
+  emits []
+  tests
+    hit(M__Box<str>("u")) => Ok("u")
+    miss(M__Box<str>("x")) => Ok("x")
+  match b.value
+    "u" => Ok("u")
+    _ => Ok(b.value)
+`
+
+// G2 generics: a clean generic-type program diagnoses clean —
+// expansion, checking, and lint (which parses pre-expansion
+// templates) all agree there is nothing to flag.
+func TestDiagnoseGenericTypeClean(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.can": lspGenericTypeLib})
+	if diags := diagnose(dir, "m.can", lspGenericTypeLib); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+const lspGenericTypeUnmentioned = `mod m
+  provides [m__go, M__Box, M__O]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  value: T
+)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__go(v: str) -> M__O rev 1
+  emits []
+  tests
+    one("a") => Ok("a")
+  Ok(v)
+`
+
+// G2 generics: an unmentioned template degrades to an editor
+// diagnostic (same code as the CLI), never a panic or a
+// silent pass.
+func TestDiagnoseGenericTypeErrorSurfaces(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.can": lspGenericTypeUnmentioned})
+	diags := diagnose(dir, "m.can", lspGenericTypeUnmentioned)
+	found := false
+	for _, d := range diags {
+		if d.Sev == "error" && d.Code == CodeGenericExpand &&
+			strings.Contains(d.Msg, "never instantiated") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected CAN3014 unmentioned-template error, got %v", diags)
+	}
+}

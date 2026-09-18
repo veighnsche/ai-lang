@@ -2,9 +2,9 @@
 // Prod emit: tests + given stripped.
 export type RatioResult = { $can_kind: "ok"; denominator: bigint; numerator: bigint } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; values: bigint[] } | { $can_kind: "math.zero_divisor"; divisor: bigint } | { $can_kind: "math.nonterminating_decimal"; numerator: bigint; denominator: bigint };
 export type Ratio__Fraction = { numerator: bigint; denominator: bigint };
-export type Ratio__Int = { value: bigint };
-export type Ratio__Bool = { value: boolean };
-export type Ratio__Dec = { value: string };
+export type Ratio__Value$T$bool = { value: boolean };
+export type Ratio__Value$T$dec = { value: string };
+export type Ratio__Value$T$int = { value: bigint };
 export type Ratio__Digits = { values: bigint[] };
 // Exact-decimal runtime (a10): canonical-digit strings, BigInt math.
 function $canDecSplit(d: string): { neg: boolean; ip: string; fp: string } {

@@ -1707,3 +1707,40 @@ func TestLintStdClean(t *testing.T) {
 		t.Fatalf("std must lint clean, got %d findings:\n%s", len(got), strings.Join(msgs, "\n"))
 	}
 }
+
+// G2 generics: lint parses pre-expansion templates, so a template
+// field naming a parameter (value: T) must read as an opaque sort,
+// never as an unknown type or a spurious finding.
+func TestLintGenericTypeTolerant(t *testing.T) {
+	src := `mod m
+  provides [m__wrap, m__pick, M__Box, M__O]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  value: T
+)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__wrap(v: str) -> M__Box<str> rev 1
+  emits []
+  tests
+    one("a") => Ok("a")
+  Ok(v)
+
+fn m__pick(b: M__Box<str>) -> M__O rev 1
+  emits []
+  tests
+    hit(M__Box<str>("u")) => Ok("u")
+    miss(M__Box<str>("x")) => Ok("x")
+  match b.value
+    "u" => Ok("u")
+    _ => Ok(b.value)
+`
+	if diags := lintDiagsFor("m.can", map[string]string{"m.can": src}); len(diags) != 0 {
+		t.Fatalf("expected no lint findings, got %v", diags)
+	}
+}

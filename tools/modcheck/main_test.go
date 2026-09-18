@@ -355,6 +355,49 @@ func TestGenericRowsAndBasePins(t *testing.T) {
 	}
 }
 
+// G2 generics: type mentions (Box<str>) and constructions need no
+// text-level handling — provides/uses keep base names in source,
+// so the base pin resolves exactly like a monomorphic one.
+const genericTypeLib = `mod lib
+  provides [lib__wrap, Lib__Box]
+  uses []
+  emits []
+
+type Lib__Box<T> rev 1 (
+  value: T
+)
+
+fn lib__wrap(v: str) -> Lib__Box<str> rev 1
+  emits []
+  tests
+    one("a") => Ok("a")
+  Ok(v)
+`
+
+const genericTypeUser = `mod user
+  provides [user__go, User__O]
+  uses [Lib__Box@1]
+  emits []
+
+type User__O rev 1 (
+  value: str
+)
+
+fn user__go(b: Lib__Box<str>) -> User__O rev 1
+  emits []
+  tests
+    one(Lib__Box<str>(value = "a")) => Ok("a")
+  match b.value
+    _ => Ok(b.value)
+`
+
+func TestGenericTypeBasePins(t *testing.T) {
+	dir := writeFixtures(t, map[string]string{"lib.can": genericTypeLib, "user.can": genericTypeUser})
+	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
+		t.Fatalf("expected generic-type pair to pass, got %v", errs)
+	}
+}
+
 func TestNewDeclShapes(t *testing.T) {
 	db := strings.Replace(goodDB, "type Db__U rev 1 (\n  id: str\n)", "brand Db__Hash is str rev 1\n\ntype Db__U rev 1 (\n  id: str\n  pw_hash: Db__Hash\n)", 1)
 	db = strings.Replace(db, "provides [db__get]", "provides [db__get, Db__Hash]", 1)

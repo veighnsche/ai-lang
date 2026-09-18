@@ -84,17 +84,60 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 			}
 		}
 	}
-	if len(gens) == 0 && !hasGenericSyntax(mods) {
+	tgens := map[string]*genericTypeInfo{}
+	typeBase := map[string]*Module{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			td, ok := d.(*TypeDecl)
+			if !ok {
+				continue
+			}
+			if _, dup := typeBase[td.Name]; dup {
+				_, wasGeneric := tgens[td.Name]
+				if wasGeneric || len(td.TypeParams) > 0 {
+					emit(m, td.Line, td.Name, "generic %s is already declared: base names are unique", td.Name)
+				}
+				continue
+			}
+			typeBase[td.Name] = m
+			if len(td.TypeParams) > 0 {
+				tgens[td.Name] = &genericTypeInfo{decl: td, mod: m}
+			}
+		}
+	}
+	if len(gens) == 0 && len(tgens) == 0 && !hasGenericSyntax(mods) {
 		return nil
 	}
 	types := genericTypeRegistry(mods)
 	for base, g := range gens {
 		checkGenericTemplate(base, g, emit)
 	}
+	for base, g := range tgens {
+		checkGenericTypeTemplate(base, g, emit)
+	}
+	// Chain-else gate for monomorphic functions: generic ones are
+	// gated in checkGenericTemplate. Late-parsed else text never
+	// rewrites, so any generic head there is rejected up front.
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			if _, ok := gens[fn.Name]; ok {
+				continue
+			}
+			for _, n := range matchNodes(fn.Body) {
+				if n.Kind == MatchChain && chainElseMentions(n.ChainElse, nil) {
+					emit(m, n.ChainElseLine, fn.Name, "chain else in %s must not mention generic calls or constructions", fn.Name)
+				}
+			}
+		}
+	}
 	if len(out) > 0 {
 		return out
 	}
-	known := collectInstances(mods, gens, types, emit)
+	known := collectInstances(mods, gens, tgens, types, emit)
 	if len(out) > 0 {
 		return out
 	}
@@ -113,6 +156,25 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 	}
 	rewriteGenericHeaders(mods, gens, known, texts, &out)
 	rewriteGenericCalls(mods, gens)
+	// G2 type phase: fn stamps are concrete, so every remaining
+	// mention is closed except inside type templates, which
+	// resolve per enclosing instance to a fixpoint.
+	tknown, tused := collectTypeInstances(mods, tgens, types, emit)
+	if len(out) > 0 {
+		return out
+	}
+	for base := range tgens {
+		if len(tknown[base]) == 0 {
+			g := tgens[base]
+			emit(g.mod, g.decl.Line, base, "generic %s is never instantiated: annotate or construct an instance", base)
+		}
+	}
+	if len(out) > 0 {
+		return out
+	}
+	stampGenericTypes(tgens, tknown, mods)
+	rewriteGenericTypeHeaders(mods, tgens, tknown, tused, texts, &out)
+	rewriteTypeMentions(mods, tgens, tknown)
 	return out
 }
 
@@ -125,6 +187,9 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 func hasGenericSyntax(mods []*Module) bool {
 	for _, m := range mods {
 		for _, d := range m.Decls {
+			if td, ok := d.(*TypeDecl); ok && len(td.TypeParams) > 0 {
+				return true
+			}
 			fn, ok := d.(*FnDecl)
 			if !ok {
 				continue
@@ -139,7 +204,7 @@ func hasGenericSyntax(mods []*Module) bool {
 			}
 			hit := false
 			everySmall(fn, func(st smallSite) {
-				if len(st.s.TypeArgs) > 0 {
+				if len(st.s.TypeArgs) > 0 || hasMentionSyntax(st.s.Elem) {
 					hit = true
 				}
 			})
@@ -149,11 +214,43 @@ func hasGenericSyntax(mods []*Module) bool {
 		}
 		hit := false
 		everyModuleSmall(m, func(st smallSite) {
-			if len(st.s.TypeArgs) > 0 {
+			if len(st.s.TypeArgs) > 0 || hasMentionSyntax(st.s.Elem) {
 				hit = true
 			}
 		})
 		if hit {
+			return true
+		}
+	}
+	// G2: a stray `Box<str>` annotation with no template in the
+	// program must still reach expansion (which rejects the
+	// unknown base) rather than failing downstream as a mystery.
+	hit := false
+	eachTypeSlot(mods, func(slot typeSlot) {
+		if hasMentionSyntax(*slot.ref) {
+			hit = true
+		}
+	})
+	return hit
+}
+
+// hasMentionSyntax reports whether a type string holds a generic
+// mention attempt: a `<` with a word before it other than Seq.
+// Seq shapes are self-identical across expansion, never mentions.
+func hasMentionSyntax(t string) bool {
+	for i := 0; i < len(t); i++ {
+		if t[i] != '<' {
+			continue
+		}
+		j := i - 1
+		for j >= 0 && (isWordChar(t[j]) || t[j] == '.') {
+			j--
+		}
+		j++
+		if j >= i {
+			continue
+		}
+		if w := t[j:i]; w != "Seq" {
 			return true
 		}
 	}
@@ -172,7 +269,12 @@ func genericTypeRegistry(mods []*Module) map[string]bool {
 		for _, d := range m.Decls {
 			switch d := d.(type) {
 			case *TypeDecl:
-				types[d.Name] = true
+				// G2: templates are not admittable arguments. A
+				// bare base fills no parameter (closedArg fails
+				// it as unknown), and instantiations nest.
+				if len(d.TypeParams) == 0 {
+					types[d.Name] = true
+				}
 			case *BrandDecl:
 				types[d.Name] = true
 			case *VariantDecl:
@@ -204,11 +306,10 @@ func checkGenericTemplate(base string, g *genericInfo, emit func(*Module, int, s
 	}
 	sigUses := map[string]bool{}
 	markSig := func(t string) {
-		if seenParam[t] {
-			sigUses[t] = true
-		}
-		if elem, ok := seqElemName(t); ok && seenParam[elem] {
-			sigUses[elem] = true
+		for _, p := range fn.TypeParams {
+			if typeMentionsParam(t, p) {
+				sigUses[p] = true
+			}
 		}
 	}
 	for _, p := range fn.Params {
@@ -227,7 +328,7 @@ func checkGenericTemplate(base string, g *genericInfo, emit func(*Module, int, s
 	}
 	for _, n := range matchNodes(fn.Body) {
 		if n.Kind == MatchChain && chainElseMentions(n.ChainElse, fn.TypeParams) {
-			emit(g.mod, n.ChainElseLine, base, "chain else in generic %s must not mention type parameters or generic calls in G1", base)
+			emit(g.mod, n.ChainElseLine, base, "chain else in generic %s must not mention type parameters, generic calls, or generic constructions", base)
 		}
 	}
 }
@@ -236,8 +337,13 @@ func checkGenericTemplate(base string, g *genericInfo, emit func(*Module, int, s
 // chain elaboration) names a param or a generic call. Word-ish
 // matching is enough: this is a rejection gate, not a parser.
 func chainElseMentions(elseText string, params []string) bool {
-	if strings.Contains(elseText, "call ") && strings.Contains(elseText, "<") {
-		return true
+	// A generic head (call or construction) never elaborates:
+	// precise shape, so a call beside a comparison no longer
+	// trips the gate.
+	for i := 0; i < len(elseText); i++ {
+		if elseText[i] == '<' && genericHeadLT(elseText, i) {
+			return true
+		}
 	}
 	for _, p := range params {
 		for _, tok := range strings.FieldsFunc(elseText, func(r rune) bool {
@@ -361,7 +467,7 @@ func everyModuleSmall(m *Module, yield func(smallSite)) {
 func closedArg(arg string, types map[string]bool, variants map[string]bool) error {
 	if elem, ok := seqElemName(arg); ok {
 		if _, nested := seqElemName(elem); nested {
-			return fmt.Errorf("nested instantiation %s is not admitted in G1", arg)
+			return fmt.Errorf("nested instantiation %s is not admitted", arg)
 		}
 		if !types[elem] {
 			return fmt.Errorf("unknown type %s", elem)
@@ -372,7 +478,7 @@ func closedArg(arg string, types map[string]bool, variants map[string]bool) erro
 		return nil
 	}
 	if strings.Contains(arg, "<") {
-		return fmt.Errorf("nested instantiation %s is not admitted in G1", arg)
+		return fmt.Errorf("nested instantiation %s is not admitted", arg)
 	}
 	if !types[arg] {
 		return fmt.Errorf("unknown type %s", arg)
@@ -400,7 +506,7 @@ func variantNames(mods []*Module) map[string]bool {
 // fixpoint over enclosing stamps. Only closed and
 // bare-parameter forms are admitted, so the pair space is
 // finite and the loop terminates when no new pair appears.
-func collectInstances(mods []*Module, gens map[string]*genericInfo, types map[string]bool, emit func(*Module, int, string, string, ...any)) map[string][][]string {
+func collectInstances(mods []*Module, gens map[string]*genericInfo, tgens map[string]*genericTypeInfo, types map[string]bool, emit func(*Module, int, string, string, ...any)) map[string][][]string {
 	variants := variantNames(mods)
 	known := map[string][][]string{}
 	seen := map[string]bool{}
@@ -458,8 +564,76 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, types map[st
 		callee string
 	}
 	var calls []pending
+	// considerCtor validates generic construction forms while the
+	// caller is still known: bare caller parameters or closed
+	// types, mirroring calls. Seeding is the type phase's job;
+	// this pass only rejects malformed shapes with caller scope.
+	considerCtor := func(m *Module, caller *FnDecl, site smallSite) {
+		s := site.s
+		g := tgens[s.Ctor]
+		if g == nil {
+			if len(s.TypeArgs) > 0 {
+				// Unlike calls (whose unknown callees fail
+				// loudly downstream), an unknown constructed
+				// base would degrade: error ctors and Ok
+				// resolve with TypeArgs ignored. Fail here.
+				if types[s.Ctor] {
+					emit(m, site.line, s.Ctor, "type arguments on monomorphic type %s", s.Ctor)
+				} else {
+					emit(m, site.line, s.Ctor, "unknown type %s", s.Ctor)
+				}
+			}
+			return
+		}
+		if len(s.TypeArgs) == 0 {
+			emit(m, site.line, s.Ctor, "generic %s needs explicit type arguments", s.Ctor)
+			return
+		}
+		if len(s.TypeArgs) != len(g.decl.TypeParams) {
+			emit(m, site.line, s.Ctor, "generic %s takes %d type arguments, got %d", s.Ctor, len(g.decl.TypeParams), len(s.TypeArgs))
+			return
+		}
+		params := map[string]bool{}
+		if caller != nil {
+			if _, ok := gens[caller.Name]; ok {
+				for _, p := range caller.TypeParams {
+					params[p] = true
+				}
+			}
+		}
+		for _, a := range s.TypeArgs {
+			if params[a] {
+				continue
+			}
+			if elem, ok := seqElemName(a); ok {
+				if _, nested := seqElemName(elem); nested {
+					emit(m, site.line, s.Ctor, "construction of %s: nested instantiation %s is not admitted", s.Ctor, a)
+					return
+				}
+				if params[elem] {
+					emit(m, site.line, s.Ctor, "construction of %s: type arguments must be bare parameters or closed types", s.Ctor)
+					return
+				}
+			} else if strings.Contains(a, "<") {
+				emit(m, site.line, s.Ctor, "construction of %s: nested instantiation %s is not admitted", s.Ctor, a)
+				return
+			}
+			if err := closedArg(a, types, variants); err != nil {
+				if len(params) > 0 && !strings.Contains(a, "<") {
+					emit(m, site.line, s.Ctor, "construction of %s: %s is not a type parameter of %s", s.Ctor, a, caller.Name)
+				} else {
+					emit(m, site.line, s.Ctor, "construction of %s: %v", s.Ctor, err)
+				}
+				return
+			}
+		}
+	}
 	consider := func(m *Module, caller *FnDecl, site smallSite) {
 		s := site.s
+		if s.Kind == "ctor" {
+			considerCtor(m, caller, site)
+			return
+		}
 		if s.Kind != "call" {
 			return
 		}
@@ -526,7 +700,7 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, types map[st
 			}
 			if elem, ok := seqElemName(a); ok {
 				if _, nested := seqElemName(elem); nested {
-					emit(c.mod, c.site.line, c.callee, "call of %s: nested instantiation %s is not admitted in G1", c.callee, a)
+					emit(c.mod, c.site.line, c.callee, "call of %s: nested instantiation %s is not admitted", c.callee, a)
 					formsOK = false
 					break
 				}
@@ -536,7 +710,7 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, types map[st
 					break
 				}
 			} else if strings.Contains(a, "<") {
-				emit(c.mod, c.site.line, c.callee, "call of %s: nested instantiation %s is not admitted in G1", c.callee, a)
+				emit(c.mod, c.site.line, c.callee, "call of %s: nested instantiation %s is not admitted", c.callee, a)
 				formsOK = false
 				break
 			}
@@ -652,6 +826,23 @@ func substType(t string, sub map[string]string) string {
 		if r, ok := sub[elem]; ok {
 			return "Seq<" + r + ">"
 		}
+		// G2: Seq-wrapped mentions substitute their element.
+		if inner, args, ok := splitMention(elem); ok {
+			out := make([]string, len(args))
+			for i, a := range args {
+				out[i] = substType(strings.TrimSpace(a), sub)
+			}
+			return "Seq<" + inner + "<" + strings.Join(out, ",") + ">>"
+		}
+		return t
+	}
+	// G2: generic mentions substitute per argument.
+	if base, args, ok := splitMention(t); ok {
+		out := make([]string, len(args))
+		for i, a := range args {
+			out[i] = substType(strings.TrimSpace(a), sub)
+		}
+		return base + "<" + strings.Join(out, ",") + ">"
 	}
 	return t
 }
@@ -672,8 +863,8 @@ func substSmall(s *Small, sub map[string]string) {
 	if r, ok := sub[s.Ctor]; ok && s.Ctor != "" {
 		s.Ctor = r
 	}
-	if r, ok := sub[s.Elem]; ok && s.Elem != "" {
-		s.Elem = r
+	if s.Elem != "" {
+		s.Elem = substType(s.Elem, sub)
 	}
 	for _, a := range s.Args {
 		substSmall(a.V, sub)
@@ -1143,5 +1334,519 @@ func rewriteGenericHeaders(mods []*Module, gens map[string]*genericInfo, known m
 			uses = append(uses, mangled...)
 		}
 		m.Hdr["uses"] = uses
+	}
+}
+
+// G2 explicit generic records (a97): the type phase runs after
+// the fn phase, so every mention it sees is closed except inside
+// type templates, which resolve per enclosing instance to a
+// fixpoint. Stamps are plain records; every downstream phase
+// consumes them untouched.
+
+// splitMention splits a whole type string of the shape Base<args>
+// into its base and top-level arguments. ok=false for plain names
+// and unbalanced shapes.
+func splitMention(t string) (string, []string, bool) {
+	lt := strings.IndexByte(t, '<')
+	if lt <= 0 || !strings.HasSuffix(t, ">") {
+		return "", nil, false
+	}
+	base := t[:lt]
+	if !reWord.MatchString(base) {
+		return "", nil, false
+	}
+	args, err := splitTypeArgs(t[lt+1 : len(t)-1])
+	if err != nil {
+		return "", nil, false
+	}
+	return base, args, true
+}
+
+// mentionOf extracts the generic mention in a type string, if it
+// is one: Base<args> with a non-Seq base, unwrapping one Seq
+// layer first. Plain names and Seq shapes are not mentions.
+func mentionOf(t string) (string, []string, bool) {
+	if strings.HasPrefix(t, "Seq<") && strings.HasSuffix(t, ">") {
+		if elem, args, ok := splitMention(t); ok && elem == "Seq" && len(args) == 1 {
+			t = strings.TrimSpace(args[0])
+		} else {
+			return "", nil, false
+		}
+	}
+	base, args, ok := splitMention(t)
+	if !ok || base == "Seq" {
+		return "", nil, false
+	}
+	return base, args, true
+}
+
+// typeMentionsParam reports whether the type string names the
+// parameter: bare, Seq-wrapped, or inside a generic mention's
+// arguments, recursing so Box<Seq<T>> counts.
+func typeMentionsParam(t, p string) bool {
+	if t == p {
+		return true
+	}
+	if elem, ok := seqElemName(t); ok {
+		return typeMentionsParam(elem, p)
+	}
+	if _, args, ok := mentionOf(t); ok {
+		for _, a := range args {
+			if typeMentionsParam(strings.TrimSpace(a), p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// typeSlot is one annotation position holding a type string: a
+// place a generic mention may appear. ref points at the live
+// string so collection and rewriting share one walk.
+type typeSlot struct {
+	mod   *Module
+	line  int
+	token string
+	tpl   *TypeDecl // non-nil when inside a type template
+	state bool
+	ref   *string
+}
+
+func eachTypeSlot(mods []*Module, yield func(typeSlot)) {
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			switch d := d.(type) {
+			case *FnDecl:
+				for i := range d.Params {
+					yield(typeSlot{m, d.Line, d.Params[i][0], nil, false, &d.Params[i][1]})
+				}
+				yield(typeSlot{m, d.Line, d.Name, nil, false, &d.Ret})
+			case *TypeDecl:
+				var tpl *TypeDecl
+				if len(d.TypeParams) > 0 {
+					tpl = d
+				}
+				for i := range d.Fields {
+					yield(typeSlot{m, d.Line, d.Fields[i][0], tpl, false, &d.Fields[i][1]})
+				}
+			case *VariantDecl:
+				for ci := range d.Cases {
+					for i := range d.Cases[ci].Fields {
+						yield(typeSlot{m, d.Cases[ci].Line, d.Cases[ci].Fields[i][0], nil, false, &d.Cases[ci].Fields[i][1]})
+					}
+				}
+			case *ErrorDecl:
+				for i := range d.Fields {
+					yield(typeSlot{m, d.Line, d.Fields[i][0], nil, false, &d.Fields[i][1]})
+				}
+			case *ConstDecl:
+				yield(typeSlot{m, d.Line, d.Name, nil, false, &d.Type})
+			case *ExternDecl:
+				for i := range d.Params {
+					yield(typeSlot{m, d.Line, d.Params[i][0], nil, false, &d.Params[i][1]})
+				}
+				yield(typeSlot{m, d.Line, d.Name, nil, false, &d.Ret})
+			case *StateDecl:
+				yield(typeSlot{m, d.Line, d.Name, nil, true, &d.Type})
+			}
+		}
+	}
+}
+
+type genericTypeInfo struct {
+	decl *TypeDecl
+	mod  *Module
+}
+
+// checkGenericTypeTemplate enforces the template rules for a generic
+// record: every parameter is used in the fields, and the template
+// never fields its own base directly. Types have no termination
+// argument, so direct recursion is rejected; Seq-wrapped
+// self-reference stays legal, exactly like monomorphic records.
+func checkGenericTypeTemplate(base string, g *genericTypeInfo, emit func(*Module, int, string, string, ...any)) {
+	uses := map[string]bool{}
+	for _, f := range g.decl.Fields {
+		for _, p := range g.decl.TypeParams {
+			if typeMentionsParam(f[1], p) {
+				uses[p] = true
+			}
+		}
+		if mbase, _, ok := splitMention(f[1]); ok && mbase == base {
+			emit(g.mod, g.decl.Line, f[0], "generic %s fields its own base: recursive types are not admitted", base)
+		}
+	}
+	for _, p := range g.decl.TypeParams {
+		if !uses[p] {
+			emit(g.mod, g.decl.Line, p, "type parameter %s of %s is never used in its fields", p, base)
+		}
+	}
+}
+
+// pairKey memoizes (base, args) pairs across collection and
+// rewriting, mirroring the fn instance memo.
+func pairKey(base string, args []string) string {
+	return base + "\x00" + strings.Join(args, "\x00")
+}
+
+// collectTypeInstances gathers every (base, args) instance a generic
+// record needs, plus the per-module used sets for pin rewriting.
+// Closed mentions seed directly; mentions inside type templates
+// resolve per enclosing instance to a fixpoint. Only closed forms
+// and bare own-parameters survive validation, so the memoized pair
+// space is finite: the loop ends when nothing new appears.
+func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, types map[string]bool, emit func(*Module, int, string, string, ...any)) (map[string][][]string, map[*Module]map[string]map[string]bool) {
+	variants := variantNames(mods)
+	known := map[string][][]string{}
+	seen := map[string]bool{}
+	add := func(base string, args []string) bool {
+		key := pairKey(base, args)
+		if seen[key] {
+			return false
+		}
+		seen[key] = true
+		known[base] = append(known[base], append([]string{}, args...))
+		return true
+	}
+	used := map[*Module]map[string]map[string]bool{}
+	note := func(m *Module, base string, args []string) {
+		if used[m] == nil {
+			used[m] = map[string]map[string]bool{}
+		}
+		if used[m][base] == nil {
+			used[m][base] = map[string]bool{}
+		}
+		used[m][base][mangleInstance(base, args)] = true
+	}
+	failed := false
+	// seedClosed validates one closed mention and records it.
+	seedClosed := func(m *Module, line int, token, base string, args []string) {
+		g := tgens[base]
+		if g == nil {
+			if types[base] {
+				emit(m, line, token, "type arguments on monomorphic type %s", base)
+			} else {
+				emit(m, line, token, "unknown type %s", base)
+			}
+			failed = true
+			return
+		}
+		if len(args) != len(g.decl.TypeParams) {
+			emit(m, line, token, "generic %s takes %d type arguments, got %d", base, len(g.decl.TypeParams), len(args))
+			failed = true
+			return
+		}
+		for _, a := range args {
+			if err := closedArg(strings.TrimSpace(a), types, variants); err != nil {
+				emit(m, line, token, "%v", err)
+				failed = true
+				return
+			}
+		}
+		add(base, args)
+		note(m, base, args)
+	}
+	// Template-relative mentions resolve per enclosing instance
+	// below; the defining module owns the resolved reference.
+	type relative struct {
+		mod   *Module
+		tpl   *TypeDecl
+		line  int
+		token string
+		base  string
+		args  []string
+	}
+	var relatives []relative
+	eachTypeSlot(mods, func(slot typeSlot) {
+		t := strings.TrimSpace(*slot.ref)
+		base, args, ok := mentionOf(t)
+		if !ok {
+			return
+		}
+		if slot.state {
+			// Same shape as checkStateDecl, pre-rewrite so the
+			// message names the source mention, never a stamp.
+			emit(slot.mod, slot.line, t, "state %s holds %s: cells hold str, int, bool, or dec", slot.token, t)
+			failed = true
+			return
+		}
+		if slot.tpl == nil {
+			seedClosed(slot.mod, slot.line, slot.token, base, args)
+			return
+		}
+		params := map[string]bool{}
+		for _, p := range slot.tpl.TypeParams {
+			params[p] = true
+		}
+		usesParam := false
+		for _, a := range args {
+			a = strings.TrimSpace(a)
+			if params[a] {
+				usesParam = true
+				continue
+			}
+			// Annotations admit Seq-wrapped parameters (unlike
+			// call and construction argument lists, which take
+			// bare parameters or closed types only).
+			if elem, isSeq := seqElemName(a); isSeq && params[elem] {
+				usesParam = true
+				continue
+			}
+			if err := closedArg(a, types, variants); err != nil {
+				emit(slot.mod, slot.line, slot.token, "%v", err)
+				failed = true
+				return
+			}
+		}
+		g := tgens[base]
+		if g == nil {
+			if types[base] {
+				emit(slot.mod, slot.line, slot.token, "type arguments on monomorphic type %s", base)
+			} else {
+				emit(slot.mod, slot.line, slot.token, "unknown type %s", base)
+			}
+			failed = true
+			return
+		}
+		if len(args) != len(g.decl.TypeParams) {
+			emit(slot.mod, slot.line, slot.token, "generic %s takes %d type arguments, got %d", base, len(g.decl.TypeParams), len(args))
+			failed = true
+			return
+		}
+		if !usesParam {
+			add(base, args)
+			note(slot.mod, base, args)
+			return
+		}
+		relatives = append(relatives, relative{slot.mod, slot.tpl, slot.line, slot.token, base, args})
+	})
+	considerSmall := func(m *Module, s *Small, line int) {
+		if s == nil {
+			return
+		}
+		// Generic constructions seed their instance. Forms were
+		// validated in the fn pass; re-check closed args here
+		// so walker drift fails closed, never silently.
+		if s.Kind == "ctor" && len(s.TypeArgs) > 0 {
+			if _, ok := tgens[s.Ctor]; !ok {
+				return
+			}
+			for _, a := range s.TypeArgs {
+				if err := closedArg(a, types, variants); err != nil {
+					emit(m, line, s.Ctor, "construction of %s: %v", s.Ctor, err)
+					failed = true
+					return
+				}
+			}
+			add(s.Ctor, s.TypeArgs)
+			note(m, s.Ctor, s.TypeArgs)
+		}
+		if s.Elem != "" {
+			if base, args, ok := mentionOf(s.Elem); ok {
+				seedClosed(m, line, "Seq", base, args)
+			}
+		}
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if fn, ok := d.(*FnDecl); ok {
+				everySmall(fn, func(st smallSite) { considerSmall(m, st.s, st.line) })
+			}
+		}
+		everyModuleSmall(m, func(st smallSite) { considerSmall(m, st.s, st.line) })
+	}
+	if failed {
+		return known, used
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, r := range relatives {
+			for _, inst := range known[r.tpl.Name] {
+				sub := map[string]string{}
+				for i, p := range r.tpl.TypeParams {
+					sub[p] = inst[i]
+				}
+				resolved := make([]string, len(r.args))
+				ok := true
+				for i, a := range r.args {
+					resolved[i] = substType(strings.TrimSpace(a), sub)
+					if err := closedArg(resolved[i], types, variants); err != nil {
+						emit(r.mod, r.line, r.token, "%v", err)
+						failed = true
+						ok = false
+						break
+					}
+				}
+				if !ok {
+					continue
+				}
+				if add(r.base, resolved) {
+					changed = true
+				}
+				note(r.mod, r.base, resolved)
+			}
+		}
+	}
+	return known, used
+}
+
+// stampGenericTypes replaces each type template with one plain
+// record per instance, substituting fields per instance. Stamps
+// take the template rev and splice by identity, so sibling order
+// never strands a template (a93 amendment 6 applies here too).
+func stampGenericTypes(tgens map[string]*genericTypeInfo, known map[string][][]string, mods []*Module) {
+	for base, g := range tgens {
+		insts := append([][]string{}, known[base]...)
+		sort.Slice(insts, func(i, j int) bool {
+			return mangleInstance(base, insts[i]) < mangleInstance(base, insts[j])
+		})
+		var stamps []Decl
+		for _, args := range insts {
+			sub := map[string]string{}
+			for i, p := range g.decl.TypeParams {
+				sub[p] = args[i]
+			}
+			st := &TypeDecl{
+				Name:       mangleInstance(base, args),
+				Rev:        g.decl.Rev,
+				TypeParams: nil,
+				Line:       g.decl.Line,
+			}
+			for _, f := range g.decl.Fields {
+				st.Fields = append(st.Fields, [2]string{f[0], substType(f[1], sub)})
+			}
+			stamps = append(stamps, st)
+		}
+		m := g.mod
+		at := -1
+		for i, d := range m.Decls {
+			if d == Decl(g.decl) {
+				at = i
+				break
+			}
+		}
+		if at < 0 {
+			continue
+		}
+		decls := make([]Decl, 0, len(m.Decls)-1+len(stamps))
+		decls = append(decls, m.Decls[:at]...)
+		decls = append(decls, stamps...)
+		decls = append(decls, m.Decls[at+1:]...)
+		m.Decls = decls
+		if m.GenericBase == nil {
+			m.GenericBase = map[string]string{}
+		}
+		for _, args := range insts {
+			m.GenericBase[mangleInstance(base, args)] = base
+		}
+	}
+}
+
+// rewriteGenericTypeHeaders swaps base names for stamps in provides
+// and per-module used stamps in uses, mirroring the fn pass.
+// Type pins are optional, but when present they resolve against
+// stamps exactly like fn pins, so text-level tools (which see
+// base names) and the compiler agree.
+func rewriteGenericTypeHeaders(mods []*Module, tgens map[string]*genericTypeInfo, known map[string][][]string, used map[*Module]map[string]map[string]bool, texts map[string]string, out *[]Diag) {
+	for base, g := range tgens {
+		var stamps []string
+		for _, args := range known[base] {
+			stamps = append(stamps, mangleInstance(base, args))
+		}
+		sort.Strings(stamps)
+		var provides []string
+		for _, p := range g.mod.Hdr["provides"] {
+			if p == base {
+				provides = append(provides, stamps...)
+			} else {
+				provides = append(provides, p)
+			}
+		}
+		g.mod.Hdr["provides"] = provides
+	}
+	for _, m := range mods {
+		var uses []string
+		for _, u := range m.Hdr["uses"] {
+			base := pinRe.ReplaceAllString(u, "")
+			if _, ok := tgens[base]; !ok {
+				uses = append(uses, u)
+				continue
+			}
+			set := used[m][base]
+			if len(set) == 0 {
+				d := spanDiag(texts[m.ID], locateLine(texts[m.ID], u, 1), "warning",
+					fmt.Sprintf("uses %s but %s never instantiates it", u, m.Mod), u, CodeUnusedUses)
+				d.File = qualifiedFile(mods, m)
+				*out = append(*out, d)
+				continue
+			}
+			suffix := ""
+			if i := strings.LastIndex(u, "@"); i >= 0 {
+				suffix = u[i:]
+			}
+			var mangled []string
+			for stamp := range set {
+				mangled = append(mangled, stamp+suffix)
+			}
+			sort.Strings(mangled)
+			uses = append(uses, mangled...)
+		}
+		m.Hdr["uses"] = uses
+	}
+}
+
+// rewriteTypeMentions renames every generic mention to its stamped
+// copy: annotation strings, generic constructions, and sequence
+// element types. Runs after stamping, so every valid mention
+// resolves; invalid ones aborted the phase before.
+func rewriteTypeMentions(mods []*Module, tgens map[string]*genericTypeInfo, known map[string][][]string) {
+	stampOf := map[string]string{}
+	for base, insts := range known {
+		if _, ok := tgens[base]; !ok {
+			continue
+		}
+		for _, args := range insts {
+			stampOf[pairKey(base, args)] = mangleInstance(base, args)
+		}
+	}
+	rewriteStr := func(t string) string {
+		base, args, ok := mentionOf(t)
+		if !ok {
+			return t
+		}
+		stamp, ok := stampOf[pairKey(base, args)]
+		if !ok {
+			return t
+		}
+		if strings.HasPrefix(t, "Seq<") {
+			return "Seq<" + stamp + ">"
+		}
+		return stamp
+	}
+	eachTypeSlot(mods, func(slot typeSlot) {
+		*slot.ref = rewriteStr(*slot.ref)
+	})
+	rewriteOne := func(s *Small) {
+		if s == nil {
+			return
+		}
+		if s.Kind == "ctor" && len(s.TypeArgs) > 0 {
+			if _, ok := tgens[s.Ctor]; ok {
+				if stamp, ok := stampOf[pairKey(s.Ctor, s.TypeArgs)]; ok {
+					s.Ctor = stamp
+					s.TypeArgs = nil
+				}
+			}
+		}
+		if s.Elem != "" {
+			s.Elem = rewriteStr(s.Elem)
+		}
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if fn, ok := d.(*FnDecl); ok {
+				everySmall(fn, func(st smallSite) { rewriteOne(st.s) })
+			}
+		}
+		everyModuleSmall(m, func(st smallSite) { rewriteOne(st.s) })
 	}
 }

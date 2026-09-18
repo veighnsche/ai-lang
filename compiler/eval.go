@@ -1923,7 +1923,9 @@ func checkNaming(m *Module, text string) []Diag {
 					fmt.Sprintf("function name %q must match domain__verb", d.Name), d.Name, CodeFnNaming))
 			}
 		case *TypeDecl:
-			if !typeNameRe.MatchString(d.Name) {
+			if _, isStamp := m.GenericBase[d.Name]; !isStamp && !typeNameRe.MatchString(d.Name) {
+				// Stamps ($-mangled) never appear in source, so
+				// source naming grammar does not apply to them.
 				out = append(out, spanDiag(text, d.Line, "error",
 					fmt.Sprintf("type name %q must match Domain__Name", d.Name), d.Name, CodeTypeNaming))
 			}

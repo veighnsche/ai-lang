@@ -246,10 +246,15 @@ type ErrorDecl struct {
 func (d *ErrorDecl) declKind() string { return "error" }
 
 type TypeDecl struct {
-	Name   string
-	Rev    int
-	Fields [][2]string
-	Line   int
+	Name string
+	Rev  int
+	// TypeParams names the declared type parameters (G2):
+	// empty for monomorphic records. Expansion stamps one
+	// monomorphic copy per distinct instantiation; the
+	// template itself never reaches checking.
+	TypeParams []string
+	Fields     [][2]string
+	Line       int
 }
 
 func (d *TypeDecl) declKind() string    { return "type" }
@@ -480,7 +485,7 @@ func splitTopInner(s string, sep rune, keepEmpty bool, callAware bool) []string 
 		} else if ch == '"' {
 			inStr = true
 			cur.WriteByte(ch)
-		} else if callAware && ch == '<' && (isCallGenericHead(s, i) || (len(stack) > 0 && stack[len(stack)-1] == '>')) {
+		} else if ch == '<' && (genericHeadLT(s, i) || (len(stack) > 0 && stack[len(stack)-1] == '>') || (callAware && isCallGenericHead(s, i))) {
 			stack = append(stack, '>')
 			cur.WriteByte(ch)
 		} else if closer, ok := pairs[ch]; ok {
@@ -637,6 +642,11 @@ func findTop(s string, ops []string) (int, string) {
 					continue
 				}
 			}
+			// G2: a generic head is one atom too.
+			if n := genericHeadLen(s[i:]); n > 0 {
+				i += n - 1
+				continue
+			}
 			for _, op := range ops {
 				if strings.HasPrefix(s[i:], op) {
 					return i, op
@@ -683,6 +693,11 @@ func findTopWord(s string, words []string) (int, string) {
 					i += end
 					continue
 				}
+			}
+			// G2: a generic head is one atom too.
+			if n := genericHeadLen(s[i:]); n > 0 {
+				i += n - 1
+				continue
 			}
 			for _, w := range words {
 				if !strings.HasPrefix(s[i:], w) {
@@ -747,6 +762,11 @@ func findLastTop(s string, ops []string) (int, string) {
 					continue
 				}
 			}
+			// G2: a generic head is one atom too.
+			if n := genericHeadLen(s[i:]); n > 0 {
+				i += n - 1
+				continue
+			}
 			for _, op := range ops {
 				if strings.HasPrefix(s[i:], op) {
 					best, bestOp = i, op
@@ -800,6 +820,10 @@ var (
 	// second < fails here with a precise diagnostic instead of a
 	// binop cascade downstream.
 	reSeqElem = regexp.MustCompile(`^[A-Za-z_][\w.]*$`)
+	// reGenericElem admits one instantiated element type inside
+	// Seq<...> (G2): Base<args> with a non-Seq base. Nested user
+	// args and Seq<Seq<..>> still fail at reSeqElem's message.
+	reGenericElem = regexp.MustCompile(`^([A-Za-z_][\w.]*)<(.+)>$`)
 )
 
 // canonDec normalizes dec digits to canonical form: no leading integer
@@ -1074,6 +1098,31 @@ func parseSmall(s string) (*Small, error) {
 			return nil, err
 		}
 		return parseSmall("(" + head + ")" + s[end+1:])
+	}
+	// G2: generic constructions Box<str>(...). Claimed like
+	// sequence heads so the <> never reads as comparison; a
+	// valid head with trailing text parenthesizes and reparses
+	// the same way.
+	if n := genericHeadLen(s); n > 0 {
+		rest := s[n:]
+		end, err := balanced(rest, 0)
+		if err != nil {
+			return nil, fmt.Errorf("bad generic construction %s: unbalanced (...)", s)
+		}
+		if end == len(rest)-1 {
+			return parseGenericCtor(s)
+		}
+		head := s[:n+end+1]
+		if _, err := parseGenericCtor(head); err != nil {
+			return nil, err
+		}
+		return parseSmall("(" + head + ")" + s[n+end+1:])
+	}
+	// A bare instantiated mention in value position is never a
+	// comparison (`a<b>` without a trailing `>` keeps its old
+	// reading): fail precisely instead of cascading.
+	if m := reGenericElem.FindStringSubmatch(s); m != nil && !strings.ContainsAny(m[2], " \t") {
+		return nil, fmt.Errorf("type %s is not a value: construct it with %s(...)", s, s)
 	}
 	// Slice 5: eager boolean operators, loosest precedence: or,
 	// then and, each splitting at the first top-level whole
@@ -1413,11 +1462,109 @@ func parseSmallMul(s string) (*Small, error) {
 	return nil, fmt.Errorf("cannot parse expression: %s", s)
 }
 
+// angleEnd returns the index of the `>` balancing the `<` at
+// s[start], or -1 when unbalanced. Quotes are not special:
+// heads never contain them.
+func angleEnd(s string, start int) int {
+	depth := 0
+	for i := start; i < len(s); i++ {
+		switch s[i] {
+		case '<':
+			depth++
+		case '>':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// genericHeadLen reports the length of the generic head opening
+// at s[0] (`Word<balanced>` immediately followed by `(`), or 0
+// when s holds no head there. The paren itself stays for normal
+// depth handling; only the `<>` span is skipped, so its commas
+// never split an outer list and its brackets never read as
+// comparisons. `w<x>(y)` is therefore always a generic head now,
+// never a chained comparison (zero corpus occurrences); `w<x>[y]`
+// and spaced forms keep their old comparison readings.
+func genericHeadLen(s string) int {
+	i := 0
+	for i < len(s) && (isWordChar(s[i]) || s[i] == '.') {
+		i++
+	}
+	if i == 0 || i >= len(s) || s[i] != '<' {
+		return 0
+	}
+	if c := s[0]; !(c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
+		return 0
+	}
+	end := angleEnd(s, i)
+	if end < 0 || end+1 >= len(s) || s[end+1] != '(' {
+		return 0
+	}
+	return end + 1
+}
+
+// genericHeadLT reports whether the `<` at s[i] opens a generic
+// head: word characters immediately before, a balanced `<>`
+// span, and `(` immediately after. The backward twin of
+// genericHeadLen for scanners positioned at the bracket.
+func genericHeadLT(s string, i int) bool {
+	j := i - 1
+	for j >= 0 && (isWordChar(s[j]) || s[j] == '.') {
+		j--
+	}
+	j++
+	if j >= i {
+		return false
+	}
+	if c := s[j]; !(c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z') {
+		return false
+	}
+	end := angleEnd(s, i)
+	return end >= 0 && end+1 < len(s) && s[end+1] == '('
+}
+
+// parseGenericCtor parses one generic construction `Base<args>(...)`
+// (G2): the base names the record template, the args instantiate
+// it. Semantic validation (known base, arity, closed args) belongs
+// to expansion, not parsing — like splitTypeArgs for calls.
+func parseGenericCtor(s string) (*Small, error) {
+	lt := strings.IndexByte(s, '<')
+	if lt <= 0 {
+		return nil, fmt.Errorf("bad generic construction %s: want Name<...>(...)", s)
+	}
+	base := s[:lt]
+	gt := angleEnd(s, lt)
+	if gt < 0 {
+		return nil, fmt.Errorf("bad generic construction %s: want %s<...>(...)", s, base)
+	}
+	tyargs, err := splitTypeArgs(s[lt+1 : gt])
+	if err != nil {
+		return nil, err
+	}
+	rest := s[gt+1:]
+	end, err := balanced(rest, 0)
+	if err != nil || end != len(rest)-1 {
+		return nil, fmt.Errorf("bad generic construction %s: want %s<...>(...)", s, base)
+	}
+	args, err := parseArgs(rest[1:end])
+	if err != nil {
+		return nil, err
+	}
+	return &Small{Kind: "ctor", Ctor: base, TypeArgs: tyargs, Args: args}, nil
+}
+
 // seqHeadEnd ends the Seq<T>[...] head starting at s[0]: the index
 // of the closing bracket, or -1 when s holds no valid head there.
 // Whitespace between > and [ is tolerated, like everywhere else.
 func seqHeadEnd(s string) int {
-	close := strings.Index(s, ">")
+	close := angleEnd(s, len("Seq<")-1)
+	if close < 0 {
+		close = strings.Index(s, ">")
+	}
 	if close < 0 {
 		return -1
 	}
@@ -1440,13 +1587,21 @@ func seqHeadEnd(s string) int {
 // so members containing commas parse; an empty bracket is the empty
 // sequence. Anything else starting with Seq< fails here precisely.
 func parseSeqLit(s string) (*Small, error) {
-	close := strings.Index(s, ">")
+	close := angleEnd(s, len("Seq<")-1)
+	if close < 0 {
+		close = strings.Index(s, ">")
+	}
 	if close < 0 {
 		return nil, fmt.Errorf("bad sequence literal %s: want Seq<T>[...]", s)
 	}
 	elem := s[len("Seq<"):close]
 	if !reSeqElem.MatchString(elem) {
-		return nil, fmt.Errorf("bad sequence element type %q: want one plain type name, no nesting", elem)
+		// G2: one instantiated element type. Nested user args
+		// parse so expansion owns the nesting rejection;
+		// Seq<Seq<..>> keeps its precise parse error.
+		if m := reGenericElem.FindStringSubmatch(elem); m == nil || m[1] == "Seq" {
+			return nil, fmt.Errorf("bad sequence element type %q: want one plain type name, no nesting", elem)
+		}
 	}
 	rest := strings.TrimSpace(s[close+1:])
 	if !strings.HasPrefix(rest, "[") {
@@ -1581,18 +1736,18 @@ func at(line int, err error) error {
 var (
 	reHdrLine = regexp.MustCompile(`^(provides|uses|emits)\s*\[(.*)\]$`)
 	reError   = regexp.MustCompile(`^error\s+([\w.]+)\((.*)\)$`)
-	reType    = regexp.MustCompile(`^type\s+(\w+)\s+rev\s+(\d+)\s*\($`)
+	reType    = regexp.MustCompile(`^type\s+(\w+)(?:<([\w\s,]+)>)?\s+rev\s+(\d+)\s*\($`)
 	// reVariant mirrors reType; reVariantCase heads a case row
 	// with kwargs payload fields (empty parens = nullary).
 	reVariant     = regexp.MustCompile(`^variant\s+(\w+)\s+rev\s+(\d+)\s*\($`)
 	reVariantCase = regexp.MustCompile(`^case\s+(\w+)\((.*)\)$`)
 	reBrand       = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
-	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+(?:<\w+>)?)\s+rev\s+(\d+)\s*=\s*(.+)$`)
-	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reFn          = regexp.MustCompile(`^fn\s+(\w+)(?:<([\w\s,]+)>)?\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+(?:<.+>)?)\s+rev\s+(\d+)\s*=\s*(.+)$`)
+	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<.+>)?)\s+rev\s+(\d+)$`)
+	reFn          = regexp.MustCompile(`^fn\s+(\w+)(?:<([\w\s,]+)>)?\((.*)\)\s*->\s*(\w+(?:<.+>)?)\s+rev\s+(\d+)$`)
 	reExport      = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
 	reBridge      = regexp.MustCompile(`^asset_bridge\s+(\w+)\s*,\s*(\w+)\s+from\s+(\w+)\s+via\s+(\w+)@(\d+)\s+for\s+(\w+)$`)
-	reField       = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
+	reField       = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<.+>)?)$`)
 	reTest        = regexp.MustCompile(`^(\w+)(?:<(.+?)>)?\((.*)\)\s*=>\s*(.+)$`)
 	reGiven       = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
 	reArm         = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
@@ -1602,11 +1757,14 @@ var (
 	reDecreases       = regexp.MustCompile(`^decreases\s+(\w+)$`)
 	reDecreasesSchema = regexp.MustCompile(`^decreases\s+(\w+)\s*,\s*(\w+)\s+by\s+(euclid|narrowing)$`)
 	reEffects         = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
-	reState           = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+)\s*=\s*(.+)$`)
-	reRevWord         = regexp.MustCompile(`\brev\b`)
-	reTypeParam       = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
-	rePatVar          = regexp.MustCompile(`^([\w.]+)\s+(\w+)$`)
-	rePatWild         = regexp.MustCompile(`^([\w.]+)\s+_$`)
+	// G2: the state sort admits the <> shape so expansion
+	// rejects generic instances with a naming message; the
+	// base-only rule itself is unchanged.
+	reState     = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+(?:<.+>)?)\s*=\s*(.+)$`)
+	reRevWord   = regexp.MustCompile(`\brev\b`)
+	reTypeParam = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
+	rePatVar    = regexp.MustCompile(`^([\w.]+)\s+(\w+)$`)
+	rePatWild   = regexp.MustCompile(`^([\w.]+)\s+_$`)
 )
 
 func parseFields(s, what string) ([][2]string, error) {
@@ -1833,8 +1991,12 @@ func parseModuleText(name, text string) (*Module, error) {
 				}
 				return nil, at(declLine, fmt.Errorf("bad type decl: %s", code))
 			}
-			rev, _ := strconv.Atoi(m[2])
-			decl := &TypeDecl{Name: m[1], Rev: rev, Line: declLine}
+			rev, _ := strconv.Atoi(m[3])
+			typarams, err := parseTypeParams(m[2])
+			if err != nil {
+				return nil, at(declLine, err)
+			}
+			decl := &TypeDecl{Name: m[1], Rev: rev, TypeParams: typarams, Line: declLine}
 			i++
 			for i < len(rows) && rows[i].indent > 0 {
 				fs, err := parseFields(strings.TrimSuffix(rows[i].code, ","), "type")

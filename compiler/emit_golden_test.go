@@ -234,6 +234,29 @@ func TestGoldenStdScalars(t *testing.T) {
 	}
 }
 
+// G2 pilot (a97): the first golden pinning ratio, added with the
+// Ratio__Value 3→1 unification.
+func TestGoldenStdRatio(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../std/ratio/ratio.can",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"ratio.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../std/ratio", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		checkGoldenFile(t, f, got, want)
+	}
+}
+
 // TestGoldenStdHtml freezes the html-constructor cut: the brand and
 // fragment module must transpile byte-identical, so its decision
 // tables can never silently rot. (No golden covered html before

@@ -156,6 +156,128 @@ func TestParseGenericScrutineeSplit(t *testing.T) {
 	}
 }
 
+// G2 parse: a generic record declares type parameters, and
+// constructions instantiate explicitly. Expansion (not parsing)
+// validates bases, arity, and argument shape.
+const genericTypeParseGood = `mod m
+  provides [m__wrap, M__Box]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  value: T
+)
+
+fn m__wrap(v: str) -> M__Box<str> rev 1
+  emits []
+  tests
+    one("a") => Ok("a")
+  Ok(v)
+`
+
+func TestParseGenericTypeDecl(t *testing.T) {
+	m, err := parseModuleText("m.can", genericTypeParseGood)
+	if err != nil {
+		t.Fatalf("generic type decl must parse: %v", err)
+	}
+	var td *TypeDecl
+	for _, d := range m.Decls {
+		if tt, ok := d.(*TypeDecl); ok && tt.Name == "M__Box" {
+			td = tt
+		}
+	}
+	if td == nil {
+		t.Fatal("M__Box missing after parse")
+	}
+	if len(td.TypeParams) != 1 || td.TypeParams[0] != "T" {
+		t.Fatalf("type params = %v, want [T]", td.TypeParams)
+	}
+	if len(td.Fields) != 1 || td.Fields[0][0] != "value" || td.Fields[0][1] != "T" {
+		t.Fatalf("fields = %v, want [[value T]]", td.Fields)
+	}
+	var fn *FnDecl
+	for _, d := range m.Decls {
+		if f, ok := d.(*FnDecl); ok && f.Name == "m__wrap" {
+			fn = f
+		}
+	}
+	if fn == nil || fn.Ret != "M__Box<str>" {
+		t.Fatalf("ret = %q, want M__Box<str>", fn.Ret)
+	}
+}
+
+func TestParseGenericCtor(t *testing.T) {
+	s, err := parseSmall(`M__Box<str>("a")`)
+	if err != nil {
+		t.Fatalf("generic construction must parse: %v", err)
+	}
+	if s.Kind != "ctor" || s.Ctor != "M__Box" {
+		t.Fatalf("ctor = %+v, want M__Box construction", s)
+	}
+	if len(s.TypeArgs) != 1 || s.TypeArgs[0] != "str" {
+		t.Fatalf("ctor type args = %v, want [str]", s.TypeArgs)
+	}
+	// Head-first and head-last expressions split around the
+	// head, never inside it.
+	for _, expr := range []string{`M__Box<str>(x) == y`, `x == M__Box<str>(v)`, `M__Box<str>(x) or M__Box<str>(y)`} {
+		if _, err := parseSmall(expr); err != nil {
+			t.Fatalf("expr %s must parse: %v", expr, err)
+		}
+	}
+	// Chained comparisons keep their old readings: only
+	// `w<x>(` is a head.
+	cmp, err := parseSmall(`a<b>c`)
+	if err != nil {
+		t.Fatalf("chained comparison must parse: %v", err)
+	}
+	if cmp.Kind != "binop" || cmp.Op != "<" {
+		t.Fatalf("a<b>c = %+v, want outer <", cmp)
+	}
+	// A bare mention in value position fails precisely.
+	if _, err := parseSmall(`M__Box<str>`); err == nil || !strings.Contains(err.Error(), "is not a value") {
+		t.Fatalf("bare mention must fail precisely, got %v", err)
+	}
+}
+
+func TestParseGenericHeadSplit(t *testing.T) {
+	lists := []struct {
+		in   string
+		want []string
+	}{
+		{`M__Box<str,int>(x), y`, []string{`M__Box<str,int>(x)`, `y`}},
+		{`M__Box<str>(x), M__Box<int>(y)`, []string{`M__Box<str>(x)`, `M__Box<int>(y)`}},
+		{`a<b, c`, []string{`a<b`, `c`}},
+		{`f(a<b), y`, []string{`f(a<b)`, `y`}},
+	}
+	for _, l := range lists {
+		got, err := splitMatchList(l.in)
+		if err != nil {
+			t.Fatalf("split %q: %v", l.in, err)
+		}
+		if len(got) != len(l.want) {
+			t.Fatalf("split %q = %v, want %v", l.in, got, l.want)
+		}
+		for i := range got {
+			if got[i] != l.want[i] {
+				t.Fatalf("split %q = %v, want %v", l.in, got, l.want)
+			}
+		}
+	}
+}
+
+func TestParseGenericSeqElem(t *testing.T) {
+	s, err := parseSmall(`Seq<M__Box<str>>[M__Box<str>("a")]`)
+	if err != nil {
+		t.Fatalf("Seq of instance must parse: %v", err)
+	}
+	if s.Kind != "seqlit" || s.Elem != "M__Box<str>" {
+		t.Fatalf("seqlit = %+v, want elem M__Box<str>", s)
+	}
+	if _, err := parseSmall(`Seq<Seq<str>>["a"]`); err == nil || !strings.Contains(err.Error(), "no nesting") {
+		t.Fatalf("nested Seq must keep its parse error, got %v", err)
+	}
+}
+
 func TestParseGenericRejects(t *testing.T) {
 	base := genericParseGood
 	cases := []struct {
