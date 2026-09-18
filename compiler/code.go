@@ -87,6 +87,8 @@ const (
 	CodeBytesElementRange    = "AIL6009"
 	CodeBytesExportAuthority = "AIL6010"
 	CodeBytesExportShape     = "AIL6011"
+	CodeAssetBridgeAuthority = "AIL6014"
+	CodeAssetBridgeShape     = "AIL6015"
 	CodePrimitiveShadow      = "AIL6012"
 	CodeRevisionIdentity     = "AIL6013"
 	CodeContractMalformed    = "AIL4301"
@@ -119,5 +121,5 @@ var allCodes = []string{
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
-	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodePrimitiveShadow, CodeRevisionIdentity,
+	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodePrimitiveShadow, CodeRevisionIdentity,
 }

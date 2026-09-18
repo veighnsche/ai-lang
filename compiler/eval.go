@@ -1015,6 +1015,53 @@ func evBytesEncodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string
 	return &Value{Kind: "ok", Dict: map[string]*Value{"value": {Kind: "bytes", Bytes: out}}}, nil
 }
 
+// evAssetFieldsOp evaluates witness projection (S2 slice plan): the
+// approved url, digest, and role out of a well-formed witness canonical
+// string, plus a policy-handle shape check. Restricted calls refuse
+// loud without a certificate; the refusal must never become trusted
+// script evidence (certificates issue before linkage for exactly this
+// reason). A malformed witness or handle is an internal refusal, never
+// a language outcome: only schema bodies mint witnesses, so a
+// malformed one is failed test tooling, not a rejected asset —
+// rejections of well-formed witnesses stay declared builder errors.
+func evAssetFieldsOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if scrut.ExportBrand == "" {
+		return nil, fmt.Errorf("%s: call to %s is not authorized by a valid asset_bridge grant", owner, scrut.Fname)
+	}
+	// Restricted calls carry no static signature; their exact shape
+	// was proven by the certifier, so re-check it here.
+	if len(scrut.Args) != 2 || scrut.Args[0].HasName || scrut.Args[1].HasName {
+		return nil, fmt.Errorf("%s: call to %s takes the bare asset and policy values", owner, scrut.Fname)
+	}
+	av, err := evSmall(scrut.Args[0].V, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	pv, err := evSmall(scrut.Args[1].V, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if av.Kind != "str" || pv.Kind != "str" {
+		return nil, fmt.Errorf("%s: call to %s takes str", owner, scrut.Fname)
+	}
+	// Admit-form shape check (not authority): the handle must carry a
+	// program and a policy around the separator, else it never came
+	// from the minting function. Authority stays S4's provenance.
+	pp := strings.Split(pv.S, "|")
+	if len(pp) != 2 || pp[0] == "" || pp[1] == "" {
+		return nil, fmt.Errorf("%s: call to %s takes an admitted policy handle", owner, scrut.Fname)
+	}
+	parts := strings.Split(av.S, "|")
+	if len(parts) != 8 {
+		return nil, fmt.Errorf("%s: call to %s takes a well-formed approval witness", owner, scrut.Fname)
+	}
+	return &Value{Kind: "ok", Dict: map[string]*Value{
+		"url":    {Kind: "str", S: parts[2]},
+		"digest": {Kind: "str", S: parts[3]},
+		"role":   {Kind: "str", S: parts[4]},
+	}}, nil
+}
+
 // evBytesDecodeOp evaluates UTF-8 decoding (a50 B6): the input Bytes
 // as a string when the whole input is valid UTF-8, else the
 // encoding.invalid_utf8 language error carrying the ORIGINAL payload
@@ -1284,6 +1331,8 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 				val, err = evBytesHexEncodeOp(scrut, env, ctx, owner)
 			} else if isBytesB64Encode(fname) {
 				val, err = evBytesB64EncodeOp(scrut, env, ctx, owner)
+			} else if isAssetFields(fname) {
+				val, err = evAssetFieldsOp(scrut, env, ctx, owner)
 			} else {
 				val, err = evBytesEncodeOp(scrut, env, ctx, owner)
 			}

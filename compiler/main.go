@@ -431,6 +431,9 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	// any linkage evaluation, so an uncertified refusal can never
 	// launder into trusted script evidence.
 	collected = append(collected, certifyExports(mods, prog, texts)...)
+	// S2 slice plan barrier: asset bridge certificates issue under
+	// the same whole-program rule, for the same reason.
+	collected = append(collected, certifyAssetBridge(mods, prog, texts)...)
 
 	// World-level termination refusal (a11): cross-file cycles are
 	// reported per-line and suppress only execution-dependent checks,

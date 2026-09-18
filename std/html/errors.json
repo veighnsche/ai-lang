@@ -33,6 +33,19 @@
     "hit_by_tests": []
   },
   {
+    "kind": "html.asset_stylesheet_rejected",
+    "fields": [
+      "asset"
+    ],
+    "raised_by": [
+      "html.html__asset__stylesheet"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "html.html__asset__stylesheet/stylesheet_role_mismatch"
+    ]
+  },
+  {
     "kind": "html.disallowed_scheme",
     "fields": [
       "value"

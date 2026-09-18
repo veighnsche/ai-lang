@@ -386,6 +386,16 @@ var explainDocs = map[string]explainEntry{
 		violate: `an exporter with two params, or one that transforms before returning.`,
 		fix:     "Fit the predicate; the message names the failing clause. Exporters move bytes, nothing else.",
 	},
+	CodeAssetBridgeAuthority: {
+		rule:    "An asset_bridge grant needs two owners: the named schema module must own both brands, and the sink must live in the granting (html) module. Authority without both owners is void.",
+		violate: `a grant naming a brand no loaded module owns, or a sink outside the granting module.`,
+		fix:     "Point the grant at the brands' owning module and keep the sink in the granting module. Grants never float.",
+	},
+	CodeAssetBridgeShape: {
+		rule:    "An asset sink matches the sink predicate exactly (asset then policy params, single-Html__Safe record return, one emits kind, no effects, single kernel match with one Ok arm, granted role literal inside).",
+		violate: `a sink with a raw-string param, or one that never checks the granted role.`,
+		fix:     "Fit the predicate; the message names the failing clause. Sinks assemble fixed elements, nothing else.",
+	},
 	CodePrimitiveShadow: {
 		rule:    "Declarations never shadow a compiler kernel or primitive: Bytes and kernel names are reserved.",
 		violate: `type Bytes(...) or fn bytes__hex__decode... colliding with a kernel.`,

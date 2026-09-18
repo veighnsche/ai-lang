@@ -58,6 +58,16 @@
   by construction; `named_text`/`named_boolean`/`named_id`/
   `named_href`/`named_src` relay the five makers (errors
   forwarded unchanged). See `docs/a43-named-attributes.md`.
+- `html__asset__stylesheet` is the first pinned bridge sink (S2 slice
+  plan): `(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy)`
+  → `Html__SafeResult`, authorized by `asset_bridge ... from schema
+  via html__asset__stylesheet@1 for stylesheet`. The restricted
+  projection kernel discloses the approved url/digest/role; the fixed
+  `link` element carries them with `crossorigin='anonymous'`. Any
+  other role fails closed as `html.asset_stylesheet_rejected` with the
+  witness preserved. The grant defends callers (unapproved assets
+  cannot flow in), not the sink owner: shape + rows + golden pin the
+  flow. See `std/schema/README.md`, `docs/a83-astra-schema.md`.
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; `errors.json` is the error registry).
   Regenerate: `go run ./compiler --out std/html

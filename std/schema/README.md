@@ -25,6 +25,11 @@
 - `schema.ts` + `errors.json` — committed golden TS prod emit. Regenerate:
   `go run ./compiler --out std/schema std/schema/schema.ail`; verify:
   `go test ./...`.
+- Separator safety (S2): the witness joins its eight fields with `|`
+  for the projection kernel, so `schema__tokens__check` refuses `|`
+  (and NUL) in ids, revisions, and site fields; the URL tail and the
+  digest alphabet exclude it too. A field holding the separator would
+  make the kernel split ambiguous, so approval refuses it.
 
 Rules: `docs/a83-astra-schema.md` (trust rulings, §§1, 6, 9–11 in this
 slice). Plan: `.agents/plans/2026-09-18-schema-asset-slices.md` (S1).

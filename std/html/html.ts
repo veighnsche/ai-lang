@@ -1,6 +1,6 @@
 // GENERATED from html.ail by ailc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.invalid_document_structure"; value: string };
+export type HtmlResult = { $ail_kind: "ok"; attribute: string } | { $ail_kind: "ok"; attributes: string } | { $ail_kind: "ok"; has: boolean } | { $ail_kind: "ok"; item: Html__NamedAttribute } | { $ail_kind: "ok"; len: bigint; value: string } | { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "ok"; name: string } | { $ail_kind: "ok"; name: string; spelling: string } | { $ail_kind: "ok"; safe: string } | { $ail_kind: "ok"; text: string } | { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; ws: boolean } | { $ail_kind: "html.invalid_attribute_name"; value: string } | { $ail_kind: "html.nul_byte"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } | { $ail_kind: "html.invalid_url"; value: string } | { $ail_kind: "html.disallowed_scheme"; value: string } | { $ail_kind: "html.duplicate_attribute"; name: string } | { $ail_kind: "html.invalid_class_token"; value: string } | { $ail_kind: "html.invalid_document_structure"; value: string } | { $ail_kind: "html.asset_stylesheet_rejected"; asset: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -2096,6 +2096,22 @@ export function html__render__utf8(document: string): { $ail_kind: "ok"; value: 
   case "ok": {
     const r = $ail_m1;
     return { $ail_kind: "ok", value: r.value };
+  }
+  }
+}
+export function html__asset__stylesheet(asset: string, policy: string): { $ail_kind: "ok"; safe: string } | { $ail_kind: "html.asset_stylesheet_rejected"; asset: string } {
+  void (policy);
+  const $ail_m1: { $ail_kind: "ok"; url: string; digest: string; role: string } = ((witness: string): { $ail_kind: "ok"; url: string; digest: string; role: string } => { const parts = witness.split("|"); if (parts.length !== 8) { throw new Error("asset witness malformed"); } return { $ail_kind: "ok", url: parts[2], digest: parts[3], role: parts[4] }; })(asset);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const f = $ail_m1;
+    if (f.role === "stylesheet") {
+      return { $ail_kind: "ok", safe: (((("<link rel='stylesheet' href='" + f.url) + "' integrity='") + f.digest) + "' crossorigin='anonymous'>") };
+    }
+    return { $ail_kind: "html.asset_stylesheet_rejected", asset: asset };
+  }
+  default: {
+    throw new Error("unreachable");
   }
   }
 }

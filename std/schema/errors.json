@@ -43,6 +43,7 @@
     "handled_by": [],
     "hit_by_tests": [
       "schema.schema__asset__approve/approve_bad_digest",
+      "schema.schema__asset__approve/approve_bad_token",
       "schema.schema__asset__approve/approve_conflict",
       "schema.schema__asset__approve/approve_expired",
       "schema.schema__asset__approve/approve_fragment",

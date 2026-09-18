@@ -95,9 +95,18 @@ type bytesKernel struct {
 // bytesKernels is the authority for kernel registration: call rules,
 // given rules, EmitsOf entries, exhaustiveness, dispatch, and
 // lowering all key off this table. Later slices add rows (never a
-// scattered duplicate).
+// scattered duplicate). The table is keyed by behavior, not family:
+// the asset projection kernel rides the same restricted machinery
+// (its name only looks out of place; renaming the table would churn
+// every call site for zero behavior gain).
 var bytesKernels = map[string]bytesKernel{
 	bytesExportKernel:    {ret: bytesValueRecord, emits: []string{}, restricted: true},
+	// The asset kernel carries a static signature (unlike the export
+	// kernel, whose brand varies per grant): its brands are always
+	// the schema pair, so call args type-check wherever the grant
+	// names resolve — a raw string smuggled where the witness belongs
+	// fails statically. Execution still needs the certificate.
+	assetFieldsKernel:    {params: [][2]string{{"asset", "Schema__ApprovedAsset"}, {"policy", "Schema__AssetPolicy"}}, ret: assetFieldsRecord, emits: []string{}},
 	bytesEncodeKernel:    {params: [][2]string{{"value", "str"}}, ret: bytesValueRecord, emits: []string{}},
 	bytesDecodeKernel:    {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{encodingInvalidUtf8}},
 	bytesHexEncodeKernel: {params: [][2]string{{"value", "Bytes"}}, ret: encodingTextRecord, emits: []string{}},
@@ -113,13 +122,15 @@ func isBytesKernel(fname string) bool {
 }
 
 // builtinTypeDecls returns the compiler-owned record declarations.
-// B2 owns Bytes__Value, B6 adds Encoding__Text; later slices extend
-// this list (never a scattered duplicate). Callers must never insert
-// these into source modules or provides.
+// B2 owns Bytes__Value, B6 adds Encoding__Text, the asset bridge adds
+// Asset__Fields; later slices extend this list (never a scattered
+// duplicate). Callers must never insert these into source modules
+// or provides.
 func builtinTypeDecls() []*TypeDecl {
 	return []*TypeDecl{
 		{Name: bytesValueRecord, Rev: 1, Fields: [][2]string{{"value", "Bytes"}}},
 		{Name: encodingTextRecord, Rev: 1, Fields: [][2]string{{"value", "str"}}},
+		{Name: assetFieldsRecord, Rev: 1, Fields: [][2]string{{"url", "str"}, {"digest", "str"}, {"role", "str"}}},
 	}
 }
 

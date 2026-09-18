@@ -217,6 +217,8 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	// a46 S2 barrier: same whole-program certification as the CLI, so
 	// "no squiggles" and "compiles" cannot diverge on authority.
 	out = append(out, certifyExports(all, prog, texts)...)
+	// S2 slice plan barrier: same whole-program rule for asset bridges.
+	out = append(out, certifyAssetBridge(all, prog, texts)...)
 
 	for _, err := range verifyExhaustiveAll([]*Module{open}, prog) {
 		out = append(out, proofDiag(text, err))

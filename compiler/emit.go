@@ -1355,6 +1355,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if isBytesB64Encode(scrut.Fname) {
 		return e.stmtBytesB64Encode(node, scrut, out)
 	}
+	if isAssetFields(scrut.Fname) {
+		return e.stmtAssetFields(node, scrut, out)
+	}
 	if isBytesKernel(scrut.Fname) {
 		return e.stmtBytesEncode(node, scrut, out)
 	}
@@ -1747,6 +1750,39 @@ func (e *emitter) stmtBytesEncode(node *Node, scrut *Small, out *[]string) error
 	}
 	*out = append(*out, "}")
 	return nil
+}
+
+// stmtAssetFields lowers witness projection (S2 slice plan): the asset
+// string split into its eight canonical fields, refusing malformed
+// witnesses loud, then the ordinary arm lowering over the bound
+// Asset__Fields record. The policy handle evaluates (its contract is
+// structural) but has no runtime projection yet: S4 binds it.
+// Restricted calls require the certificate annotation; uncertified
+// nodes fail loud and never fall through to the ordinary call path.
+func (e *emitter) stmtAssetFields(node *Node, scrut *Small, out *[]string) error {
+	if scrut.ExportBrand == "" {
+		return fmt.Errorf("cannot emit %s: no valid asset_bridge grant certified this call", scrut.Fname)
+	}
+	if len(scrut.Args) != 2 || scrut.Args[0].HasName || scrut.Args[1].HasName {
+		return fmt.Errorf("cannot emit %s: want the bare asset and policy values", scrut.Fname)
+	}
+	av, err := e.emitValue(scrut.Args[0].V)
+	if err != nil {
+		return err
+	}
+	pv, err := e.emitValue(scrut.Args[1].V)
+	if err != nil {
+		return err
+	}
+	union, err := decodeResultUnion(scrut.Fname, e.brands, e.recs, e.variants)
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	*out = append(*out, fmt.Sprintf("void (%s);", pv))
+	*out = append(*out, fmt.Sprintf("const %s: %s = ((witness: string): %s => { const parts = witness.split(\"|\"); if (parts.length !== 8) { throw new Error(\"asset witness malformed\"); } return { "+tsTag+": \"ok\", url: parts[2], digest: parts[3], role: parts[4] }; })(%s);", tmp, union, union, av))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	return e.emitCallArms(node, tmp, out)
 }
 
 // decodeResultUnion renders one fallible kernel's two-outcome TS

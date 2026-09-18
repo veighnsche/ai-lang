@@ -114,6 +114,28 @@ func newTycker(prog *Program, text, fn string) *tycker {
 			}
 		}
 	}
+	// Asset bridge grants introduce the named foreign brands into scope
+	// so a sink module compiles standalone: params and error fields may
+	// name them, but bodies can never seal them (the claimed owner is
+	// never the checking file, so the a15 rule keeps failing closed).
+	// A real BrandDecl always wins: injection fills only names no loaded
+	// module declares, and certifyAssetBridge verifies the claimed owner
+	// wherever the owner module loads.
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			g, ok := d.(*AssetBridgeDecl)
+			if !ok {
+				continue
+			}
+			for _, name := range []string{g.Asset, g.Policy} {
+				if c.brands[name] {
+					continue
+				}
+				c.brands[name] = true
+				c.brandFiles[name] = g.Owner
+			}
+		}
+	}
 	return c
 }
 

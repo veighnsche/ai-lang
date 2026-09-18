@@ -448,6 +448,16 @@ func revisionDeclEntries(m *Module, out map[string]*revisionWork) {
 			deps := map[string]bool{d.Brand: true, d.Function: true}
 			out[key] = &revisionWork{canon: canon, fragment: fragment, loc: declLoc, deps: deps,
 				detail: RevisionDetail{Kind: "export", Grant: d.Brand + " via " + d.Function + "@" + strconv.Itoa(d.Revision)}}
+		case *AssetBridgeDecl:
+			key := "bridge:" + m.Mod + "." + d.Asset + "," + d.Policy + " from " + d.Owner + " via " + d.Function + "@" + strconv.Itoa(d.Revision) + " for " + d.Role
+			if _, seen := out[key]; seen {
+				continue
+			}
+			canon := "bridge(" + d.Asset + "," + d.Policy + " from " + d.Owner + " via " + d.Function + "@" + strconv.Itoa(d.Revision) + " for " + d.Role + ")"
+			fragment := "asset_bridge " + d.Asset + ", " + d.Policy + " from " + d.Owner + " via " + d.Function + "@" + strconv.Itoa(d.Revision) + " for " + d.Role
+			deps := map[string]bool{d.Asset: true, d.Policy: true, d.Function: true}
+			out[key] = &revisionWork{canon: canon, fragment: fragment, loc: declLoc, deps: deps,
+				detail: RevisionDetail{Kind: "bridge", Grant: d.Asset + " via " + d.Function + "@" + strconv.Itoa(d.Revision)}}
 		}
 	}
 }
@@ -574,6 +584,12 @@ func revisionAnchor(prog *Program, key string) (fileID string, line int) {
 			if kind == "export" {
 				if ed, ok := d.(*Utf8ExportDecl); ok && ed.Brand == short {
 					return m.ID, l
+				}
+				continue
+			}
+			if kind == "bridge" {
+				if bd, ok := d.(*AssetBridgeDecl); ok && (bd.Asset == short || bd.Function == short) {
+					return m.ID, bd.Line
 				}
 				continue
 			}

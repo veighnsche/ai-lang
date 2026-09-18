@@ -238,6 +238,25 @@ type Utf8ExportDecl struct {
 
 func (d *Utf8ExportDecl) declKind() string { return "export" }
 
+// AssetBridgeDecl authorizes one sink function revision to consume one
+// schema-owned approval witness (S2 slice plan). Dual authorization: the
+// named owner module releases the asset and policy brands, the granting
+// module certifies the sink. It defines no value or function:
+// certifyAssetBridge validates it whole-program and annotates the exact
+// permitted kernel call site (reusing the ExportBrand certificate field).
+// Never in provides.
+type AssetBridgeDecl struct {
+	Asset    string
+	Policy   string
+	Owner    string
+	Function string
+	Revision int
+	Role     string
+	Line     int
+}
+
+func (d *AssetBridgeDecl) declKind() string { return "bridge" }
+
 // BrandDecl is a nominal string wrapper: brand Name is str rev N.
 // An optional seals_from [B, ...] clause authorizes explicit one-way
 // promotion seals from those same-module brands (a26); without it the
@@ -1182,6 +1201,7 @@ var (
 	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reFn          = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reExport      = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
+	reBridge      = regexp.MustCompile(`^asset_bridge\s+(\w+)\s*,\s*(\w+)\s+from\s+(\w+)\s+via\s+(\w+)@(\d+)\s+for\s+(\w+)$`)
 	reField       = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
 	reTest        = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
 	reGiven       = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
@@ -1393,6 +1413,20 @@ func parseModuleText(name, text string) (*Module, error) {
 				return nil, at(declLine, fmt.Errorf("bad exports_utf8 decl: rev out of range: %s", m[3]))
 			}
 			mod.Decls = append(mod.Decls, &Utf8ExportDecl{Brand: m[1], Function: m[2], Revision: rev, Line: declLine})
+			i++
+		case strings.HasPrefix(code, "asset_bridge "):
+			m := reBridge.FindStringSubmatch(code)
+			if m == nil {
+				if !strings.Contains(code, "@") {
+					return nil, at(declLine, fmt.Errorf("missing rev N: versioning is mandatory"))
+				}
+				return nil, at(declLine, fmt.Errorf("bad asset_bridge decl: %s", code))
+			}
+			rev, err := strconv.Atoi(m[5])
+			if err != nil {
+				return nil, at(declLine, fmt.Errorf("bad asset_bridge decl: rev out of range: %s", m[5]))
+			}
+			mod.Decls = append(mod.Decls, &AssetBridgeDecl{Asset: m[1], Policy: m[2], Owner: m[3], Function: m[4], Revision: rev, Role: m[6], Line: declLine})
 			i++
 		case strings.HasPrefix(code, "state "):
 			m := reState.FindStringSubmatch(code)

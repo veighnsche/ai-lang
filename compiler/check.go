@@ -267,6 +267,17 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				if _, ok := prog.BrandFile[d.Name]; !ok {
 					prog.BrandFile[d.Name] = m.ID
 				}
+			case *AssetBridgeDecl:
+				// Grant-named brands erase to str like every v0
+				// brand; seed the erasure map first-wins so sinks
+				// emit standalone. Seal authority (BrandFile) stays
+				// with real declarations only, and grants never
+				// enter provides.
+				for _, name := range []string{d.Asset, d.Policy} {
+					if _, ok := prog.Brands[name]; !ok {
+						prog.Brands[name] = "str"
+					}
+				}
 			case *ErrorDecl:
 				if isBuiltinError(d.Name) {
 					emit(m, spanDiag(texts[m.ID], line, "error",
@@ -353,6 +364,11 @@ func declNameLine(d Decl) (string, int) {
 		return d.Name, d.Line
 	case *BrandDecl:
 		return d.Name, d.Line
+	case *AssetBridgeDecl:
+		// Grants register under the sink function name (unique per
+		// grant): the asset brand name would collide across the
+		// stylesheet/script grants in seenOther tracking.
+		return d.Function, d.Line
 	case *ErrorDecl:
 		return d.Name, d.Line
 	}
