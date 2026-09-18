@@ -1,6 +1,6 @@
 // GENERATED from html.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type HtmlResult = { $can_kind: "ok"; attribute: string } | { $can_kind: "ok"; attributes: string } | { $can_kind: "ok"; has: boolean } | { $can_kind: "ok"; item: Html__NamedAttribute } | { $can_kind: "ok"; len: bigint; value: string } | { $can_kind: "ok"; n: bigint; tail: string; value: string } | { $can_kind: "ok"; name: string } | { $can_kind: "ok"; name: string; spelling: string } | { $can_kind: "ok"; safe: string } | { $can_kind: "ok"; text: string } | { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; ws: boolean } | { $can_kind: "html.invalid_attribute_name"; value: string } | { $can_kind: "html.nul_byte"; value: string } | { $can_kind: "html.invalid_identifier"; value: string } | { $can_kind: "html.invalid_url"; value: string } | { $can_kind: "html.disallowed_scheme"; value: string } | { $can_kind: "html.duplicate_attribute"; name: string } | { $can_kind: "html.invalid_class_token"; value: string } | { $can_kind: "html.invalid_document_structure"; value: string } | { $can_kind: "html.asset_stylesheet_rejected"; asset: string } | { $can_kind: "html.asset_script_rejected"; asset: string };
+export type HtmlResult = { $can_kind: "ok"; attribute: string } | { $can_kind: "ok"; attributes: string } | { $can_kind: "ok"; has: boolean } | { $can_kind: "ok"; item: Html__NamedAttribute } | { $can_kind: "ok"; len: bigint; value: string } | { $can_kind: "ok"; n: bigint; tail: string; value: string } | { $can_kind: "ok"; name: string } | { $can_kind: "ok"; name: string; spelling: string } | { $can_kind: "ok"; safe: string } | { $can_kind: "ok"; text: string } | { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; ws: boolean } | { $can_kind: "html.invalid_attribute_name"; value: string } | { $can_kind: "html.nul_byte"; value: string } | { $can_kind: "html.invalid_identifier"; value: string } | { $can_kind: "html.invalid_url"; value: string } | { $can_kind: "html.disallowed_scheme"; value: string } | { $can_kind: "html.duplicate_attribute"; name: string } | { $can_kind: "html.invalid_class_token"; value: string } | { $can_kind: "html.invalid_document_structure"; value: string } | { $can_kind: "html.asset_stylesheet_rejected"; asset: string } | { $can_kind: "html.asset_script_rejected"; asset: string };
 export type Html__Escaped = { value: string };
 export type Html__TextResult = { text: string };
 export type Html__SafeResult = { safe: string };
@@ -12,6 +12,7 @@ export type Html__BooleanNameResult = { name: string };
 export type Html__BooleanSpelling = { name: string; spelling: string };
 export type Html__WsVerdict = { ws: boolean };
 export type Html__IdValid = { value: string };
+export type Int__Value = { value: bigint };
 export type Html__SchemeVerdict = { has: boolean };
 export type Html__Authority = { value: string; tail: string; n: bigint };
 export type Html__UrlTail = { value: string };
@@ -790,6 +791,105 @@ export function html__url__admit(raw: string, has: boolean): { $can_kind: "ok"; 
   }
   else {
     return { $can_kind: "html.invalid_url", value: raw };
+  }
+}
+export function html__url__origin_end(value: string, pos: bigint, n: bigint): { $can_kind: "ok"; value: bigint } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: pos };
+  }
+  else {
+    if (($canStrAt(value, pos) === 47n || $canStrAt(value, pos) === 63n || $canStrAt(value, pos) === 35n)) {
+      return { $can_kind: "ok", value: pos };
+    }
+    const $can_m1: { $can_kind: "ok"; value: bigint } = html__url__origin_end(value, (pos + 1n), (n - 1n));
+    switch ($can_m1.$can_kind) {
+    case "ok": {
+      const r = $can_m1;
+      return { $can_kind: "ok", value: r.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}
+export function html__url__parse(raw: string, base: Html__CheckedUrl): { $can_kind: "ok"; len: bigint; value: string } | { $can_kind: "html.invalid_url"; value: string } | { $can_kind: "html.disallowed_scheme"; value: string } {
+  const $can_m1: { $can_kind: "ok"; len: bigint; value: string } | { $can_kind: "html.invalid_url"; value: string } = html__url__absolute(base.value);
+  switch ($can_m1.$can_kind) {
+  case "html.invalid_url": {
+    const e = $can_m1;
+    return { $can_kind: "html.invalid_url", value: e.value };
+  }
+  case "ok": {
+    const b = $can_m1;
+    if (((BigInt([...raw].length)) <= 0n)) {
+      return { $can_kind: "html.invalid_url", value: raw };
+    }
+    else {
+      const $can_m2: { $can_kind: "ok"; has: boolean } = html__url__scheme_token(raw, raw, (BigInt([...raw].length)), (BigInt([...raw].length)));
+      switch ($can_m2.$can_kind) {
+      case "ok": {
+        const t = $can_m2;
+        if (t.has) {
+          const $can_m3: { $can_kind: "ok"; len: bigint; value: string } | { $can_kind: "html.invalid_url"; value: string } | { $can_kind: "html.disallowed_scheme"; value: string } = html__url__check(raw);
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const u = $can_m3;
+            return { $can_kind: "ok", value: u.value, len: u.len };
+          }
+          case "html.invalid_url": {
+            const e = $can_m3;
+            return { $can_kind: "html.invalid_url", value: e.value };
+          }
+          case "html.disallowed_scheme": {
+            const e = $can_m3;
+            return { $can_kind: "html.disallowed_scheme", value: e.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          if (($canStrSlice(raw, 0n, 1n) === "/")) {
+            const $can_m4: { $can_kind: "ok"; value: bigint } = html__url__origin_end(b.value, 8n, ((BigInt([...b.value].length)) - 8n));
+            switch ($can_m4.$can_kind) {
+            case "ok": {
+              const o = $can_m4;
+              const $can_m5: { $can_kind: "ok"; len: bigint; value: string } | { $can_kind: "html.invalid_url"; value: string } = html__url__absolute(($canStrSlice(b.value, 0n, o.value) + raw));
+              switch ($can_m5.$can_kind) {
+              case "ok": {
+                const u = $can_m5;
+                return { $can_kind: "ok", value: u.value, len: u.len };
+              }
+              case "html.invalid_url": {
+                const e = $can_m5;
+                return { $can_kind: "html.invalid_url", value: e.value };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          else {
+            return { $can_kind: "html.invalid_url", value: raw };
+          }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
   }
 }
 export function html__attribute__href(url: string): { $can_kind: "ok"; attribute: string } | { $can_kind: "html.invalid_url"; value: string } | { $can_kind: "html.disallowed_scheme"; value: string } | { $can_kind: "html.nul_byte"; value: string } {

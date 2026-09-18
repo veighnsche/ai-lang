@@ -186,7 +186,8 @@
       "html.html__attribute__named_src",
       "html.html__attribute__src",
       "html.html__url__admit",
-      "html.html__url__check"
+      "html.html__url__check",
+      "html.html__url__parse"
     ],
     "handled_by": [
       {
@@ -208,6 +209,10 @@
       {
         "fn": "html.html__url__check",
         "arm": "on html.disallowed_scheme e =\u003e forward e"
+      },
+      {
+        "fn": "html.html__url__parse",
+        "arm": "on html.disallowed_scheme e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -219,7 +224,8 @@
       "html.html__url__check/check_long_scheme",
       "html.html__url__check/check_short_scheme",
       "html.html__url__check/check_upper_first",
-      "html.html__url__check/check_upper_scheme"
+      "html.html__url__check/check_upper_scheme",
+      "html.html__url__parse/parse_abs_bad_scheme"
     ]
   },
   {
@@ -402,6 +408,7 @@
       "html.html__url__authority",
       "html.html__url__authority_finish",
       "html.html__url__check",
+      "html.html__url__parse",
       "html.html__url__tail"
     ],
     "handled_by": [
@@ -466,6 +473,10 @@
         "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
+        "fn": "html.html__url__parse",
+        "arm": "on html.invalid_url e =\u003e forward e"
+      },
+      {
         "fn": "html.html__url__tail",
         "arm": "on html.invalid_url e =\u003e forward e"
       }
@@ -513,6 +524,12 @@
       "html.html__url__check/check_single",
       "html.html__url__check/check_symbol_first",
       "html.html__url__check/check_upper_bare",
+      "html.html__url__parse/parse_abs_bad_tail",
+      "html.html__url__parse/parse_bad_base",
+      "html.html__url__parse/parse_bare",
+      "html.html__url__parse/parse_empty",
+      "html.html__url__parse/parse_forged_base",
+      "html.html__url__parse/parse_root_space",
       "html.html__url__tail/tail_backslash",
       "html.html__url__tail/tail_space"
     ]
