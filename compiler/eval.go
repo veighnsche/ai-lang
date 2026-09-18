@@ -908,6 +908,14 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 		return v.Kind == "bool" && v.B == p.B
 	case "str":
 		return v.Kind == "str" && v.S == p.Str
+	case "int":
+		// Slice 3: bigint-exact singleton match.
+		return v.Kind == "int" && v.N != nil && p.Num != nil && v.N.Cmp(p.Num) == 0
+	case "range":
+		// Slice 3: closed-interval match over arbitrary
+		// precision integers.
+		return v.Kind == "int" && v.N != nil && p.Num != nil && p.Hi != nil &&
+			v.N.Cmp(p.Num) >= 0 && v.N.Cmp(p.Hi) <= 0
 	case "variant":
 		if p.Name == "Ok" && v.Kind == "ok" {
 			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
@@ -1967,10 +1975,13 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 
 // valueAtom is one symbolic inhabitant of a match slot's domain: a bool
 // literal, a mentioned string literal, the open string remainder (OTHER),
-// or the whole domain of an all-wildcard slot (ANY, rendered as _).
+// the whole domain of an all-wildcard slot (ANY, rendered as _), or one
+// integer cut gap (slice 3: lo floor inclusive, hi exclusive cut or nil
+// for the past-last-cut tail; the below-first-cut tail has nil lo).
 type valueAtom struct {
 	render string
 	other  bool
+	lo, hi *big.Int
 }
 
 // armCover is one arm as covered atom indices per slot.
@@ -2048,13 +2059,19 @@ func witnessSearch(arms []armCover, nslot int, domains [][]valueAtom) (idx []int
 // renders never collide, and OTHER's concrete witness is chosen outside
 // the mentioned literals, so render-keyed lookup is unambiguous.
 // Returns the first 1-based slot mixing bool and string literals, or 0.
-func valueCoverOf(n *Node, hasBool []bool, strLits [][]string) (domains [][]valueAtom, covers []armCover, atomIndex []map[string]int, mixed int) {
+func valueCoverOf(n *Node, hasBool []bool, strLits [][]string, intSpans [][][2]*big.Int) (domains [][]valueAtom, covers []armCover, atomIndex []map[string]int, mixed int) {
 	nslot := len(n.Scruts)
 	domains = make([][]valueAtom, nslot)
 	for i := 0; i < nslot; i++ {
+		hasInt := intSpans != nil && len(intSpans[i]) > 0
 		switch {
 		case len(strLits[i]) > 0 && hasBool[i]:
 			return nil, nil, nil, i + 1
+		case hasInt:
+			// Slice 3: integer slots cut at span bounds.
+			// Mixed int/bool/str slots are rejected by the
+			// caller before this runs.
+			domains[i] = intAtoms(intCuts(intSpans[i]))
 		case len(strLits[i]) > 0:
 			for _, l := range strLits[i] {
 				domains[i] = append(domains[i], valueAtom{render: normStr(l)})
@@ -2090,6 +2107,23 @@ func valueCoverOf(n *Node, hasBool []bool, strLits [][]string) (domains [][]valu
 				}
 			case "str":
 				c.slots[i] = []int{atomIndex[i][normStr(p.Str)]}
+			case "int":
+				if p.Num != nil {
+					for k, a := range domains[i] {
+						if a.lo != nil && a.lo.Cmp(p.Num) == 0 {
+							c.slots[i] = []int{k}
+							break
+						}
+					}
+				}
+			case "range":
+				if p.Num != nil && p.Hi != nil {
+					for k, a := range domains[i] {
+						if a.lo != nil && a.lo.Cmp(p.Num) >= 0 && a.lo.Cmp(p.Hi) <= 0 {
+							c.slots[i] = append(c.slots[i], k)
+						}
+					}
+				}
 			}
 		}
 		covers = append(covers, c)
@@ -2156,6 +2190,8 @@ func verifyValueMatch(n *Node, owner string) []error {
 	}
 	shapeOK := true
 	hasCase := false
+	intSpans := make([][][2]*big.Int, nslot)
+	hasIntAny := false
 	for _, a := range n.Arms {
 		if len(a.Pats) != nslot {
 			out = append(out, at(a.Line, fmt.Errorf("%s: match arm has %d patterns; this match has %d scrutinees", owner, len(a.Pats), nslot)))
@@ -2170,6 +2206,17 @@ func verifyValueMatch(n *Node, owner string) []error {
 				if !seenLit[i][p.Str] {
 					seenLit[i][p.Str] = true
 					strLits[i] = append(strLits[i], p.Str)
+				}
+			case "int":
+				// Slice 3: singletons are degenerate spans.
+				hasIntAny = true
+				if p.Num != nil {
+					intSpans[i] = append(intSpans[i], [2]*big.Int{p.Num, p.Num})
+				}
+			case "range":
+				hasIntAny = true
+				if p.Num != nil && p.Hi != nil {
+					intSpans[i] = append(intSpans[i], [2]*big.Int{p.Num, p.Hi})
 				}
 			case "wild":
 			default:
@@ -2200,10 +2247,16 @@ func verifyValueMatch(n *Node, owner string) []error {
 	if hasCase {
 		return out
 	}
+	if hasIntAny {
+		// Slice 3: integer tables prove through the cut-point
+		// engine at any arity; legacy tables keep legacy paths
+		// verbatim.
+		return verifyIntMatch(n, owner, out, hasBool, strLits, intSpans)
+	}
 	if nslot == 1 {
 		return verifySinglePolicy(n, owner, out, hasBool, strLits)
 	}
-	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits)
+	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits, nil)
 	if mixed > 0 {
 		out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
 		return out
@@ -2267,7 +2320,7 @@ func verifySinglePolicy(n *Node, owner string, out []error, hasBool []bool, strL
 	if hasStr && !hasWild {
 		return append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive", owner)))
 	}
-	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits)
+	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits, nil)
 	if mixed > 0 {
 		// Unreachable through the legacy gates above (any bool
 		// presence with a string mix fails the first rule), kept for

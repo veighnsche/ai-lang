@@ -58,11 +58,21 @@ type Small struct {
 }
 
 type Pattern struct {
-	Kind string // wild,bool,str,const,variant,variantWild
+	Kind string // wild,bool,str,int,range,const,variant,variantWild
 	B    bool
 	Str  string
 	Name string
 	Var  string
+	// Num holds an int singleton value, or a range lower bound
+	// once resolved. Hi holds a range upper bound (nil for
+	// singletons). LoS/HiS carry unresolved range bound text
+	// (integer literals resolve at parse; anything else resolves
+	// in buildWorld, so const bounds see the finished table);
+	// resolved ranges have Num/Hi set and empty LoS/HiS.
+	Num *big.Int
+	Hi  *big.Int
+	LoS string
+	HiS string
 
 	// Raw is the source spelling of a str pattern (a66): the
 	// squiggle locator needs the verbatim token because a
@@ -1663,6 +1673,20 @@ func parseModuleText(name, text string) (*Module, error) {
 	return mod, nil
 }
 
+// isDigits reports whether s is a non-negative integer literal:
+// one or more ASCII digits, no sign, no separators.
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 func parsePattern(s string) (Pattern, error) {
 	s = strings.TrimSpace(s)
 	switch {
@@ -1688,6 +1712,31 @@ func parsePattern(s string) (Pattern, error) {
 			return Pattern{}, err
 		}
 		return Pattern{Kind: "str", Str: decoded, Raw: s}, nil
+	}
+	if isDigits(s) {
+		// Slice 3: a non-negative integer literal is a
+		// singleton pattern over int (arbitrary precision).
+		// Negative bounds wait for unary minus (slice 6).
+		n, _ := new(big.Int).SetString(s, 10)
+		return Pattern{Kind: "int", Num: n}, nil
+	}
+	if strings.Contains(s, "..") {
+		// Slice 3: a closed range `LO..HI`. Bounds resolve
+		// here when both sides are integer literals; anything
+		// else (const names, garbage) resolves in buildWorld,
+		// so diagnostics stay check-level (AIL4110/AIL2104)
+		// instead of parse errors.
+		parts := strings.Split(s, "..")
+		if len(parts) != 2 {
+			return Pattern{}, fmt.Errorf("bad match pattern: %s", s)
+		}
+		lo, hi := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+		if isDigits(lo) && isDigits(hi) {
+			ln, _ := new(big.Int).SetString(lo, 10)
+			hn, _ := new(big.Int).SetString(hi, 10)
+			return Pattern{Kind: "range", Num: ln, Hi: hn}, nil
+		}
+		return Pattern{Kind: "range", LoS: lo, HiS: hi}, nil
 	}
 	if constNameRe.MatchString(s) {
 		// Slice 1: a bare const-shaped name parses as a const

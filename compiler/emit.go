@@ -1464,7 +1464,7 @@ func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
 			return fmt.Errorf("match arm has %d patterns; this match has %d scrutinees", len(arm.Pats), nslot)
 		}
 		for _, p := range arm.Pats {
-			if k := p.Kind; k != "bool" && k != "str" && k != "wild" {
+			if k := p.Kind; k != "bool" && k != "str" && k != "wild" && k != "int" && k != "range" {
 				return fmt.Errorf("variant pattern on a non-call match")
 			}
 		}
@@ -1626,6 +1626,29 @@ func (e *emitter) valueConds(arm Arm, refs []string, known []*bool) (conds []str
 			}
 		case "str":
 			conds = append(conds, fmt.Sprintf("%s === %s", refs[i], normStr(p.Str)))
+			learn = -1
+		case "int":
+			// Slice 3: bigint-exact singleton comparison. No
+			// contradiction learning: the proof owns overlap
+			// and shadowing, emit only tests. Unresolved bounds
+			// never survive the proof; false fails closed.
+			if p.Num == nil {
+				conds = append(conds, "false")
+				learn = -1
+				break
+			}
+			conds = append(conds, fmt.Sprintf("%s === %sn", refs[i], p.Num.String()))
+			learn = -1
+		case "range":
+			// Slice 3: closed-interval lowering. Proof results
+			// are consumed (final-else separation), never
+			// invented here.
+			if p.Num == nil || p.Hi == nil {
+				conds = append(conds, "false")
+				learn = -1
+				break
+			}
+			conds = append(conds, fmt.Sprintf("(%s >= %sn && %s <= %sn)", refs[i], p.Num.String(), refs[i], p.Hi.String()))
 			learn = -1
 		default:
 			// Variant slots never survive the proof; render nothing so

@@ -712,22 +712,30 @@ func (a *admission) checkBody(m *Module, fn *FnDecl, name, text string, node *No
 				"match one Boolean expression")
 			return
 		}
-		if st := a.term(node.Scruts[0], a.bodyScope(fn)); st.flag != "" || st.sort.kind != "bool" {
+		st := a.term(node.Scruts[0], a.bodyScope(fn))
+		isBool := st.flag == "" && st.sort.kind == "bool"
+		// Slice 3: integer scrutinees are admitted beside
+		// Booleans: arms take int, range, or wild patterns,
+		// and the value proof (not admission) owns coverage.
+		// The symbolic prover independently declines
+		// untranslatable bodies, failing closed.
+		isInt := st.flag == "" && st.sort.kind == "int"
+		if !isBool && !isInt {
 			a.emit(text, line, name, CodeContractUnsupported,
-				fmt.Sprintf("%s body matches %s: value cases prove over Booleans only", name, describeSmall(node.Scruts[0])),
-				"a Boolean scrutinee",
+				fmt.Sprintf("%s body matches %s: value cases prove over Booleans and integers only", name, describeSmall(node.Scruts[0])),
+				"a Boolean or integer scrutinee",
 				describeSmall(node.Scruts[0]),
-				"match a Boolean expression, or defer this contract-bearing interface")
+				"match a Boolean or integer expression, or defer this contract-bearing interface")
 			return
 		}
 		seen := map[bool]bool{}
 		for _, armNode := range node.Arms {
-			if len(armNode.Pats) == 1 && armNode.Pats[0].Kind == "bool" {
+			if isBool && len(armNode.Pats) == 1 && armNode.Pats[0].Kind == "bool" {
 				seen[armNode.Pats[0].B] = true
 			}
 			a.checkBody(m, fn, name, text, armNode.Rhs, armNode.Line)
 		}
-		if !seen[true] || !seen[false] {
+		if isBool && (!seen[true] || !seen[false]) {
 			a.emit(text, line, name, CodeContractUnsupported,
 				fmt.Sprintf("%s body has a Boolean match without both arms: the prover needs the complete case", name),
 				"true and false arms",

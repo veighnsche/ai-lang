@@ -332,6 +332,8 @@
       "html.html__url__absolute/absolute_space",
       "html.html__url__absolute/absolute_tail_space",
       "html.html__url__admit/admit_no_token",
+      "html.html__url__authority/auth_backtick",
+      "html.html__url__authority/auth_brace",
       "html.html__url__authority/auth_del",
       "html.html__url__authority/auth_digit_bad",
       "html.html__url__authority/auth_doubledot",

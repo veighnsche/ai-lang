@@ -302,7 +302,7 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Delete the arm or fix the callee's emits. Every arm must be reachable in principle, taken in practice (see AIL4107).",
 	},
 	CodeBoolArms: {
-		rule:    "A bool match is exactly true plus false — no more, no fewer, and never mixed with string patterns in one slot.",
+		rule:    "A bool match is exactly true plus false — no more, no fewer, and never mixed with string or integer patterns in one slot.",
 		violate: `match b with only a true arm, or true beside "a" in one slot.`,
 		fix:     "Write both arms. Bool slots are finite and fully enumerated; _ has no place here.",
 	},
@@ -335,6 +335,16 @@ var explainDocs = map[string]explainEntry{
 		rule:    "Multi-scrutinee matches evaluate every scrutinee eagerly, left to right, exactly once — unlike nested matches, a failing scrutinee faults before dispatch.",
 		violate: `match s[i], b where s[i] can fault out of range.`,
 		fix:     "Guard the scrutinee first (bounds check in an outer match) or nest the matches so the risky evaluation sits under its guard.",
+	},
+	CodeBadRange: {
+		rule:    "Integer ranges are closed `LOW..HIGH` with lower under upper and integer bounds: literals or visible integer constants (AIL4110).",
+		violate: `10..5, 5..5 (use the singleton 5), or m__S..9 where the constant is not an int.`,
+		fix:     "Order the bounds lower-first with a strict gap, and bind only integer literals or integer constants. Unknown names are AIL2104, not malformed bounds.",
+	},
+	CodeUselessArm: {
+		rule:    "Every arm must add coverage: an arm earlier arms fully cover is statically useless, even before any test runs (AIL4111).",
+		violate: `3..5 after 1..10, or a second 5 after a first 5.`,
+		fix:     "Delete the shadowed arm or narrow the earlier one. Partial overlaps stay legal under first-match semantics; only fully covered arms fail.",
 	},
 	CodeTestFailed: {
 		rule:    "The compiler executes every test hermetically during the build; any failure fails the build (R7). Deliberately coarse — one code for every execution failure.",

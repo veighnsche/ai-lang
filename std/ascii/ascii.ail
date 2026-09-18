@@ -9,7 +9,7 @@
 // needs them for its probe row.
 
 mod ascii
-  provides [std__ascii__AT, std__ascii__BACKTICK, std__ascii__COLON, std__ascii__DOT, std__ascii__MINUS, std__ascii__NINE, std__ascii__PLUS, std__ascii__SLASH, std__ascii__SMALL_Z, std__ascii__Z]
+  provides [std__ascii__A, std__ascii__AT, std__ascii__BACKTICK, std__ascii__COLON, std__ascii__DOT, std__ascii__MINUS, std__ascii__NINE, std__ascii__PLUS, std__ascii__SLASH, std__ascii__SMALL_A, std__ascii__SMALL_Z, std__ascii__Z, std__ascii__ZERO]
   uses []
   emits []
 
@@ -21,14 +21,20 @@ const std__ascii__DOT: int rev 1 = 46
 
 const std__ascii__SLASH: int rev 1 = 47
 
+const std__ascii__ZERO: int rev 1 = 48
+
 const std__ascii__NINE: int rev 1 = 57
 
 const std__ascii__COLON: int rev 1 = 58
 
 const std__ascii__AT: int rev 1 = 64
 
+const std__ascii__A: int rev 1 = 65
+
 const std__ascii__Z: int rev 1 = 90
 
 const std__ascii__BACKTICK: int rev 1 = 96
+
+const std__ascii__SMALL_A: int rev 1 = 97
 
 const std__ascii__SMALL_Z: int rev 1 = 122

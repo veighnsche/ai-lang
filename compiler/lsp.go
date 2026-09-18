@@ -601,6 +601,10 @@ func proofDiag(text string, err error) Diag {
 		code = CodeBadArmKind
 	case strings.Contains(msg, "variant pattern on a non-call "):
 		code = CodeVariantOnVal
+	case strings.Contains(msg, "mixes integer patterns with"):
+		code = CodeBoolArms
+	case strings.Contains(msg, "is fully covered by earlier arms"):
+		code = CodeUselessArm
 	}
 	kw := "match"
 	if lines := strings.Split(text, "\n"); line >= 1 && line <= len(lines) {

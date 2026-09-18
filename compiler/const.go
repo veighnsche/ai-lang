@@ -10,6 +10,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 )
 
 // constSorts are the V1 admitted constant sorts.
@@ -233,16 +234,37 @@ func usedConsts(fn *FnDecl) map[string]bool {
 
 // elaborateConstPatterns resolves const-named match patterns in
 // one module in place, before checks, runs, or proofs see them.
-// Declared bool/str constants rewrite to literals; undeclared
-// names fall back to variant treatment (preserving the old
-// "variant pattern on a non-call match" behavior for genuinely
-// unknown names); int/dec constants are AIL6016 (integer
-// patterns arrive with the range slice) with the arm neutralized
-// to wild so the prover reports no extra noise. Idempotent:
-// rewritten patterns are never Kind "const".
+// Declared bool/str/int constants rewrite to literals (slice 3
+// admits integer patterns); undeclared names fall back to variant
+// treatment (preserving the old "variant pattern on a non-call
+// match" behavior for genuinely unknown names); dec constants
+// are AIL6016 with the arm neutralized to wild so the prover
+// reports no extra noise. Idempotent: rewritten patterns are
+// never Kind "const".
 func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 	var out []Diag
 	pinned := map[string]bool{}
+	markUsed := func(name string) {
+		if prog.ConstUsed == nil {
+			prog.ConstUsed = map[string]map[string]bool{}
+		}
+		if prog.ConstUsed[open.ID] == nil {
+			prog.ConstUsed[open.ID] = map[string]bool{}
+		}
+		prog.ConstUsed[open.ID][name] = true
+	}
+	pinCheck := func(fn *FnDecl, line int, name string) {
+		// A foreign constant in a pattern needs its rev pin
+		// like any other reference (AIL2105, once per name):
+		// patterns resolve through the same program table
+		// as bodies.
+		if prog.ConstFile[name] != open.ID && !prog.Uses[name] && !pinned[name] {
+			pinned[name] = true
+			out = append(out, spanDiag(text, line, "error",
+				fmt.Sprintf("%s references foreign const %s which is not in uses: add name@rev to uses", fn.Name, name),
+				name, CodeConstNotInUses))
+		}
+	}
 	for _, d := range open.Decls {
 		fn, ok := d.(*FnDecl)
 		if !ok {
@@ -252,6 +274,10 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 			for ai := range m.Arms {
 				for pi := range m.Arms[ai].Pats {
 					p := &m.Arms[ai].Pats[pi]
+					if p.Kind == "range" {
+						out = append(out, resolveRangePattern(open, prog, text, fn.Name, m.Arms[ai].Line, p)...)
+						continue
+					}
 					if p.Kind != "const" {
 						continue
 					}
@@ -265,23 +291,8 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 					// though elaboration rewrites the pattern away
 					// before checkSem collects evidence: record it
 					// per module for checkUnusedUses.
-					if prog.ConstUsed == nil {
-						prog.ConstUsed = map[string]map[string]bool{}
-					}
-					if prog.ConstUsed[open.ID] == nil {
-						prog.ConstUsed[open.ID] = map[string]bool{}
-					}
-					prog.ConstUsed[open.ID][name] = true
-					// A foreign constant in a pattern needs its
-					// rev pin like any other reference (AIL2105,
-					// once per name): patterns resolve through
-					// the same program table as bodies.
-					if prog.ConstFile[name] != open.ID && !prog.Uses[name] && !pinned[name] {
-						pinned[name] = true
-						out = append(out, spanDiag(text, m.Arms[ai].Line, "error",
-							fmt.Sprintf("%s references foreign const %s which is not in uses: add name@rev to uses", fn.Name, name),
-							name, CodeConstNotInUses))
-					}
+					markUsed(name)
+					pinCheck(fn, m.Arms[ai].Line, name)
 					if c.Value != nil {
 						if c.Value.Kind == "bool" {
 							*p = Pattern{Kind: "bool", B: c.Value.B}
@@ -291,10 +302,18 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 							*p = Pattern{Kind: "str", Str: c.Value.Str}
 							continue
 						}
+						if c.Value.Kind == "int" && c.Value.Num != nil {
+							// Slice 3: integer constants are
+							// patterns now. The value copies
+							// out so the pattern owns its
+							// arbitrary-precision bound.
+							*p = Pattern{Kind: "int", Num: new(big.Int).Set(c.Value.Num)}
+							continue
+						}
 					}
 					*p = Pattern{Kind: "wild"}
 					out = append(out, spanDiag(text, m.Arms[ai].Line, "error",
-						fmt.Sprintf("const %s is %s: V1 patterns admit bool/str constants only (integer patterns arrive with ranges)", name, c.Type),
+						fmt.Sprintf("const %s is %s: V1 patterns admit bool/str/int constants only", name, c.Type),
 						name, CodeConstNonliteral))
 				}
 			}

@@ -445,152 +445,109 @@ export function html__url__scheme_token(orig: string, s: string, n: bigint, tota
   }
   else {
     if ((n === total)) {
-      if (($ailStrAt(s, 0n) <= 64n)) {
-        return { $ail_kind: "ok", has: false };
-      }
-      else {
-        if (($ailStrAt(s, 0n) <= 90n)) {
-          const $ail_m1: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-          switch ($ail_m1.$ail_kind) {
-          case "ok": {
-            const r = $ail_m1;
-            return { $ail_kind: "ok", has: r.has };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+      if (($ailStrAt(s, 0n) >= 65n && $ailStrAt(s, 0n) <= 90n)) {
+        const $ail_m1: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m1.$ail_kind) {
+        case "ok": {
+          const r = $ail_m1;
+          return { $ail_kind: "ok", has: r.has };
         }
-        else {
-          if (($ailStrAt(s, 0n) <= 96n)) {
-            return { $ail_kind: "ok", has: false };
-          }
-          else {
-            if (($ailStrAt(s, 0n) <= 122n)) {
-              const $ail_m2: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-              switch ($ail_m2.$ail_kind) {
-              case "ok": {
-                const r = $ail_m2;
-                return { $ail_kind: "ok", has: r.has };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-            else {
-              return { $ail_kind: "ok", has: false };
-            }
-          }
+        default: {
+          throw new Error("unreachable");
+        }
         }
       }
+      else if (($ailStrAt(s, 0n) >= 97n && $ailStrAt(s, 0n) <= 122n)) {
+        const $ail_m2: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m2.$ail_kind) {
+        case "ok": {
+          const r = $ail_m2;
+          return { $ail_kind: "ok", has: r.has };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      return { $ail_kind: "ok", has: false };
     }
     else {
-      if (($ailStrAt(s, 0n) === 58n)) {
+      if (($ailStrAt(s, 0n) >= 48n && $ailStrAt(s, 0n) <= 57n)) {
+        const $ail_m3: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m3.$ail_kind) {
+        case "ok": {
+          const r = $ail_m3;
+          return { $ail_kind: "ok", has: r.has };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if (($ailStrAt(s, 0n) >= 65n && $ailStrAt(s, 0n) <= 90n)) {
+        const $ail_m4: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m4.$ail_kind) {
+        case "ok": {
+          const r = $ail_m4;
+          return { $ail_kind: "ok", has: r.has };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if (($ailStrAt(s, 0n) >= 97n && $ailStrAt(s, 0n) <= 122n)) {
+        const $ail_m5: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m5.$ail_kind) {
+        case "ok": {
+          const r = $ail_m5;
+          return { $ail_kind: "ok", has: r.has };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($ailStrAt(s, 0n) === 58n) {
         return { $ail_kind: "ok", has: true };
       }
-      else {
-        if (($ailStrAt(s, 0n) === 43n)) {
-          const $ail_m3: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-          switch ($ail_m3.$ail_kind) {
-          case "ok": {
-            const r = $ail_m3;
-            return { $ail_kind: "ok", has: r.has };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+      else if ($ailStrAt(s, 0n) === 43n) {
+        const $ail_m6: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m6.$ail_kind) {
+        case "ok": {
+          const r = $ail_m6;
+          return { $ail_kind: "ok", has: r.has };
         }
-        else {
-          if (($ailStrAt(s, 0n) === 45n)) {
-            const $ail_m4: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-            switch ($ail_m4.$ail_kind) {
-            case "ok": {
-              const r = $ail_m4;
-              return { $ail_kind: "ok", has: r.has };
-            }
-            default: {
-              throw new Error("unreachable");
-            }
-            }
-          }
-          else {
-            if (($ailStrAt(s, 0n) === 46n)) {
-              const $ail_m5: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-              switch ($ail_m5.$ail_kind) {
-              case "ok": {
-                const r = $ail_m5;
-                return { $ail_kind: "ok", has: r.has };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-            else {
-              if (($ailStrAt(s, 0n) <= 47n)) {
-                return { $ail_kind: "ok", has: false };
-              }
-              else {
-                if (($ailStrAt(s, 0n) <= 57n)) {
-                  const $ail_m6: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-                  switch ($ail_m6.$ail_kind) {
-                  case "ok": {
-                    const r = $ail_m6;
-                    return { $ail_kind: "ok", has: r.has };
-                  }
-                  default: {
-                    throw new Error("unreachable");
-                  }
-                  }
-                }
-                else {
-                  if (($ailStrAt(s, 0n) <= 64n)) {
-                    return { $ail_kind: "ok", has: false };
-                  }
-                  else {
-                    if (($ailStrAt(s, 0n) <= 90n)) {
-                      const $ail_m7: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-                      switch ($ail_m7.$ail_kind) {
-                      case "ok": {
-                        const r = $ail_m7;
-                        return { $ail_kind: "ok", has: r.has };
-                      }
-                      default: {
-                        throw new Error("unreachable");
-                      }
-                      }
-                    }
-                    else {
-                      if (($ailStrAt(s, 0n) <= 96n)) {
-                        return { $ail_kind: "ok", has: false };
-                      }
-                      else {
-                        if (($ailStrAt(s, 0n) <= 122n)) {
-                          const $ail_m8: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-                          switch ($ail_m8.$ail_kind) {
-                          case "ok": {
-                            const r = $ail_m8;
-                            return { $ail_kind: "ok", has: r.has };
-                          }
-                          default: {
-                            throw new Error("unreachable");
-                          }
-                          }
-                        }
-                        else {
-                          return { $ail_kind: "ok", has: false };
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+        default: {
+          throw new Error("unreachable");
+        }
         }
       }
+      else if ($ailStrAt(s, 0n) === 45n) {
+        const $ail_m7: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m7.$ail_kind) {
+        case "ok": {
+          const r = $ail_m7;
+          return { $ail_kind: "ok", has: r.has };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($ailStrAt(s, 0n) === 46n) {
+        const $ail_m8: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
+        switch ($ail_m8.$ail_kind) {
+        case "ok": {
+          const r = $ail_m8;
+          return { $ail_kind: "ok", has: r.has };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      return { $ail_kind: "ok", has: false };
     }
   }
 }
@@ -702,76 +659,55 @@ export function html__url__authority(orig: string, s: string, n: bigint, prev: s
                 }
               }
               else {
-                if (($ailStrAt(s, 0n) <= 47n)) {
-                  return { $ail_kind: "html.invalid_url", value: orig };
-                }
-                else {
-                  if (($ailStrAt(s, 0n) <= 57n)) {
-                    const $ail_m4: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
-                    switch ($ail_m4.$ail_kind) {
-                    case "ok": {
-                      const r = $ail_m4;
-                      return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                    }
-                    case "html.invalid_url": {
-                      const e = $ail_m4;
-                      return { $ail_kind: "html.invalid_url", value: e.value };
-                    }
-                    default: {
-                      throw new Error("unreachable");
-                    }
-                    }
+                if (($ailStrAt(s, 0n) >= 48n && $ailStrAt(s, 0n) <= 57n)) {
+                  const $ail_m4: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
+                  switch ($ail_m4.$ail_kind) {
+                  case "ok": {
+                    const r = $ail_m4;
+                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
                   }
-                  else {
-                    if (($ailStrAt(s, 0n) <= 64n)) {
-                      return { $ail_kind: "html.invalid_url", value: orig };
-                    }
-                    else {
-                      if (($ailStrAt(s, 0n) <= 90n)) {
-                        const $ail_m5: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
-                        switch ($ail_m5.$ail_kind) {
-                        case "ok": {
-                          const r = $ail_m5;
-                          return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                        }
-                        case "html.invalid_url": {
-                          const e = $ail_m5;
-                          return { $ail_kind: "html.invalid_url", value: e.value };
-                        }
-                        default: {
-                          throw new Error("unreachable");
-                        }
-                        }
-                      }
-                      else {
-                        if (($ailStrAt(s, 0n) <= 96n)) {
-                          return { $ail_kind: "html.invalid_url", value: orig };
-                        }
-                        else {
-                          if (($ailStrAt(s, 0n) <= 122n)) {
-                            const $ail_m6: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
-                            switch ($ail_m6.$ail_kind) {
-                            case "ok": {
-                              const r = $ail_m6;
-                              return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                            }
-                            case "html.invalid_url": {
-                              const e = $ail_m6;
-                              return { $ail_kind: "html.invalid_url", value: e.value };
-                            }
-                            default: {
-                              throw new Error("unreachable");
-                            }
-                            }
-                          }
-                          else {
-                            return { $ail_kind: "html.invalid_url", value: orig };
-                          }
-                        }
-                      }
-                    }
+                  case "html.invalid_url": {
+                    const e = $ail_m4;
+                    return { $ail_kind: "html.invalid_url", value: e.value };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
                   }
                 }
+                else if (($ailStrAt(s, 0n) >= 65n && $ailStrAt(s, 0n) <= 90n)) {
+                  const $ail_m5: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
+                  switch ($ail_m5.$ail_kind) {
+                  case "ok": {
+                    const r = $ail_m5;
+                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+                  }
+                  case "html.invalid_url": {
+                    const e = $ail_m5;
+                    return { $ail_kind: "html.invalid_url", value: e.value };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                else if (($ailStrAt(s, 0n) >= 97n && $ailStrAt(s, 0n) <= 122n)) {
+                  const $ail_m6: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
+                  switch ($ail_m6.$ail_kind) {
+                  case "ok": {
+                    const r = $ail_m6;
+                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+                  }
+                  case "html.invalid_url": {
+                    const e = $ail_m6;
+                    return { $ail_kind: "html.invalid_url", value: e.value };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                return { $ail_kind: "html.invalid_url", value: orig };
               }
             }
           }

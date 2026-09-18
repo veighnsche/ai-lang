@@ -214,6 +214,19 @@ func canonPattern(p Pattern) string {
 		return "bool:0"
 	case "str":
 		return "str:" + strconv.Quote(p.Str)
+	case "int":
+		if p.Num == nil {
+			return "unknown-pattern(int)"
+		}
+		return "int:" + p.Num.String()
+	case "range":
+		if p.Num == nil || p.Hi == nil {
+			if p.LoS != "" || p.HiS != "" {
+				return "range:" + p.LoS + ".." + p.HiS
+			}
+			return "unknown-pattern(range)"
+		}
+		return "range:" + p.Num.String() + ".." + p.Hi.String()
 	case "variant", "variantWild":
 		if p.Var == "" {
 			return p.Kind + ":" + p.Name

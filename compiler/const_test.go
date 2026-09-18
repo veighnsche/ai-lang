@@ -364,8 +364,9 @@ fn m__go(x: int, s: str) -> M__Out rev 1
 	}
 }
 
-// TestConstPatternInt pins AIL6016 for integer constants in
-// patterns: integer patterns arrive with the range slice.
+// TestConstPatternInt pins slice-3 admission: integer constants
+// are patterns now (the range slice landed), behaving exactly
+// like their literal.
 func TestConstPatternInt(t *testing.T) {
 	src := `mod m
   provides [m__go, M__Out, m__N]
@@ -381,17 +382,16 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
+    colon(x = 58) => Ok(value = 2)
+    other(x = 1) => Ok(value = 3)
 =
-  match x <= 100
-    true => Ok(value = 1)
-    false => match x
-      m__N => Ok(value = 2)
-      _ => Ok(value = 3)
+  match x
+    m__N => Ok(value = 2)
+    _ => Ok(value = 3)
 `
 	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6016") {
-		t.Fatalf("int const pattern reported no AIL6016: %v", diags)
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("int const pattern reported: %v", diags)
 	}
 }
 
