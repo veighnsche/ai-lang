@@ -49,7 +49,11 @@ type Small struct {
 	// Hi holds the slice end for Kind strslice (base L, start R).
 	Hi    *Small
 	Fname string
-	Args  []Arg
+	// TypeArgs holds explicit instantiation arguments on a call
+	// node (G1): `call f<str>(...)`. Empty for monomorphic
+	// calls. Expansion rewrites the call to its stamped copy.
+	TypeArgs []string
+	Args     []Arg
 	Ctor  string
 	Items []*Small
 	Ref   []string
@@ -216,10 +220,15 @@ type Node struct {
 }
 
 type Test struct {
-	Name     string
-	Args     []Arg
-	Expected *Small
-	Line     int
+	Name string
+	// TypeBinds pins one complete instantiation per row on a
+	// generic fn (G1): `row<T=str>(...)`. Param=arg pairs in
+	// source order; empty for monomorphic rows. Expansion
+	// routes each row to its stamped copy.
+	TypeBinds [][2]string
+	Args      []Arg
+	Expected  *Small
+	Line      int
 	// Pinned marks a row as trusted acceptance (a87): weakening its
 	// expectation against an accepted baseline is reported loudly.
 	// Rows without the marker are proposed evidence and churn freely.
@@ -247,10 +256,15 @@ func (d *TypeDecl) declKind() string    { return "type" }
 func (d *VariantDecl) declKind() string { return "variant" }
 
 type FnDecl struct {
-	Name     string
-	Rev      int
-	Params   [][2]string
-	Ret      string
+	Name string
+	Rev  int
+	// TypeParams names the declared type parameters (G1): empty
+	// for monomorphic functions. Expansion stamps one
+	// monomorphic copy per distinct instantiation; the template
+	// itself never reaches checking.
+	TypeParams []string
+	Params     [][2]string
+	Ret        string
 	Emits    []string
 	Tests    []Test
 	Body     *Node
@@ -409,13 +423,41 @@ func stripComment(line string) string {
 }
 
 func splitTop(s string, sep rune) []string {
-	return splitTopInner(s, sep, false)
+	return splitTopInner(s, sep, false, false)
+}
+
+// isCallGenericHead reports whether s[i] opens a generic call's
+// argument list: `<` immediately following a name in `call NAME<`
+// position. Comparisons (`a<b`) and Seq heads (`Seq<str>`) never
+// match: the name must sit directly behind the bracket with a
+// whole-word `call` before it.
+func isCallGenericHead(s string, i int) bool {
+	j := i - 1
+	for j >= 0 && (s[j] == '_' || s[j] >= '0' && s[j] <= '9' || s[j] >= 'a' && s[j] <= 'z' || s[j] >= 'A' && s[j] <= 'Z') {
+		j--
+	}
+	if j == i-1 {
+		return false
+	}
+	k := j
+	for k >= 0 && (s[k] == ' ' || s[k] == '\t') {
+		k--
+	}
+	if k < 3 || s[k-3:k+1] != "call" {
+		return false
+	}
+	return k-4 < 0 || !(s[k-4] == '_' || s[k-4] >= '0' && s[k-4] <= '9' || s[k-4] >= 'a' && s[k-4] <= 'z' || s[k-4] >= 'A' && s[k-4] <= 'Z')
 }
 
 // splitTopInner is splitTop with an empty-slot policy: drop trims and
 // drops empties (argument lists, where trailing commas are tolerated),
-// keep preserves every slot so callers can reject them.
-func splitTopInner(s string, sep rune, keepEmpty bool) []string {
+// keep preserves every slot so callers can reject them. callAware
+// additionally protects generic call argument lists (`call f<A,B>`)
+// from the separator; comparisons and Seq heads are untouched.
+// Only scrutinee lists opt in — G1 generic calls are valid in
+// scrutinee position alone, and argument-list splitting keeps its
+// exact existing meaning everywhere else.
+func splitTopInner(s string, sep rune, keepEmpty bool, callAware bool) []string {
 	var parts []string
 	var cur strings.Builder
 	var stack []byte
@@ -434,6 +476,9 @@ func splitTopInner(s string, sep rune, keepEmpty bool) []string {
 			}
 		} else if ch == '"' {
 			inStr = true
+			cur.WriteByte(ch)
+		} else if callAware && ch == '<' && (isCallGenericHead(s, i) || (len(stack) > 0 && stack[len(stack)-1] == '>')) {
+			stack = append(stack, '>')
 			cur.WriteByte(ch)
 		} else if closer, ok := pairs[ch]; ok {
 			stack = append(stack, closer)
@@ -462,7 +507,7 @@ func splitTopInner(s string, sep rune, keepEmpty bool) []string {
 // rejecting empty slots: `match x,` and `true,, false` are malformed
 // syntax, not short rows. String- and paren-aware like splitTop.
 func splitMatchList(s string) ([]string, error) {
-	raw := splitTopInner(s, ',', true)
+	raw := splitTopInner(s, ',', true, true)
 	out := make([]string, 0, len(raw))
 	for _, p := range raw {
 		if p == "" {
@@ -836,10 +881,42 @@ func escClose(s string) int {
 	return -1
 }
 
+// parseCallHead parses a complete call expression, plain or
+// generic (`call f<str>(...)`). Callers check this before any
+// operator cascade: a generic argument list's brackets must
+// never reach the comparison splitter as less-than. matched
+// distinguishes shape ("not a call", fall through to the
+// cascade) from contents (a malformed call reports here, so
+// argument errors keep their existing messages).
+func parseCallHead(s string) (node *Small, err error, matched bool) {
+	if !strings.HasPrefix(s, "call ") {
+		return nil, nil, false
+	}
+	m := regexp.MustCompile(`^call\s+(\w+)(?:<(.+?)>)?\((.*)\)$`).FindStringSubmatch(s)
+	if m == nil {
+		return nil, nil, false
+	}
+	tyargs, err := splitTypeArgs(m[2])
+	if err != nil {
+		return nil, err, true
+	}
+	args, err := parseArgs(m[3])
+	if err != nil {
+		return nil, err, true
+	}
+	return &Small{Kind: "call", Fname: m[1], TypeArgs: tyargs, Args: args}, nil, true
+}
+
 func parseSmall(s string) (*Small, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil, fmt.Errorf("empty expression")
+	}
+	if c, err, matched := parseCallHead(s); matched {
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
 	}
 	// a66: interpreted string literals e"...". Same str kind and
 	// runtime representation as ordinary literals; only the six
@@ -1030,6 +1107,14 @@ func parseSmall(s string) (*Small, error) {
 // and/or, while parenthesized operands still take the full
 // cascade through parseSmall.
 func parseSmallCmp(s string) (*Small, error) {
+	// G1: `not` strips to a bare call (`not call f<str>(x)`),
+	// so the call head check repeats here past the prefix.
+	if c, err, matched := parseCallHead(s); matched {
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	}
 	// Slice 5: prefix not binds tighter than comparisons
 	// (`not a == b` is `not (a == b)`), nesting freely.
 	if rest, ok := cutWordPrefix(s, "not"); ok {
@@ -1284,16 +1369,11 @@ func parseSmallMul(s string) (*Small, error) {
 		}
 		return base, nil
 	}
+	// Calls parse at the cascade heads (parseCallHead): reaching
+	// here with a `call` prefix means the head check declined a
+	// malformed call, so report it rather than mis-splitting.
 	if strings.HasPrefix(s, "call ") {
-		m := regexp.MustCompile(`^call\s+(\w+)\((.*)\)$`).FindStringSubmatch(s)
-		if m == nil {
-			return nil, fmt.Errorf("bad call syntax: %s", s)
-		}
-		args, err := parseArgs(m[2])
-		if err != nil {
-			return nil, err
-		}
-		return &Small{Kind: "call", Fname: m[1], Args: args}, nil
+		return nil, fmt.Errorf("bad call syntax: %s", s)
 	}
 	if strings.HasPrefix(s, "(") {
 		if end, err := balanced(s, 0); err == nil && end == len(s)-1 {
@@ -1506,11 +1586,11 @@ var (
 	reBrand       = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
 	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+(?:<\w+>)?)\s+rev\s+(\d+)\s*=\s*(.+)$`)
 	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
-	reFn          = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
+	reFn          = regexp.MustCompile(`^fn\s+(\w+)(?:<([\w\s,]+)>)?\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reExport      = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
 	reBridge      = regexp.MustCompile(`^asset_bridge\s+(\w+)\s*,\s*(\w+)\s+from\s+(\w+)\s+via\s+(\w+)@(\d+)\s+for\s+(\w+)$`)
 	reField       = regexp.MustCompile(`^(\w+)\s*:\s*(\w+(?:<[\w.]+>)?)$`)
-	reTest        = regexp.MustCompile(`^(\w+)\((.*)\)\s*=>\s*(.+)$`)
+	reTest        = regexp.MustCompile(`^(\w+)(?:<(.+?)>)?\((.*)\)\s*=>\s*(.+)$`)
 	reGiven       = regexp.MustCompile(`^(\w+)\s*=>\s*(.+)$`)
 	reArm         = regexp.MustCompile(`^(?:on\s+)?(.+?)\s*=>\s*(.*)$`)
 	// reContractArm heads an ensures arm: outcome plus bound name,
@@ -1521,6 +1601,7 @@ var (
 	reEffects         = regexp.MustCompile(`^effects\s*\[(.*)\]$`)
 	reState           = regexp.MustCompile(`^state\s+(\w+)\s*:\s*(\w+)\s*=\s*(.+)$`)
 	reRevWord         = regexp.MustCompile(`\brev\b`)
+	reTypeParam       = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
 	rePatVar          = regexp.MustCompile(`^([\w.]+)\s+(\w+)$`)
 	rePatWild         = regexp.MustCompile(`^([\w.]+)\s+_$`)
 )
@@ -1555,6 +1636,101 @@ func dupParam(params [][2]string) string {
 		seen[p[0]] = true
 	}
 	return ""
+}
+
+// splitTypeArgs splits a type-argument list on top-level commas,
+// tracking angle-bracket depth so Seq<str> survives whole. Empty
+// pieces are rejected: `f<str,>` is malformed, not short. Used for
+// call-site args and row binds; semantic validation (known types,
+// no nesting in G1) belongs to expansion, not parsing.
+func splitTypeArgs(s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	var parts []string
+	depth := 0
+	start := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '<':
+			depth++
+		case '>':
+			depth--
+			if depth < 0 {
+				return nil, fmt.Errorf("bad type arguments: unbalanced > in %s", s)
+			}
+		case ',':
+			if depth == 0 {
+				parts = append(parts, s[start:i])
+				start = i + 1
+			}
+		}
+	}
+	if depth != 0 {
+		return nil, fmt.Errorf("bad type arguments: unbalanced < in %s", s)
+	}
+	parts = append(parts, s[start:])
+	var out []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			return nil, fmt.Errorf("bad type arguments: empty slot in %s", s)
+		}
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+// parseTypeParams validates a fn decl's parameter list: names are
+// [A-Z][A-Za-z0-9]*, duplicates rejected like value params.
+func parseTypeParams(s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	var out []string
+	seen := map[string]bool{}
+	for _, p := range splitTop(s, ',') {
+		if !reTypeParam.MatchString(p) {
+			return nil, fmt.Errorf("bad type parameter %s: want [A-Z][A-Za-z0-9]*", p)
+		}
+		if seen[p] {
+			return nil, fmt.Errorf("duplicate type parameter %s", p)
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+	return out, nil
+}
+
+// parseTypeBinds validates a test row's instantiation pins:
+// P=E pairs in source order. Names are checked against the
+// decl's parameters at expansion, where the full program is
+// visible; here only the pair shape is enforced.
+func parseTypeBinds(s string) ([][2]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	pieces, err := splitTypeArgs(s)
+	if err != nil {
+		return nil, err
+	}
+	var out [][2]string
+	for _, p := range pieces {
+		eq := strings.Index(p, "=")
+		if eq <= 0 || eq == len(p)-1 {
+			return nil, fmt.Errorf("bad type bind %s: want P=Type", p)
+		}
+		name := strings.TrimSpace(p[:eq])
+		arg := strings.TrimSpace(p[eq+1:])
+		if !reTypeParam.MatchString(name) {
+			return nil, fmt.Errorf("bad type bind %s: param name wants [A-Z][A-Za-z0-9]*", p)
+		}
+		out = append(out, [2]string{name, arg})
+	}
+	return out, nil
 }
 
 func parseModule(path string) (*Module, error) {
@@ -1812,15 +1988,19 @@ func parseModuleText(name, text string) (*Module, error) {
 				}
 				return nil, at(declLine, fmt.Errorf("bad fn decl: %s", code))
 			}
-			rev, _ := strconv.Atoi(m[4])
-			params, err := parseFields(m[2], "param")
+			rev, _ := strconv.Atoi(m[5])
+			typarams, err := parseTypeParams(m[2])
+			if err != nil {
+				return nil, at(declLine, err)
+			}
+			params, err := parseFields(m[3], "param")
 			if err != nil {
 				return nil, at(declLine, err)
 			}
 			if dup := dupParam(params); dup != "" {
 				return nil, at(declLine, fmt.Errorf("duplicate param %s in fn %s", dup, m[1]))
 			}
-			fn := &FnDecl{Name: m[1], Rev: rev, Params: params, Ret: m[3], Line: declLine}
+			fn := &FnDecl{Name: m[1], Rev: rev, TypeParams: typarams, Params: params, Ret: m[4], Line: declLine}
 			i++
 			for i < len(rows) && rows[i].indent > 0 && isMetaHead(rows[i].code) {
 				ind, c := rows[i].indent, rows[i].code
@@ -1925,7 +2105,11 @@ func parseModuleText(name, text string) (*Module, error) {
 						if tm == nil {
 							return nil, at(tline, fmt.Errorf("bad test case: %s", rows[i].code))
 						}
-						targs, err := parseArgs(tm[2])
+						binds, err := parseTypeBinds(tm[2])
+						if err != nil {
+							return nil, at(tline, err)
+						}
+						targs, err := parseArgs(tm[3])
 						if err != nil {
 							return nil, at(tline, err)
 						}
@@ -1934,7 +2118,7 @@ func parseModuleText(name, text string) (*Module, error) {
 						// `)`, so only a suffix past the closing paren
 						// can be the marker; `pinned` inside strings or
 						// names is untouched.
-						expSrc := strings.TrimSpace(tm[3])
+						expSrc := strings.TrimSpace(tm[4])
 						pinned := false
 						if strings.HasSuffix(expSrc, ") pinned") {
 							expSrc = strings.TrimSpace(strings.TrimSuffix(expSrc, "pinned"))
@@ -1944,7 +2128,7 @@ func parseModuleText(name, text string) (*Module, error) {
 						if err != nil {
 							return nil, at(tline, err)
 						}
-						fn.Tests = append(fn.Tests, Test{Name: tm[1], Args: targs, Expected: exp, Line: tline, Pinned: pinned})
+						fn.Tests = append(fn.Tests, Test{Name: tm[1], TypeBinds: binds, Args: targs, Expected: exp, Line: tline, Pinned: pinned})
 						i++
 					}
 				default:
@@ -2022,7 +2206,7 @@ func isDigits(s string) bool {
 // Call-match `on` branches keep parsePattern: `|` stays a parse
 // error there, since V1 alternatives are value patterns only.
 func parseValuePattern(s string) (Pattern, error) {
-	parts := splitTopInner(s, '|', true)
+	parts := splitTopInner(s, '|', true, false)
 	if len(parts) == 1 {
 		return parsePattern(s)
 	}

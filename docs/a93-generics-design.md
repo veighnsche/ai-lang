@@ -1,0 +1,149 @@
+# a93: explicit generics — proposal (needs verdict on Q1–Q2)
+
+Status: decided 2026-09-18. Order-8 part 1 of 3 (this
+doc: generics; separate designs: function values,
+first-class outcomes). Parent: `docs/ASTRA_STDLIB.md`
+§6 order 8 ("no inferred type or error parameters").
+Verdict (principal, same day): Q1a per-instance
+stamps, Q2b select+compare pilot (8→2). G1 implements.
+
+## 1. Ground facts (repo-verified)
+
+- Types are strings: `Params [][2]string`, `Ret string`,
+  `Seq<T>` by string convention (`seqElemName`).
+  No variables, no substitution, no unification.
+- Runtime is type-erased: `Value` is structural
+  (`Kind`/`Dict`/`Arr`+`Elem`); brands erase. Expansion
+  is purely check/emit-time — no runtime type passing.
+- The one generic-like facility, `Seq<T>`, is handled
+  structurally per site (literals, indexing, emit).
+- Standing rejections: inferred generic parameters
+  (`docs/ASTRA_FSHARP_BORROW.md`); generics in the
+  variant first cut (a72, "start without ... generics").
+- Pilot surface is free: zero in-repo callers of
+  `std__select__*` / `std__compare__*` outside their
+  own file — unification needs no call-site migration.
+
+## 2. Design: explicit monomorphic expansion
+
+No inference anywhere. A generic decl names its type
+parameters; every use names complete type arguments;
+the compiler stamps one monomorphic copy per distinct
+instantiation and checks, terminates, and emits each
+as ordinary code. The template itself gets
+well-formedness checks only (§4) — every operator in
+every body is verified inside some stamped copy, so no
+constraint/bound language is needed in any slice here.
+(Consequence: `compare<T>` unifies in slice 1 despite
+using `<` — each stamp checks its own operators.)
+
+## 3. Syntax (proposed, not parsed)
+
+```can
+fn std__select<T>(condition: bool, when_true: T, when_false: T) -> T rev 1
+  emits []
+  tests
+    pick_true<T=bool>(true, true, false) => Ok(true)
+
+type Box<T> rev 1 (
+  value: T
+)
+```
+
+- Decl: `<P1, P2>` after the name, on `fn` (slice G1)
+  and `type` (slice G2). `variant`/`brand`/`error`
+  parameterization is not proposed.
+- Params: `[A-Z][A-Za-z0-9]*`, must not collide with
+  any declared type/record/brand/variant/error name in
+  the program. Every param must appear in the
+  signature (params or ret); unused params rejected.
+- Instantiation, always complete and explicit: calls
+  `select<str>(...)`, annotations `Box<str>`, test rows
+  `name<T=str>(...)`. Partial application, defaults,
+  and inference are rejected, not defaulted.
+- Type arguments in G1/G2: any known monomorphic type
+  (base, `Bytes`, record, brand, variant, `Seq` over
+  those). Nested instantiation (`Box<Box<str>>`) and
+  generic-typed `state` cells are rejected in these
+  slices (expansion-termination and store-identity
+  arguments owed separately).
+- `emits` stays concrete kinds (no error-set params —
+  outcome-generic fns await that separate design).
+- Recursion: a generic fn's self-calls must repeat the
+  caller's own type arguments exactly (checked at
+  expansion); cross-instantiation recursion is
+  rejected — it risks unbounded stamps.
+
+## 4. Checking
+
+- Template well-formedness at parse/check: params
+  declared before use, all used in the signature, no
+  collisions, concrete emits, instantiation syntax
+  complete at every use site (calls, annotations,
+  rows, `given` exchanges naming generic callees).
+- Per-instance full checking: substitute args through
+  the signature and body, then run the ordinary
+  phases (types, exhaustiveness, termination,
+  contracts-adjacent gates) on each stamped copy.
+  Termination is per stamp — no new argument shape.
+- Rows: same rule as all fns (rows required), each
+  row pinning one complete instantiation. An
+  uninstantiated generic (no rows, no calls) is
+  rejected as an unchecked template.
+- `uses` pins the base name + rev (`select@1`);
+  instantiation lives in the call, never the pin.
+  Mangled names never appear in source.
+
+## 5. Emit (Q1)
+
+- (a, recommended) Per-instance stamps: each stamped
+  copy emits as its own TS function under a
+  deterministic mangled name. What runs is what was
+  checked; existing golden/parity gates keep their
+  meaning. Mangling: base + (`$T$` + arg) per arg,
+  with `<`/`>`/`,` escaped as `$L$`/`$G$`/`$C$`
+  (`select<str>` → `select$T$str`). `$` never occurs
+  in source identifiers (`\w+`), so stamps cannot
+  collide with declared names.
+- (b) Single TS-native generic per decl
+  (`function select<T>(...)`). Less emit code, but the
+  one artifact the checker never verified as a unit
+  becomes the thing that runs; per-shape golden/parity
+  evidence would need re-scoping.
+
+## 6. Slices
+
+- **G1: generic fns.** Parse, well-formedness,
+  expansion, per-instance check/emit, `uses`
+  base-name resolution (modcheck + compiler agree),
+  editor highlighting for `<>`, golden + linked +
+  parity for the pilot, LSP degrades gracefully.
+- **G2: generic record types** (`Box<T>`; the shape
+  `Schema<T>` will later reuse — no schema semantics
+  here). Same gates.
+- **Pilot (Q2):** unify `std__select__*` (4→1),
+  optionally plus `std__compare__*` (4→1), in
+  `scalars.can`, replacing the monomorphic fns (zero
+  callers; no compatibility aliases per a89
+  precedent). Decision tables move onto the generic
+  with per-row instantiations.
+
+## 7. Non-goals (all slices here)
+
+Inference, defaults, partial application, nested
+instantiation, generic variants/brands/errors/state,
+error-set parameters, function values, first-class
+outcomes, record traversal, TS-native generic emit
+(unless Q1b), any claim the §1.5 row is delivered.
+
+## Q1 — Emit strategy (verdict needed)
+
+(a) per-instance stamps [recommended] or (b) single
+TS-native generic per decl. Decides what the parity
+harness executes and how goldens pin generic shapes.
+
+## Q2 — Pilot scope (verdict needed)
+
+(a) `select` family only (4→1) [recommended: smallest
+proof] or (b) `select` + `compare` (8→2, same
+machinery, stronger demonstration).
