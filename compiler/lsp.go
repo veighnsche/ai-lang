@@ -232,6 +232,13 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	if base != nil && !hasErrors(out) {
 		out = append(out, CheckRevisionIdentity(prog, texts, base)...)
 	}
+	// a82: verifier activation in the editor. Like identity
+	// enforcement, proof findings append only when the world
+	// otherwise checks clean, so broken programs never gain
+	// proof noise atop real errors.
+	if !hasErrors(out) {
+		out = append(out, VerifyContracts(prog, texts)...)
+	}
 	sortDiags(out)
 	return withFile(out, name)
 }

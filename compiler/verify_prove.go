@@ -1135,6 +1135,43 @@ func VerifyContracts(prog *Program, texts map[string]string) []Diag {
 	return out
 }
 
+// contractIdentities splits function declarations into contracted
+// (verified when verification reports no findings) and
+// uncontracted (ordinary tested status, never universally
+// verified), as qualified name@rev identities in program order.
+func contractIdentities(prog *Program) (verified, uncontracted []string) {
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			id := fmt.Sprintf("%s@%d", fn.Name, fn.Rev)
+			if isContracted(fn) {
+				verified = append(verified, id)
+			} else {
+				uncontracted = append(uncontracted, id)
+			}
+		}
+	}
+	return verified, uncontracted
+}
+
+// printVerificationReport renders the verdict position 7 evidence
+// record for a passing compilation: what verified, what did not,
+// and the scope boundary.
+func printVerificationReport(prog *Program) {
+	verified, uncontracted := contractIdentities(prog)
+	fmt.Println("contract verification: succeeded")
+	fmt.Printf("verified declarations: [%s]\n", strings.Join(verified, ", "))
+	if len(uncontracted) == 0 {
+		fmt.Println("uncontracted declarations: none")
+	} else {
+		fmt.Printf("uncontracted declarations: not universally verified: [%s]\n", strings.Join(uncontracted, ", "))
+	}
+	fmt.Println("scope: supported source semantics with verified callees")
+}
+
 // topoContracted orders contracted functions callee-first. Cycles
 // cannot occur past admission, but the visited set keeps the walk
 // total regardless.

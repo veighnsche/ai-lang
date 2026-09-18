@@ -178,6 +178,22 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 			return failDiags(collected, jsonOut)
 		}
 	}
+	// a82: verifier activation. Once the ordinary gate passes, every
+	// contracted function must satisfy admission and proof:
+	// unsupported, unproven, or inconclusive contracts block
+	// acceptance. Uncontracted functions keep ordinary status.
+	if vcDiags := VerifyContracts(prog, texts); len(vcDiags) > 0 {
+		for _, d := range vcDiags {
+			if d.File == "" {
+				d.File = mods[0].File
+			}
+		}
+		collected = append(collected, vcDiags...)
+		return failDiags(collected, jsonOut)
+	}
+	if !jsonOut {
+		printVerificationReport(prog)
+	}
 	for _, m := range mods {
 		for _, d := range m.Decls {
 			fn, ok := d.(*FnDecl)

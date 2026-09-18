@@ -285,11 +285,11 @@ verifier implementation.
    (AIL6013; proof caching explicitly out of scope).
 5. Verifier core (§2.2 logic), now unblocked, sliced
    probe-first per the §2.2 verdict: a80 admission /
-   well-formedness (no solver), then obligation
-   generation + solver boundary, modular-call
-   handling, evidence reporting, and pilots
-   (max/validator/composition). No verifier slice
-   reopens identity enforcement.
+   well-formedness (no solver), a81 obligation
+   generation + solver boundary with modular-call
+   handling and pilots (max/validator/composition),
+   a82 activation + evidence reporting. No verifier
+   slice reopens identity enforcement.
 6. Stdlib contract pilots land after the verifier
    proves them; unsupported contract-bearing
    interfaces do not ship as accepted source.
