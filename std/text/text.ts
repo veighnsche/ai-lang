@@ -159,33 +159,13 @@ export function std__str__concat(left: string, right: string): { $ail_kind: "ok"
   return { $ail_kind: "ok", value: (left + right) };
 }
 export function std__str__is_empty(value: string): { $ail_kind: "ok"; value: boolean } {
-  if ((value === "")) {
-    return { $ail_kind: "ok", value: true };
-  }
-  else {
-    return { $ail_kind: "ok", value: false };
-  }
+  return { $ail_kind: "ok", value: (value === "") };
 }
 export function std__str__is_whitespace(scalar: bigint): { $ail_kind: "ok"; value: boolean } {
-  const $ail_m1 = (scalar === 32n);
-  const $ail_m2 = (scalar === 9n);
-  const $ail_m3 = (scalar === 10n);
-  const $ail_m4 = (scalar === 13n);
-  if ($ail_m1) {
+  if ((scalar === 32n || scalar === 9n || scalar === 10n || scalar === 13n)) {
     return { $ail_kind: "ok", value: true };
   }
-  else if ($ail_m2) {
-    return { $ail_kind: "ok", value: true };
-  }
-  else if ($ail_m3) {
-    return { $ail_kind: "ok", value: true };
-  }
-  else if ($ail_m4) {
-    return { $ail_kind: "ok", value: true };
-  }
-  else {
-    return { $ail_kind: "ok", value: false };
-  }
+  return { $ail_kind: "ok", value: false };
 }
 export function std__str__length_scalars(value: string): { $ail_kind: "ok"; value: bigint } {
   return { $ail_kind: "ok", value: (BigInt([...value].length)) };

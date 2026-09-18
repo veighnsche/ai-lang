@@ -440,11 +440,11 @@ export function std__int__abs(value: bigint): { $ail_kind: "ok"; value: bigint }
     return { $ail_kind: "ok", value: value };
   }
   else {
-    return { $ail_kind: "ok", value: (0n - value) };
+    return { $ail_kind: "ok", value: (-value) };
   }
 }
 export function std__int__negate(value: bigint): { $ail_kind: "ok"; value: bigint } {
-  return { $ail_kind: "ok", value: (0n - value) };
+  return { $ail_kind: "ok", value: (-value) };
 }
 export function std__int__sign(value: bigint): { $ail_kind: "ok"; value: bigint } {
   const $ail_m1 = (value === 0n);
@@ -1094,7 +1094,7 @@ export function std__dec__scale_by_power_of_ten(value: string, exponent: bigint)
     }
   }
   else {
-    const $ail_m2: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten_from(value, (0n - exponent), "0.1");
+    const $ail_m2: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten_from(value, (-exponent), "0.1");
     switch ($ail_m2.$ail_kind) {
     case "ok": {
       const r = $ail_m2;
@@ -1112,7 +1112,7 @@ export function std__dec__from_parts(coefficient: bigint, scale: bigint): { $ail
     switch ($ail_m1.$ail_kind) {
     case "ok": {
       const whole = $ail_m1;
-      const $ail_m2: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(whole.value, (0n - scale));
+      const $ail_m2: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(whole.value, (-scale));
       switch ($ail_m2.$ail_kind) {
       case "ok": {
         const moved = $ail_m2;
@@ -1395,7 +1395,7 @@ export function std__dec__divide_exact(dividend: string, divisor: string): { $ai
                           switch ($ail_m11.$ail_kind) {
                           case "ok": {
                             const qi = $ail_m11;
-                            const $ail_m12: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (0n - m.value));
+                            const $ail_m12: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (-m.value));
                             switch ($ail_m12.$ail_kind) {
                             case "ok": {
                               const q = $ail_m12;
@@ -1883,7 +1883,7 @@ export function std__dec__sqrt_exact(value: string): { $ail_kind: "ok"; value: s
             switch ($ail_m3.$ail_kind) {
             case "ok": {
               const qi = $ail_m3;
-              const $ail_m4: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (0n - $ailDivMod(p.scale, 2n)[0]));
+              const $ail_m4: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (-$ailDivMod(p.scale, 2n)[0]));
               switch ($ail_m4.$ail_kind) {
               case "ok": {
                 const q = $ail_m4;
@@ -1918,7 +1918,7 @@ export function std__dec__sqrt_exact(value: string): { $ail_kind: "ok"; value: s
             switch ($ail_m6.$ail_kind) {
             case "ok": {
               const qi = $ail_m6;
-              const $ail_m7: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (0n - $ailDivMod((p.scale + 1n), 2n)[0]));
+              const $ail_m7: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (-$ailDivMod((p.scale + 1n), 2n)[0]));
               switch ($ail_m7.$ail_kind) {
               case "ok": {
                 const q = $ail_m7;
@@ -2050,7 +2050,7 @@ export function std__convert__int_to_str_from(n: bigint, acc: string, m: bigint)
 }
 export function std__convert__int_to_str(value: bigint): { $ail_kind: "ok"; value: string } {
   if ((value < 0n)) {
-    const $ail_m1: { $ail_kind: "ok"; value: string } = std__convert__int_to_str_from((0n - value), "", ((0n - value) + 1n));
+    const $ail_m1: { $ail_kind: "ok"; value: string } = std__convert__int_to_str_from((-value), "", ((-value) + 1n));
     switch ($ail_m1.$ail_kind) {
     case "ok": {
       const r = $ail_m1;
@@ -2120,7 +2120,7 @@ export function std__convert__str_to_int(value: string): { $ail_kind: "ok"; valu
         }
         case "ok": {
           const r = $ail_m1;
-          return { $ail_kind: "ok", value: (0n - r.value) };
+          return { $ail_kind: "ok", value: (-r.value) };
         }
         default: {
           throw new Error("unreachable");
@@ -2172,7 +2172,7 @@ export function std__convert__str_to_dec_from(orig: string, value: string, pos: 
         switch ($ail_m2.$ail_kind) {
         case "ok": {
           const whole = $ail_m2;
-          const $ail_m3: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(whole.value, (0n - scale));
+          const $ail_m3: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(whole.value, (-scale));
           switch ($ail_m3.$ail_kind) {
           case "ok": {
             const moved = $ail_m3;
@@ -2316,7 +2316,7 @@ export function std__convert__int_to_dec(value: bigint): { $ail_kind: "ok"; valu
     }
   }
   else {
-    const $ail_m2: { $ail_kind: "ok"; value: string } = std__convert__int_to_dec_from((0n - value), "0.0", "-1.0");
+    const $ail_m2: { $ail_kind: "ok"; value: string } = std__convert__int_to_dec_from((-value), "0.0", "-1.0");
     switch ($ail_m2.$ail_kind) {
     case "ok": {
       const r = $ail_m2;

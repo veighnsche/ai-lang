@@ -64,9 +64,7 @@ fn std__str__is_empty(value: str) -> Bool__Value rev 1
     nonempty(value = "x") => Ok(value = false)
     whitespace(value = " ") => Ok(value = false)
 =
-  match value == ""
-    true => Ok(value = true)
-    false => Ok(value = false)
+  Ok(value = value == "")
 
 fn std__str__is_whitespace(scalar: int) -> Bool__Value rev 1
   emits []
@@ -78,12 +76,9 @@ fn std__str__is_whitespace(scalar: int) -> Bool__Value rev 1
     letter(scalar = 65) => Ok(value = false)
     nul(scalar = 0) => Ok(value = false)
 =
-  match scalar == 32, scalar == 9, scalar == 10, scalar == 13
-    true, _, _, _ => Ok(value = true)
-    false, true, _, _ => Ok(value = true)
-    false, false, true, _ => Ok(value = true)
-    false, false, false, true => Ok(value = true)
-    false, false, false, false => Ok(value = false)
+  match scalar
+    32 | 9 | 10 | 13 => Ok(value = true)
+    _ => Ok(value = false)
 
 fn std__str__length_scalars(value: str) -> Int__Value rev 1
   emits []

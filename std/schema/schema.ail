@@ -229,39 +229,23 @@ fn schema__url__tail_check(s: str, n: int, in_authority: bool) -> Schema__BoolRe
 =
   match n <= 0
     true => Ok(value = true)
-    false => match s[0] == 0
-      true => Ok(value = false)
-      false => match s[0] == 35
+    false => match s[0]
+      0 | 35 | 92 | 124 | 34 | 39 | 60 | 62 | 127 => Ok(value = false)
+      _ => match s[0] < 32
         true => Ok(value = false)
-        false => match s[0] == 92
-          true => Ok(value = false)
-          false => match s[0] == 124
+        false => match call schema__url__ws(s[0])
+          on Ok w => match w.value
             true => Ok(value = false)
-            false => match s[0] < 32
-              true => Ok(value = false)
-              false => match s[0] == 34
+            false => match s[0] == 64
+              true => match in_authority
                 true => Ok(value = false)
-                false => match s[0] == 39
-                  true => Ok(value = false)
-                  false => match s[0] == 60
-                    true => Ok(value = false)
-                    false => match s[0] == 62
-                      true => Ok(value = false)
-                      false => match s[0] == 127
-                        true => Ok(value = false)
-                        false => match call schema__url__ws(s[0])
-                          on Ok w => match w.value
-                            true => Ok(value = false)
-                            false => match s[0] == 64
-                              true => match in_authority
-                                true => Ok(value = false)
-                                false => match call schema__url__tail_check(s[1:#s], n - 1, in_authority)
-                                  on Ok r => Ok(value = r.value)
-                              false => match s[0] == 47
-                                true => match call schema__url__tail_check(s[1:#s], n - 1, false)
-                                  on Ok r => Ok(value = r.value)
-                                false => match call schema__url__tail_check(s[1:#s], n - 1, in_authority)
-                                  on Ok r => Ok(value = r.value)
+                false => match call schema__url__tail_check(s[1:#s], n - 1, in_authority)
+                  on Ok r => Ok(value = r.value)
+              false => match s[0] == 47
+                true => match call schema__url__tail_check(s[1:#s], n - 1, false)
+                  on Ok r => Ok(value = r.value)
+                false => match call schema__url__tail_check(s[1:#s], n - 1, in_authority)
+                  on Ok r => Ok(value = r.value)
 
 // Separator-safe token scan: identifiers, revisions, and site fields must
 // carry no NUL and no "|" (code 124). The witness canonical string joins
@@ -281,12 +265,10 @@ fn schema__token__check(s: str, n: int) -> Schema__BoolResult rev 1
 =
   match n <= 0
     true => Ok(value = true)
-    false => match s[0] == 0
-      true => Ok(value = false)
-      false => match s[0] == 124
-        true => Ok(value = false)
-        false => match call schema__token__check(s[1:#s], n - 1)
-          on Ok r => Ok(value = r.value)
+    false => match s[0]
+      0 | 124 => Ok(value = false)
+      _ => match call schema__token__check(s[1:#s], n - 1)
+        on Ok r => Ok(value = r.value)
 
 // All five free-text bindings must be separator-safe: a pipe smuggled in
 // any one of them breaks the witness framing, so one function checks all
@@ -316,8 +298,9 @@ fn schema__tokens__check(id: str, revision: str, site: Schema__Site) -> Schema__
           false => Ok(value = false)
       false => Ok(value = false)
 
-// SRI digest alphabet: standard base64 plus padding. One arm per class;
-// ranges use two-wide conjunctions, each witnessed below.
+// SRI digest alphabet: standard base64 plus padding. One arm carries the
+// three symbols and the three ranges; the wildcard rejects. Every range
+// edge and every neighbor just outside a range is witnessed below.
 fn schema__digest__char(code: int) -> Schema__BoolResult rev 1
   emits []
   tests
@@ -330,20 +313,15 @@ fn schema__digest__char(code: int) -> Schema__BoolResult rev 1
     char_dash(code = 45) => Ok(value = false)
     char_colon(code = 58) => Ok(value = false)
     char_space(code = 32) => Ok(value = false)
+    char_digit_nine(code = 57) => Ok(value = true)
+    char_upper_z(code = 90) => Ok(value = true)
+    char_lower_z(code = 122) => Ok(value = true)
+    char_above_upper(code = 91) => Ok(value = false)
+    char_above_lower(code = 123) => Ok(value = false)
 =
-  match code == 43
-    true => Ok(value = true)
-    false => match code == 47
-      true => Ok(value = true)
-      false => match code == 61
-        true => Ok(value = true)
-        false => match code >= 48, code <= 57
-          true, true => Ok(value = true)
-          _, _ => match code >= 65, code <= 90
-            true, true => Ok(value = true)
-            _, _ => match code >= 97, code <= 122
-              true, true => Ok(value = true)
-              _, _ => Ok(value = false)
+  match code
+    43 | 47 | 61 | 48..57 | 65..90 | 97..122 => Ok(value = true)
+    _ => Ok(value = false)
 
 // Digest tail scan: every scalar must clear the alphabet worker.
 fn schema__digest__tail(s: str, n: int) -> Schema__BoolResult rev 1

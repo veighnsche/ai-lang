@@ -36,27 +36,12 @@ export function std__int__is_multiple(value: bigint, divisor: bigint): { $ail_ki
     return { $ail_kind: "math.zero_divisor", divisor: divisor };
   }
   else {
-    if (($ailDivMod(value, divisor)[1] === 0n)) {
-      return { $ail_kind: "ok", value: true };
-    }
-    else {
-      return { $ail_kind: "ok", value: false };
-    }
+    return { $ail_kind: "ok", value: ($ailDivMod(value, divisor)[1] === 0n) };
   }
 }
 export function std__int__is_even(value: bigint): { $ail_kind: "ok"; value: boolean } {
-  if (($ailDivMod(value, 2n)[1] === 0n)) {
-    return { $ail_kind: "ok", value: true };
-  }
-  else {
-    return { $ail_kind: "ok", value: false };
-  }
+  return { $ail_kind: "ok", value: ($ailDivMod(value, 2n)[1] === 0n) };
 }
 export function std__int__is_odd(value: bigint): { $ail_kind: "ok"; value: boolean } {
-  if (($ailDivMod(value, 2n)[1] === 0n)) {
-    return { $ail_kind: "ok", value: false };
-  }
-  else {
-    return { $ail_kind: "ok", value: true };
-  }
+  return { $ail_kind: "ok", value: ($ailDivMod(value, 2n)[1] === 1n) };
 }

@@ -63,9 +63,7 @@ fn std__int__is_multiple(value: int, divisor: int) -> Bool__Value rev 1
 =
   match divisor == 0
     true => math.zero_divisor(divisor = divisor)
-    false => match value % divisor == 0
-      true => Ok(value = true)
-      false => Ok(value = false)
+    false => Ok(value = value % divisor == 0)
 
 fn std__int__is_even(value: int) -> Bool__Value rev 1
   emits []
@@ -76,9 +74,7 @@ fn std__int__is_even(value: int) -> Bool__Value rev 1
     even_odd_neg(value = -3) => Ok(value = false)
     even_zero(value = 0) => Ok(value = true)
 =
-  match value % 2 == 0
-    true => Ok(value = true)
-    false => Ok(value = false)
+  Ok(value = value % 2 == 0)
 
 fn std__int__is_odd(value: int) -> Bool__Value rev 1
   emits []
@@ -89,9 +85,7 @@ fn std__int__is_odd(value: int) -> Bool__Value rev 1
     odd_even_neg(value = -4) => Ok(value = false)
     odd_zero(value = 0) => Ok(value = false)
 =
-  match value % 2 == 0
-    true => Ok(value = false)
-    false => Ok(value = true)
+  Ok(value = value % 2 == 1)
 
 // Shape notes, kept with the program, not in a second file.
 // 1. The remainder is always non-negative: -3 is odd because

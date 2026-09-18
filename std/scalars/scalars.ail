@@ -389,7 +389,7 @@ fn std__int__abs(value: int) -> Int__Value rev 1
 =
   match value >= 0
     true => Ok(value = value)
-    false => Ok(value = 0 - value)
+    false => Ok(value = -value)
 
 fn std__int__negate(value: int) -> Int__Value rev 1
   emits []
@@ -398,7 +398,7 @@ fn std__int__negate(value: int) -> Int__Value rev 1
     neg_neg(value = -3) => Ok(value = 3)
     neg_zero(value = 0) => Ok(value = 0)
 =
-  Ok(value = 0 - value)
+  Ok(value = -value)
 
 fn std__int__sign(value: int) -> Int__Value rev 1
   emits []
@@ -914,7 +914,7 @@ fn std__dec__scale_by_power_of_ten(value: dec, exponent: int) -> Dec__Value rev 
   match exponent >= 0
     true => match call std__dec__scale_by_power_of_ten_from(value, exponent, d"10.0")
       on Ok r => Ok(value = r.value)
-    false => match call std__dec__scale_by_power_of_ten_from(value, 0 - exponent, d"0.1")
+    false => match call std__dec__scale_by_power_of_ten_from(value, -exponent, d"0.1")
       on Ok r => Ok(value = r.value)
 
 fn std__dec__from_parts(coefficient: int, scale: int) -> Dec__Value rev 1
@@ -927,7 +927,7 @@ fn std__dec__from_parts(coefficient: int, scale: int) -> Dec__Value rev 1
 =
   match scale >= 0
     true => match call std__convert__int_to_dec(coefficient)
-      on Ok whole => match call std__dec__scale_by_power_of_ten(whole.value, 0 - scale)
+      on Ok whole => match call std__dec__scale_by_power_of_ten(whole.value, -scale)
         on Ok moved => Ok(value = moved.value)
     false => math.negative_scale(scale = scale)
 
@@ -1077,7 +1077,7 @@ fn std__dec__divide_exact(dividend: dec, divisor: dec) -> Dec__Value rev 1
                       true => match call std__int__max(f.twos, f.fives)
                         on Ok m => match call std__int__pow_from(10, m.value)
                           on Ok p10 => match call std__convert__int_to_dec((an.value / g.value) * (p10.value / (ad.value / g.value)))
-                            on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - m.value)
+                            on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -m.value)
                               on Ok q => match (n.coefficient * pns.value) < 0, (d.coefficient * pds.value) < 0
                                 true, true => Ok(value = q.value)
                                 true, false => Ok(value = q.value * d"-1.0")
@@ -1241,13 +1241,13 @@ fn std__dec__sqrt_exact(value: dec) -> Dec__Value rev 1
         true => match call std__int__sqrt_floor_search(p.coefficient, 0, p.coefficient + 1)
           on Ok r => match p.coefficient - r.value * r.value == 0
             true => match call std__convert__int_to_dec(r.value)
-              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - p.scale / 2)
+              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -(p.scale / 2))
                 on Ok q => Ok(value = q.value)
             false => math.nonrepresentable_result(value = value)
         false => match call std__int__sqrt_floor_search(p.coefficient * 10, 0, p.coefficient * 10 + 1)
           on Ok r => match p.coefficient * 10 - r.value * r.value == 0
             true => match call std__convert__int_to_dec(r.value)
-              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - (p.scale + 1) / 2)
+              on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -((p.scale + 1) / 2))
                 on Ok q => Ok(value = q.value)
             false => math.nonrepresentable_result(value = value)
 
@@ -1355,7 +1355,7 @@ fn std__convert__int_to_str(value: int) -> Str__Value rev 1
     i2s_neg(value = -7) => Ok(value = "-7")
 =
   match value < 0
-    true => match call std__convert__int_to_str_from(0 - value, "", 0 - value + 1)
+    true => match call std__convert__int_to_str_from(-value, "", -value + 1)
       on Ok r => Ok(value = "-" + r.value)
     false => match call std__convert__int_to_str_from(value, "", value + 1)
       on Ok r => Ok(value = r.value)
@@ -1396,7 +1396,7 @@ fn std__convert__str_to_int(value: str) -> Int__Value rev 1
       true => match #value >= 2
         true => match call std__convert__str_to_int_from(value, value, 1, 0, #value - 1)
           on convert.invalid_integer e => convert.invalid_integer(value = e.value)
-          on Ok r => Ok(value = 0 - r.value)
+          on Ok r => Ok(value = -r.value)
         false => convert.invalid_integer(value = value)
       false => match call std__convert__str_to_int_from(value, value, 0, 0, #value)
         on convert.invalid_integer e => convert.invalid_integer(value = e.value)
@@ -1423,7 +1423,7 @@ fn std__convert__str_to_dec_from(orig: str, value: str, pos: int, coeff: int, sc
       false => match scale == 0
         true => convert.invalid_decimal(value = orig)
         false => match call std__convert__int_to_dec(coeff)
-          on Ok whole => match call std__dec__scale_by_power_of_ten(whole.value, 0 - scale)
+          on Ok whole => match call std__dec__scale_by_power_of_ten(whole.value, -scale)
             on Ok moved => Ok(value = moved.value)
     false => match value[pos:pos + 1] == "."
       true => match dot == 0
@@ -1482,7 +1482,7 @@ fn std__convert__int_to_dec(value: int) -> Dec__Value rev 1
   match value >= 0
     true => match call std__convert__int_to_dec_from(value, d"0.0", d"1.0")
       on Ok r => Ok(value = r.value)
-    false => match call std__convert__int_to_dec_from(0 - value, d"0.0", d"-1.0")
+    false => match call std__convert__int_to_dec_from(-value, d"0.0", d"-1.0")
       on Ok r => Ok(value = r.value)
 
 fn std__backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value rev 1

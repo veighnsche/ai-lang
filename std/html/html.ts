@@ -343,32 +343,10 @@ export function html__attribute__boolean(name: string, present: boolean): { $ail
   }
 }
 export function html__attribute__id_ws(code: bigint): { $ail_kind: "ok"; ws: boolean } {
-  if ((code === 9n)) {
+  if ((code === 9n || code === 10n || code === 12n || code === 13n || code === 32n)) {
     return { $ail_kind: "ok", ws: true };
   }
-  else {
-    if ((code === 10n)) {
-      return { $ail_kind: "ok", ws: true };
-    }
-    else {
-      if ((code === 12n)) {
-        return { $ail_kind: "ok", ws: true };
-      }
-      else {
-        if ((code === 13n)) {
-          return { $ail_kind: "ok", ws: true };
-        }
-        else {
-          if ((code === 32n)) {
-            return { $ail_kind: "ok", ws: true };
-          }
-          else {
-            return { $ail_kind: "ok", ws: false };
-          }
-        }
-      }
-    }
-  }
+  return { $ail_kind: "ok", ws: false };
 }
 export function html__attribute__id_check(orig: string, s: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_identifier"; value: string } {
   if ((n <= 0n)) {
@@ -511,35 +489,11 @@ export function html__url__scheme_token(orig: string, s: string, n: bigint, tota
       else if ($ailStrAt(s, 0n) === 58n) {
         return { $ail_kind: "ok", has: true };
       }
-      else if ($ailStrAt(s, 0n) === 43n) {
+      else if (($ailStrAt(s, 0n) === 43n || $ailStrAt(s, 0n) === 45n || $ailStrAt(s, 0n) === 46n)) {
         const $ail_m6: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
         switch ($ail_m6.$ail_kind) {
         case "ok": {
           const r = $ail_m6;
-          return { $ail_kind: "ok", has: r.has };
-        }
-        default: {
-          throw new Error("unreachable");
-        }
-        }
-      }
-      else if ($ailStrAt(s, 0n) === 45n) {
-        const $ail_m7: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-        switch ($ail_m7.$ail_kind) {
-        case "ok": {
-          const r = $ail_m7;
-          return { $ail_kind: "ok", has: r.has };
-        }
-        default: {
-          throw new Error("unreachable");
-        }
-        }
-      }
-      else if ($ailStrAt(s, 0n) === 46n) {
-        const $ail_m8: { $ail_kind: "ok"; has: boolean } = html__url__scheme_token(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), total);
-        switch ($ail_m8.$ail_kind) {
-        case "ok": {
-          const r = $ail_m8;
           return { $ail_kind: "ok", has: r.has };
         }
         default: {
