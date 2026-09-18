@@ -163,8 +163,10 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 	if err := firstError(collected); err != nil {
 		return failDiags(collected, jsonOut)
 	}
+	var base *RevisionBaseline
 	if baselinePath != "" {
-		base, err := LoadBaseline(baselinePath)
+		var err error
+		base, err = LoadBaseline(baselinePath)
 		if err != nil {
 			return fmt.Errorf("ailc: cannot load baseline: %v", err)
 		}
@@ -193,6 +195,20 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 	}
 	if !jsonOut {
 		printVerificationReport(prog)
+	}
+	// a87: pinned-row weakening is advisory. It reports only when the
+	// world is otherwise clean (same ordering as identity and proof),
+	// prints loudly on both output modes, and never blocks emit.
+	if base != nil {
+		if pinDiags := CheckPinnedRows(prog, texts, base); len(pinDiags) > 0 {
+			if jsonOut {
+				reportDiags(os.Stdout, pinDiags)
+			} else {
+				for _, d := range pinDiags {
+					fmt.Fprintf(os.Stderr, "ailc: warning %s:%d: %s\n", d.File, d.Line, d.Msg)
+				}
+			}
+		}
 	}
 	for _, m := range mods {
 		for _, d := range m.Decls {

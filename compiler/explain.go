@@ -331,6 +331,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `an arm no test reaches — dead dispatch the tables never exercise.`,
 		fix:     "Add a test row that takes the arm. Certified relays are the only exemption, and certified is never reported as taken.",
 	},
+	CodePinnedWeakened: {
+		rule:    "Pinned rows are trusted acceptance (a87): weakening, removing, or demoting one since the accepted baseline is reported loudly and never gates.",
+		violate: `a pinned expectation changed to match a new implementation.`,
+		fix:     "Restore the accepted expectation, or re-accept by updating the baseline. Unmarked rows churn freely; only the marker carries acceptance.",
+	},
 	CodeInvalidRelay: {
 		rule:    "Identity-relay certificates are checked, not trusted: a relay-shaped arm that fails the check (wrong kind, dropped field) is invalid.",
 		violate: `an on e => ... arm claiming relay shape with a mismatched kind or payload.`,

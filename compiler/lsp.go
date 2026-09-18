@@ -234,6 +234,11 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	if base != nil && !hasErrors(out) {
 		out = append(out, CheckRevisionIdentity(prog, texts, base)...)
 	}
+	// a87: pinned weakening reports under the same clean-world rule,
+	// after identity, so drift noise never stacks atop real errors.
+	if base != nil && !hasErrors(out) {
+		out = append(out, CheckPinnedRows(prog, texts, base)...)
+	}
 	// a82: verifier activation in the editor. Like identity
 	// enforcement, proof findings append only when the world
 	// otherwise checks clean, so broken programs never gain

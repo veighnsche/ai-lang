@@ -80,6 +80,12 @@ type RevisionBaseline struct {
 	Accepted bool                     `json:"accepted"`
 	Scope    []string                 `json:"scope"`
 	Entries  map[string]RevisionEntry `json:"entries"`
+	// Pinned records trusted-acceptance rows (a87): row key to
+	// canonical expectation rendering. Additive: older baselines
+	// carry no pins and simply track nothing, so the format does
+	// not bump for this advisory section. Pins never enter the
+	// fingerprint hash — weakening warns (AIL6017), never rejects.
+	Pinned map[string]string `json:"pinned"`
 }
 
 // revisionKey names one declaration's identity: kind, canonical
@@ -1079,6 +1085,164 @@ func shortRev(key string) string {
 	return rest
 }
 
+// PinnedRow is one decision-table row with its acceptance status
+// (a87): the fn identity key, short owner name, test name, source
+// line, canonical rendering, and whether the row carries the marker.
+type PinnedRow struct {
+	FnKey  string
+	FnName string
+	Test   string
+	Line   int
+	Render string
+	Pinned bool
+	FileID string
+	File   string
+}
+
+// canonPinnedRow renders one decision-table row canonically: test name,
+// argument bindings in declaration order, and the canonical expectation.
+// canonSmall already normalizes literals, so formatting churn is not
+// drift; argument order stays significant, matching the fingerprint.
+func canonPinnedRow(t Test) string {
+	parts := make([]string, 0, len(t.Args))
+	for i, a := range t.Args {
+		name := a.Name
+		if !a.HasName {
+			name = fmt.Sprintf("#%d", i)
+		}
+		v := "nil"
+		if a.V != nil {
+			v = canonSmall(a.V)
+		}
+		parts = append(parts, name+"="+v)
+	}
+	return t.Name + "(" + strings.Join(parts, ",") + ") => " + canonSmall(t.Expected)
+}
+
+// pinRowKey names one acceptance row: the fn identity key plus test
+// name. The rev rides inside the fn key, so a rev bump orphans pins
+// the same way it revokes identity — the identity error owns that
+// case, and the pinned check skips fns absent on either side.
+func pinRowKey(fnKey, test string) string {
+	return fnKey + "/" + test
+}
+
+// pinnedRowWalk collects every decision-table row in the program keyed
+// by acceptance key. Only marked rows enter the baseline; unmarked rows
+// are proposed evidence whose churn is silent by construction.
+func pinnedRowWalk(prog *Program) map[string]PinnedRow {
+	rows := map[string]PinnedRow{}
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			fnKey := revisionKey("fn", m.Mod, fn.Name, fn.Rev, true)
+			for _, t := range fn.Tests {
+				rows[pinRowKey(fnKey, t.Name)] = PinnedRow{
+					FnKey: fnKey, FnName: m.Mod + "." + fn.Name,
+					Test: t.Name, Line: t.Line, Render: canonPinnedRow(t),
+					Pinned: t.Pinned, FileID: m.ID, File: m.File,
+				}
+			}
+		}
+	}
+	return rows
+}
+
+// PinnedRows collects marked rows: acceptance key to canonical
+// rendering. Generation stores exactly this map, so regen output is
+// deterministic (encoding/json sorts map keys).
+func PinnedRows(prog *Program) map[string]string {
+	out := map[string]string{}
+	for k, r := range pinnedRowWalk(prog) {
+		if r.Pinned {
+			out[k] = r.Render
+		}
+	}
+	return out
+}
+
+// CheckPinnedRows reports A-light weakening (a87): a pinned expectation
+// that changed, a pinned row that vanished, or a pin demoted back to
+// proposed since the accepted baseline. Advisory only: severity warning,
+// never error, so every caller gates exactly as before. Runs only
+// against accepted baselines in the current format — identity owns
+// every other complaint. Fns whose identity is absent on either side
+// are skipped: added, removed, or revved declarations already report
+// through AIL6013, and new pins record silently on regen.
+func CheckPinnedRows(prog *Program, texts map[string]string, base *RevisionBaseline) []Diag {
+	if base == nil || base.Format != RevisionFormat || !base.Accepted || len(base.Pinned) == 0 {
+		return nil
+	}
+	rows := pinnedRowWalk(prog)
+	fnKeys := map[string]bool{}
+	for _, m := range prog.Modules {
+		for _, d := range m.Decls {
+			if fn, ok := d.(*FnDecl); ok {
+				fnKeys[revisionKey("fn", m.Mod, fn.Name, fn.Rev, true)] = true
+			}
+		}
+	}
+	var out []Diag
+	warn := func(row PinnedRow, line int, verb, expected, found string) {
+		d := spanDiag(texts[row.FileID], line, "warning",
+			fmt.Sprintf("pinned row %s/%s %s since accepted baseline %q", row.FnName, row.Test, verb, base.Origin),
+			row.Test, CodePinnedWeakened)
+		d.File = row.File
+		d.Expected = expected
+		d.Found = found
+		d.Hint = "restore the accepted expectation, or re-accept by updating the baseline"
+		out = append(out, d)
+	}
+	var keys []string
+	for k := range rows {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, k := range keys {
+		row := rows[k]
+		old, ok := base.Pinned[k]
+		if ok && row.Pinned && old != row.Render {
+			warn(row, row.Line, "weakened", old, row.Render)
+			continue
+		}
+		if ok && !row.Pinned {
+			warn(row, row.Line, "demoted to proposed", old, row.Render)
+		}
+	}
+	var oldKeys []string
+	for k := range base.Pinned {
+		if _, ok := rows[k]; !ok {
+			oldKeys = append(oldKeys, k)
+		}
+	}
+	slices.Sort(oldKeys)
+	for _, k := range oldKeys {
+		sep := strings.LastIndex(k, "/")
+		if sep < 0 || !fnKeys[k[:sep]] {
+			continue
+		}
+		fileID, line := revisionAnchor(prog, k[:sep])
+		file := fileID
+		for _, m := range prog.Modules {
+			if m.ID == fileID {
+				file = m.File
+			}
+		}
+		d := spanDiag(texts[fileID], line, "warning",
+			fmt.Sprintf("pinned row %s weakened since accepted baseline %q: row removed", strings.TrimPrefix(k, "fn:"), base.Origin),
+			"mod", CodePinnedWeakened)
+		d.File = file
+		d.Expected = base.Pinned[k]
+		d.Found = "absent"
+		d.Hint = "restore the accepted row, or re-accept by updating the baseline"
+		out = append(out, d)
+	}
+	return out
+}
+
 // WriteBaseline generates a candidate (unaccepted) baseline from a
 // resolved program. Generation is deterministic: sorted modules,
 // sorted entry keys. Accepted stays false: generation is not
@@ -1099,6 +1263,7 @@ func WriteBaseline(path string, prog *Program, origin string) error {
 		Accepted: false,
 		Scope:    scope,
 		Entries:  FingerprintProgram(prog),
+		Pinned:   PinnedRows(prog),
 	}
 	raw, err := json.MarshalIndent(base, "", "  ")
 	if err != nil {

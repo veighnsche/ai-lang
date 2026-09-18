@@ -217,6 +217,10 @@ type Test struct {
 	Args     []Arg
 	Expected *Small
 	Line     int
+	// Pinned marks a row as trusted acceptance (a87): weakening its
+	// expectation against an accepted baseline is reported loudly.
+	// Rows without the marker are proposed evidence and churn freely.
+	Pinned bool
 }
 
 type Decl interface{ declKind() string }
@@ -1928,11 +1932,22 @@ func parseModuleText(name, text string) (*Module, error) {
 						if err != nil {
 							return nil, at(tline, err)
 						}
-						exp, err := parseSmall(tm[3])
+						// a87: a trailing `pinned` word marks the row as
+						// trusted acceptance. Expectations always end in
+						// `)`, so only a suffix past the closing paren
+						// can be the marker; `pinned` inside strings or
+						// names is untouched.
+						expSrc := strings.TrimSpace(tm[3])
+						pinned := false
+						if strings.HasSuffix(expSrc, ") pinned") {
+							expSrc = strings.TrimSpace(strings.TrimSuffix(expSrc, "pinned"))
+							pinned = true
+						}
+						exp, err := parseSmall(expSrc)
 						if err != nil {
 							return nil, at(tline, err)
 						}
-						fn.Tests = append(fn.Tests, Test{Name: tm[1], Args: targs, Expected: exp, Line: tline})
+						fn.Tests = append(fn.Tests, Test{Name: tm[1], Args: targs, Expected: exp, Line: tline, Pinned: pinned})
 						i++
 					}
 				default:

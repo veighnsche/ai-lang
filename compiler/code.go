@@ -99,6 +99,7 @@ const (
 	CodeAssetBridgeAuthority     = "AIL6014"
 	CodeAssetBridgeShape         = "AIL6015"
 	CodeConstNonliteral          = "AIL6016"
+	CodePinnedWeakened           = "AIL6017"
 	CodePrimitiveShadow          = "AIL6012"
 	CodeRevisionIdentity         = "AIL6013"
 	CodeContractMalformed        = "AIL4301"
@@ -131,5 +132,5 @@ var allCodes = []string{
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
-	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePrimitiveShadow, CodeRevisionIdentity,
+	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePrimitiveShadow, CodeRevisionIdentity, CodePinnedWeakened,
 }

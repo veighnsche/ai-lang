@@ -1,9 +1,10 @@
 # a87 — Acceptance authority, A-light (draft, pre-decision)
 
-Status: draft. Answers the open decision from `a85-agent-language-research.md`
-§4.1 at A-light strength: provenance labels plus loud weakening reports.
-Rejection (A-strong) is explicitly deferred. No compiler change is
-authorized by this draft.
+Status: shipped (ratified). Answers the open decision from
+`a85-agent-language-research.md` §4.1 at A-light strength: provenance
+labels plus loud weakening reports. Rejection (A-strong) remains
+deferred. Slices landed: parser marker, baseline recording, AIL6017
+warning, committed tests, REQUIREMENTS amendment.
 
 ## Problem
 
@@ -27,7 +28,7 @@ Colocation stays; authority splits. One artifact, two row kinds:
 Pinning is a source marker plus a baseline record. The compiler never
 rejects weakening under A-light; it reports it where it cannot be missed.
 
-## Syntax (proposed, one canonical form)
+## Syntax (ratified, one canonical form)
 
 Row suffix marker:
 
@@ -46,7 +47,7 @@ Table-level pinning (`tests pinned`) is refused: authority is per-row or
 it is theater — a table with one strong row and five weak ones must not
 borrow the strong row's status.
 
-## Semantics (proposed)
+## Semantics (ratified)
 
 - The accepted baseline records each pinned row as
   `test-name → canonical expectation rendering`, alongside the existing
@@ -63,12 +64,12 @@ borrow the strong row's status.
   pinning requires the marker in source plus an accepted baseline that
   a human committed.
 
-## Diagnostics (proposed)
+## Diagnostics (ratified)
 
-- New code, next free 6xxx at implementation time (AIL6017 at draft
-  time): `pinned expectation weakened` / `pinned row removed` /
-  `pinned row demoted`, carrying test name, baseline rendering, and
-  current rendering (Expected/Found/Hint payload shape, a71).
+- New code AIL6017, registered in `compiler/code.go` with an
+  `explain.go` entry: weakened / removed / demoted rows, carrying test
+  name, baseline rendering, and current rendering (Expected/Found/Hint
+  payload shape, a71).
 - Severity warning, always emitted, never silenced by flags. Exit code
   unchanged: A-light advises, it does not gate. (Gating is the A-strong
   decision, deferred.)
@@ -101,7 +102,7 @@ attribution. Pinner identity belongs to A-strong.
    silent pinning (negative control).
 5. Full gates unchanged: `go test ./...`, modcheck, gramcheck, tsc.
 
-## On ratification (amendment text, not yet live)
+## On ratification (amendment text, now live in REQUIREMENTS.md)
 
 Goal gains one sentence (tagged a87): tests are evidence, pinned rows
 are acceptance; the compiler reports weakening of the latter. R7/R8 gain

@@ -19,6 +19,9 @@ Every function ships its decision table (`tests`) and its branch evidence
 A decision table anchors intended behavior but cannot constrain all admitted
 behavior: a weak table is satisfied by a wrong implementation, so the
 specification must rule out the constant function, not merely bless examples.
+Amendment (a87): within one table, rows differ in authority — `pinned`
+rows are acceptance and report weakening loudly (`AIL6017`); unmarked
+rows are proposed evidence.
 
 ## Non-goals (explicit outs)
 
@@ -141,6 +144,11 @@ specification must rule out the constant function, not merely bless examples.
 - Each test evaluates with a fresh store built from `state` inits (a09);
   sequential tests cannot interfere.
 - `ai build --prod` strips `tests` and `given` to zero shipped bytes.
+- Amendment (a87): a row suffixed `pinned` is trusted acceptance;
+  unmarked rows are proposed evidence and churn freely. The accepted
+  baseline records pinned expectations; weakening, removing, or demoting
+  one warns (`AIL6017`) after the clean gate, never blocking emit.
+  Table-level pinning is refused: authority is per-row.
 
 ## R8 — External stubs (call-site `given`)
 
