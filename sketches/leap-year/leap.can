@@ -17,10 +17,10 @@ type Leap__Answer rev 1 (
 fn leap__is_leap(year: int) -> Leap__Answer rev 1
   emits []
   tests
-    quadricentennial(year = 2000) => Ok(leap = true)
-    century(year = 1900) => Ok(leap = false)
-    typical_leap(year = 2024) => Ok(leap = true)
-    typical_common(year = 2023) => Ok(leap = false)
+    quadricentennial(2000) => Ok(leap = true)
+    century(1900) => Ok(leap = false)
+    typical_leap(2024) => Ok(leap = true)
+    typical_common(2023) => Ok(leap = false)
 =
   match year % 400 == 0, year % 100 == 0, year % 4 == 0
     true, _, _ => Ok(leap = true)

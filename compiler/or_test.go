@@ -16,10 +16,10 @@ func TestOrBasic(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
-    two(x = 2) => Ok(value = 2)
-    three(x = 3) => Ok(value = 3)
-    other(x = 9) => Ok(value = 9)
+    one(1) => Ok(value = 1)
+    two(2) => Ok(value = 2)
+    three(3) => Ok(value = 3)
+    other(9) => Ok(value = 9)
 =
   match x
     1 | 2 | 3 => Ok(value = x)
@@ -46,9 +46,9 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    piped(x = "a|b") => Ok(value = "a|b")
-    plain(x = "c") => Ok(value = "c")
-    other(x = "z") => Ok(value = "z")
+    piped("a|b") => Ok(value = "a|b")
+    plain("c") => Ok(value = "c")
+    other("z") => Ok(value = "z")
 =
   match x
     "a|b" | "c" => Ok(value = x)
@@ -67,9 +67,9 @@ func TestOrRangePrecedence(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(x = 7) => Ok(value = 1)
-    high(x = 12) => Ok(value = 1)
-    out(x = 99) => Ok(value = 2)
+    low(7) => Ok(value = 1)
+    high(12) => Ok(value = 1)
+    out(99) => Ok(value = 2)
 =
   match x
     1..10 | 5..15 => Ok(value = 1)
@@ -89,8 +89,8 @@ func TestOrShadowedAlt(t *testing.T) {
 		src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
-    out(x = 99) => Ok(value = 2)
+    go(1) => Ok(value = 1)
+    out(99) => Ok(value = 2)
 =
   match x
     ` + arm + ` => Ok(value = 1)
@@ -109,7 +109,7 @@ func TestOrWildcardRejected(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match x
     _ | 1 => Ok(value = 1)
@@ -126,7 +126,7 @@ func TestOrMixedSlot(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match x
     1 | "a" => Ok(value = 1)
@@ -157,9 +157,9 @@ const m__B: int rev 1 = 63
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    slash(x = 47) => Ok(value = 1)
-    query(x = 63) => Ok(value = 1)
-    other(x = 9) => Ok(value = 2)
+    slash(47) => Ok(value = 1)
+    query(63) => Ok(value = 1)
+    other(9) => Ok(value = 2)
 =
   match x
     m__A | m__B => Ok(value = 1)
@@ -187,8 +187,8 @@ type M__Out rev 1 (
 fn m__go(x: bool) -> M__Out rev 1
   emits []
   tests
-    t(x = true) => Ok(value = 1)
-    f(x = false) => Ok(value = 1)
+    t(true) => Ok(value = 1)
+    f(false) => Ok(value = 1)
 =
   match x
     true | false => Ok(value = 1)
@@ -205,9 +205,9 @@ func TestOrEmit(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
-    teen(x = 12) => Ok(value = 12)
-    out(x = 99) => Ok(value = 99)
+    one(1) => Ok(value = 1)
+    teen(12) => Ok(value = 12)
+    out(99) => Ok(value = 99)
 =
   match x
     1 | 10..15 => Ok(value = x)
@@ -246,7 +246,7 @@ func TestOrVariantRejected(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match x
     Ok | 1 => Ok(value = 1)
@@ -273,8 +273,8 @@ type M__Out rev 1 (
 fn m__go(x: int, y: str) -> M__Out rev 1
   emits []
   tests
-    hit(x = 1, y = "a") => Ok(value = 1)
-    miss(x = 9, y = "z") => Ok(value = 2)
+    hit(1, "a") => Ok(value = 1)
+    miss(9, "z") => Ok(value = 2)
 =
   match x, y
     1 | 2, "a" | "b" => Ok(value = 1)
@@ -292,7 +292,7 @@ func TestOrCallMatchPipe(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match call m__id(x = x)
     on Ok r | Ok q => Ok(value = 1)
@@ -310,8 +310,8 @@ func TestOrOneObligation(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
-    other(x = 9) => Ok(value = 2)
+    one(1) => Ok(value = 1)
+    other(9) => Ok(value = 2)
 =
   match x
     1 | 2 => Ok(value = 1)

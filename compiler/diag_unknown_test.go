@@ -28,8 +28,8 @@ func TestUnknownCallCascadeScripted(t *testing.T) {
 fn client__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    go(value = "QQ==") => Ok(value = Bytes(Seq<int>[65]))
-    bad(value = "QUI") => encoding.invalid_base64(value = "QUI")
+    go("QQ==") => Ok(value = Bytes(Seq<int>[65]))
+    bad("QUI") => encoding.invalid_base64(value = "QUI")
 =
   match call nosuch__decode(value = value)
     given
@@ -62,7 +62,7 @@ func TestUnknownCallCascadeBare(t *testing.T) {
 fn client__bare(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    go(value = "QQ==") => Ok(value = Bytes(Seq<int>[65]))
+    go("QQ==") => Ok(value = Bytes(Seq<int>[65]))
 =
   match call nosuch__decode(value = value)
     on Ok r => Ok(value = r.value)

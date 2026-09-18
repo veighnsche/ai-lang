@@ -22,8 +22,8 @@ type Db__U rev 1 (
 fn db__get(id: str) -> Db__U rev 1
   emits [db.down]
   tests
-    ok(id = "u") => Ok(id = "u")
-    other(id = "x") => db.down()
+    ok("u") => Ok(id = "u")
+    other("x") => db.down()
 =
   match id
     "u" => Ok(id = "u")
@@ -44,8 +44,8 @@ type Auth__S rev 1 (
 fn auth__go(id: str) -> Auth__S rev 1
   emits [auth.bad]
   tests
-    ok(id = "u") => Ok(id = "u")
-    down(id = "u") => auth.bad()
+    ok("u") => Ok(id = "u")
+    down("u") => auth.bad()
 =
   match call db__get(id)
     given
@@ -83,7 +83,7 @@ func TestDiagnoseClean(t *testing.T) {
 }
 
 func TestDiagnoseMissingTests(t *testing.T) {
-	noTests := strings.Replace(lspAuth, "  tests\n    ok(id = \"u\") => Ok(id = \"u\")\n    down(id = \"u\") => auth.bad()\n", "", 1)
+	noTests := strings.Replace(lspAuth, "  tests\n    ok(\"u\") => Ok(id = \"u\")\n    down(\"u\") => auth.bad()\n", "", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": noTests})
 	diags := diagnose(dir, "auth.can", noTests)
 	if !hasDiag(diags, "error", "ships no tests") {
@@ -130,8 +130,8 @@ type M__S rev 1 (
 fn m__go(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    hit(id = "u") => Ok(id = "u")
-    miss(id = "x") => m.bad(id = "x")
+    hit("u") => Ok(id = "u")
+    miss("x") => m.bad(id = "x")
 =
   match id
     "u" => Ok(id = id)
@@ -139,7 +139,7 @@ fn m__go(id: str) -> M__S rev 1
 `
 
 func TestExpectErrorPayloadMismatch(t *testing.T) {
-	bad := strings.Replace(expectErrFixture, `miss(id = "x") => m.bad(id = "x")`, `miss(id = "x") => m.bad(id = "y")`, 1)
+	bad := strings.Replace(expectErrFixture, `miss("x") => m.bad(id = "x")`, `miss("x") => m.bad(id = "y")`, 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "error payload mismatch") {
@@ -148,7 +148,7 @@ func TestExpectErrorPayloadMismatch(t *testing.T) {
 }
 
 func TestExpectBareErrorKindRefused(t *testing.T) {
-	bad := strings.Replace(expectErrFixture, `miss(id = "x") => m.bad(id = "x")`, `miss(id = "x") => m.bad`, 1)
+	bad := strings.Replace(expectErrFixture, `miss("x") => m.bad(id = "x")`, `miss("x") => m.bad`, 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "expects bare error kind m.bad") {
@@ -166,7 +166,7 @@ func TestExpectBareErrorKindRefused(t *testing.T) {
 }
 
 func TestDiagnoseFailingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "down(id = \"u\") => auth.bad()", "down(id = \"u\") => Ok(id = \"u\")", 1)
+	bad := strings.Replace(lspAuth, "down(\"u\") => auth.bad()", "down(\"u\") => Ok(id = \"u\")", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "test down fails") {
@@ -211,7 +211,7 @@ func TestDiagnoseMissingGiven(t *testing.T) {
 }
 
 func TestDiagnoseDanglingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(id = \"u\") => auth.bad()\n", "    down(id = \"u\") => auth.bad()\n    extra(id = \"u\") => auth.bad\n", 1)
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "test extra has no script") {
@@ -344,7 +344,7 @@ fn db__ping() -> Db__U rev 1
 }
 
 func TestDiagnoseDupTests(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(id = \"u\") => auth.bad()\n", "    down(id = \"u\") => auth.bad()\n    ok(id = \"u\") => Ok(id = \"u\")\n", 1)
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    ok(\"u\") => Ok(id = \"u\")\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "duplicate test ok") {
@@ -353,7 +353,7 @@ func TestDiagnoseDupTests(t *testing.T) {
 }
 
 func TestDiagnoseBadTestArgs(t *testing.T) {
-	bad := strings.Replace(lspAuth, "ok(id = \"u\") => Ok(id = \"u\")", "ok(bogus = \"u\") => Ok(id = \"u\")", 1)
+	bad := strings.Replace(lspAuth, "ok(\"u\") => Ok(id = \"u\")", "ok(bogus = \"u\") => Ok(id = \"u\")", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "unknown arg bogus") {
@@ -468,10 +468,10 @@ func TestSpanUnknownCall(t *testing.T) {
 }
 
 func TestSpanDanglingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(id = \"u\") => auth.bad()\n", "    down(id = \"u\") => auth.bad()\n    extra(id = \"u\") => auth.bad\n", 1)
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
-	checkSpan(t, bad, diags, "has no script at the call", "extra", expectLine(t, bad, "extra(id = "))
+	checkSpan(t, bad, diags, "has no script at the call", "extra", expectLine(t, bad, "extra("))
 }
 
 func TestSpanDeadScript(t *testing.T) {
@@ -526,10 +526,10 @@ func TestSpanStaleArm(t *testing.T) {
 }
 
 func TestSpanFailingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "down(id = \"u\") => auth.bad()", "down(id = \"u\") => Ok(id = \"u\")", 1)
+	bad := strings.Replace(lspAuth, "down(\"u\") => auth.bad()", "down(\"u\") => Ok(id = \"u\")", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
-	checkSpan(t, bad, diags, "test down fails", "down", expectLine(t, bad, "down(id = \"u\") => Ok"))
+	checkSpan(t, bad, diags, "test down fails", "down", expectLine(t, bad, "down(\"u\") => Ok"))
 }
 
 func TestSpanUnusedUses(t *testing.T) {
@@ -568,7 +568,7 @@ func TestU16Len(t *testing.T) {
 }
 
 func TestDiagnoseUntakenArm(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(id = \"u\") => auth.bad()\n", "", 1)
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	checkSpan(t, bad, diags, "no test takes", "db.down", expectLine(t, bad, "on db.down _"))
@@ -606,15 +606,15 @@ fn math__sum_to(n: int) -> Int__Value rev 1
   decreases n
   emits [math.negative_input]
   tests
-    neg(n = -3) => math.negative_input(value = -3)
-    zero(n = 0) => Ok(value = 0)
-    pos(n = 3) => Ok(value = 6)
+    neg(-3) => math.negative_input(value = -3)
+    zero(0) => Ok(value = 0)
+    pos(3) => Ok(value = 6)
 =
   match n <= 0
     true => match n == 0
       true => Ok(value = 0)
       false => math.negative_input(value = n)
-    false => match call math__sum_to(n = n - 1)
+    false => match call math__sum_to(n - 1)
       on math.negative_input err => math.negative_input(value = err.value)
       on Ok r => Ok(value = n + r.value)
 `
@@ -622,10 +622,21 @@ fn math__sum_to(n: int) -> Int__Value rev 1
 func TestDiagnoseIdentityRelayCertified(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"math.can": relayMath})
 	diags := diagnose(dir, "math.can", relayMath)
+	// The relay certificate still holds (no untaken-arm or invalid-
+	// relay errors), but the handwritten spelling is a lint error
+	// (CAN3415): certified is not idiomatic.
+	relay := 0
 	for _, d := range diags {
-		if d.Sev == "error" {
-			t.Fatalf("certified identity relay must be silent, got %v", diags)
+		if d.Code == CodeLintRelay {
+			relay++
+			continue
 		}
+		if d.Sev == "error" {
+			t.Fatalf("unexpected error beside the relay finding: %v", diags)
+		}
+	}
+	if relay == 0 {
+		t.Fatalf("expected a CAN3415 relay finding, got %v", diags)
 	}
 }
 
@@ -676,15 +687,15 @@ fn math2__go(n: int) -> Int__Value rev 1
   decreases n
   emits [math2.fail]
   tests
-    fail(n = -1) => math2.fail(a = 1, b = 2)
-    zero(n = 0) => Ok(value = 0)
-    pos(n = 2) => Ok(value = 3)
+    fail(-1) => math2.fail(a = 1, b = 2)
+    zero(0) => Ok(value = 0)
+    pos(2) => Ok(value = 3)
 =
   match n <= 0
     true => match n == 0
       true => Ok(value = 0)
       false => math2.fail(a = 1, b = 2)
-    false => match call math2__go(n = n - 1)
+    false => match call math2__go(n - 1)
       on math2.fail e => math2.fail(a = e.a, b = e.b)
       on Ok r => Ok(value = n + r.value)
 `
@@ -724,8 +735,21 @@ func TestDiagnoseInvalidRelayUnexpected(t *testing.T) {
 // relay arm, which compiles without a dedicated row.
 func TestDiagnoseValidRelayExempt(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"math2.can": relayMathTwo})
-	if diags := diagnose(dir, "math2.can", relayMathTwo); len(diags) != 0 {
-		t.Fatalf("expected no diags for a certified relay, got %v", diags)
+	diags := diagnose(dir, "math2.can", relayMathTwo)
+	// Certified against untaken-arm and invalid-relay errors, but
+	// the handwritten spelling is a lint error (CAN3415).
+	relay := 0
+	for _, d := range diags {
+		if d.Code == CodeLintRelay {
+			relay++
+			continue
+		}
+		if d.Sev == "error" {
+			t.Fatalf("unexpected error beside the relay finding: %v", diags)
+		}
+	}
+	if relay == 0 {
+		t.Fatalf("expected a CAN3415 relay finding, got %v", diags)
 	}
 }
 
@@ -751,14 +775,14 @@ type Dup__Out rev 1 (
 fn dup__help(x: int) -> Dup__Val rev 1
   emits [dup.bad]
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = x)
 
 fn dup__go(x: int) -> Dup__Out rev 1
   emits [dup.bad]
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match call dup__help(x)
     on Ok r => Ok(value = r.value)
@@ -858,14 +882,14 @@ type Cat__Out rev 1 (
 fn cat__help(x: int) -> Cat__Val rev 1
   emits [cat.used]
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = x)
 
 fn cat__go(x: int) -> Cat__Out rev 1
   emits [cat.used, cat.free]
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match call cat__help(x)
     on Ok r => Ok(value = r.value)
@@ -912,7 +936,7 @@ fn cat__go(x: int) -> Cat__Out rev 1
 }
 
 func TestCoverageGreenOnly(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(id = \"u\") => auth.bad()\n", "    down(id = \"u\") => auth.bad()\n    extra(id = \"u\") => auth.bad\n", 1)
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad\n", 1)
 	bad = strings.Replace(bad, "    on db.down _ => auth.bad()\n", "", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
@@ -927,7 +951,7 @@ func TestCoverageGreenOnly(t *testing.T) {
 // Type discipline (v0.4): float ban, dec exactness, brands, seal, extern.
 
 func TestDiagnoseFloatLiteral(t *testing.T) {
-	bad := strings.Replace(lspAuth, "ok(id = \"u\") => Ok(id = \"u\")", "ok(id = \"u\") => Ok(id = 0.5)", 1)
+	bad := strings.Replace(lspAuth, "ok(\"u\") => Ok(id = \"u\")", "ok(id = \"u\") => Ok(id = 0.5)", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	checkSpan(t, bad, diags, "has no spelling", "0.5", expectLine(t, bad, "Ok(id = 0.5)"))
@@ -971,7 +995,7 @@ type M__Out rev 1 (
 fn m__leak(pw: M__B) -> M__Out rev 1
   emits []
   tests
-    t(pw = seal M__B("s")) => Ok(echo = "s")
+    t(seal M__B("s")) => Ok(echo = "s")
 =
   Ok(echo = pw)
 `
@@ -997,7 +1021,7 @@ type M__Out rev 1 (
 fn m__cmp(a: M__A, b: M__B) -> M__Out rev 1
   emits []
   tests
-    t(a = seal M__A("x"), b = seal M__B("y")) => Ok(echo = "n")
+    t(seal M__A("x"), seal M__B("y")) => Ok(echo = "n")
 =
   match a == b
     true => Ok(echo = "y")
@@ -1022,7 +1046,7 @@ type M__Out rev 1 (
 fn m__cmp(a: int, b: dec) -> M__Out rev 1
   emits []
   tests
-    t(a = 1, b = d"1.0") => Ok(echo = "n")
+    t(1, d"1.0") => Ok(echo = "n")
 =
   match a > b
     true => Ok(echo = "y")
@@ -1051,35 +1075,35 @@ type M__Str rev 1 (
 fn m__len(v: int) -> M__Out rev 1
   emits []
   tests
-    t(v = 1) => Ok(n = 0)
+    t(1) => Ok(n = 0)
 =
   Ok(n = #v)
 
 fn m__at(v: int, i: int) -> M__Out rev 1
   emits []
   tests
-    t(v = 1, i = 0) => Ok(n = 0)
+    t(1, 0) => Ok(n = 0)
 =
   Ok(n = v[i])
 
 fn m__at_str(v: str, i: str) -> M__Out rev 1
   emits []
   tests
-    t(v = "ab", i = "x") => Ok(n = 0)
+    t("ab", "x") => Ok(n = 0)
 =
   Ok(n = v[i])
 
 fn m__slice(v: int, a: int, b: int) -> M__Str rev 1
   emits []
   tests
-    t(v = 1, a = 0, b = 1) => Ok(s = "x")
+    t(1, 0, 1) => Ok(s = "x")
 =
   Ok(s = v[a:b])
 
 fn m__slice_str(v: str, a: str, b: int) -> M__Str rev 1
   emits []
   tests
-    t(v = "ab", a = "x", b = 1) => Ok(s = "x")
+    t("ab", "x", 1) => Ok(s = "x")
 =
   Ok(s = v[a:b])
 `
@@ -1114,7 +1138,7 @@ type M__Out rev 1 (
 fn m__seal(pw: str, n: int) -> M__Out rev 1
   emits []
   tests
-    t(pw = "s", n = 0) => Ok(echo = "s")
+    t("s", 0) => Ok(echo = "s")
 =
   Ok(echo = seal M__B(pw))
 `
@@ -1164,8 +1188,8 @@ extern m__use(pw: M__Pw) -> M__Verdict rev 1
 fn m__check(pw: M__Pw) -> M__Out rev 1
   emits [m.nope]
   tests
-    yes(pw = seal M__Pw("s")) => Ok(ok = true)
-    no(pw = seal M__Pw("s")) => m.nope()
+    yes(seal M__Pw("s")) => Ok(ok = true)
+    no(seal M__Pw("s")) => m.nope()
 =
   match call m__use(pw)
     given
@@ -1203,7 +1227,7 @@ type O__Out rev 1 (
 fn o__go(id: str) -> O__Out rev 1
   emits []
   tests
-    t(id = "u") => Ok(id = "u")
+    t("u") => Ok(id = "u")
 =
   match call m__use(id)
     given
@@ -1234,14 +1258,14 @@ type M__Out rev 1 (
 fn m__calc(a: int, b: int, c: int) -> M__Out rev 1
   emits []
   tests
-    t(a = 10, b = 3, c = 2) => Ok(n = 5)
+    t(10, 3, 2) => Ok(n = 5)
 =
   Ok(n = a - b - c)
 
 fn m__prec(a: int, b: int, c: int) -> M__Out rev 1
   emits []
   tests
-    t(a = 2, b = 3, c = 4) => Ok(n = 14)
+    t(2, 3, 4) => Ok(n = 14)
 =
   Ok(n = a + b * c)
 `
@@ -1265,8 +1289,8 @@ type M__Bit rev 1 (
 fn m__exact(a: dec, b: dec, c: dec) -> M__Bit rev 1
   emits []
   tests
-    third(a = d"0.1", b = d"0.2", c = d"0.3") => Ok(yes = true)
-    fourth(a = d"0.1", b = d"0.2", c = d"0.4") => Ok(yes = false)
+    third(d"0.1", d"0.2", d"0.3") => Ok(yes = true)
+    fourth(d"0.1", d"0.2", d"0.4") => Ok(yes = false)
 =
   match a + b == c
     true => Ok(yes = true)
@@ -1291,8 +1315,8 @@ func TestDiagnoseArithStr(t *testing.T) {
 	// a16: + concatenates strings, so the refused string operation
 	// is now -. The contract under test is unchanged: strings do
 	// no arithmetic besides explicit construction.
-	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(a = 10, b = 3, c = 2) => Ok(n = 5)\n=\n  Ok(n = a - b - c)",
-		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(a = \"x\", b = \"y\", c = 2) => Ok(n = 5)\n=\n  Ok(n = a - b)", 1)
+	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(10, 3, 2) => Ok(n = 5)\n=\n  Ok(n = a - b - c)",
+		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(\"x\", \"y\", 2) => Ok(n = 5)\n=\n  Ok(n = a - b)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	checkSpan(t, bad, diags, "cannot subtract str with str", "-", expectLine(t, bad, "Ok(n = a - b)"))
@@ -1310,8 +1334,8 @@ type M__Cat rev 1 (
 fn m__cat(left: str, right: str) -> M__Cat rev 1
   emits []
   tests
-    basic(left = "x", right = "y") => Ok(s = "xy")
-    empty(left = "", right = "y") => Ok(s = "y")
+    basic("x", "y") => Ok(s = "xy")
+    empty("", "y") => Ok(s = "y")
 =
   Ok(s = left + right)
 `
@@ -1336,7 +1360,7 @@ type M__Out rev 1 (
 fn m__div(a: int, b: int) -> M__Out rev 1
   emits []
   tests
-    t(a = 7, b = 3) => Ok(q = 2)
+    t(7, 3) => Ok(q = 2)
 =
   Ok(q = a / b)
 `

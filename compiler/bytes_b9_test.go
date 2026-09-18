@@ -25,13 +25,13 @@ func TestBytesB9ForeignCaller(t *testing.T) {
 fn client__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "ff")
-    lower(value = Bytes(Seq<int>[171])) => Ok(value = "ab")
-    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
-    notext(value = Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
+    lower(Bytes(Seq<int>[171])) => Ok(value = "ab")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
+    notext(Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
 =
-  match call std__hex__encode(value = value)
+  match call std__hex__encode(value)
     given
       empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = "")]
       ff => [exchange args (value = Bytes(Seq<int>[255])) outcome Ok(value = "ff")]

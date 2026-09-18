@@ -19,15 +19,15 @@ const bytesB64Base = `mod m
 fn m__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    zero(value = Bytes(Seq<int>[0])) => Ok(value = "AA==")
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "/w==")
-    one(value = Bytes(Seq<int>[65])) => Ok(value = "QQ==")
-    two(value = Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
-    three(value = Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
-    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
-    notext(value = Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
-    sweep(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    zero(Bytes(Seq<int>[0])) => Ok(value = "AA==")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "/w==")
+    one(Bytes(Seq<int>[65])) => Ok(value = "QQ==")
+    two(Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
+    three(Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
+    notext(Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
+    sweep(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
 =
   match call bytes__base64__encode(value)
     on Ok r => Ok(value = r.value)
@@ -40,7 +40,9 @@ func TestBytesG0B64Vectors(t *testing.T) {
 	named := strings.Replace(bytesB64Base,
 		"match call bytes__base64__encode(value)",
 		"match call bytes__base64__encode(value = value)", 1)
-	seqClean(t, map[string]string{"m.can": named}, "m.can")
+	// The named spelling evaluates identically but is a lint error
+	// (CAN3410): exactly one finding, nothing else.
+	seqCode(t, map[string]string{"m.can": named}, "m.can", CodeLintRedundant, "redundant argument name")
 }
 
 // G1: the deterministic kernel takes no given table.
@@ -64,7 +66,7 @@ func TestBytesG2Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits []
   tests
-    go(value = ARG) => Ok(value = "QQ==")
+    go(ARG) => Ok(value = "QQ==")
 =
   match call bytes__base64__encode(value)
     on Ok r => Ok(value = r.value)

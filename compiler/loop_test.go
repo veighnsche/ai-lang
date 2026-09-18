@@ -25,8 +25,8 @@ fn m__poll(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    now(n = 0) => Ok(n = 0)
-    later(n = 2) => Ok(n = 0)
+    now(0) => Ok(n = 0)
+    later(2) => Ok(n = 0)
 =
   match n <= 0
     true => Ok(n = 0)
@@ -44,10 +44,10 @@ func TestLoopClean(t *testing.T) {
 func TestLoopNamedDecreaseClean(t *testing.T) {
 	named := strings.Replace(loopPoll,
 		"match call m__poll(n - 1)", "match call m__poll(n = n - 1)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.can": named})
-	if diags := diagnose(dir, "m.can", named); len(diags) != 0 {
-		t.Fatalf("expected no diagnostics, got %v", diags)
-	}
+	// The named spelling still satisfies decreases, but the in-slot
+	// name is a lint error (CAN3410): exactly one finding, and no
+	// decreases refusal beside it.
+	seqCode(t, map[string]string{"m.can": named}, "m.can", CodeLintRedundant, "redundant argument name")
 }
 
 func TestLoopBadName(t *testing.T) {
@@ -169,9 +169,9 @@ fn m__gcd(a: int, b: int) -> M__S rev 1
   decreases a, b by euclid
   emits []
   tests
-    basic(a = 12, b = 8) => Ok(n = 4)
-    coprime(a = 8, b = 9) => Ok(n = 1)
-    zero_b(a = 5, b = 0) => Ok(n = 5)
+    basic(12, 8) => Ok(n = 4)
+    coprime(8, 9) => Ok(n = 1)
+    zero_b(5, 0) => Ok(n = 5)
 =
   match b <= 0
     true => Ok(n = a)
@@ -224,9 +224,9 @@ fn m__sqrt(value: int, lo: int, hi: int) -> M__S rev 1
   decreases lo, hi by narrowing
   emits []
   tests
-    ten(value = 10, lo = 0, hi = 11) => Ok(n = 3)
-    exact(value = 9, lo = 3, hi = 4) => Ok(n = 3)
-    nine(value = 9, lo = 0, hi = 10) => Ok(n = 3)
+    ten(10, 0, 11) => Ok(n = 3)
+    exact(9, 3, 4) => Ok(n = 3)
+    nine(9, 0, 10) => Ok(n = 3)
 =
   match (hi - lo) <= 1
     true => Ok(n = lo)
@@ -308,7 +308,7 @@ fn m__a(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    a0(n = 0) => Ok(n = 0)
+    a0(0) => Ok(n = 0)
 =
   match n <= 0
     true => Ok(n = 0)
@@ -319,7 +319,7 @@ fn m__b(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    b0(n = 0) => Ok(n = 0)
+    b0(0) => Ok(n = 0)
 =
   match n <= 0
     true => Ok(n = 0)
@@ -338,8 +338,8 @@ fn m__b(n: int) -> M__S rev 1
 // branch, so fault-bounded evaluation is no longer the theorem.
 func TestLoopNegativeEntryTakesBase(t *testing.T) {
 	neg := strings.Replace(loopPoll,
-		"    later(n = 2) => Ok(n = 0)",
-		"    later(n = 2) => Ok(n = 0)\n    neg(n = -1) => Ok(n = 0)", 1)
+		"    later(2) => Ok(n = 0)",
+		"    later(2) => Ok(n = 0)\n    neg(-1) => Ok(n = 0)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": neg})
 	if diags := diagnose(dir, "m.can", neg); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
@@ -374,7 +374,7 @@ type Alpha__Value rev 1 (
 fn alpha__run(n: int) -> Alpha__Value rev 1
   emits []
   tests
-    sample(n = 0) => Ok(value = 0)
+    sample(0) => Ok(value = 0)
 =
   match call beta__run(n)
     given
@@ -393,7 +393,7 @@ type Beta__Value rev 1 (
 fn beta__run(n: int) -> Beta__Value rev 1
   emits []
   tests
-    sample(n = 0) => Ok(value = 0)
+    sample(0) => Ok(value = 0)
 =
   match call alpha__run(n)
     given

@@ -16,7 +16,7 @@ const linkLib = `mod lib
 
 fn lib__double(x: int) -> int rev 1
   tests
-    eight(x = 4) => Ok(value = 8)
+    eight(4) => Ok(value = 8)
 =
   match x
     _ => Ok(value = x * 2)
@@ -29,7 +29,7 @@ const linkAppLie = `mod app
 
 fn app__go(x: int) -> int rev 1
   tests
-    lie(x = 4) => Ok(value = 999)
+    lie(4) => Ok(value = 999)
 =
   match call lib__double(x)
     given
@@ -47,8 +47,8 @@ error app.boom()
 fn app__go(x: int) -> int rev 1
   emits [app.boom]
   tests
-    truth(x = 4) => Ok(value = 8)
-    failure(x = 4) => app.boom()
+    truth(4) => Ok(value = 8)
+    failure(4) => app.boom()
 =
   match call lib__double(x)
     given
@@ -86,7 +86,7 @@ error lib.down()
 fn lib__double(x: int) -> int rev 1
   emits [lib.down]
   tests
-    eight(x = 4) => Ok(value = 8)
+    eight(4) => Ok(value = 8)
 =
   match x
     _ => Ok(value = x * 2)
@@ -118,8 +118,8 @@ extern ext__thing(x: int) -> Mid__Out rev 1
 fn mid__go(x: int) -> Mid__Out rev 1
   emits [mid.boom]
   tests
-    m1(x = 1) => Ok()
-    m2(x = 2) => mid.boom()
+    m1(1) => Ok()
+    m2(2) => mid.boom()
 =
   match call ext__thing(x)
     given
@@ -138,8 +138,8 @@ error app.boom()
 fn app__go(x: int) -> Mid__Out rev 1
   emits [app.boom]
   tests
-    t1(x = 1) => Ok()
-    t2(x = 2) => app.boom()
+    t1(1) => Ok()
+    t2(2) => app.boom()
 =
   match call mid__go(x)
     given

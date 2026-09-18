@@ -24,15 +24,15 @@ type Num__Out rev 1 (
 fn num__add(a: dec, b: dec) -> Num__Out rev 1
   emits []
   tests
-    t1(a = d"0.1", b = d"0.2") => Ok(total = d"0.3", count = 0)
+    t1(d"0.1", d"0.2") => Ok(total = d"0.3", count = 0)
 =
   Ok(total = a + b, count = 0)
 
 fn num__big(a: dec, b: dec) -> Num__Out rev 1
   emits []
   tests
-    t1(a = d"0.5", b = d"0.2") => Ok(total = d"0.5", count = 1)
-    t2(a = d"0.1", b = d"0.9") => Ok(total = d"0.9", count = 0)
+    t1(d"0.5", d"0.2") => Ok(total = d"0.5", count = 1)
+    t2(d"0.1", d"0.9") => Ok(total = d"0.9", count = 0)
 =
   match a >= b
     true => Ok(total = a, count = 1)
@@ -48,18 +48,18 @@ fn num__lit() -> Num__Out rev 1
 fn num__next(n: int) -> Num__Out rev 1
   emits []
   tests
-    t1(n = 41) => Ok(total = d"1.0", count = 42)
+    t1(41) => Ok(total = d"1.0", count = 42)
 =
   Ok(total = d"1.0", count = n + 1)
 
 fn num__strict(a: dec, n: int, s: str) -> Num__Out rev 1
   emits []
   tests
-    t1(a = d"0.5", n = 3, s = "b") => Ok(total = d"0.5", count = 2)
-    t2(a = d"0.1", n = 3, s = "b") => Ok(total = d"0.1", count = -1)
-    t3(a = d"0.5", n = 7, s = "b") => Ok(total = d"0.5", count = 0)
-    t4(a = d"0.5", n = 3, s = "z") => Ok(total = d"0.5", count = 1)
-    t5(a = d"0.2", n = 3, s = "b") => Ok(total = d"0.2", count = 0)
+    t1(d"0.5", 3, "b") => Ok(total = d"0.5", count = 2)
+    t2(d"0.1", 3, "b") => Ok(total = d"0.1", count = -1)
+    t3(d"0.5", 7, "b") => Ok(total = d"0.5", count = 0)
+    t4(d"0.5", 3, "z") => Ok(total = d"0.5", count = 1)
+    t5(d"0.2", 3, "b") => Ok(total = d"0.2", count = 0)
 =
   match a > d"0.2"
     true => match n < 5

@@ -82,7 +82,7 @@ type M__Out rev 1 (
 fn m__go(value: int) -> M__Out rev 1
   emits [m.known]
   tests
-    go(value = 1) => m.stray()
+    go(1) => m.stray()
 =
   m.stray()
 `
@@ -124,7 +124,7 @@ type M__Out rev 1 (
 fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(value = 1) => m.bad
+    go(1) => m.bad
 =
   Ok(value = value)
 `
@@ -151,8 +151,8 @@ fn m__go(value: int) -> M__Out rev 1
 // fixtures with one scriptless test added.
 func TestPayloadDangling(t *testing.T) {
 	auth := strings.Replace(lspAuth,
-		"    down(id = \"u\") => auth.bad()\n",
-		"    down(id = \"u\") => auth.bad()\n    extra(id = \"u\") => auth.bad()\n", 1)
+		"    down(\"u\") => auth.bad()\n",
+		"    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad()\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": auth})
 	diags := diagnose(dir, "auth.can", auth)
 	var found *Diag
@@ -191,7 +191,7 @@ type M__Out rev 1 (
 fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match call m__help(value)
     given
@@ -201,7 +201,7 @@ fn m__go(value: int) -> M__Out rev 1
 fn m__help(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `
@@ -242,7 +242,7 @@ type M__Out rev 1 (
 fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match call m__help(value)
     given
@@ -252,7 +252,7 @@ fn m__go(value: int) -> M__Out rev 1
 fn m__help(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `

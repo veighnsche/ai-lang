@@ -30,15 +30,15 @@ func TestBytesB15ForeignCaller(t *testing.T) {
 fn client__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
-    one(value = "QQ==") => Ok(value = Bytes(Seq<int>[65]))
-    nul(value = "AA==") => Ok(value = Bytes(Seq<int>[0]))
-    ab(value = "QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
-    ordered(value = "3q2+7w==") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
-    odd(value = "QUI") => encoding.invalid_base64(value = "QUI")
-    nonascii(value = "é===") => encoding.invalid_base64(value = "é===")
+    empty("") => Ok(value = Bytes(Seq<int>[]))
+    one("QQ==") => Ok(value = Bytes(Seq<int>[65]))
+    nul("AA==") => Ok(value = Bytes(Seq<int>[0]))
+    ab("QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
+    ordered("3q2+7w==") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
+    odd("QUI") => encoding.invalid_base64(value = "QUI")
+    nonascii("é===") => encoding.invalid_base64(value = "é===")
 =
-  match call std__base64__decode(value = value)
+  match call std__base64__decode(value)
     given
       empty => [exchange args (value = "") outcome Ok(value = Bytes(Seq<int>[]))]
       one => [exchange args (value = "QQ==") outcome Ok(value = Bytes(Seq<int>[65]))]
@@ -48,7 +48,7 @@ fn client__go(value: str) -> Bytes__Value rev 1
       odd => [exchange args (value = "QUI") outcome encoding.invalid_base64(value = "QUI")]
       nonascii => [exchange args (value = "é===") outcome encoding.invalid_base64(value = "é===")]
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
+    on encoding.invalid_base64 e => forward e
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
@@ -70,52 +70,52 @@ func TestBytesB15RoundTrip(t *testing.T) {
 fn text__probe__rt_utf8(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    rt(value = "Aé") => Ok(value = "Aé")
+    rt("Aé") => Ok(value = "Aé")
 =
-  match call std__utf8__encode(value = value)
-    on Ok b => match call std__utf8__decode(value = b.value)
+  match call std__utf8__encode(value)
+    on Ok b => match call std__utf8__decode(b.value)
       on Ok t => Ok(value = t.value)
-      on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
+      on encoding.invalid_utf8 e => forward e
 
 fn text__probe__rt_hex(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    rt(value = "deadbeef") => Ok(value = "deadbeef")
+    rt("deadbeef") => Ok(value = "deadbeef")
 =
-  match call std__hex__decode(value = value)
-    on Ok b => match call std__hex__encode(value = b.value)
+  match call std__hex__decode(value)
+    on Ok b => match call std__hex__encode(b.value)
       on Ok t => Ok(value = t.value)
-    on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
+    on encoding.invalid_hex e => forward e
 
 fn text__probe__rt_b64(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64]
   tests
-    rt(value = "3q2+7w==") => Ok(value = "3q2+7w==")
+    rt("3q2+7w==") => Ok(value = "3q2+7w==")
 =
-  match call std__base64__decode(value = value)
-    on Ok b => match call std__base64__encode(value = b.value)
+  match call std__base64__decode(value)
+    on Ok b => match call std__base64__encode(b.value)
       on Ok t => Ok(value = t.value)
-    on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
+    on encoding.invalid_base64 e => forward e
 
 fn text__probe__cross(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64]
   tests
-    cross(value = "3q2+7w==") => Ok(value = "deadbeef")
+    cross("3q2+7w==") => Ok(value = "deadbeef")
 =
-  match call std__base64__decode(value = value)
-    on Ok b => match call std__hex__encode(value = b.value)
+  match call std__base64__decode(value)
+    on Ok b => match call std__hex__encode(b.value)
       on Ok t => Ok(value = t.value)
-    on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
+    on encoding.invalid_base64 e => forward e
 `
 	copy := strings.Replace(string(raw),
 		"Split__Result]",
 		"Split__Result, text__probe__rt_utf8, text__probe__rt_hex, text__probe__rt_b64, text__probe__cross]",
 		1) + probes
 	files := map[string]string{"text.can": copy}
-	dir := writeLSPDir(t, files)
-	if diags := diagnose(dir, "text.can", copy); len(diags) != 0 {
-		t.Fatalf("expected no diagnostics, got %v", diags)
-	}
+	// The temp copy carries real text.can scaffolding: blessed lint is
+	// grandfathered, but the appended probes must be fully clean and
+	// the scaffolding compiler-clean.
+	seqProbeClean(t, files, "text.can", strings.Count(string(raw), "\n")+1)
 	if !strings.Contains(copy, "text__probe__rt_b64") {
 		t.Fatal("probe copy lost the b64 round-trip fn")
 	}

@@ -109,15 +109,15 @@ type M__B rev 1 (
 fn m__arith(a: dec, b: dec) -> M__D rev 1
   emits []
   tests
-    go(a = d"0.1", b = d"0.2") => Ok(value = d"0.1")
+    go(d"0.1", d"0.2") => Ok(value = d"0.1")
 =
   Ok(value = a + b - b * d"1.0")
 
 fn m__ge(a: dec, b: dec) -> M__B rev 1
   emits []
   tests
-    hi(a = d"0.5", b = d"0.2") => Ok(value = true)
-    lo(a = d"0.2", b = d"0.5") => Ok(value = false)
+    hi(d"0.5", d"0.2") => Ok(value = true)
+    lo(d"0.2", d"0.5") => Ok(value = false)
 =
   match a >= b
     true => Ok(value = true)
@@ -126,8 +126,8 @@ fn m__ge(a: dec, b: dec) -> M__B rev 1
 fn m__le(a: dec, b: dec) -> M__B rev 1
   emits []
   tests
-    lo(a = d"0.2", b = d"0.5") => Ok(value = true)
-    hi(a = d"0.5", b = d"0.2") => Ok(value = false)
+    lo(d"0.2", d"0.5") => Ok(value = true)
+    hi(d"0.5", d"0.2") => Ok(value = false)
 =
   match a <= b
     true => Ok(value = true)
@@ -136,8 +136,8 @@ fn m__le(a: dec, b: dec) -> M__B rev 1
 fn m__gt(a: dec, b: dec) -> M__B rev 1
   emits []
   tests
-    hi(a = d"0.5", b = d"0.2") => Ok(value = true)
-    lo(a = d"0.2", b = d"0.5") => Ok(value = false)
+    hi(d"0.5", d"0.2") => Ok(value = true)
+    lo(d"0.2", d"0.5") => Ok(value = false)
 =
   match a > b
     true => Ok(value = true)
@@ -146,8 +146,8 @@ fn m__gt(a: dec, b: dec) -> M__B rev 1
 fn m__lt(a: dec, b: dec) -> M__B rev 1
   emits []
   tests
-    lo(a = d"0.2", b = d"0.5") => Ok(value = true)
-    hi(a = d"0.5", b = d"0.2") => Ok(value = false)
+    lo(d"0.2", d"0.5") => Ok(value = true)
+    hi(d"0.5", d"0.2") => Ok(value = false)
 =
   match a < b
     true => Ok(value = true)
@@ -156,8 +156,8 @@ fn m__lt(a: dec, b: dec) -> M__B rev 1
 fn m__eq(a: dec, b: dec) -> M__B rev 1
   emits []
   tests
-    same(a = d"1.5", b = d"1.50") => Ok(value = true)
-    diff(a = d"1.5", b = d"2.5") => Ok(value = false)
+    same(d"1.5", d"1.50") => Ok(value = true)
+    diff(d"1.5", d"2.5") => Ok(value = false)
 =
   match a == b
     true => Ok(value = true)
@@ -166,8 +166,8 @@ fn m__eq(a: dec, b: dec) -> M__B rev 1
 fn m__ne(a: dec, b: dec) -> M__B rev 1
   emits []
   tests
-    diff(a = d"1.5", b = d"2.5") => Ok(value = true)
-    same(a = d"1.5", b = d"1.50") => Ok(value = false)
+    diff(d"1.5", d"2.5") => Ok(value = true)
+    same(d"1.5", d"1.50") => Ok(value = false)
 =
   match a != b
     true => Ok(value = true)

@@ -11,8 +11,8 @@ type Shell__Out rev 1 (
 fn shell__greet(state: Form__State) -> Shell__Out rev 1
   emits []
   tests
-    e(state = Form__Empty()) => Ok(message = "Start typing", echo = Form__Empty())
-    s(state = Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))
+    e(Form__Empty()) => Ok(message = "Start typing", echo = Form__Empty())
+    s(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))
 =
   match call form__message(state)
     given

@@ -17,6 +17,14 @@ func multiModule(t *testing.T, text string) (*Module, *Program) {
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
+	// Feed runTest pipeline-resolved modules: resolveTestArgs gives
+	// positional test rows their parameter names, exactly as
+	// checkStatic does before any run phase (can-idioms C6).
+	for _, d := range m.Decls {
+		if fn, ok := d.(*FnDecl); ok {
+			_ = resolveTestArgs(fn, text)
+		}
+	}
 	prog, _ := buildWorld(m, []*Module{m}, map[string]string{"m.can": text})
 	return m, prog
 }
@@ -60,7 +68,7 @@ const multiHead = `mod m
 fn m__f(x: bool, y: bool) -> bool rev 1
   emits []
   tests
-    t(x = true, y = true) => true
+    t(true, true) => true
 =
 `
 
@@ -110,7 +118,7 @@ func multiStrText() string {
 fn m__g(s: str, b: bool) -> bool rev 1
   emits []
   tests
-    t(s = "a", b = true) => true
+    t("a", true) => true
 =
   match s, b
     "a", true => true
@@ -238,10 +246,10 @@ type M__Word rev 1 (
 fn m__multi(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(a = true, b = true) => Ok(v = true)
-    tf(a = true, b = false) => Ok(v = false)
-    ft(a = false, b = true) => Ok(v = false)
-    ff(a = false, b = false) => Ok(v = true)
+    tt(true, true) => Ok(v = true)
+    tf(true, false) => Ok(v = false)
+    ft(false, true) => Ok(v = false)
+    ff(false, false) => Ok(v = true)
 =
   match a, b
     true, true => Ok(v = true)
@@ -252,10 +260,10 @@ fn m__multi(a: bool, b: bool) -> M__Out rev 1
 fn m__nested(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(a = true, b = true) => Ok(v = true)
-    tf(a = true, b = false) => Ok(v = false)
-    ft(a = false, b = true) => Ok(v = false)
-    ff(a = false, b = false) => Ok(v = true)
+    tt(true, true) => Ok(v = true)
+    tf(true, false) => Ok(v = false)
+    ft(false, true) => Ok(v = false)
+    ff(false, false) => Ok(v = true)
 =
   match a
     true => match b
@@ -268,9 +276,9 @@ fn m__nested(a: bool, b: bool) -> M__Out rev 1
 fn m__words(s: str, b: bool) -> M__Word rev 1
   emits []
   tests
-    admin(s = "admin", b = false) => Ok(w = "root")
-    user(s = "bob", b = true) => Ok(w = "user")
-    guest(s = "bob", b = false) => Ok(w = "guest")
+    admin("admin", false) => Ok(w = "root")
+    user("bob", true) => Ok(w = "user")
+    guest("bob", false) => Ok(w = "guest")
 =
   match s, b
     "admin", _ => Ok(w = "root")
@@ -333,13 +341,10 @@ func TestMultiNestedEquivalence(t *testing.T) {
 
 func TestMultiDiagnoseClean(t *testing.T) {
 	// The full editor pipeline (checks, proof, test runs, test-per-arm
-	// coverage) reports nothing on exhaustive, fully-hit tables.
-	dir := writeLSPDir(t, map[string]string{"m.can": multiEvalText})
-	for _, d := range diagnose(dir, "m.can", multiEvalText) {
-		if d.Sev == "error" {
-			t.Fatalf("unexpected diagnostic: %v", d)
-		}
-	}
+	// coverage) reports exactly one finding on exhaustive, fully-hit
+	// tables: the nested spelling is table-eligible (CAN3413).
+	seqCode(t, map[string]string{"m.can": multiEvalText}, "m.can",
+		CodeLintTable, "nested matches share")
 }
 
 const multiEmitText = `mod m
@@ -354,9 +359,9 @@ type M__Word rev 1 (
 fn m__w(s: str, b: bool) -> M__Word rev 1
   emits []
   tests
-    admin(s = "admin", b = false) => Ok(w = "root")
-    user(s = "bob", b = true) => Ok(w = "user")
-    guest(s = "bob", b = false) => Ok(w = "guest")
+    admin("admin", false) => Ok(w = "root")
+    user("bob", true) => Ok(w = "user")
+    guest("bob", false) => Ok(w = "guest")
 =
   match s, b
     "admin", _ => Ok(w = "root")
@@ -376,10 +381,10 @@ type M__Out rev 1 (
 fn m__q(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(a = true, b = true) => Ok(v = true)
-    tf(a = true, b = false) => Ok(v = false)
-    ft(a = false, b = true) => Ok(v = false)
-    ff(a = false, b = false) => Ok(v = true)
+    tt(true, true) => Ok(v = true)
+    tf(true, false) => Ok(v = false)
+    ft(false, true) => Ok(v = false)
+    ff(false, false) => Ok(v = true)
 =
   match a, b
     true, true => Ok(v = true)
@@ -449,7 +454,7 @@ func TestSingleCommaStrStillSingle(t *testing.T) {
 fn m__h(s: str) -> bool rev 1
   emits []
   tests
-    t(s = "a,b") => true
+    t("a,b") => true
 =
   match s
     "a,b" => true

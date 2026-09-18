@@ -32,8 +32,8 @@ fn m__max(left: int, right: int) -> M__Out rev 1
         true => true
         false => result.value == right
   tests
-    ordered(left = 1, right = 2) => Ok(value = 2)
-    reversed(left = 2, right = 1) => Ok(value = 2)
+    ordered(1, 2) => Ok(value = 2)
+    reversed(2, 1) => Ok(value = 2)
 =
   match left <= right
     on true => Ok(value = right)
@@ -63,8 +63,8 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
       err.value == value
   emits [m.bad_bounds, m.out_of_range]
   tests
-    ok(value = 1, lower = 0, upper = 2) => Ok(value = 1)
-    low(value = -1, lower = 0, upper = 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
+    ok(1, 0, 2) => Ok(value = 1)
+    low(-1, 0, 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
 =
   match value >= lower
     on true => Ok(value = value)
@@ -111,7 +111,7 @@ fn m__go(x: int) -> M__Out rev 1
     on m.never err
       false
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = x)
 `
@@ -210,7 +210,7 @@ fn m__sq(x: int) -> M__Out rev 1
       result.value >= 0
       result.value == x * x
   tests
-    zero(x = 0) => Ok(value = 0)
+    zero(0) => Ok(value = 0)
 =
   Ok(value = 0)
 `
@@ -251,7 +251,7 @@ fn m__tag(x: int) -> M__Out rev 1
     on Ok result
       result.name == "x"
   tests
-    go(x = 1) => Ok(name = "x")
+    go(1) => Ok(name = "x")
 =
   Ok(name = "x")
 `
@@ -283,7 +283,7 @@ fn m__go(tok: M__B) -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go(tok = seal M__B("a")) => Ok(value = 1)
+    go(seal M__B("a")) => Ok(value = 1)
 =
   Ok(value = 1)
 `
@@ -312,7 +312,7 @@ fn m__go(x: dec) -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go(x = d"1.5") => Ok(value = 1)
+    go(d"1.5") => Ok(value = 1)
 =
   Ok(value = 1)
 `
@@ -345,7 +345,7 @@ fn m__go(x: int) -> M__Out rev 1
     on Ok result
       result.n == x
   tests
-    go(x = 1) => Ok(n = 1)
+    go(1) => Ok(n = 1)
 =
   match call ext__thing(x)
     given
@@ -379,8 +379,8 @@ fn m__poll(n: int) -> M__S rev 1
     on Ok s
       s.n == 0
   tests
-    now(n = 0) => Ok(n = 0)
-    later(n = 2) => Ok(n = 0)
+    now(0) => Ok(n = 0)
+    later(2) => Ok(n = 0)
 =
   match n <= 0
     true => Ok(n = 0)
@@ -497,7 +497,7 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 2) => Ok(value = 4)
+    go(2) => Ok(value = 4)
 =
   Ok(value = x * x)
 `

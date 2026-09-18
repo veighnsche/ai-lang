@@ -62,7 +62,7 @@ type T__Fork rev 1 (
 fn t__fork(base: Seq<str>) -> T__Fork rev 1
   emits []
   tests
-    go(base = Seq<str>["a"]) => Ok(base = Seq<str>["a"], first = Seq<str>["a", "b"], second = Seq<str>["a", "c"])
+    go(Seq<str>["a"]) => Ok(base = Seq<str>["a"], first = Seq<str>["a", "b"], second = Seq<str>["a", "c"])
 =
   Ok(base = base, first = base + "b", second = base + "c")
 `

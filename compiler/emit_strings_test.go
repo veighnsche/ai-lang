@@ -26,9 +26,9 @@ type Int__Value rev 1 (
 fn str__match(v: str) -> Str__Value rev 1
   emits []
   tests
-    bslash(v = "a\nb") => Ok(value = "hit")
-    quote(v = "say \"hi\"") => Ok(value = "q")
-    plain(v = "xy") => Ok(value = "miss")
+    bslash("a\nb") => Ok(value = "hit")
+    quote("say \"hi\"") => Ok(value = "q")
+    plain("xy") => Ok(value = "miss")
 =
   match v
     "a\nb" => Ok(value = "hit")
@@ -38,11 +38,11 @@ fn str__match(v: str) -> Str__Value rev 1
 fn str__order(left: str, right: str) -> Int__Value rev 1
   emits []
   tests
-    ascii(left = "b", right = "a") => Ok(value = 1)
-    prefix(left = "ab", right = "a") => Ok(value = 1)
-    equal(left = "a", right = "a") => Ok(value = 0)
-    bmp_smp(left = "", right = "𐀀") => Ok(value = -1)
-    smp_bmp(left = "𐀀", right = "") => Ok(value = 1)
+    ascii("b", "a") => Ok(value = 1)
+    prefix("ab", "a") => Ok(value = 1)
+    equal("a", "a") => Ok(value = 0)
+    bmp_smp("", "𐀀") => Ok(value = -1)
+    smp_bmp("𐀀", "") => Ok(value = 1)
 =
   match left == right
     true => Ok(value = 0)
@@ -53,28 +53,28 @@ fn str__order(left: str, right: str) -> Int__Value rev 1
 fn str__len(v: str) -> Int__Value rev 1
   emits []
   tests
-    ascii(v = "abc") => Ok(value = 3)
-    mixed(v = "héllo世界") => Ok(value = 7)
-    astral(v = "a𝄞b") => Ok(value = 3)
-    empty(v = "") => Ok(value = 0)
+    ascii("abc") => Ok(value = 3)
+    mixed("héllo世界") => Ok(value = 7)
+    astral("a𝄞b") => Ok(value = 3)
+    empty("") => Ok(value = 0)
 =
   Ok(value = #v)
 
 fn str__at(v: str, i: int) -> Int__Value rev 1
   emits []
   tests
-    ascii(v = "abc", i = 1) => Ok(value = 98)
-    mixed(v = "héllo世界", i = 5) => Ok(value = 19990)
-    astral(v = "a𝄞b", i = 1) => Ok(value = 119070)
+    ascii("abc", 1) => Ok(value = 98)
+    mixed("héllo世界", 5) => Ok(value = 19990)
+    astral("a𝄞b", 1) => Ok(value = 119070)
 =
   Ok(value = v[i])
 
 fn str__slice(v: str, a: int, b: int) -> Str__Value rev 1
   emits []
   tests
-    inner(v = "héllo", a = 1, b = 4) => Ok(value = "éll")
-    full(v = "abc", a = 0, b = 3) => Ok(value = "abc")
-    empty(v = "abc", a = 2, b = 2) => Ok(value = "")
+    inner("héllo", 1, 4) => Ok(value = "éll")
+    full("abc", 0, 3) => Ok(value = "abc")
+    empty("abc", 2, 2) => Ok(value = "")
 =
   Ok(value = v[a:b])
 `
@@ -160,14 +160,14 @@ type Fault__Str rev 1 (
 fn fault__at(v: str, i: int) -> Fault__Int rev 1
   emits []
   tests
-    go(v = "abc", i = 1) => Ok(value = 98)
+    go("abc", 1) => Ok(value = 98)
 =
   Ok(value = v[i])
 
 fn fault__slice(v: str, a: int, b: int) -> Fault__Str rev 1
   emits []
   tests
-    go(v = "abc", a = 0, b = 2) => Ok(value = "ab")
+    go("abc", 0, 2) => Ok(value = "ab")
 =
   Ok(value = v[a:b])
 `

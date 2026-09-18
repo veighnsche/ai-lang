@@ -25,18 +25,18 @@ type Audit__Pair rev 1 (
 fn audit__make(first: int, second: str) -> Audit__Pair rev 1
   emits []
   tests
-    m(first = 1, second = "a") => Ok(first = 1, second = "a")
+    m(1, "a") => Ok(first = 1, second = "a")
 =
   Ok(first = first, second = second)
 
 fn audit__cmp(flag: str) -> Audit__Pair rev 1
   emits []
   tests
-    s(flag = "a") => Ok(first = 1, second = "a")
-    d(flag = "b") => Ok(first = 0, second = "neq")
+    s("a") => Ok(first = 1, second = "a")
+    d("b") => Ok(first = 0, second = "neq")
 =
-  match call audit__make(first = 1, second = "a")
-    on Ok left => match call audit__make(first = 1, second = flag)
+  match call audit__make(1, "a")
+    on Ok left => match call audit__make(1, flag)
       on Ok right => match left == right
         true => Ok(first = left.first, second = left.second)
         false => Ok(first = 0, second = "neq")

@@ -42,6 +42,9 @@ func run(argv []string) int {
 	if len(argv) > 0 && argv[0] == "explain" {
 		return runExplain(os.Stdout, argv[1:])
 	}
+	if len(argv) > 0 && argv[0] == "lint" {
+		return runLint(os.Stdout, os.Stderr, argv[1:])
+	}
 	if len(argv) > 0 && argv[0] == "baseline" {
 		return runBaseline(argv[1:])
 	}

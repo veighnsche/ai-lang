@@ -25,7 +25,7 @@ fn m__bump(by: int) -> M__T rev 1
   effects [M__C.read, M__C.write]
   emits []
   tests
-    three(by = 3) => Ok(total = 3)
+    three(3) => Ok(total = 3)
 =
   match call state__get(M__C)
     on Ok c => match call state__put(M__C, c.value + by)
@@ -77,7 +77,7 @@ fn m__help(by: int) -> M__T rev 1
   effects [M__C.read, M__C.write]
   emits []
   tests
-    h(by = 1) => Ok(total = 1)
+    h(1) => Ok(total = 1)
 =
   match call state__get(M__C)
     on Ok c => match call state__put(M__C, c.value + by)
@@ -86,7 +86,7 @@ fn m__help(by: int) -> M__T rev 1
 fn m__go(by: int) -> M__T rev 1
   emits []
   tests
-    g(by = 1) => Ok(total = 1)
+    g(1) => Ok(total = 1)
 =
   match call m__help(by)
     on Ok s => Ok(total = s.total)
@@ -224,7 +224,7 @@ fn p__do(by: int) -> P__T rev 1
   effects [P__C.read, P__C.write]
   emits []
   tests
-    t(by = 1) => Ok(total = 1)
+    t(1) => Ok(total = 1)
 =
   match call state__get(P__C)
     on Ok c => match call state__put(P__C, c.value + by)
@@ -243,7 +243,7 @@ type C__T rev 1 (
 fn c__go(by: int) -> C__T rev 1
   emits []
   tests
-    g(by = 1) => Ok(total = 1)
+    g(1) => Ok(total = 1)
 =
   match call p__do(by)
     given
@@ -308,7 +308,7 @@ fn m__flag(by: int) -> M__T rev 1
   effects [M__Flag.read, M__Flag.write]
   emits []
   tests
-    on(by = 1) => Ok(total = 1)
+    on(1) => Ok(total = 1)
 =
   match call state__put(M__Flag, true)
     on Ok _ => match call state__get(M__Flag)

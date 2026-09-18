@@ -34,8 +34,8 @@ type Client__Result rev 1 (
 fn client__pass(state: Model__State) -> Client__Result rev 1
   emits []
   tests
-    ready(state = Model__Ready()) => Ok(state = Model__Ready())
-    waiting(state = Model__Waiting()) => Ok(state = Model__Waiting())
+    ready(Model__Ready()) => Ok(state = Model__Ready())
+    waiting(Model__Waiting()) => Ok(state = Model__Waiting())
 =
   Ok(state = state)
 `
@@ -145,6 +145,9 @@ fn m__go(left: int, right: int) -> M__Out rev 1
   requires
     true
   tests
+    // Named on purpose: the param-reorder mutant below must not
+    // change test binding, so the fingerprint (not the tables)
+    // carries the difference.
     go(left = 1, right = 2) => Ok(value = 1)
 =
   Ok(value = left)
@@ -236,8 +239,8 @@ type Client__Result rev 1 (
 fn client__pick(state: Model__State) -> Client__Result rev 1
   emits []
   tests
-    ready(state = Model__Ready()) => Ok(ready = true)
-    waiting(state = Model__Waiting()) => Ok(ready = false)
+    ready(Model__Ready()) => Ok(ready = true)
+    waiting(Model__Waiting()) => Ok(ready = false)
 =
   match state
     on Model__Ready _ => Ok(ready = true)
@@ -252,8 +255,8 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
 		"    on Model__Waiting _ => Ok(ready = false)",
 		"    on Model__Waiting _ => Ok(ready = false)\n    on Model__Expired _ => Ok(ready = false)", 1)
 	clientC = strings.Replace(clientC,
-		"    waiting(state = Model__Waiting()) => Ok(ready = false)",
-		"    waiting(state = Model__Waiting()) => Ok(ready = false)\n    expired(state = Model__Expired()) => Ok(ready = false)", 1)
+		"    waiting(Model__Waiting()) => Ok(ready = false)",
+		"    waiting(Model__Waiting()) => Ok(ready = false)\n    expired(state = Model__Expired()) => Ok(ready = false)", 1)
 	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.can", "client.can"})
 	diags := CheckRevisionIdentity(progC, textsC, base)
 	if !hasCode(diags, "CAN6013") {
@@ -290,8 +293,8 @@ type Client__Result rev 1 (
 fn client__pick(state: Model__State) -> Client__Result rev 1
   emits []
   tests
-    ready(state = Model__Ready()) => Ok(ready = true)
-    waiting(state = Model__Waiting()) => Ok(ready = false)
+    ready(Model__Ready()) => Ok(ready = true)
+    waiting(Model__Waiting()) => Ok(ready = false)
 =
   match state
     on Model__Ready _ => Ok(ready = true)
@@ -378,8 +381,8 @@ fn m__max(left: int, right: int) -> M__Out rev 1
   requires
     left >= right
   tests
-    ordered(left = 2, right = 1) => Ok(value = 2)
-    reversed(left = 1, right = 2) => Ok(value = 2)
+    ordered(2, 1) => Ok(value = 2)
+    reversed(1, 2) => Ok(value = 2)
 =
   match left <= right
     on true => Ok(value = right)

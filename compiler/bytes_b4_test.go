@@ -38,15 +38,16 @@ func TestBytesB4NulChainProbe(t *testing.T) {
 		"  tests\n" +
 		"    chain() => Ok(value = Bytes(Seq<int>[65, 0, 38, 97, 109, 112, 59, 66]))\n" +
 		"=\n" +
-		"  match call html__text__node(text = seal Html__Text(\"A\x00&amp;B\"))\n" +
-		"    on Ok n => match call html__render__utf8(document = n.safe)\n" +
+		"  match call html__text__node(seal Html__Text(\"A\x00&amp;B\"))\n" +
+		"    on Ok n => match call html__render__utf8(n.safe)\n" +
 		"      on Ok b => Ok(value = b.value)\n"
 	body := string(raw) + probe
 	// The probe fn lives in the temp copy only; provide it there so
 	// the copy stays well-formed under the provides rule.
 	body = strings.Replace(body, ", html__asset__script]", ", html__asset__script, html__probe__nul_chain]", 1)
-	dir := writeLSPDir(t, map[string]string{"probe.can": body, "ascii.can": string(asciiRaw), "scalars.can": string(scalarsRaw)})
-	if diags := diagnose(dir, "probe.can", body); len(diags) != 0 {
-		t.Fatalf("expected no diagnostics, got %v", diags)
-	}
+	// The temp copy carries real html.can scaffolding: blessed lint is
+	// grandfathered, but the appended probe must be fully clean and
+	// the scaffolding compiler-clean.
+	seqProbeClean(t, map[string]string{"probe.can": body, "ascii.can": string(asciiRaw), "scalars.can": string(scalarsRaw)},
+		"probe.can", strings.Count(string(raw), "\n")+1)
 }

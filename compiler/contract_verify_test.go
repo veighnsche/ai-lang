@@ -53,8 +53,8 @@ fn m__affine(n: int) -> M__Out rev 1
     on Ok result
       result.value == 2 * n + 1
   tests
-    z(n = 0) => Ok(value = 1)
-    two(n = 2) => Ok(value = 5)
+    z(0) => Ok(value = 1)
+    two(2) => Ok(value = 5)
 =
   Ok(value = 2 * n + 1)
 
@@ -70,9 +70,9 @@ fn m__apply(req: M__Req) -> M__Out rev 1
           false => result.value == req.policy.minimum
         false => result.value == req.policy.minimum
   tests
-    hit(req = M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)
-    miss(req = M__Req(enabled = true, value = 1, policy = M__Pol(minimum = 2))) => Ok(value = 2)
-    off(req = M__Req(enabled = false, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 2)
+    hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)
+    miss(M__Req(enabled = true, value = 1, policy = M__Pol(minimum = 2))) => Ok(value = 2)
+    off(M__Req(enabled = false, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 2)
 =
   match req.enabled
     true => match req.value >= req.policy.minimum
@@ -116,7 +116,7 @@ fn m__int(x: int) -> M__Out rev 1
         true => false
         false => true
   tests
-    z(x = 0) => Ok(value = 0)
+    z(0) => Ok(value = 0)
 =
   Ok(value = 0)
 `
@@ -146,7 +146,7 @@ fn m__pass(a: M__Out, b: M__Out) -> M__Out rev 1
     on Ok result
       result == a
   tests
-    same(a = M__Out(value = 1), b = M__Out(value = 1)) => Ok(value = 1)
+    same(M__Out(value = 1), M__Out(value = 1)) => Ok(value = 1)
 =
   Ok(value = a.value)
 `
@@ -177,7 +177,7 @@ fn svc__get(x: int) -> Svc__Out rev 1
     on service.unavailable err
       false
   tests
-    go(x = 2) => Ok(value = 2)
+    go(2) => Ok(value = 2)
 =
   Ok(value = x)
 `
@@ -201,8 +201,8 @@ fn app__use(x: int) -> Svc__Out rev 1
     on service.unavailable err
       false
   tests
-    normal(x = 2) => Ok(value = 2)
-    outage(x = 2) => app.down(code = 2)
+    normal(2) => Ok(value = 2)
+    outage(2) => app.down(code = 2)
 =
   match call svc__get(x)
     given
@@ -233,7 +233,7 @@ func TestVerifyMaxPlusOne(t *testing.T) {
 	bad := strings.Replace(admitMax,
 		"on true => Ok(value = right)", "on true => Ok(value = right + 1)", 1)
 	bad = strings.Replace(bad,
-		"ordered(left = 1, right = 2) => Ok(value = 2)", "ordered(left = 1, right = 2) => Ok(value = 3)", 1)
+		"ordered(1, 2) => Ok(value = 2)", "ordered(1, 2) => Ok(value = 3)", 1)
 	prog, texts := admitProg(t, bad)
 	diags := VerifyContracts(prog, texts)
 	if !hasCode(diags, CodeContractUnproven) {
@@ -251,10 +251,10 @@ func TestVerifyHelperBody(t *testing.T) {
 	// Rows follow the mutant body; the helper postcondition is
 	// what fails.
 	bad := strings.Replace(verifyAffine, "Ok(value = 2 * n + 1)", "Ok(value = 2 * n + 2)", 1)
-	bad = strings.Replace(bad, "z(n = 0) => Ok(value = 1)", "z(n = 0) => Ok(value = 2)", 1)
-	bad = strings.Replace(bad, "two(n = 2) => Ok(value = 5)", "two(n = 2) => Ok(value = 6)", 1)
-	bad = strings.Replace(bad, "hit(req = M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)",
-		"hit(req = M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 8)", 1)
+	bad = strings.Replace(bad, "z(0) => Ok(value = 1)", "z(0) => Ok(value = 2)", 1)
+	bad = strings.Replace(bad, "two(2) => Ok(value = 5)", "two(2) => Ok(value = 6)", 1)
+	bad = strings.Replace(bad, "hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)",
+		"hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 8)", 1)
 	prog, texts := admitProg(t, bad)
 	diags := VerifyContracts(prog, texts)
 	if !hasCode(diags, CodeContractUnproven) {
@@ -304,7 +304,7 @@ fn m__step(n: int) -> M__Out rev 1
     on Ok result
       result.value == n + 1
   tests
-    z(n = 0) => Ok(value = 1)
+    z(0) => Ok(value = 1)
 =
   Ok(value = n + 1)
 
@@ -316,8 +316,8 @@ fn m__call(x: int) -> M__Out rev 1
     on Ok result
       result.value >= 1
   tests
-    neg(x = -2) => Ok(value = 3)
-    pos(x = 2) => Ok(value = 3)
+    neg(-2) => Ok(value = 3)
+    pos(2) => Ok(value = 3)
 =
   match x <= 0
     true => match call m__step(ARG)
@@ -338,7 +338,7 @@ func TestVerifyStepCall(t *testing.T) {
 	// The row follows the mutant body (x = -2 yields -1 through
 	// the bad call); the call precondition is what fails.
 	bad := strings.Replace(verifyStep, "m__step(ARG)", "m__step(x)", 1)
-	bad = strings.Replace(bad, "neg(x = -2) => Ok(value = 3)", "neg(x = -2) => Ok(value = -1)", 1)
+	bad = strings.Replace(bad, "neg(-2) => Ok(value = 3)", "neg(-2) => Ok(value = -1)", 1)
 	prog, texts = admitProg(t, bad)
 	diags := VerifyContracts(prog, texts)
 	if !hasCode(diags, CodeContractUnproven) {
@@ -370,7 +370,7 @@ fn m__go(x: int) -> M__Out rev 1
     on Ok result
       result.value == x
   tests
-    neg(x = -1) => Ok(value = -1)
+    neg(-1) => Ok(value = -1)
 =
   Ok(value = x)
 `
@@ -429,9 +429,9 @@ fn m__clamp(x: int) -> M__Out rev 1
       result.value >= 0
       result.value <= 10
   tests
-    lo(x = 3) => Ok(value = 3)
-    hi(x = 15) => Ok(value = 10)
-    edge(x = 0) => Ok(value = 0)
+    lo(3) => Ok(value = 3)
+    hi(15) => Ok(value = 10)
+    edge(0) => Ok(value = 0)
 =
   match x
     0..10 => Ok(value = x)

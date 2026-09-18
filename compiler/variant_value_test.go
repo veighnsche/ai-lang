@@ -44,7 +44,7 @@ func variantValueMod(body, expect string) string {
 ` + variantValueDecls + `fn m__wrap(user: str) -> M__Out rev 1
   emits []
   tests
-    go(user = "u") => ` + expect + `
+    go("u") => ` + expect + `
 =
   ` + body + `
 `
@@ -129,7 +129,7 @@ variant Login__State rev 1 (
 fn m__id(user: str) -> Login__State rev 1
   emits []
   tests
-    go(user = "u") => Ok()
+    go("u") => Ok()
 =
   Ok()
 `
@@ -177,7 +177,7 @@ extern ext__help(value: int) -> M__Mid rev 1
 fn m__go(value: int) -> M__Out rev 1
   emits []
   tests
-    g(value = 1) => Ok(value = 1)
+    g(1) => Ok(value = 1)
 =
   match call ext__help(value)
     given
@@ -224,7 +224,7 @@ type M__Out rev 1 (
 fn m__eq(flag: int) -> M__Out rev 1
   emits []
   tests
-    go(flag = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   match Login__Anonymous() == Login__Anonymous()
     true => Ok(value = 1)
@@ -261,7 +261,7 @@ type M__Out rev 1 (
 fn m__noop(value: int) -> M__Out rev 1
   emits []
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `
@@ -293,7 +293,7 @@ type M__Out rev 1 (
 fn m__pick(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(pick = Pick__B(x = 1))
+    go(1) => Ok(pick = Pick__B(x = 1))
 =
   Ok(pick = Pick__A(x = x))
 `
@@ -332,7 +332,7 @@ type Prov__Data rev 1 (
 fn prov__make(id: str) -> Prov__Data rev 1
   emits []
   tests
-    m(id = "u") => Ok(id = "u")
+    m("u") => Ok(id = "u")
 =
   Ok(id = id)
 `
@@ -349,7 +349,7 @@ type Cons__Out rev 1 (
 fn cons__go(id: str) -> Cons__Out rev 1
   emits []
   tests
-    g(id = "u") => Ok(held = Prov__Data(id = "u"), state = Login__Anonymous())
+    g("u") => Ok(held = Prov__Data(id = "u"), state = Login__Anonymous())
 =
   match call prov__make(id)
     given

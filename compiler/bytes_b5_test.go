@@ -30,7 +30,7 @@ fn client__nul() -> Bytes__Value rev 1
   tests
     nul() => Ok(value = Bytes(Seq<int>[97, 0, 98]))
 =
-  match call std__utf8__encode(value = "a` + "\x00" + `b")
+  match call std__utf8__encode("a` + "\x00" + `b")
     given
       nul => [exchange args (value = "a` + "\x00" + `b") outcome Ok(value = Bytes(Seq<int>[97, 0, 98]))]
     on Ok r => Ok(value = r.value)
@@ -40,7 +40,7 @@ fn client__computed() -> Bytes__Value rev 1
   tests
     computed() => Ok(value = Bytes(Seq<int>[65, 195, 169]))
 =
-  match call std__utf8__encode(value = "Aé")
+  match call std__utf8__encode("Aé")
     given
       computed => [exchange args (value = "Aé") outcome Ok(value = Bytes(Seq<int>[65, 195, 169]))]
     on Ok r => Ok(value = r.value)

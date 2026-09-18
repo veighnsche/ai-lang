@@ -33,12 +33,12 @@ type T__BItem rev 1 (
 fn t__get(xs: Seq<str>, index: int) -> T__Item rev 1
   emits [t.out_of_range]
   tests
-    first(xs = Seq<str>["b", "a"], index = 0) => Ok(item = "b")
-    second(xs = Seq<str>["b", "a"], index = 1) => Ok(item = "a")
-    empty_member(xs = Seq<str>[""], index = 0) => Ok(item = "")
-    negative(xs = Seq<str>["a"], index = -1) => t.out_of_range(index = -1, length = 1)
-    past_end(xs = Seq<str>["a"], index = 1) => t.out_of_range(index = 1, length = 1)
-    empty(xs = Seq<str>[], index = 0) => t.out_of_range(index = 0, length = 0)
+    first(Seq<str>["b", "a"], 0) => Ok(item = "b")
+    second(Seq<str>["b", "a"], 1) => Ok(item = "a")
+    empty_member(Seq<str>[""], 0) => Ok(item = "")
+    negative(Seq<str>["a"], -1) => t.out_of_range(index = -1, length = 1)
+    past_end(Seq<str>["a"], 1) => t.out_of_range(index = 1, length = 1)
+    empty(Seq<str>[], 0) => t.out_of_range(index = 0, length = 0)
 =
   match index >= 0
     true => match index < #xs
@@ -49,10 +49,10 @@ fn t__get(xs: Seq<str>, index: int) -> T__Item rev 1
 fn t__get_b(xs: Seq<M__B>, index: int) -> T__BItem rev 1
   emits [t.out_of_range]
   tests
-    one(xs = Seq<M__B>[seal M__B("A")], index = 0) => Ok(item = seal M__B("A"))
-    negative(xs = Seq<M__B>[seal M__B("A")], index = -1) => t.out_of_range(index = -1, length = 1)
-    past_end(xs = Seq<M__B>[seal M__B("A")], index = 1) => t.out_of_range(index = 1, length = 1)
-    empty(xs = Seq<M__B>[], index = 0) => t.out_of_range(index = 0, length = 0)
+    one(Seq<M__B>[seal M__B("A")], 0) => Ok(item = seal M__B("A"))
+    negative(Seq<M__B>[seal M__B("A")], -1) => t.out_of_range(index = -1, length = 1)
+    past_end(Seq<M__B>[seal M__B("A")], 1) => t.out_of_range(index = 1, length = 1)
+    empty(Seq<M__B>[], 0) => t.out_of_range(index = 0, length = 0)
 =
   match index >= 0
     true => match index < #xs
@@ -71,8 +71,8 @@ func TestSeqGetWrapper(t *testing.T) {
 // compare equal, so only the checker can catch this).
 func TestSeqGetBrandTyped(t *testing.T) {
 	bad := strings.Replace(seqGetMod,
-		`one(xs = Seq<M__B>[seal M__B("A")], index = 0) => Ok(item = seal M__B("A"))`,
-		`one(xs = Seq<M__B>[seal M__B("A")], index = 0) => Ok(item = "A")`, 1)
+		`one(Seq<M__B>[seal M__B("A")], 0) => Ok(item = seal M__B("A"))`,
+		`one(Seq<M__B>[seal M__B("A")], 0) => Ok(item = "A")`, 1)
 	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTypeMismatch, "want M__B")
 }
 
@@ -94,28 +94,28 @@ fn t__walk_from(xs: Seq<str>, position: int, fuel: int, count: int, trace: str) 
   decreases fuel
   emits []
   tests
-    zero_budget(xs = Seq<str>["x"], position = 0, fuel = 0, count = 0, trace = "") => Ok(count = 0, trace = "")
-    neg_budget(xs = Seq<str>["x"], position = 0, fuel = -1, count = 0, trace = "") => Ok(count = 0, trace = "")
-    empty(xs = Seq<str>[], position = 0, fuel = 1, count = 0, trace = "") => Ok(count = 0, trace = "")
-    one(xs = Seq<str>["x"], position = 0, fuel = 2, count = 0, trace = "") => Ok(count = 1, trace = "(x)")
-    three(xs = Seq<str>["b", "", "a"], position = 0, fuel = 4, count = 0, trace = "") => Ok(count = 3, trace = "(b)()(a)")
-    short(xs = Seq<str>["a", "b"], position = 0, fuel = 1, count = 0, trace = "") => Ok(count = 1, trace = "(a)")
+    zero_budget(Seq<str>["x"], 0, 0, 0, "") => Ok(count = 0, trace = "")
+    neg_budget(Seq<str>["x"], 0, -1, 0, "") => Ok(count = 0, trace = "")
+    empty(Seq<str>[], 0, 1, 0, "") => Ok(count = 0, trace = "")
+    one(Seq<str>["x"], 0, 2, 0, "") => Ok(count = 1, trace = "(x)")
+    three(Seq<str>["b", "", "a"], 0, 4, 0, "") => Ok(count = 3, trace = "(b)()(a)")
+    short(Seq<str>["a", "b"], 0, 1, 0, "") => Ok(count = 1, trace = "(a)")
 =
   match fuel <= 0
     true => Ok(count = count, trace = trace)
     false => match position < #xs
-      true => match call t__walk_from(xs = xs, position = position + 1, fuel = fuel - 1, count = count + 1, trace = trace + "(" + xs[position] + ")")
+      true => match call t__walk_from(xs, position + 1, fuel - 1, count + 1, trace + "(" + xs[position] + ")")
         on Ok r => Ok(count = r.count, trace = r.trace)
       false => Ok(count = count, trace = trace)
 
 fn t__walk(xs: Seq<str>) -> T__Trace rev 1
   emits []
   tests
-    empty(xs = Seq<str>[]) => Ok(count = 0, trace = "")
-    one(xs = Seq<str>[""]) => Ok(count = 1, trace = "()")
-    three(xs = Seq<str>["A", "", "B"]) => Ok(count = 3, trace = "(A)()(B)")
+    empty(Seq<str>[]) => Ok(count = 0, trace = "")
+    one(Seq<str>[""]) => Ok(count = 1, trace = "()")
+    three(Seq<str>["A", "", "B"]) => Ok(count = 3, trace = "(A)()(B)")
 =
-  match call t__walk_from(xs = xs, position = 0, fuel = #xs + 1, count = 0, trace = "")
+  match call t__walk_from(xs, 0, #xs + 1, 0, "")
     on Ok r => Ok(count = r.count, trace = r.trace)
 `
 
@@ -131,7 +131,7 @@ func TestSeqTraversalBudgetArmReal(t *testing.T) {
 	var keep []string
 	for _, l := range lines {
 		if strings.Contains(l, "zero_budget") || strings.Contains(l, "neg_budget") ||
-			strings.Contains(l, "short(xs") {
+			strings.Contains(l, "short(Seq") {
 			continue
 		}
 		keep = append(keep, l)
@@ -170,7 +170,7 @@ type T__Item rev 1 (
 fn t__raw(xs: Seq<str>) -> T__Item rev 1
   emits []
   tests
-    go(xs = Seq<str>["a", "b"]) => Ok(item = "b")
+    go(Seq<str>["a", "b"]) => Ok(item = "b")
 =
   Ok(item = xs[5])
 `
@@ -191,7 +191,7 @@ type T__Item rev 1 (
 fn t__raw(xs: Seq<str>) -> T__Item rev 1
   emits []
   tests
-    go(xs = Seq<str>["a"]) => Ok(item = "a")
+    go(Seq<str>["a"]) => Ok(item = "a")
 =
   Ok(item = xs["a"])
 `

@@ -67,6 +67,13 @@ const (
 	CodeMissingTests             = "CAN3301"
 	CodeUnusedUses               = "CAN3401"
 	CodeUnusedParam              = "CAN3402"
+	CodeLintRedundant            = "CAN3410"
+	CodeLintOrFold               = "CAN3411"
+	CodeLintChain                = "CAN3412"
+	CodeLintTable                = "CAN3413"
+	CodeLintSameOutcome          = "CAN3414"
+	CodeLintRelay                = "CAN3415"
+	CodeLintRange                = "CAN3416"
 	CodeForeignRaise             = "CAN4001"
 	CodeUnknownKind              = "CAN4002"
 	CodeProofOther               = "CAN4100"
@@ -127,6 +134,8 @@ var allCodes = []string{
 	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind, CodeBadPositional,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
+	CodeLintRedundant, CodeLintOrFold, CodeLintChain, CodeLintTable,
+	CodeLintSameOutcome, CodeLintRelay, CodeLintRange,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm, CodeUselessAlt,
 	CodeTestFailed,

@@ -24,63 +24,63 @@ const bytesDecodeBase = `mod m
 fn m__go(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    ascii(value = Bytes(Seq<int>[65])) => Ok(value = "A")
-    latin(value = Bytes(Seq<int>[195, 169])) => Ok(value = "é")
-    cjk(value = Bytes(Seq<int>[228, 184, 150])) => Ok(value = "世")
-    astral(value = Bytes(Seq<int>[240, 159, 152, 128])) => Ok(value = "😀")
-    ufffd(value = Bytes(Seq<int>[239, 191, 189])) => Ok(value = "�")
-    mark(value = Bytes(Seq<int>[38, 60, 62])) => Ok(value = "&<>")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    ascii(Bytes(Seq<int>[65])) => Ok(value = "A")
+    latin(Bytes(Seq<int>[195, 169])) => Ok(value = "é")
+    cjk(Bytes(Seq<int>[228, 184, 150])) => Ok(value = "世")
+    astral(Bytes(Seq<int>[240, 159, 152, 128])) => Ok(value = "😀")
+    ufffd(Bytes(Seq<int>[239, 191, 189])) => Ok(value = "�")
+    mark(Bytes(Seq<int>[38, 60, 62])) => Ok(value = "&<>")
 NULOUTROWS
 BOMOUTROWS
 BOUNDROWS
-    overlong_nul(value = Bytes(Seq<int>[192, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[192, 128]))
-    overlong_3(value = Bytes(Seq<int>[224, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[224, 128, 128]))
-    surrogate(value = Bytes(Seq<int>[237, 160, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[237, 160, 128]))
-    above_max(value = Bytes(Seq<int>[244, 144, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[244, 144, 128, 128]))
-    stray_cont(value = Bytes(Seq<int>[128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[128]))
-    lead_f5(value = Bytes(Seq<int>[245])) => encoding.invalid_utf8(value = Bytes(Seq<int>[245]))
-    lead_f6(value = Bytes(Seq<int>[246])) => encoding.invalid_utf8(value = Bytes(Seq<int>[246]))
-    lead_f7(value = Bytes(Seq<int>[247])) => encoding.invalid_utf8(value = Bytes(Seq<int>[247]))
-    lead_f8(value = Bytes(Seq<int>[248])) => encoding.invalid_utf8(value = Bytes(Seq<int>[248]))
-    lead_ff(value = Bytes(Seq<int>[255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
-    trunc_e9a(value = Bytes(Seq<int>[195])) => encoding.invalid_utf8(value = Bytes(Seq<int>[195]))
-    trunc_e2a(value = Bytes(Seq<int>[226])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226]))
-    trunc_e2b(value = Bytes(Seq<int>[226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226, 130]))
-    trunc_f0a(value = Bytes(Seq<int>[240])) => encoding.invalid_utf8(value = Bytes(Seq<int>[240]))
-    trunc_f0b(value = Bytes(Seq<int>[240, 159])) => encoding.invalid_utf8(value = Bytes(Seq<int>[240, 159]))
-    trunc_f0c(value = Bytes(Seq<int>[240, 159, 152])) => encoding.invalid_utf8(value = Bytes(Seq<int>[240, 159, 152]))
-    trunc_after_ascii(value = Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
-    trunc_after_a_e9a(value = Bytes(Seq<int>[65, 195])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 195]))
-    trunc_after_a_e2a(value = Bytes(Seq<int>[65, 226])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226]))
-    trunc_after_a_f0a(value = Bytes(Seq<int>[65, 240])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240]))
-    trunc_after_a_f0b(value = Bytes(Seq<int>[65, 240, 159])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240, 159]))
-    trunc_after_a_f0c(value = Bytes(Seq<int>[65, 240, 159, 152])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240, 159, 152]))
-    bom_then_bad(value = Bytes(Seq<int>[239, 187, 191, 255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[239, 187, 191, 255]))
-    mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
+    overlong_nul(Bytes(Seq<int>[192, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[192, 128]))
+    overlong_3(Bytes(Seq<int>[224, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[224, 128, 128]))
+    surrogate(Bytes(Seq<int>[237, 160, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[237, 160, 128]))
+    above_max(Bytes(Seq<int>[244, 144, 128, 128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[244, 144, 128, 128]))
+    stray_cont(Bytes(Seq<int>[128])) => encoding.invalid_utf8(value = Bytes(Seq<int>[128]))
+    lead_f5(Bytes(Seq<int>[245])) => encoding.invalid_utf8(value = Bytes(Seq<int>[245]))
+    lead_f6(Bytes(Seq<int>[246])) => encoding.invalid_utf8(value = Bytes(Seq<int>[246]))
+    lead_f7(Bytes(Seq<int>[247])) => encoding.invalid_utf8(value = Bytes(Seq<int>[247]))
+    lead_f8(Bytes(Seq<int>[248])) => encoding.invalid_utf8(value = Bytes(Seq<int>[248]))
+    lead_ff(Bytes(Seq<int>[255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
+    trunc_e9a(Bytes(Seq<int>[195])) => encoding.invalid_utf8(value = Bytes(Seq<int>[195]))
+    trunc_e2a(Bytes(Seq<int>[226])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226]))
+    trunc_e2b(Bytes(Seq<int>[226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[226, 130]))
+    trunc_f0a(Bytes(Seq<int>[240])) => encoding.invalid_utf8(value = Bytes(Seq<int>[240]))
+    trunc_f0b(Bytes(Seq<int>[240, 159])) => encoding.invalid_utf8(value = Bytes(Seq<int>[240, 159]))
+    trunc_f0c(Bytes(Seq<int>[240, 159, 152])) => encoding.invalid_utf8(value = Bytes(Seq<int>[240, 159, 152]))
+    trunc_after_ascii(Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
+    trunc_after_a_e9a(Bytes(Seq<int>[65, 195])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 195]))
+    trunc_after_a_e2a(Bytes(Seq<int>[65, 226])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226]))
+    trunc_after_a_f0a(Bytes(Seq<int>[65, 240])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240]))
+    trunc_after_a_f0b(Bytes(Seq<int>[65, 240, 159])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240, 159]))
+    trunc_after_a_f0c(Bytes(Seq<int>[65, 240, 159, 152])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240, 159, 152]))
+    bom_then_bad(Bytes(Seq<int>[239, 187, 191, 255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[239, 187, 191, 255]))
+    mid_bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
 =
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
+    on encoding.invalid_utf8 e => forward e
 `
 
 func bytesDecodeFull() string {
-	nul := "    nul_first(value = Bytes(Seq<int>[0, 104, 105])) => Ok(value = \"\x00hi\")\n" +
-		"    nul_middle(value = Bytes(Seq<int>[97, 0, 98])) => Ok(value = \"a\x00b\")\n" +
-		"    nul_last(value = Bytes(Seq<int>[97, 98, 0])) => Ok(value = \"ab\x00\")\n"
-	bom := "    bom_only(value = Bytes(Seq<int>[239, 187, 191])) => Ok(value = \"\uFEFF\")\n" +
-		"    bom_text(value = Bytes(Seq<int>[239, 187, 191, 65])) => Ok(value = \"\uFEFFA\")\n" +
-		"    bom_bom(value = Bytes(Seq<int>[239, 187, 191, 239, 187, 191])) => Ok(value = \"\uFEFF\uFEFF\")\n" +
-		"    bom_interior(value = Bytes(Seq<int>[65, 239, 187, 191, 66])) => Ok(value = \"A\uFEFFB\")\n"
-	bound := "    u007f(value = Bytes(Seq<int>[127])) => Ok(value = \"\u007f\")\n" +
-		"    u0080(value = Bytes(Seq<int>[194, 128])) => Ok(value = \"\u0080\")\n" +
-		"    u07ff(value = Bytes(Seq<int>[223, 191])) => Ok(value = \"\u07ff\")\n" +
-		"    u0800(value = Bytes(Seq<int>[224, 160, 128])) => Ok(value = \"\u0800\")\n" +
-		"    ud7ff(value = Bytes(Seq<int>[237, 159, 191])) => Ok(value = \"\ud7ff\")\n" +
-		"    ue000(value = Bytes(Seq<int>[238, 128, 128])) => Ok(value = \"\ue000\")\n" +
-		"    uffff(value = Bytes(Seq<int>[239, 191, 191])) => Ok(value = \"\uffff\")\n" +
-		"    u10000(value = Bytes(Seq<int>[240, 144, 128, 128])) => Ok(value = \"\U00010000\")\n" +
-		"    u10ffff(value = Bytes(Seq<int>[244, 143, 191, 191])) => Ok(value = \"\U0010ffff\")\n"
+	nul := "    nul_first(Bytes(Seq<int>[0, 104, 105])) => Ok(value = \"\x00hi\")\n" +
+		"    nul_middle(Bytes(Seq<int>[97, 0, 98])) => Ok(value = \"a\x00b\")\n" +
+		"    nul_last(Bytes(Seq<int>[97, 98, 0])) => Ok(value = \"ab\x00\")\n"
+	bom := "    bom_only(Bytes(Seq<int>[239, 187, 191])) => Ok(value = \"\uFEFF\")\n" +
+		"    bom_text(Bytes(Seq<int>[239, 187, 191, 65])) => Ok(value = \"\uFEFFA\")\n" +
+		"    bom_bom(Bytes(Seq<int>[239, 187, 191, 239, 187, 191])) => Ok(value = \"\uFEFF\uFEFF\")\n" +
+		"    bom_interior(Bytes(Seq<int>[65, 239, 187, 191, 66])) => Ok(value = \"A\uFEFFB\")\n"
+	bound := "    u007f(Bytes(Seq<int>[127])) => Ok(value = \"\u007f\")\n" +
+		"    u0080(Bytes(Seq<int>[194, 128])) => Ok(value = \"\u0080\")\n" +
+		"    u07ff(Bytes(Seq<int>[223, 191])) => Ok(value = \"\u07ff\")\n" +
+		"    u0800(Bytes(Seq<int>[224, 160, 128])) => Ok(value = \"\u0800\")\n" +
+		"    ud7ff(Bytes(Seq<int>[237, 159, 191])) => Ok(value = \"\ud7ff\")\n" +
+		"    ue000(Bytes(Seq<int>[238, 128, 128])) => Ok(value = \"\ue000\")\n" +
+		"    uffff(Bytes(Seq<int>[239, 191, 191])) => Ok(value = \"\uffff\")\n" +
+		"    u10000(Bytes(Seq<int>[240, 144, 128, 128])) => Ok(value = \"\U00010000\")\n" +
+		"    u10ffff(Bytes(Seq<int>[244, 143, 191, 191])) => Ok(value = \"\U0010ffff\")\n"
 	out := strings.Replace(bytesDecodeBase, "NULOUTROWS\n", nul, 1)
 	out = strings.Replace(out, "BOMOUTROWS\n", bom, 1)
 	return strings.Replace(out, "BOUNDROWS\n", bound, 1)
@@ -96,14 +96,16 @@ func TestBytesD0DecodeVectors(t *testing.T) {
 	named := strings.Replace(bytesDecodeFull(),
 		"match call bytes__utf8__decode(value)",
 		"match call bytes__utf8__decode(value = value)", 1)
-	seqClean(t, map[string]string{"m.can": named}, "m.can")
+	// The named spelling evaluates identically but is a lint error
+	// (CAN3410): exactly one finding, nothing else.
+	seqCode(t, map[string]string{"m.can": named}, "m.can", CodeLintRedundant, "redundant argument name")
 }
 
 // D1: both arms are mandatory: a missing error arm and a missing
 // Ok arm each refuse with the missing-arm rule.
 func TestBytesD1MissingArms(t *testing.T) {
 	noErr := strings.Replace(bytesDecodeFull(),
-		"\n    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)", "", 1)
+		"\n    on encoding.invalid_utf8 e => forward e", "", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": noErr})
 	diags := diagnose(dir, "m.can", noErr)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
@@ -154,7 +156,7 @@ func TestBytesD4Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    go(value = ARG) => Ok(value = "A")
+    go(ARG) => Ok(value = "A")
 =
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
@@ -234,13 +236,13 @@ func TestBytesD7ShadowRejections(t *testing.T) {
 // construction refuses, and a wrong-payload expectation fails.
 func TestBytesD8ErrorPathTyped(t *testing.T) {
 	wrongCtor := strings.Replace(bytesDecodeFull(),
-		"on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)",
+		"on encoding.invalid_utf8 e => forward e",
 		`on encoding.invalid_utf8 e => encoding.invalid_utf8(value = "nope")`, 1)
 	seqCode(t, map[string]string{"m.can": wrongCtor}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 	wrongPay := strings.Replace(bytesDecodeFull(),
-		"mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))",
-		"mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255]))", 1)
+		"mid_bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))",
+		"mid_bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255]))", 1)
 	seqCode(t, map[string]string{"m.can": wrongPay}, "m.can",
 		CodeTestFailed, "mid_bad")
 }
@@ -253,8 +255,8 @@ const bytesDecodeProv = `mod prov
 fn prov__go(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    good(value = Bytes(Seq<int>[65])) => Ok(value = "A")
-    bad(value = Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
+    good(Bytes(Seq<int>[65])) => Ok(value = "A")
+    bad(Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
 =
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)

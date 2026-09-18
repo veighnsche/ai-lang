@@ -74,7 +74,7 @@ type M__Out rev 1 (
 fn m__div(a: dec, b: dec) -> M__Out rev 1
   emits []
   tests
-    t(a = d"1.0", b = d"2.0") => Ok(q = d"0.5")
+    t(d"1.0", d"2.0") => Ok(q = d"0.5")
 =
   Ok(q = a / b)
 `
@@ -136,7 +136,7 @@ type M__Out rev 1 (
 fn m__div(a: int) -> M__Out rev 1
   emits []
   tests
-    t(a = 7) => Ok(q = 2)
+    t(7) => Ok(q = 2)
 =
   Ok(q = a / 3)
 `

@@ -28,7 +28,7 @@ func TestStaleArmNestingHint(t *testing.T) {
 fn client__go(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    rt(value = "deadbeef") => Ok(value = "deadbeef")
+    rt("deadbeef") => Ok(value = "deadbeef")
 =
   match call std__hex__decode(value = value)
     given
@@ -74,7 +74,7 @@ func TestStaleArmNoHintAcrossMatches(t *testing.T) {
 fn client__missing(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    rt(value = "deadbeef") => Ok(value = "deadbeef")
+    rt("deadbeef") => Ok(value = "deadbeef")
 =
   match call std__hex__decode(value = value)
     given
@@ -84,7 +84,7 @@ fn client__missing(value: str) -> Encoding__Text rev 1
 fn client__total(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "ff")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
 =
   match call std__hex__encode(value = value)
     given

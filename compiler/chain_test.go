@@ -19,16 +19,16 @@ error chain.too_small(value: int)
 fn chain__is_big(value: int) -> Chain__Bool rev 1
   emits []
   tests
-    big(value = 10) => Ok(value = true)
-    small(value = 3) => Ok(value = false)
+    big(10) => Ok(value = true)
+    small(3) => Ok(value = false)
 =
   Ok(value = value > 5)
 
 fn chain__is_odd(value: int) -> Chain__Bool rev 1
   emits []
   tests
-    odd(value = 3) => Ok(value = true)
-    even(value = 4) => Ok(value = false)
+    odd(3) => Ok(value = true)
+    even(4) => Ok(value = false)
 =
   Ok(value = value % 2 == 1)
 
@@ -43,10 +43,10 @@ type Chain__Out rev 1 (
 fn chain__fail_if_small(value: int) -> Chain__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
-    small(value = 3) => chain.too_small(value = 3)
+    big(10) => Ok(value = 10)
+    small(3) => chain.too_small(value = 3)
 =
-  match call chain__is_big(value = value)
+  match call chain__is_big(value)
     on Ok b => match b.value
       true => Ok(value = value)
       false => chain.too_small(value = value)
@@ -86,17 +86,17 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big_odd(value = 11) => Ok(value = 11)
-    big_even(value = 10) => chain.too_small(value = 10)
-    small(value = 3) => chain.too_small(value = 3)
+    big_odd(11) => Ok(value = 11)
+    big_even(10) => chain.too_small(value = 10)
+    small(3) => chain.too_small(value = 3)
 =
   match chain
-    call chain__is_big(value = value) as b when b.value
+    call chain__is_big(value) as b when b.value
       given
         big_odd => exchange args (value = 11) outcome Ok(value = true)
         big_even => exchange args (value = 10) outcome Ok(value = true)
         small => exchange args (value = 3) outcome Ok(value = false)
-    call chain__is_odd(value = value) as o when o.value
+    call chain__is_odd(value) as o when o.value
       given
         big_odd => exchange args (value = 11) outcome Ok(value = true)
         big_even => exchange args (value = 10) outcome Ok(value = false)
@@ -125,10 +125,10 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
+    big(10) => Ok(value = 10)
 =
   match chain
-    call chain__is_big(value = value) as b when b.value
+    call chain__is_big(value) as b when b.value
       given
         big => exchange args (value = 10) outcome Ok(value = true)
     then Ok(value = value)
@@ -164,11 +164,11 @@ type Client__Out rev 1 (
 fn client__relay(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
-    small(value = 3) => chain.too_small(value = 3)
+    big(10) => Ok(value = 10)
+    small(3) => chain.too_small(value = 3)
 =
   match chain
-    call chain__fail_if_small(value = value) as r
+    call chain__fail_if_small(value) as r
       given
         big => exchange args (value = 10) outcome Ok(value = 10)
         small => exchange args (value = 3) outcome chain.too_small(value = 3)
@@ -196,10 +196,10 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
+    big(10) => Ok(value = 10)
 =
   match chain
-    call chain__is_big(value = value) as b when call chain__is_big(value = value)
+    call chain__is_big(value) as b when call chain__is_big(value = value)
     then Ok(value = value)
     else chain.too_small(value = value)
 `
@@ -224,10 +224,10 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
+    big(10) => Ok(value = 10)
 =
   match chain
-    call chain__is_big(value = value) as _ when true
+    call chain__is_big(value) as _ when true
     then Ok(value = value)
     else chain.too_small(value = value)
 `
@@ -259,10 +259,10 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
+    big(10) => Ok(value = 10)
 =
   match chain
-    call chain__is_big(value = value) as b when b.value
+    call chain__is_big(value) as b when b.value
 ` + tc.tail
 		errs := chainErrs(t, body)
 		if len(errs) == 0 || !hasDiag(errs, "error", "needs") {
@@ -289,11 +289,11 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(value = 10) => Ok(value = 10)
-    small(value = 3) => chain.too_small(value = 3)
+    big(10) => Ok(value = 10)
+    small(3) => chain.too_small(value = 3)
 =
   match chain
-    call chain__is_big(value = value) as b when b.value
+    call chain__is_big(value) as b when b.value
       given
         big => exchange args (value = 10) outcome Ok(value = true)
         small => exchange args (value = 3) outcome Ok(value = false)
@@ -321,8 +321,8 @@ type Client__Out rev 1 (
 fn client__check(chain: bool) -> Client__Out rev 1
   emits []
   tests
-    yes(chain = true) => Ok(value = 1)
-    no(chain = false) => Ok(value = 0)
+    yes(true) => Ok(value = 1)
+    no(false) => Ok(value = 0)
 =
   match chain
     true => Ok(value = 1)

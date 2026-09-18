@@ -33,8 +33,8 @@ fn m__max(left: int, right: int) -> M__Out rev 1
         true => true
         false => result.value == right
   tests
-    ordered(left = 1, right = 2) => Ok(value = 2)
-    reversed(left = 2, right = 1) => Ok(value = 2)
+    ordered(1, 2) => Ok(value = 2)
+    reversed(2, 1) => Ok(value = 2)
 =
   match left <= right
     on true => Ok(value = right)
@@ -73,8 +73,8 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
       err.value == value
   emits [m.bad_bounds, m.out_of_range]
   tests
-    ok(value = 1, lower = 0, upper = 2) => Ok(value = 1)
-    low(value = -1, lower = 0, upper = 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
+    ok(1, 0, 2) => Ok(value = 1)
+    low(-1, 0, 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
 =
   match value >= lower
     on true => Ok(value = value)
@@ -109,20 +109,20 @@ fn m__go(value: int) -> M__Out rev 1
     on m.nope err
       err.value == value
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `,
 		"empty requires": base + `  requires
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `,
 		"empty arm": base + `  ensures
     on Ok result
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `,
@@ -131,7 +131,7 @@ fn m__go(value: int) -> M__Out rev 1
   requires
     true
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `,
@@ -142,7 +142,7 @@ fn m__go(value: int) -> M__Out rev 1
     on Ok result
       result.value == value
   tests
-    go(value = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = value)
 `,

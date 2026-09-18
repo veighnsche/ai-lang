@@ -22,10 +22,10 @@ type Acc__V rev 1 (
 fn acc__f(n: int) -> Acc__V rev 1
   emits []
   tests
-    held(n = 7) => Ok(value = 7, note = "hi") pinned
-    loose(n = 8) => Ok(value = 8, note = "hi")
-    wordy(n = 9) => Ok(value = 9, note = "pinned")
-    pinned(n = 10) => Ok(value = 10, note = "hi")
+    held(7) => Ok(value = 7, note = "hi") pinned
+    loose(8) => Ok(value = 8, note = "hi")
+    wordy(9) => Ok(value = 9, note = "pinned")
+    pinned(10) => Ok(value = 10, note = "hi")
 =
   match n == 9
     true => Ok(value = n, note = "pinned")
@@ -87,8 +87,8 @@ type Acc__V rev 1 (
 fn acc__w(n: int) -> Acc__V rev 1
   emits []
   tests
-    keep(n = 5) => Ok(value = 5, note = "hi") pinned
-    flex(n = 6) => Ok(value = 6, note = "hi")
+    keep(5) => Ok(value = 5, note = "hi") pinned
+    flex(6) => Ok(value = 6, note = "hi")
 =
   match n == 5
     true => Ok(value = 5, note = "hi")
@@ -116,7 +116,7 @@ func TestPinnedWeakeningWarns(t *testing.T) {
 	base := acceptanceBase(t, prog)
 	// The attack: move implementation and expectation together so the
 	// suite stays green while acceptance drifts.
-	moved := strings.Replace(acceptanceBehav, "keep(n = 5) => Ok(value = 5,", "keep(n = 5) => Ok(value = 6,", 1)
+	moved := strings.Replace(acceptanceBehav, "keep(5) => Ok(value = 5,", "keep(5) => Ok(value = 6,", 1)
 	moved = strings.Replace(moved, "true => Ok(value = 5,", "true => Ok(value = 6,", 1)
 	prog2, texts2 := acceptanceReprog(t, moved)
 	diags := CheckPinnedRows(prog2, texts2, base)
@@ -140,7 +140,7 @@ func TestPinnedUnpinnedChurnSilent(t *testing.T) {
 	prog, _ := acceptanceReprog(t, acceptanceBehav)
 	base := acceptanceBase(t, prog)
 	moved := strings.Replace(acceptanceBehav, "false => Ok(value = n,", "false => Ok(value = n + 1,", 1)
-	moved = strings.Replace(moved, "flex(n = 6) => Ok(value = 6,", "flex(n = 6) => Ok(value = 7,", 1)
+	moved = strings.Replace(moved, "flex(6) => Ok(value = 6,", "flex(6) => Ok(value = 7,", 1)
 	prog2, texts2 := acceptanceReprog(t, moved)
 	if diags := CheckPinnedRows(prog2, texts2, base); len(diags) != 0 {
 		t.Fatalf("unpinned churn must stay silent, got %v", diags)
@@ -162,8 +162,8 @@ type Acc__V rev 1 (
 fn acc__w(n: int) -> Acc__V rev 1
   emits []
   tests
-    keep(n = 5) => Ok(value = 5, note = "hi") pinned
-    flex(n = 6) => Ok(value = 6, note = "hi")
+    keep(5) => Ok(value = 5, note = "hi") pinned
+    flex(6) => Ok(value = 6, note = "hi")
 =
   Ok(value = n, note = "hi")
 `
@@ -174,7 +174,7 @@ func TestPinnedRemovedWarns(t *testing.T) {
 	lines := strings.Split(acceptanceFlat, "\n")
 	var kept []string
 	for _, l := range lines {
-		if strings.Contains(l, "keep(n = 5)") {
+		if strings.Contains(l, "keep(5)") {
 			continue
 		}
 		kept = append(kept, l)

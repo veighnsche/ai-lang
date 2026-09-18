@@ -23,8 +23,8 @@ type M__Val rev 1 (
 fn std__int__abs(value: int) -> M__Val rev 1
   emits []
   tests
-    neg(value = -3) => Ok(value = 3)
-    pos(value = 3) => Ok(value = 3)
+    neg(-3) => Ok(value = 3)
+    pos(3) => Ok(value = 3)
 =
   match value >= 0
     true => Ok(value = value)

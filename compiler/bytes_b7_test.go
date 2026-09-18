@@ -28,30 +28,30 @@ func TestBytesB7ForeignCaller(t *testing.T) {
 fn client__a(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    ok(value = Bytes(Seq<int>[65])) => Ok(value = "A")
-    bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
-    nul(value = Bytes(Seq<int>[97, 0, 98])) => Ok(value = "a` + "\x00" + `b")
+    ok(Bytes(Seq<int>[65])) => Ok(value = "A")
+    bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
+    nul(Bytes(Seq<int>[97, 0, 98])) => Ok(value = "a` + "\x00" + `b")
 =
-  match call std__utf8__decode(value = value)
+  match call std__utf8__decode(value)
     given
       ok => [exchange args (value = Bytes(Seq<int>[65])) outcome Ok(value = "A")]
       bad => [exchange args (value = Bytes(Seq<int>[65, 255, 66])) outcome encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))]
       nul => [exchange args (value = Bytes(Seq<int>[97, 0, 98])) outcome Ok(value = "a` + "\x00" + `b")]
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
+    on encoding.invalid_utf8 e => forward e
 
 fn client__b(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    bom(value = Bytes(Seq<int>[239, 187, 191, 65])) => Ok(value = "` + "\uFEFFA" + `")
-    bad(value = Bytes(Seq<int>[255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
+    bom(Bytes(Seq<int>[239, 187, 191, 65])) => Ok(value = "` + "\uFEFFA" + `")
+    bad(Bytes(Seq<int>[255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
 =
-  match call std__utf8__decode(value = value)
+  match call std__utf8__decode(value)
     given
       bom => [exchange args (value = Bytes(Seq<int>[239, 187, 191, 65])) outcome Ok(value = "` + "\uFEFFA" + `")]
       bad => [exchange args (value = Bytes(Seq<int>[255])) outcome encoding.invalid_utf8(value = Bytes(Seq<int>[255]))]
     on Ok r => Ok(value = r.value)
-    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
+    on encoding.invalid_utf8 e => forward e
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)

@@ -21,8 +21,8 @@ type Str__Value rev 1 (
 fn m__wrap(value: str) -> Str__Value rev 1
   emits []
   tests
-    plain(value = "x") => Ok(value = "{x}")
-    empty(value = "") => Ok(value = "{}")
+    plain("x") => Ok(value = "{x}")
+    empty("") => Ok(value = "{}")
 =
   Ok(value = "{" + value + "}")
 `

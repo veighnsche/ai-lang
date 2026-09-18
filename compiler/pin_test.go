@@ -22,7 +22,7 @@ type Alpha__Data rev 1 (
 fn alpha__read(id: str) -> Alpha__Data rev 1
   emits []
   tests
-    r(id = "u") => Ok(id = "u")
+    r("u") => Ok(id = "u")
 =
   Ok(id = id)
 `
@@ -39,7 +39,7 @@ type Beta__Out rev 1 (
 fn beta__go(id: str) -> Beta__Out rev 1
   emits []
   tests
-    g(id = "u") => Ok(id = "u")
+    g("u") => Ok(id = "u")
 =
   match call alpha__read(id)
     given

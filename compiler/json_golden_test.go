@@ -32,9 +32,9 @@ type Auth__S rev 1 (
 fn auth__go(id: str) -> Auth__S rev 1
   emits [auth.bad, auth.stale]
   tests
-    ok(id = "u") => Ok(id = "u")
-    down(id = "u") => auth.bad()
-    extra(id = "u") => auth.bad()
+    ok("u") => Ok(id = "u")
+    down("u") => auth.bad()
+    extra("u") => auth.bad()
 =
   match call db__get(id)
     given
@@ -136,7 +136,7 @@ func TestAllDiagsCoded(t *testing.T) {
 		strings.Replace(lspAuth, "on db.down _ => auth.bad()", "on db.down _ => db.down()", 1),
 		strings.Replace(lspAuth, "on db.down _ => auth.bad()", "on db.down _ => auth.bogus()", 1),
 		strings.Replace(lspAuth, "down => [exchange args (id = \"u\") outcome db.down()]", "down => [exchange args (id = \"u\") outcome db.bogus()]", 1),
-		strings.Replace(lspAuth, "ok(id = \"u\") => Ok(id = \"u\")", "ok(bogus = \"u\") => Ok(id = \"u\")", 1),
+		strings.Replace(lspAuth, "ok(\"u\") => Ok(id = \"u\")", "ok(bogus = \"u\") => Ok(id = \"u\")", 1),
 	}
 	for i, bad := range mutations {
 		dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})

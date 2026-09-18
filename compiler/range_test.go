@@ -28,8 +28,8 @@ func TestRangeSingleton(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    five(x = 5) => Ok(value = 5)
-    other(x = 7) => Ok(value = 7)
+    five(5) => Ok(value = 5)
+    other(7) => Ok(value = 7)
 =
   match x
     5 => Ok(value = 5)
@@ -62,9 +62,9 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    digit(x = 50) => Ok(value = 1)
-    colon(x = 58) => Ok(value = 2)
-    other(x = 99) => Ok(value = 3)
+    digit(50) => Ok(value = 1)
+    colon(58) => Ok(value = 2)
+    other(99) => Ok(value = 3)
 =
   match x
     m__LO..m__HI => Ok(value = 1)
@@ -84,9 +84,9 @@ func TestRangeCutPoints(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(x = 7) => Ok(value = 1)
-    high(x = 12) => Ok(value = 2)
-    out(x = 99) => Ok(value = 3)
+    low(7) => Ok(value = 1)
+    high(12) => Ok(value = 2)
+    out(99) => Ok(value = 3)
 =
   match x
     1..10 => Ok(value = 1)
@@ -106,8 +106,8 @@ func TestRangeShadowed(t *testing.T) {
 		src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(x = 2) => Ok(value = 1)
-    out(x = 99) => Ok(value = 3)
+    low(2) => Ok(value = 1)
+    out(99) => Ok(value = 3)
 =
   match x
     1..10 => Ok(value = 1)
@@ -130,7 +130,7 @@ func TestRangeBadBounds(t *testing.T) {
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
+    one(1) => Ok(value = 1)
 =
   match x
     ` + arm + ` => Ok(value = 1)
@@ -150,7 +150,7 @@ func TestRangeUnknownBound(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
+    one(1) => Ok(value = 1)
 =
   match x
     m__NOPE..5 => Ok(value = 1)
@@ -168,7 +168,7 @@ func TestRangeMixedSlot(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
+    one(1) => Ok(value = 1)
 =
   match x
     true => Ok(value = 1)
@@ -187,7 +187,7 @@ func TestRangeUncovered(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    mid(x = 5) => Ok(value = 5)
+    mid(5) => Ok(value = 5)
 =
   match x
     1..10 => Ok(value = x)
@@ -221,14 +221,14 @@ type M__Work rev 1 (
 fn m__work(v: int) -> M__Work rev 1
   emits []
   tests
-    w(v = 1) => Ok(value = 1)
+    w(1) => Ok(value = 1)
 =
   Ok(value = v)
 
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = 1)
+    one(1) => Ok(value = 1)
 =
   match call m__work(x)
     5 => Ok(value = 5)
@@ -246,8 +246,8 @@ func TestRangeArmObligation(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(x = 5) => Ok(value = 1)
-    out(x = 99) => Ok(value = 3)
+    low(5) => Ok(value = 1)
+    out(99) => Ok(value = 3)
 =
   match x
     1..10 => Ok(value = 1)
@@ -284,8 +284,8 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    digit(x = 50) => Ok(value = 1)
-    out(x = 99) => Ok(value = 2)
+    digit(50) => Ok(value = 1)
+    out(99) => Ok(value = 2)
 =
   match x
     lib__LO..lib__HI => Ok(value = 1)
@@ -307,8 +307,8 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    digit(x = 50) => Ok(value = 1)
-    out(x = 99) => Ok(value = 2)
+    digit(50) => Ok(value = 1)
+    out(99) => Ok(value = 2)
 =
   match x
     lib__LO..lib__HI => Ok(value = 1)
@@ -326,9 +326,9 @@ func TestRangeEmit(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    five(x = 5) => Ok(value = 5)
-    digit(x = 50) => Ok(value = 50)
-    out(x = 99) => Ok(value = 99)
+    five(5) => Ok(value = 5)
+    digit(50) => Ok(value = 50)
+    out(99) => Ok(value = 99)
 =
   match x
     5 => Ok(value = 5)
@@ -369,8 +369,8 @@ func TestRangeAdmissionContract(t *testing.T) {
     on Ok result
       result.value >= 0
   tests
-    low(x = 5) => Ok(value = 1)
-    out(x = 99) => Ok(value = 2)
+    low(5) => Ok(value = 1)
+    out(99) => Ok(value = 2)
 =
   match x
     1..10 => Ok(value = 1)

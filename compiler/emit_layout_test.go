@@ -34,9 +34,9 @@ type Audit__Ctor rev 1 (
 fn audit__go(flag: str) -> Audit__Value rev 1
   emits [audit.bad]
   tests
-    k(flag = "x") => Ok(kind = "request")
-    p(flag = "y") => Ok(kind = "other")
-    e(flag = "z") => audit.bad(kind = "broken", code = 7)
+    k("x") => Ok(kind = "request")
+    p("y") => Ok(kind = "other")
+    e("z") => audit.bad(kind = "broken", code = 7)
 =
   match flag
     "x" => Ok(kind = "request")

@@ -144,7 +144,7 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 58)
+    go(1) => Ok(value = 58)
 =
   Ok(value = m__N)
 
@@ -174,7 +174,7 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 58)
+    go(1) => Ok(value = 58)
 =
   Ok(value = m__N)
 `
@@ -213,7 +213,7 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 59)
+    go(1) => Ok(value = 59)
 =
   Ok(value = m__N)
 `
@@ -241,7 +241,7 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
+    go(1) => Ok(value = 1)
 =
   Ok(value = m__NOPE)
 `
@@ -272,7 +272,7 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 7)
+    go(1) => Ok(value = 7)
 =
   Ok(value = lib__K)
 `
@@ -304,7 +304,7 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 7)
+    go(1) => Ok(value = 7)
 =
   Ok(value = lib__K)
 `
@@ -348,9 +348,9 @@ const m__SEP: str rev 1 = ", "
 fn m__go(x: int, s: str) -> M__Out rev 1
   emits []
   tests
-    one(x = 1, s = ", ") => Ok(value = "yes")
-    two(x = 2, s = ", ") => Ok(value = "sep")
-    three(x = 2, s = ";") => Ok(value = "no")
+    one(1, ", ") => Ok(value = "yes")
+    two(2, ", ") => Ok(value = "sep")
+    three(2, ";") => Ok(value = "no")
 =
   match x <= 1
     m__FLAG => Ok(value = "yes")
@@ -382,8 +382,8 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    colon(x = 58) => Ok(value = 2)
-    other(x = 1) => Ok(value = 3)
+    colon(58) => Ok(value = 2)
+    other(1) => Ok(value = 3)
 =
   match x
     m__N => Ok(value = 2)
@@ -417,7 +417,7 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    go(x = lib__K) => Ok(value = 7)
+    go(lib__K) => Ok(value = 7)
 =
   Ok(value = x)
 `
@@ -450,8 +450,8 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = "yes")
-    two(x = 2) => Ok(value = "no")
+    one(1) => Ok(value = "yes")
+    two(2) => Ok(value = "no")
 =
   match x <= 1
     lib__FLAG => Ok(value = "yes")
@@ -486,8 +486,8 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = "yes")
-    two(x = 2) => Ok(value = "no")
+    one(1) => Ok(value = "yes")
+    two(2) => Ok(value = "no")
 =
   match x <= 1
     lib__FLAG => Ok(value = "yes")
@@ -567,8 +567,8 @@ fn m__poll(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    now(n = 0) => Ok(n = 0)
-    later(n = 2) => Ok(n = 0)
+    now(0) => Ok(n = 0)
+    later(2) => Ok(n = 0)
 =
   match n <= 0
     true => Ok(n = 0)
@@ -610,9 +610,9 @@ const m__ORIGIN: M__Point rev 1 = M__Point(x = 0, y = 0)
 fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
-    via_const(p = m__ORIGIN) => Ok(value = true)
-    via_inline(p = M__Point(x = 0, y = 0)) => Ok(value = true)
-    elsewhere(p = M__Point(x = 1, y = 2)) => Ok(value = false)
+    via_const(m__ORIGIN) => Ok(value = true)
+    via_inline(M__Point(x = 0, y = 0)) => Ok(value = true)
+    elsewhere(M__Point(x = 1, y = 2)) => Ok(value = false)
 =
   match p.x == 0, p.y == 0
     true, true => Ok(value = true)
@@ -658,8 +658,8 @@ const m__REVL0: Seq<M__Entry> rev 1 = Seq<M__Entry>[]
 fn m__go(s: M__Snap, r: Seq<M__Entry>) -> M__Bool rev 1
   emits []
   tests
-    nested(s = m__SNAP, r = m__REVL0) => Ok(value = true)
-    renamed(s = M__Snap(entries = Seq<M__Entry>[], revoked = Seq<M__Entry>[], mark = seal M__Tag("no")), r = m__REVL0) => Ok(value = false)
+    nested(m__SNAP, m__REVL0) => Ok(value = true)
+    renamed(M__Snap(entries = Seq<M__Entry>[], revoked = Seq<M__Entry>[], mark = seal M__Tag("no")), m__REVL0) => Ok(value = false)
 =
   match s.mark == seal M__Tag("ok"), #s.entries == 1, #r == 0
     true, true, true => Ok(value = true)
@@ -708,7 +708,7 @@ const m__ORIGIN: M__Point rev 1 = M__Point(x = 0, y = 0)
 fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
-    origin(p = m__ORIGIN) => Ok(value = true)
+    origin(m__ORIGIN) => Ok(value = true)
 =
   Ok(value = p.x == 0)
 `
@@ -769,7 +769,7 @@ const m__B: M__Point rev 1 = ` + init + `
 fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
-    origin(p = m__B) => Ok(value = true)
+    origin(m__B) => Ok(value = true)
 =
   Ok(value = p.x == 0)
 `

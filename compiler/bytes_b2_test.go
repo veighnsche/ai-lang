@@ -76,10 +76,10 @@ exports_utf8 Pub__Doc via pub__export@1
 fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    empty(document = seal Pub__Doc("")) => Ok(value = Bytes(Seq<int>[]))
-    ascii(document = seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
-    latin(document = seal Pub__Doc("é")) => Ok(value = Bytes(Seq<int>[195, 169]))
-    astral(document = seal Pub__Doc("😀")) => Ok(value = Bytes(Seq<int>[240, 159, 152, 128]))
+    empty(seal Pub__Doc("")) => Ok(value = Bytes(Seq<int>[]))
+    ascii(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    latin(seal Pub__Doc("é")) => Ok(value = Bytes(Seq<int>[195, 169]))
+    astral(seal Pub__Doc("😀")) => Ok(value = Bytes(Seq<int>[240, 159, 152, 128]))
 NULROW
 BOMROW
 =
@@ -88,8 +88,8 @@ BOMROW
 `
 
 func bytesPubFull() string {
-	nulRow := "    nul(document = seal Pub__Doc(\"a\x00b\")) => Ok(value = Bytes(Seq<int>[97, 0, 98]))\n"
-	bomRow := "    bom(document = seal Pub__Doc(\"\uFEFFA\")) => Ok(value = Bytes(Seq<int>[239, 187, 191, 65]))\n"
+	nulRow := "    nul(seal Pub__Doc(\"a\x00b\")) => Ok(value = Bytes(Seq<int>[97, 0, 98]))\n"
+	bomRow := "    bom(seal Pub__Doc(\"\uFEFFA\")) => Ok(value = Bytes(Seq<int>[239, 187, 191, 65]))\n"
 	out := strings.Replace(bytesPub, "NULROW\n", nulRow, 1)
 	return strings.Replace(out, "BOMROW\n", bomRow, 1)
 }
@@ -108,7 +108,7 @@ const bytesClientGood = `mod client
 fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    good(document = seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    good(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call pub__export(document)
     given
@@ -138,7 +138,7 @@ const bytesClientLie = `mod client
 fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    wrong(document = seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[66]))
+    wrong(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[66]))
 =
   match call pub__export(document)
     given
@@ -202,7 +202,7 @@ exports_utf8 Pub__Doc via pub__export@1
 fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call pub__export(document)
     given
@@ -240,7 +240,7 @@ exports_utf8 Dup__B via app__export@1
 fn app__export(document: Dup__B) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal Dup__B("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal Dup__B("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
@@ -389,7 +389,7 @@ brand M__Doc is str rev 1
 fn m__go(document: M__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal M__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal M__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
@@ -419,7 +419,7 @@ fn m__go() -> M__Out rev 1
 fn bytes__utf8__export(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(flag = true)
+    go(1) => Ok(flag = true)
 =
   Ok(flag = true)
 `
@@ -474,7 +474,7 @@ exports_utf8 A__Doc via a__export@1
 fn a__export(document: A__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal A__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal A__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
@@ -491,7 +491,7 @@ brand C__Doc is str rev 1
 fn c__try(document: C__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal C__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal C__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
@@ -529,7 +529,7 @@ extern t__sink(b: Bytes) -> T__Text rev 1
 fn m__export(document: M__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal M__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal M__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
 =
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
@@ -537,7 +537,7 @@ fn m__export(document: M__Doc) -> Bytes__Value rev 1
 fn m__route(document: M__Doc) -> T__Text rev 1
   emits []
   tests
-    go(document = seal M__Doc("A")) => Ok(value = "A")
+    go(seal M__Doc("A")) => Ok(value = "A")
 =
   match call m__export(document)
     on Ok e => match call t__sink(e.value)
@@ -609,7 +609,7 @@ exports_utf8 Vault__Secret via attacker__export@1
 fn attacker__export(secret: Vault__Secret) -> Bytes__Value rev 1
   emits []
   tests
-    go(secret = seal Vault__Secret("s")) => Ok(value = Bytes(Seq<int>[115]))
+    go(seal Vault__Secret("s")) => Ok(value = Bytes(Seq<int>[115]))
 =
   match call bytes__utf8__export(secret)
     on Ok r => Ok(value = r.value)

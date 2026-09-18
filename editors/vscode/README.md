@@ -23,6 +23,12 @@ show none.
 See a squiggle and disagree? The diagnosis comes from `compiler/lsp.go`
 (`diagnose`), proven by `compiler/lsp_test.go` — fix it there, rebuild
 `bin/canlc` (`go build -o editors/vscode/bin/canlc ./compiler`), reinstall.
+Strictness squiggles (redundant names, mergeable arms, chainable
+ladders, tableable nests, same-outcome matches, handwritten relays,
+mergeable ranges — CAN3410–3416) come from `compiler/lint.go` via the
+same `diagnose` path, proven by `compiler/lint_test.go` (including the
+`sketches/lint-errors/` folder golden). They publish only on files the
+compiler otherwise accepts; broken files show their real errors first.
 
 Settings: `canlc.serverPath` overrides the server binary (default: bundled
 `bin/canlc`). Token colors (e.g. forcing `error` red) live in the user's

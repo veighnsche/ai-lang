@@ -101,3 +101,21 @@ func TestLSPArgsBaseline(t *testing.T) {
 		t.Fatalf("unknown flag accepted")
 	}
 }
+
+// TestLSPArgsStdio pins the editor handshake: vscode-languageclient
+// over stdio transport always spawns `canlc lsp --stdio`, so the
+// marker must be accepted (and ignored) with or without --baseline.
+func TestLSPArgsStdio(t *testing.T) {
+	path, err := parseLSPArgs([]string{"--stdio"})
+	if err != nil || path != "" {
+		t.Fatalf("parse --stdio: path=%q err=%v", path, err)
+	}
+	path, err = parseLSPArgs([]string{"lsp", "--stdio"})
+	if err == nil {
+		t.Fatalf("positional arg accepted")
+	}
+	path, err = parseLSPArgs([]string{"--stdio", "--baseline", "base.json"})
+	if err != nil || path != "base.json" {
+		t.Fatalf("parse --stdio --baseline: path=%q err=%v", path, err)
+	}
+}

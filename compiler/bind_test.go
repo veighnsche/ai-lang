@@ -68,7 +68,7 @@ type Audit__Value rev 1 (
 fn audit__subtract(left: int, right: int) -> Audit__Value rev 1
   emits []
   tests
-    s(left = 9, right = 2) => Ok(value = 7)
+    s(9, 2) => Ok(value = 7)
 =
   Ok(value = left - right)
 

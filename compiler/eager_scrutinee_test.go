@@ -23,9 +23,9 @@ type M__Out rev 1 (
 fn m__f(n: int) -> M__Out rev 1
   emits []
   tests
-    z(n = 0) => Ok(v = false)
-    t(n = 1) => Ok(v = true)
-    f(n = 2) => Ok(v = false)
+    z(0) => Ok(v = false)
+    t(1) => Ok(v = true)
+    f(2) => Ok(v = false)
 =
   match n == 0, 10 % (n + 1) == 0
     true, _ => Ok(v = false)
@@ -35,10 +35,10 @@ fn m__f(n: int) -> M__Out rev 1
 fn m__g(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(a = true, b = true) => Ok(v = true)
-    tf(a = true, b = false) => Ok(v = false)
-    ft(a = false, b = true) => Ok(v = false)
-    ff(a = false, b = false) => Ok(v = true)
+    tt(true, true) => Ok(v = true)
+    tf(true, false) => Ok(v = false)
+    ft(false, true) => Ok(v = false)
+    ff(false, false) => Ok(v = true)
 =
   match a, b
     true, true => Ok(v = true)
@@ -49,8 +49,8 @@ fn m__g(a: bool, b: bool) -> M__Out rev 1
 fn m__h(n: int) -> M__Out rev 1
   emits []
   tests
-    t(n = 2) => Ok(v = true)
-    f(n = 3) => Ok(v = false)
+    t(2) => Ok(v = true)
+    f(3) => Ok(v = false)
 =
   match 10 % n == 0
     true => Ok(v = true)
@@ -59,10 +59,10 @@ fn m__h(n: int) -> M__Out rev 1
 fn m__p(n: int, b: bool) -> M__Out rev 1
   emits []
   tests
-    et(n = 2, b = true) => Ok(v = true)
-    ef(n = 2, b = false) => Ok(v = false)
-    ot(n = 3, b = true) => Ok(v = false)
-    of(n = 3, b = false) => Ok(v = true)
+    et(2, true) => Ok(v = true)
+    ef(2, false) => Ok(v = false)
+    ot(3, true) => Ok(v = false)
+    of(3, false) => Ok(v = true)
 =
   match n % 2 == 0, b
     true, true => Ok(v = true)

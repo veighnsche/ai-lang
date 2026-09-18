@@ -5,7 +5,7 @@
 // keystroke re-runs the full diagnosis (parse, naming, uses resolution,
 // exhaustiveness proof, signature tests) and publishes diagnostics.
 //
-// Run: canlc lsp [--baseline BASE.json]   (editors connect stdout/stdin
+// Run: canlc lsp [--stdio] [--baseline BASE.json]   (editors connect stdout/stdin
 // with Content-Length framing). With --baseline, every diagnosis also
 // runs revision-identity enforcement (a79): the same CAN6013 findings
 // the CLI reports, as editor squiggles.
@@ -256,6 +256,14 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	// proof noise atop real errors.
 	if !hasErrors(out) {
 		out = append(out, VerifyContracts(prog, texts)...)
+	}
+	// Strictness linter (can-idioms C6-C12, CAN3410-3416):
+	// arm-reduction findings publish as errors on files the
+	// compiler otherwise accepts, under the same clean-world
+	// layering as identity, pinned rows, and contracts above —
+	// broken programs show their real errors first.
+	if !hasErrors(out) {
+		out = append(out, lintDiagsFor(name, texts)...)
 	}
 	sortDiags(out)
 	return withFile(out, name)
@@ -717,17 +725,21 @@ func publishDiagnostics(w *bufio.Writer, uri, text string, diags []Diag) error {
 	})
 }
 
-// parseLSPArgs takes the flags after `lsp`: only --baseline PATH.
-// Bare means unenforced; anything else is a usage error.
+// parseLSPArgs takes the flags after `lsp`: --baseline PATH plus the
+// --stdio marker LSP clients (vscode-languageclient over stdio
+// transport) always append to the server command. canlc only speaks
+// stdio, so --stdio is accepted and ignored. Bare means unenforced;
+// anything else is a usage error.
 func parseLSPArgs(argv []string) (string, error) {
 	fs := flag.NewFlagSet("canlc lsp", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	baseline := fs.String("baseline", "", "accepted revision baseline (JSON)")
+	fs.Bool("stdio", false, "stdio transport marker from LSP clients (ignored)")
 	if err := fs.Parse(argv); err != nil {
-		return "", fmt.Errorf("usage: canlc lsp [--baseline BASE.json]")
+		return "", fmt.Errorf("usage: canlc lsp [--stdio] [--baseline BASE.json]")
 	}
 	if fs.NArg() != 0 {
-		return "", fmt.Errorf("usage: canlc lsp [--baseline BASE.json]")
+		return "", fmt.Errorf("usage: canlc lsp [--stdio] [--baseline BASE.json]")
 	}
 	return *baseline, nil
 }

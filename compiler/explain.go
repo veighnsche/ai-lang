@@ -296,6 +296,41 @@ var explainDocs = map[string]explainEntry{
 		violate: `fn m__go(value: int, extra: str) whose body never mentions extra.`,
 		fix:     "Use it or drop it from the signature (and from every test row and call site). Signatures are exact.",
 	},
+	CodeLintRedundant: {
+		rule:    "A named argument sitting in its own parameter slot adds nothing over the positional spelling (can-idioms C6).",
+		violate: `f(left = 5) where the signature is (left, right).`,
+		fix:     "Write it positionally: f(5). Names that reorder or skip keep their names; only in-slot names report.",
+	},
+	CodeLintOrFold: {
+		rule:    "Value-match arms with identical outcomes differing in exactly one slot of discrete atoms fold into one or-pattern arm (can-idioms C7, a88 draft).",
+		violate: `"a" => X beside "b" => X with nothing else between.`,
+		fix:     "Join the arms: \"a\" | \"b\" => X. Diagonal tables, gapped pairs, variants, and nested-match right-hand sides do not fold.",
+	},
+	CodeLintChain: {
+		rule:    "Sequential match-call rungs sharing one failure outcome fold into one match chain with a shared else (can-idioms C8).",
+		violate: `two nested match call rungs whose error arms all yield the same expression.`,
+		fix:     "Rewrite as match chain with the shared expression as the else. Divergent payloads stay nested.",
+	},
+	CodeLintTable: {
+		rule:    "Nested value matches over one shared pure scrutinee fold into a multi-scrutinee table (can-idioms C9, the C1 shape).",
+		violate: `match a < 0 with every arm body directly match b < 0.`,
+		fix:     "Fold into one match a < 0, b < 0 table. Different or impure inner scrutinees stay nested.",
+	},
+	CodeLintSameOutcome: {
+		rule:    "A match whose every arm yields the identical expression over pure scrutinees decides nothing: drop it (can-idioms C10).",
+		violate: `match value < 0 with true and false both yielding Ok(value = 0).`,
+		fix:     "Replace the match with the expression. A faulting scrutinee keeps its match.",
+	},
+	CodeLintRelay: {
+		rule:    "An error arm rebuilding its own kind field-for-field is what forward elaborates into: write forward (can-idioms C11).",
+		violate: `on m.failed e => m.failed(value = e.value).`,
+		fix:     "Write on m.failed e => forward e. Remapped kinds and payloads stay handwritten.",
+	},
+	CodeLintRange: {
+		rule:    "Adjacent same-outcome int-literal ranges join into one range (can-idioms C12).",
+		violate: `1..3 => X beside 4..6 => X.`,
+		fix:     "Join into 1..6 => X. Gaps cannot spell; const bounds and contained ranges are out of scope.",
+	},
 	CodeUnknownKind: {
 		rule:    "Every raised and declared error kind is declared somewhere: unknown kinds are rejected at both sites (R5).",
 		violate: `raising m.stray() with no error m.stray decl, or listing it in emits.`,

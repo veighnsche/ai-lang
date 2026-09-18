@@ -24,8 +24,8 @@ type M__Out rev 1 (
 fn m__mint(which: str) -> M__Out rev 1
   emits []
   tests
-    mint(which = "a") => Ok(echo = seal M__B("a"))
-    other(which = "b") => Ok(echo = seal M__B("b"))
+    mint("a") => Ok(echo = seal M__B("a"))
+    other("b") => Ok(echo = seal M__B("b"))
 =
   match which
     "a" => Ok(echo = seal M__B("a"))
@@ -142,8 +142,8 @@ type M__SafeResult rev 1 (
 fn m__node(text: M__Text) -> M__SafeResult rev 1
   emits []
   tests
-    plain(text = seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
-    escaped(text = seal M__Text("a&amp;b")) => Ok(safe = seal M__Safe("a&amp;b"))
+    plain(seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
+    escaped(seal M__Text("a&amp;b")) => Ok(safe = seal M__Safe("a&amp;b"))
 =
   Ok(safe = seal M__Safe(text))
 `
@@ -171,7 +171,7 @@ type M__SafeResult rev 1 (
 fn m__node(text: M__Text) -> M__SafeResult rev 1
   emits []
   tests
-    plain(text = seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
+    plain(seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
 =
   Ok(safe = seal M__Safe(text))
 `
@@ -200,7 +200,7 @@ type M__BackResult rev 1 (
 fn m__back(frag: M__Safe) -> M__BackResult rev 1
   emits []
   tests
-    plain(frag = seal M__Safe("hi")) => Ok(text = seal M__Text("hi"))
+    plain(seal M__Safe("hi")) => Ok(text = seal M__Text("hi"))
 =
   Ok(text = seal M__Text(frag))
 `
@@ -231,7 +231,7 @@ type M__CResult rev 1 (
 fn m__skip(start: M__A) -> M__CResult rev 1
   emits []
   tests
-    plain(start = seal M__A("hi")) => Ok(value = seal M__C("hi"))
+    plain(seal M__A("hi")) => Ok(value = seal M__C("hi"))
 =
   Ok(value = seal M__C(start))
 `
@@ -300,7 +300,7 @@ brand M__B is str rev 1
 fn m__bad(which: str) -> M__B rev 1
   emits []
   tests
-    go(which = "x") => Ok(value = seal M__B("x"))
+    go("x") => Ok(value = seal M__B("x"))
 =
   Ok(value = seal M__B("x"))
 `

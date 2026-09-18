@@ -19,7 +19,7 @@ var activateMutant = strings.Replace(admitMax,
 	"on true => Ok(value = right)", "on true => Ok(value = right + 1)", 1)
 
 var activateMutantRows = strings.Replace(activateMutant,
-	"ordered(left = 1, right = 2) => Ok(value = 2)", "ordered(left = 1, right = 2) => Ok(value = 3)", 1)
+	"ordered(1, 2) => Ok(value = 2)", "ordered(1, 2) => Ok(value = 3)", 1)
 
 func writeActivateDir(t *testing.T, files map[string]string) (string, []string) {
 	t.Helper()

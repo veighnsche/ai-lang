@@ -1,0 +1,29 @@
+// sketches/lint-errors/table.can — nested matches over one
+// shared pure scrutinee. Valid, passing, modcheck-clean; the
+// nest is a lint error (fold into a multi-scrutinee table).
+// Different inner scrutinees, or impure ones, would stay
+// nested by law (CAN4109); these are neither.
+mod table
+  provides [table__signs, Table__Value]
+  uses []
+  emits []
+
+type Table__Value rev 1 (
+  value: int
+)
+
+fn table__signs(a: int, b: int) -> Table__Value rev 1
+  emits []
+  tests
+    negneg(-1, -2) => Ok(value = 0)
+    negpos(-1, 2) => Ok(value = 1)
+    posneg(1, -2) => Ok(value = 2)
+    pospos(1, 2) => Ok(value = 3)
+=
+  match a < 0
+    true => match b < 0
+      true => Ok(value = 0)
+      false => Ok(value = 1)
+    false => match b < 0
+      true => Ok(value = 2)
+      false => Ok(value = 3)

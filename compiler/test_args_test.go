@@ -30,9 +30,24 @@ fn demo__sub(left: int, right: int) -> Int__Value rev 1
 `
 
 func TestPositionalTestArgsEvaluate(t *testing.T) {
+	// Every mixed shape evaluates (tables run: order proven by
+	// execution), and the in-slot names are legal (no CAN3205)
+	// but unidiomatic: exactly the three redundant findings
+	// report — named left, named right, mixed right — nothing else.
 	dir := writeLSPDir(t, map[string]string{"demo.can": positionalRows})
-	if diags := diagnose(dir, "demo.can", positionalRows); len(diags) != 0 {
-		t.Fatalf("expected no diagnostics, got %v", diags)
+	diags := diagnose(dir, "demo.can", positionalRows)
+	redundant := 0
+	for _, d := range diags {
+		if d.Code == CodeLintRedundant {
+			redundant++
+			continue
+		}
+		if d.Sev == "error" {
+			t.Fatalf("unexpected error beside the redundant findings: %v", diags)
+		}
+	}
+	if redundant != 3 {
+		t.Fatalf("expected exactly three CAN3410 findings, got %v", diags)
 	}
 }
 

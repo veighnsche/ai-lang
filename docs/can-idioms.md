@@ -213,16 +213,97 @@ documents it per function).
 `fidelity`, `overlap`, `trunc_a`, `padbits2`, `miss`.
 Uniqueness is law (CAN3201); the naming is convention.
 
-### C6. Not idioms (do not "fix")
+### C6. Names that add nothing (`canlc lint`, rule 1)
+
+A named argument sitting in its own parameter slot is
+reported: with params `(left, right)`, `f(left = 5)` must be
+`f(5)`; `f(right = 8)` stays named (reordered, doing work).
+Applies to call args and test rows — the only lists with a
+positional spelling. Constructions and `given` exchange args
+have no positional form and are exempt.
+
+### C7. Flat ladders fold (`canlc lint`, rule 2, a88 draft)
+
+Value-match arms with identical outcomes differing in one
+slot of discrete atoms fold into one or-pattern arm. Diagonal
+tables do NOT fold — or binds tighter than the comma, so
+`(true,true)|(false,false)` cannot spell as one arm, and the
+a28 truth-table idiom survives minimization by grammar, not by
+exemption. Nested-match right-hand sides are out of reporter
+scope (first lines collide: schema scan true/false arms share
+a scrutinee with different bodies). Fixture:
+`sketches/lint-errors/merge.can`.
+
+### C8. Sequential calls chain (`canlc lint`, rule 3)
+
+A linear run of two or more `match call` rungs whose Ok arms
+continue directly — or through one pure bool router whose
+other side yields the shared failure — with every error arm
+yielding the identical plain expression folds into one `match
+chain` with that expression as the shared else. Runs need at
+least one error arm: without a shared failure there is
+nothing to share. The shared expression must be binder-free
+(constants, outer params): chain elaboration binds error arms
+with wildcards, so text that rebuilds from an arm binder
+(`E(value = e.value)`, or `forward e` which means the same)
+cannot become the shared else — however identical it reads,
+that ladder is rule C11 territory, and infallible ladders
+share nothing at all. Divergent payloads stay nested. Fixture:
+`sketches/lint-errors/chain.can`.
+
+### C9. Nested pure matches tabulate (`canlc lint`, rule 4)
+
+Nested value matches whose every outer arm body is directly an
+inner value match over the identical pure scrutinee fold into
+one multi-scrutinee table (the C1 shape). Different inner
+scrutinees stay nested — bools cannot spell don't-care slots
+— and impure scrutinees stay guarded (CAN4109: tables
+evaluate eagerly, guarded nesting faults late). Fixture:
+`sketches/lint-errors/table.can`.
+
+### C10. Matches that decide nothing drop (`canlc lint`, rule 5)
+
+Every arm yielding the identical plain expression over pure
+scrutinees always yields it — drop the match. A faulting
+scrutinee keeps its match (dropping it would drop the fault);
+the arms may still or-fold underneath. Fixture:
+`sketches/lint-errors/outcome.can`.
+
+### C11. Relays spell `forward` (`canlc lint`, rule 6)
+
+An error arm rebuilding its own kind field-for-field from its
+binder is exactly what `forward` elaborates into — write `on
+KIND e => forward e`. Remapped kinds and payloads stay
+handwritten: different spelling needed. Fixture:
+`sketches/lint-errors/relay.can`.
+
+### C12. Contiguous ranges join (`canlc lint`, rule 7)
+
+Adjacent same-outcome int-literal ranges `1..3` beside `4..6`
+yielding X join into `1..6` yielding X. Gaps cannot spell;
+const bounds stay out (values resolve at check, lint reads
+parse) and contained ranges are the checker's shadow
+business. Fixture: `sketches/lint-errors/ranges.can`.
+
+### C13. Not idioms (do not "fix")
 
 Call-match arm order is mixed in blessed code (`Ok` first in
 `std__base64__decode`, errors first in
 `std__convert__str_to_dec`) — order carries no meaning.
-`forward` versus handwritten same-kind reconstruction is one
-spelling elaborated (`std/html` writes `forward`, `std/text`
-writes it out). Positional versus named call args are both
-bound through the signature (`bindSlots`); test rows allow the
-same mixed shape, positionals first, under CAN3205.
+Blessed `std/` predates the linter and is not migrated: it still
+carries thousands of redundant names (rule 1), unfolded ladders
+(rule 3), and handwritten relays (`std/text` writes out what
+rule 6 shortens to `forward`). Gallery sketches are held to the
+new idiom (their rows, calls, and relays are migrated, so they
+open clean). Everywhere else, `canlc lint` and the editor agree:
+every finding is an error (CAN3410–3416, error-severity, no
+warnings level), published through `canlc lsp` on files the
+compiler otherwise accepts.
+Positional versus named call args are both bound through the
+signature (`bindSlots`); test rows allow the same mixed shape,
+positionals first, under CAN3205. Proving fixtures for all
+seven rules live in `sketches/lint-errors/`: one file per
+rule, every file compiling clean and linting dirty.
 
 ## Tier 3 — Judgment pattern
 

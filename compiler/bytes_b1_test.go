@@ -56,7 +56,7 @@ type M__Out rev 1 (
 fn m__id(x: Bytes) -> M__Out rev 1
   emits []
   tests
-    id(x = Bytes(Seq<int>[1])) => Ok(vals = Bytes(Seq<int>[1]))
+    id(Bytes(Seq<int>[1])) => Ok(vals = Bytes(Seq<int>[1]))
 =
   Ok(vals = x)
 
@@ -199,8 +199,8 @@ error m.boom(value: Bytes)
 fn m__go(flag: bool) -> M__Out rev 1
   emits [m.boom]
   tests
-    hit(flag = true) => m.boom(value = Bytes(Seq<int>[9]))
-    miss(flag = false) => Ok(vals = Bytes(Seq<int>[]))
+    hit(true) => m.boom(value = Bytes(Seq<int>[9]))
+    miss(false) => Ok(vals = Bytes(Seq<int>[]))
 =
   match flag
     true => m.boom(value = Bytes(Seq<int>[9]))
@@ -224,7 +224,7 @@ type L__Out rev 1 (
 fn lib__byte(flag: bool) -> L__Out rev 1
   emits []
   tests
-    go(flag = true) => Ok(vals = Bytes(Seq<int>[0, 255]))
+    go(true) => Ok(vals = Bytes(Seq<int>[0, 255]))
 =
   Ok(vals = Bytes(Seq<int>[0, 255]))
 `
@@ -241,7 +241,7 @@ type A__Out rev 1 (
 fn app__go(flag: bool) -> A__Out rev 1
   emits []
   tests
-    lie(flag = true) => Ok(vals = Bytes(Seq<int>[0]))
+    lie(true) => Ok(vals = Bytes(Seq<int>[0]))
 =
   match call lib__byte(flag)
     given
@@ -318,14 +318,14 @@ type M__Flag rev 1 (
 fn m__eq1(p: M__Pair, q: M__Pair) -> M__Flag rev 1
   emits []
   tests
-    eq(p = M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1])), q = M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1]))) => Ok(flag = true)
+    eq(M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1])), M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1]))) => Ok(flag = true)
 =
   Ok(flag = (p == q))
 
 fn m__eq2(p: M__Pair, q: M__Pair) -> M__Flag rev 1
   emits []
   tests
-    ne(p = M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1])), q = M__Pair(a = Bytes(Seq<int>[9]), b = Bytes(Seq<int>[1]))) => Ok(flag = false)
+    ne(M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1])), M__Pair(a = Bytes(Seq<int>[9]), b = Bytes(Seq<int>[1]))) => Ok(flag = false)
 =
   Ok(flag = (p == q))
 `
@@ -417,7 +417,7 @@ type M__Out rev 1 (
 fn m__go(x: Seq) -> M__Out rev 1
   emits []
   tests
-    go(x = 0) => Ok(vals = Bytes(Seq<int>[]))
+    go(0) => Ok(vals = Bytes(Seq<int>[]))
 =
   Ok(vals = Bytes(Seq<int>[]))
 `

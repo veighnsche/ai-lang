@@ -27,7 +27,7 @@ func TestArmTakenPerCaller(t *testing.T) {
 fn client__success(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    good(value = "41") => Ok(value = Bytes(Seq<int>[65]))
+    good("41") => Ok(value = Bytes(Seq<int>[65]))
 =
   match call std__hex__decode(value = value)
     given
@@ -39,7 +39,7 @@ fn client__success(value: str) -> Bytes__Value rev 1
 fn client__failure(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    bad(value = "zz") => encoding.invalid_hex(value = "zz")
+    bad("zz") => encoding.invalid_hex(value = "zz")
 =
   match call std__hex__decode(value = value)
     given
@@ -81,8 +81,8 @@ func TestArmTakenMissingRowsExposeBugs(t *testing.T) {
 fn client__success(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    good(value = "41") => Ok(value = Bytes(Seq<int>[65]))
-    bad(value = "zz") => encoding.invalid_hex(value = "zz")
+    good("41") => Ok(value = Bytes(Seq<int>[65]))
+    bad("zz") => encoding.invalid_hex(value = "zz")
 =
   match call std__hex__decode(value = value)
     given
@@ -94,8 +94,8 @@ fn client__success(value: str) -> Bytes__Value rev 1
 fn client__failure(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    bad(value = "zz") => encoding.invalid_hex(value = "zz")
-    good(value = "41") => Ok(value = Bytes(Seq<int>[65]))
+    bad("zz") => encoding.invalid_hex(value = "zz")
+    good("41") => Ok(value = Bytes(Seq<int>[65]))
 =
   match call std__hex__decode(value = value)
     given

@@ -38,28 +38,28 @@ type Str__Value rev 1 (
 const declaredFns = `fn audit__int(value: int) -> Int__Value rev 1
   emits []
   tests
-    i(value = 1) => Ok(value = value)
+    i(1) => Ok(value = value)
 =
   Ok(value = value)
 
 fn audit__bool(flag: bool) -> Bool__Value rev 1
   emits []
   tests
-    b(flag = true) => Ok(value = flag)
+    b(true) => Ok(value = flag)
 =
   Ok(value = flag)
 
 fn audit__dec(amount: dec) -> Dec__Value rev 1
   emits []
   tests
-    d(amount = d"1.5") => Ok(value = amount)
+    d(d"1.5") => Ok(value = amount)
 =
   Ok(value = amount)
 
 fn audit__str(name: str) -> Str__Value rev 1
   emits []
   tests
-    s(name = "x") => Ok(value = name)
+    s("x") => Ok(value = name)
 =
   Ok(value = name)
 `
@@ -112,7 +112,7 @@ func TestEvidenceCannotRetype(t *testing.T) {
 	body := `fn audit__two(value: int) -> Int__Value rev 1
   emits []
   tests
-    two(value = 2) => EXPECTED
+    two(2) => EXPECTED
 =
   Ok(value = value)
 `

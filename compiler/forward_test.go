@@ -28,8 +28,8 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w(v = "x") => Ok(value = "x")
-    u(v = "b") => m.bad(value = "b")
+    w("x") => Ok(value = "x")
+    u("b") => m.bad(value = "b")
 =
   match v == "b"
     true => m.bad(value = v)
@@ -40,8 +40,8 @@ const forwardGoHead = `
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok(x = "a") => Ok(value = "a")
-    bad(x = "b") => m.bad(value = "b")
+    ok("a") => Ok(value = "a")
+    bad("b") => m.bad(value = "b")
 =
   match call m__work(x)
 `
@@ -66,8 +66,21 @@ func TestForwardOkElaborates(t *testing.T) {
     on Ok r => forward r
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
-	if diags := diagnose(dir, "m.can", src); hasError(diags) {
-		t.Fatalf("forwarded Ok arm reported: %v", diags)
+	diags := diagnose(dir, "m.can", src)
+	// The forwarded Ok arm stays silent; the handwritten m.bad relay
+	// alongside it is a lint error (CAN3415), and nothing else reports.
+	relay := 0
+	for _, d := range diags {
+		if d.Code == CodeLintRelay {
+			relay++
+			continue
+		}
+		if d.Sev == "error" {
+			t.Fatalf("unexpected error beside the relay finding: %v", diags)
+		}
+	}
+	if relay != 1 {
+		t.Fatalf("expected exactly one CAN3415 relay finding, got %v", diags)
 	}
 }
 
@@ -103,8 +116,8 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(x = 1) => Ok(value = "yes")
-    two(x = 2) => Ok(value = "no")
+    one(1) => Ok(value = "yes")
+    two(2) => Ok(value = "no")
 =
   match x <= 1
     true => forward x
@@ -135,14 +148,14 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits []
   tests
-    w(v = "x") => Ok(value = "x")
+    w("x") => Ok(value = "x")
 =
   Ok(value = v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok(x = "a") => Ok(other = "a")
+    ok("a") => Ok(other = "a")
 =
   match call m__work(x)
     given
@@ -171,7 +184,7 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok(x = "a") => Ok(value = "a")
+    ok("a") => Ok(value = "a")
 =
   match call nope__missing(x)
     on Ok r => forward r
@@ -204,7 +217,7 @@ type M__Work rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok(x = "a") => Ok(value = "a")
+    ok("a") => Ok(value = "a")
 =
   match call ex__work(x)
     given
@@ -225,8 +238,8 @@ func TestForwardSameEmitsCheck(t *testing.T) {
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok(x = "a") => Ok(value = "a")
-    bad(x = "b") => m.bad(value = "b")
+    ok("a") => Ok(value = "a")
+    bad("b") => m.bad(value = "b")
 =
   match call m__work(x)
     on m.bad e => forward e
@@ -246,7 +259,7 @@ func TestForwardCertificate(t *testing.T) {
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok(x = "a") => Ok(value = "a")
+    ok("a") => Ok(value = "a")
 =
   match call m__work(x)
     on m.bad e => forward e
@@ -265,7 +278,7 @@ func TestForwardOkUntaken(t *testing.T) {
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    bad(x = "b") => m.bad(value = "b")
+    bad("b") => m.bad(value = "b")
 =
   match call m__work(x)
     on m.bad e => m.bad(value = e.value)
@@ -295,7 +308,7 @@ type L__Work rev 1 (
 fn lib__work(v: str) -> L__Work rev 1
   emits [lib.bad]
   tests
-    w(v = "x") => Ok(value = "x")
+    w("x") => Ok(value = "x")
 =
   Ok(value = v)
 `
@@ -311,7 +324,7 @@ type A__Out rev 1 (
 fn app__go(x: str) -> A__Out rev 1
   emits [lib.bad]
   tests
-    ok(x = "a") => Ok(value = "a")
+    ok("a") => Ok(value = "a")
 =
   match call lib__work(x)
     given
@@ -361,8 +374,8 @@ type M__Mid rev 1 (
 fn m__check(v: str, tag: str) -> M__Mid rev 1
   emits [m.dirty]
   tests
-    clean(v = "a", tag = "t") => Ok(clean = "a")
-    dirty(v = "a", tag = "bad") => m.dirty(value = "CALLEE")
+    clean("a", "t") => Ok(clean = "a")
+    dirty("a", "bad") => m.dirty(value = "CALLEE")
 =
   match tag == "bad"
     true => m.dirty(value = "CALLEE")
@@ -371,8 +384,8 @@ fn m__check(v: str, tag: str) -> M__Mid rev 1
 fn m__go(value: str, tag: str) -> M__Out rev 1
   emits [m.dirty]
   tests
-    hit(value = "a-b", tag = "bad") => m.dirty(value = "a-b")
-    pass(value = "a", tag = "t") => Ok(value = "a")
+    hit("a-b", "bad") => m.dirty(value = "a-b")
+    pass("a", "t") => Ok(value = "a")
 =
   match call m__check(value, tag)
     on m.dirty e => m.dirty(value = value)

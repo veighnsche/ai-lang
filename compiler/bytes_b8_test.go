@@ -18,17 +18,17 @@ const bytesHexBase = `mod m
 fn m__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    zero(value = Bytes(Seq<int>[0])) => Ok(value = "00")
-    ff(value = Bytes(Seq<int>[255])) => Ok(value = "ff")
-    lower(value = Bytes(Seq<int>[171])) => Ok(value = "ab")
-    leadzero(value = Bytes(Seq<int>[1])) => Ok(value = "01")
-    sixteen(value = Bytes(Seq<int>[16])) => Ok(value = "10")
-    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
-    notext(value = Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
-    nulbyte(value = Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
-    high(value = Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
-    nibbles(value = Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    zero(Bytes(Seq<int>[0])) => Ok(value = "00")
+    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
+    lower(Bytes(Seq<int>[171])) => Ok(value = "ab")
+    leadzero(Bytes(Seq<int>[1])) => Ok(value = "01")
+    sixteen(Bytes(Seq<int>[16])) => Ok(value = "10")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
+    notext(Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
+    nulbyte(Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
+    high(Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
+    nibbles(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
 =
   match call bytes__hex__encode(value)
     on Ok r => Ok(value = r.value)
@@ -42,7 +42,9 @@ func TestBytesH0HexVectors(t *testing.T) {
 	named := strings.Replace(bytesHexBase,
 		"match call bytes__hex__encode(value)",
 		"match call bytes__hex__encode(value = value)", 1)
-	seqClean(t, map[string]string{"m.can": named}, "m.can")
+	// The named spelling evaluates identically but is a lint error
+	// (CAN3410): exactly one finding, nothing else.
+	seqCode(t, map[string]string{"m.can": named}, "m.can", CodeLintRedundant, "redundant argument name")
 }
 
 // H1: the deterministic kernel takes no given table.
@@ -66,7 +68,7 @@ func TestBytesH2Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits []
   tests
-    go(value = ARG) => Ok(value = "41")
+    go(ARG) => Ok(value = "41")
 =
   match call bytes__hex__encode(value)
     on Ok r => Ok(value = r.value)

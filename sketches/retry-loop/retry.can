@@ -26,10 +26,10 @@ fn retry__fetch(fuel: int) -> Retry__Doc rev 1
   decreases fuel
   emits [retry.exhausted]
   tests
-    now(fuel = 2) => Ok(body = "hi")
-    later(fuel = 2) => Ok(body = "hi")
-    never(fuel = 2) => retry.exhausted()
-    empty(fuel = 0) => retry.exhausted()
+    now(2) => Ok(body = "hi")
+    later(2) => Ok(body = "hi")
+    never(2) => retry.exhausted()
+    empty(0) => retry.exhausted()
 =
   match fuel <= 0
     true => retry.exhausted()

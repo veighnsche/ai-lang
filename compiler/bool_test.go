@@ -30,26 +30,26 @@ func TestBoolBasic(t *testing.T) {
 	src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    tt(left = true, right = true) => Ok(value = true)
-    tf(left = true, right = false) => Ok(value = false)
-    ft(left = false, right = true) => Ok(value = false)
-    ff(left = false, right = false) => Ok(value = false)
+    tt(true, true) => Ok(value = true)
+    tf(true, false) => Ok(value = false)
+    ft(false, true) => Ok(value = false)
+    ff(false, false) => Ok(value = false)
 =
   Ok(value = left and right)
 ` + `fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    tt(left = true, right = true) => Ok(value = true)
-    tf(left = true, right = false) => Ok(value = true)
-    ft(left = false, right = true) => Ok(value = true)
-    ff(left = false, right = false) => Ok(value = false)
+    tt(true, true) => Ok(value = true)
+    tf(true, false) => Ok(value = true)
+    ft(false, true) => Ok(value = true)
+    ff(false, false) => Ok(value = false)
 =
   Ok(value = left or right)
 ` + `fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
-    t(x = true) => Ok(value = false)
-    f(x = false) => Ok(value = true)
+    t(true) => Ok(value = false)
+    f(false) => Ok(value = true)
 =
   Ok(value = not x)
 `
@@ -75,14 +75,14 @@ type M__Out rev 1 (
 fn m__go(a: bool, b: bool, c: bool) -> M__Out rev 1
   emits []
   tests
-    row(a = false, b = false, c = false) => Ok(value = false)
-    row2(a = true, b = false, c = true) => Ok(value = true)
+    row(false, false, false) => Ok(value = false)
+    row2(true, false, true) => Ok(value = true)
 =
   Ok(value = not a == b and c)
 ` + `fn m__or2(a: bool, b: bool, c: bool) -> M__Out rev 1
   emits []
   tests
-    row(a = true, b = true, c = false) => Ok(value = true)
+    row(true, true, false) => Ok(value = true)
 =
   Ok(value = a or b and c)
 `
@@ -104,7 +104,7 @@ func TestBoolOperandTypes(t *testing.T) {
 		src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true, right = true) => Ok(value = true)
+    go(true, true) => Ok(value = true)
 =
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -135,7 +135,7 @@ fn m__flag() -> M__Out rev 1
 ` + `fn m__go(left: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true) => Ok(value = true)
+    go(true) => Ok(value = true)
 =
   Ok(value = left and call m__flag())
 `
@@ -156,7 +156,7 @@ func TestBoolSymbolsRejected(t *testing.T) {
 		src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true, right = true) => Ok(value = true)
+    go(true, true) => Ok(value = true)
 =
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -200,13 +200,13 @@ func TestBoolEmitHelpers(t *testing.T) {
 ` + `fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true, right = true) => Ok(value = true)
+    go(true, true) => Ok(value = true)
 =
   Ok(value = left or right)
 ` + `fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
-    go(x = true) => Ok(value = false)
+    go(true) => Ok(value = false)
 =
   Ok(value = not x)
 `
@@ -283,29 +283,29 @@ type M__Out rev 1 (
 fn m__and(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true, right = true) => Ok(value = true)
+    go(true, true) => Ok(value = true)
 =
   Ok(value = left and right)
 
 fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true, right = true) => Ok(value = true)
+    go(true, true) => Ok(value = true)
 =
   Ok(value = left or right)
 
 fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
-    go(x = true) => Ok(value = false)
+    go(true) => Ok(value = false)
 =
   Ok(value = not x)
 
 fn m__eager(x: int) -> M__Out rev 1
   emits []
   tests
-    big(x = 200) => Ok(value = false)
-    small(x = 50) => Ok(value = false)
+    big(200) => Ok(value = false)
+    small(50) => Ok(value = false)
 =
   Ok(value = (x > 100) and ((10 / x) > 1))
 `

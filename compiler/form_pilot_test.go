@@ -34,9 +34,9 @@ type Form__Out rev 1 (
 fn form__message(state: Form__State) -> Form__Out rev 1
   emits []
   tests
-    empty(state = Form__Empty()) => Ok(message = "Start typing")
-    editing(state = Form__Editing(draft = Form__Draft(name = "Al"))) => Ok(message = "Draft: Al")
-    submitted(state = Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo")
+    empty(Form__Empty()) => Ok(message = "Start typing")
+    editing(Form__Editing(draft = Form__Draft(name = "Al"))) => Ok(message = "Draft: Al")
+    submitted(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo")
 =
   match state
     on Form__Empty _ => Ok(message = "Start typing")
@@ -57,8 +57,8 @@ type Shell__Out rev 1 (
 fn shell__greet(state: Form__State) -> Shell__Out rev 1
   emits []
   tests
-    e(state = Form__Empty()) => Ok(message = "Start typing", echo = Form__Empty())
-    s(state = Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))
+    e(Form__Empty()) => Ok(message = "Start typing", echo = Form__Empty())
+    s(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))
 =
   match call form__message(state)
     given

@@ -89,8 +89,8 @@ func TestSeqLengthParam(t *testing.T) {
 fn m__go(xs: Seq<str>) -> M__Len rev 1
   emits []
   tests
-    empty(xs = Seq<str>[]) => Ok(n = 0)
-    two(xs = Seq<str>["a", ""]) => Ok(n = 2)
+    empty(Seq<str>[]) => Ok(n = 0)
+    two(Seq<str>["a", ""]) => Ok(n = 2)
 =
   Ok(n = #xs)
 `

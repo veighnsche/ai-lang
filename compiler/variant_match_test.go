@@ -48,9 +48,9 @@ func variantMatchMod(tests, body string) string {
 `
 }
 
-const variantMatchTests = `    anon(state = Login__Anonymous()) => Ok(message = "Sign in")
-    auth(state = Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
-    lock(state = Login__Locked(user_id = "u", remaining_seconds = 3)) => Ok(message = "locked: u")`
+const variantMatchTests = `    anon(Login__Anonymous()) => Ok(message = "Sign in")
+    auth(Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
+    lock(Login__Locked(user_id = "u", remaining_seconds = 3)) => Ok(message = "locked: u")`
 
 // TestVariantMatchClean pins the positive: three cases, three arms,
 // payload projection through binders, one test per arm.
@@ -159,7 +159,7 @@ func TestVariantMatchMultiSlot(t *testing.T) {
 ` + variantMatchDecls + `fn m__label(state: Login__State, flag: bool) -> M__Out rev 1
   emits []
   tests
-    go(state = Login__Anonymous(), flag = true) => Ok(message = "Sign in")
+    go(Login__Anonymous(), true) => Ok(message = "Sign in")
 =
   match state, flag
     on Login__Anonymous _, _ => Ok(message = "Sign in")
@@ -216,7 +216,7 @@ func TestVariantMatchCaseOnBool(t *testing.T) {
 ` + variantMatchDecls + `fn m__go(flag: bool) -> M__Out rev 1
   emits []
   tests
-    go(flag = true) => Ok(message = "Sign in")
+    go(true) => Ok(message = "Sign in")
 =
   match flag
     on Login__Anonymous _ => Ok(message = "Sign in")
@@ -269,10 +269,10 @@ func TestVariantMatchNested(t *testing.T) {
 fn m__pick(state: Login__State, pick: Pick__State) -> M__Out rev 1
   emits []
   tests
-    aa(state = Login__Anonymous(), pick = Pick__A()) => Ok(message = "A")
-    ab(state = Login__Anonymous(), pick = Pick__B()) => Ok(message = "B")
-    au(state = Login__Authenticated(session = Auth__Session(user_id = "u")), pick = Pick__A()) => Ok(message = "u")
-    al(state = Login__Locked(user_id = "u", remaining_seconds = 1), pick = Pick__A()) => Ok(message = "locked")
+    aa(Login__Anonymous(), Pick__A()) => Ok(message = "A")
+    ab(Login__Anonymous(), Pick__B()) => Ok(message = "B")
+    au(Login__Authenticated(session = Auth__Session(user_id = "u")), Pick__A()) => Ok(message = "u")
+    al(Login__Locked(user_id = "u", remaining_seconds = 1), Pick__A()) => Ok(message = "locked")
 =
   match state
     on Login__Anonymous _ => match pick
@@ -312,8 +312,8 @@ type Prov__Out rev 1 (
 fn prov__go(state: Login__State) -> Prov__Out rev 1
   emits []
   tests
-    anon(state = Login__Anonymous()) => Ok(message = "in")
-    auth(state = Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
+    anon(Login__Anonymous()) => Ok(message = "in")
+    auth(Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
 =
   match state
     on Login__Anonymous _ => Ok(message = "in")
@@ -331,8 +331,8 @@ type Cons__Out rev 1 (
 fn cons__go(state: Login__State) -> Cons__Out rev 1
   emits []
   tests
-    anon(state = Login__Anonymous()) => Ok(message = "in")
-    auth(state = Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
+    anon(Login__Anonymous()) => Ok(message = "in")
+    auth(Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
 =
   match state
     on Login__Anonymous _ => Ok(message = "in")

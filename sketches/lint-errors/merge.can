@@ -1,0 +1,28 @@
+// sketches/lint-errors/merge.can — adjacent same-outcome arms
+// that fold into one or-pattern arm. Valid, passing,
+// modcheck-clean; the wildcard arm stays separate by law
+// (CAN4112), the rest is a lint error (mergeable match arms).
+mod merge
+  provides [merge__classify, Merge__Value]
+  uses []
+  emits []
+
+type Merge__Value rev 1 (
+  value: int
+)
+
+fn merge__classify(value: str) -> Merge__Value rev 1
+  emits []
+  tests
+    a("a") => Ok(value = 1)
+    b("b") => Ok(value = 1)
+    c("c") => Ok(value = 2)
+    d("d") => Ok(value = 1)
+    other("z") => Ok(value = 0)
+=
+  match value
+    "a" => Ok(value = 1)
+    "b" => Ok(value = 1)
+    "c" => Ok(value = 2)
+    "d" => Ok(value = 1)
+    _ => Ok(value = 0)

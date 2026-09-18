@@ -25,13 +25,13 @@ func TestBytesB13ForeignCaller(t *testing.T) {
 fn client__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
-    one(value = Bytes(Seq<int>[65])) => Ok(value = "QQ==")
-    two(value = Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
-    ordered(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
-    notext(value = Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
+    empty(Bytes(Seq<int>[])) => Ok(value = "")
+    one(Bytes(Seq<int>[65])) => Ok(value = "QQ==")
+    two(Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
+    notext(Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
 =
-  match call std__base64__encode(value = value)
+  match call std__base64__encode(value)
     given
       empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = "")]
       one => [exchange args (value = Bytes(Seq<int>[65])) outcome Ok(value = "QQ==")]

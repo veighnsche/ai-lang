@@ -22,10 +22,10 @@ type M__Out rev 1 (
 fn m__go(text: str) -> M__Out rev 1
   emits []
   tests
-    empty(text = "") => Ok(vals = Bytes(Seq<int>[]))
-    ascii(text = "A") => Ok(vals = Bytes(Seq<int>[65]))
-    latin(text = "é") => Ok(vals = Bytes(Seq<int>[195, 169]))
-    astral(text = "😀") => Ok(vals = Bytes(Seq<int>[240, 159, 152, 128]))
+    empty("") => Ok(vals = Bytes(Seq<int>[]))
+    ascii("A") => Ok(vals = Bytes(Seq<int>[65]))
+    latin("é") => Ok(vals = Bytes(Seq<int>[195, 169]))
+    astral("😀") => Ok(vals = Bytes(Seq<int>[240, 159, 152, 128]))
 NULROW
 BOMROW
 =
@@ -34,8 +34,8 @@ BOMROW
 `
 
 func bytesEncodeFull() string {
-	nulRow := "    nul(text = \"a\x00b\") => Ok(vals = Bytes(Seq<int>[97, 0, 98]))\n"
-	bomRow := "    bom(text = \"\uFEFFA\") => Ok(vals = Bytes(Seq<int>[239, 187, 191, 65]))\n"
+	nulRow := "    nul(\"a\x00b\") => Ok(vals = Bytes(Seq<int>[97, 0, 98]))\n"
+	bomRow := "    bom(\"\uFEFFA\") => Ok(vals = Bytes(Seq<int>[239, 187, 191, 65]))\n"
 	out := strings.Replace(bytesEncodeBase, "NULROW\n", nulRow, 1)
 	return strings.Replace(out, "BOMROW\n", bomRow, 1)
 }
@@ -47,7 +47,9 @@ func TestBytesN0EncodeVectors(t *testing.T) {
 	named := strings.Replace(bytesEncodeFull(),
 		"match call bytes__utf8__encode(text)",
 		"match call bytes__utf8__encode(value = text)", 1)
-	seqClean(t, map[string]string{"m.can": named}, "m.can")
+	// The named spelling evaluates identically but is a lint error
+	// (CAN3410): exactly one finding, nothing else.
+	seqCode(t, map[string]string{"m.can": named}, "m.can", CodeLintRedundant, "redundant argument name")
 }
 
 // N1: brands are not strings at the encoder edge. The nominal
@@ -68,7 +70,7 @@ type M__Out rev 1 (
 fn m__go(secret: M__Secret) -> M__Out rev 1
   emits []
   tests
-    go(secret = seal M__Secret("s")) => Ok(vals = Bytes(Seq<int>[115]))
+    go(seal M__Secret("s")) => Ok(vals = Bytes(Seq<int>[115]))
 =
   match call bytes__utf8__encode(secret)
     on Ok r => Ok(vals = r.value)
@@ -91,7 +93,7 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 3) => Ok(vals = Bytes(Seq<int>[51]))
+    go(3) => Ok(vals = Bytes(Seq<int>[51]))
 =
   match call bytes__utf8__encode(x)
     on Ok r => Ok(vals = r.value)

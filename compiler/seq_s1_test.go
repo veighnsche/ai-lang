@@ -24,6 +24,24 @@ func seqClean(t *testing.T, files map[string]string, name string) {
 	}
 }
 
+// seqProbeClean scopes the clean assertion for probes appended to real
+// blessed files (bytes round-trip/probe tests): blessed scaffolding
+// stays compiler-clean (any non-lint diagnostic fails anywhere) but
+// its lint is grandfathered, while the appended probe — new code —
+// must be fully clean, lint included. probeStart is the probe's
+// first 1-based line in the assembled text.
+func seqProbeClean(t *testing.T, files map[string]string, name string, probeStart int) {
+	t.Helper()
+	dir := writeLSPDir(t, files)
+	diags := diagnose(dir, name, files[name])
+	for _, d := range diags {
+		if strings.HasPrefix(d.Code, "CAN341") && d.Line < probeStart {
+			continue
+		}
+		t.Fatalf("unexpected diagnostic (probe starts at line %d): %v", probeStart, diags)
+	}
+}
+
 // seqCode asserts the rejection row fires precisely: exactly one error
 // carries the named code and fragment, and every other error is a
 // runtime confirmation (a failed test run or a contradicted script).
@@ -224,7 +242,7 @@ func TestSeqT1Positions(t *testing.T) {
 fn m__id(xs: Seq<str>) -> M__Out rev 1
   emits []
   tests
-    go(xs = Seq<str>[]) => Ok(vals = Seq<str>[])
+    go(Seq<str>[]) => Ok(vals = Seq<str>[])
 =
   Ok(vals = xs)
 
@@ -280,7 +298,7 @@ type Lib__Out rev 1 (
 fn lib__echo(x: str) -> Lib__Out rev 1
   emits []
   tests
-    go(x = "a") => Ok(vals = Seq<str>["a", ""])
+    go("a") => Ok(vals = Seq<str>["a", ""])
 =
   Ok(vals = Seq<str>[x, ""])
 `
@@ -300,7 +318,7 @@ type Lib__Out rev 1 (
 fn lib__take(xs: Seq<str>) -> Lib__Out rev 1
   emits []
   tests
-    go(xs = Seq<str>[]) => Ok(vals = Seq<str>[])
+    go(Seq<str>[]) => Ok(vals = Seq<str>[])
 =
   Ok(vals = xs)
 `
@@ -318,7 +336,7 @@ type App__Out rev 1 (
 fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
-    go(x = "a") => Ok(vals = Seq<str>["a", ""])
+    go("a") => Ok(vals = Seq<str>["a", ""])
 =
   match call lib__take(Seq<str>[x, ""])
     given
@@ -454,7 +472,7 @@ type App__Out rev 1 (
 fn app__go(xs: Seq<Lib__B>) -> App__Out rev 1
   emits []
   tests
-    go(xs = Seq<Lib__B>[seal Lib__B("x")]) => Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
+    go(Seq<Lib__B>[seal Lib__B("x")]) => Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
 =
   Ok(vals = xs)
 `
@@ -556,7 +574,7 @@ type App__Out rev 1 (
 fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
-    go(x = "a") => Ok(vals = Seq<str>["a"])
+    go("a") => Ok(vals = Seq<str>["a"])
 =
   match call lib__echo(x)
     given
@@ -583,7 +601,7 @@ type App__Out rev 1 (
 fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
-    go(x = "a") => Ok(vals = ` + want + `)
+    go("a") => Ok(vals = ` + want + `)
 =
   match call lib__echo(x)
     given

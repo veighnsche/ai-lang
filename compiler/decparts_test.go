@@ -104,7 +104,7 @@ type M__Out rev 1 (
 fn m__str(v: str) -> M__Out rev 1
   emits []
   tests
-    t(v = "ab") => Ok(n = 0)
+    t("ab") => Ok(n = 0)
 =
   match call dec__parts(v)
     on Ok p => Ok(n = p.coefficient)
@@ -112,7 +112,7 @@ fn m__str(v: str) -> M__Out rev 1
 fn m__named(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(v = d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(n = 0)
 =
   match call dec__parts(value = v)
     on Ok p => Ok(n = p.coefficient)
@@ -120,7 +120,7 @@ fn m__named(v: dec) -> M__Out rev 1
 fn m__two(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(v = d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(n = 0)
 =
   match call dec__parts(v, v)
     on Ok p => Ok(n = p.coefficient)
@@ -128,7 +128,7 @@ fn m__two(v: dec) -> M__Out rev 1
 fn m__given(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(v = d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(n = 0)
 =
   match call dec__parts(v)
     given
@@ -165,7 +165,7 @@ type M__Out rev 1 (
 fn m__stale(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(v = d"1.0") => Ok(n = 1)
+    t(d"1.0") => Ok(n = 1)
 =
   match call dec__parts(v)
     on Ok p => Ok(n = p.coefficient)
@@ -174,7 +174,7 @@ fn m__stale(v: dec) -> M__Out rev 1
 fn m__missing(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(v = d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(n = 0)
 =
   match call dec__parts(v)
     on m.nope _ => Ok(n = 0)
@@ -210,7 +210,7 @@ type M__Out rev 1 (
 fn m__parts(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(v = d"1.0") => Ok(coefficient = 10, scale = 1)
+    t(d"1.0") => Ok(coefficient = 10, scale = 1)
 =
   match call dec__parts(v)
     on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)
@@ -234,8 +234,8 @@ fn m__parts(v: dec) -> M__Out rev 1
 	plain := used
 	plain = strings.Replace(plain, "match call dec__parts(v)\n    on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)",
 		"Ok(coefficient = 1, scale = 0)", 1)
-	plain = strings.Replace(plain, "t(v = d\"1.0\") => Ok(coefficient = 10, scale = 1)",
-		"t(v = d\"1.0\") => Ok(coefficient = 1, scale = 0)", 1)
+	plain = strings.Replace(plain, "t(d\"1.0\") => Ok(coefficient = 10, scale = 1)",
+		"t(d\"1.0\") => Ok(coefficient = 1, scale = 0)", 1)
 	dir2 := writeLSPDir(t, map[string]string{"m.can": plain})
 	out2 := t.TempDir()
 	if err := compile(out2, []string{dir2 + "/m.can"}); err != nil {

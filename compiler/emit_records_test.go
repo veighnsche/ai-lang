@@ -37,14 +37,14 @@ type Audit__Out rev 1 (
 fn audit__use(attrs: Audit__Attrs) -> Audit__Out rev 1
   emits []
   tests
-    u(attrs = Audit__Attrs(id = "main")) => Ok(value = "main")
+    u(Audit__Attrs(id = "main")) => Ok(value = "main")
 =
   Ok(value = attrs.id)
 
 fn audit__wrap(page: Audit__Page) -> Audit__Out rev 1
   emits []
   tests
-    w(page = Audit__Page(attrs = Audit__Attrs(id = "deep"), title = "t")) => Ok(value = "deep")
+    w(Audit__Page(attrs = Audit__Attrs(id = "deep"), title = "t")) => Ok(value = "deep")
 =
   Ok(value = page.attrs.id)
 
@@ -53,25 +53,25 @@ fn audit__main() -> Audit__Out rev 1
   tests
     m() => Ok(value = "main")
 =
-  match call audit__use(attrs = Audit__Attrs(id = "main"))
+  match call audit__use(Audit__Attrs(id = "main"))
     on Ok r => Ok(value = r.value)
 
 fn audit__box(flag: str) -> Audit__Box rev 1
   emits []
   tests
-    x(flag = "a") => Ok(attrs = Audit__Attrs(id = "a"))
-    y(flag = "b") => Ok(attrs = Audit__Attrs(id = "b"))
+    x("a") => Ok(attrs = Audit__Attrs(id = "a"))
+    y("b") => Ok(attrs = Audit__Attrs(id = "b"))
 =
   Ok(attrs = Audit__Attrs(id = flag))
 
 fn audit__eq(flag: str) -> Audit__Out rev 1
   emits []
   tests
-    e(flag = "a") => Ok(value = "same")
-    n(flag = "b") => Ok(value = "diff")
+    e("a") => Ok(value = "same")
+    n("b") => Ok(value = "diff")
 =
-  match call audit__box(flag = flag)
-    on Ok left => match call audit__box(flag = "a")
+  match call audit__box(flag)
+    on Ok left => match call audit__box("a")
       on Ok right => match left == right
         true => Ok(value = "same")
         false => Ok(value = "diff")

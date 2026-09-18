@@ -45,10 +45,10 @@ fn leaf__copy(value: str) -> Encoding__Text rev 1
 fn middle__copy(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    empty(value = "") => Ok(value = "")
-    a(value = "A") => Ok(value = "A")
+    empty("") => Ok(value = "")
+    a("A") => Ok(value = "A")
 =
-  match call leaf__copy(value = value)
+  match call leaf__copy(value)
     given
       empty => [exchange args (value = "") outcome Ok(value = "")]
       a => [exchange args (value = "A") outcome Ok(value = "A")]
@@ -62,9 +62,9 @@ fn middle__copy(value: str) -> Encoding__Text rev 1
 fn client__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    a(value = "A") => Ok(value = "A")
+    a("A") => Ok(value = "A")
 =
-  match call middle__copy(value = value)
+  match call middle__copy(value)
     given
       a => [exchange args (value = "A") outcome Ok(value = "A")]
     on Ok r => Ok(value = r.value)
@@ -125,7 +125,7 @@ func TestLinkedPureRefusals(t *testing.T) {
 fn m__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    a(value = "A") => Ok(value = "A")
+    a("A") => Ok(value = "A")
 =
   match call ext__thing(value = value)
     given
@@ -135,7 +135,7 @@ fn m__go(value: str) -> Encoding__Text rev 1
 		"unknown": base + `fn m__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    a(value = "A") => Ok(value = "A")
+    a("A") => Ok(value = "A")
 =
   match call nope__missing(value = value)
     given
@@ -157,7 +157,7 @@ fn m__go(value: str) -> M__T rev 1
   effects [M__C.read]
   emits []
   tests
-    a(value = "A") => Ok(total = 0)
+    a("A") => Ok(total = 0)
 =
   match call state__get(M__C)
     on Ok c => Ok(total = c.value)
