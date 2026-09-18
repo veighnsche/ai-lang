@@ -103,10 +103,10 @@ func TestBindReorderedCallEmitsInParamOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(got), "audit__subtract(9n,2n)") {
+	if !strings.Contains(string(got), "audit__subtract(9n, 2n)") {
 		t.Errorf("emit did not lower the reordered call to parameter order:\n%s", got)
 	}
-	if strings.Contains(string(got), "audit__subtract(2n,9n)") {
+	if strings.Contains(string(got), "audit__subtract(2n, 9n)") {
 		t.Errorf("emit kept source order for the reordered call:\n%s", got)
 	}
 }

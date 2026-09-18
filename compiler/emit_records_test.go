@@ -101,12 +101,12 @@ func TestRecordProductsEmit(t *testing.T) {
 	}
 	ts := string(got)
 	for _, want := range []string{
-		`export type Audit__Attrs={id:string};`,
-		`export type Audit__Page={attrs:Audit__Attrs;title:string};`,
-		`export function audit__use(attrs:Audit__Attrs)`,
-		`{id:"main"}`,
-		`$canEqRec(left,right,["attrs"])`,
-		`{$can_kind:"ok";attrs:Audit__Attrs}`,
+		`export type Audit__Attrs = { id: string };`,
+		`export type Audit__Page = { attrs: Audit__Attrs; title: string };`,
+		`export function audit__use(attrs: Audit__Attrs)`,
+		`{ id: "main" }`,
+		`$canEqRec(left, right, ["attrs"])`,
+		`{ $can_kind: "ok"; attrs: Audit__Attrs }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, ts)

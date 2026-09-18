@@ -94,21 +94,21 @@ func TestEmitNumerics(t *testing.T) {
 	// compile() already ran every decision table, so the expectations
 	// above passed under exact proof semantics.
 	for _, want := range []string{
-		"total:string",
-		"count:bigint",
-		"a:string",
-		"n:bigint",
-		"$canDecAdd(a,b)",
-		"$canDecGe(a,b)",
+		"total: string",
+		"count: bigint",
+		"a: string",
+		"n: bigint",
+		"$canDecAdd(a, b)",
+		"$canDecGe(a, b)",
 		"$canDecGt(a,",
 		"$canDecLt(a,",
 		"$canStrLt(s,",
-		"(n<5n)",
+		"(n < 5n)",
 		"function $canDecGt",
 		"function $canDecLt",
 		"function $canStrLt",
 		`"3.14"`,
-		"(n+1n)",
+		"(n + 1n)",
 		"function $canDecSplit",
 		"function $canDecAdd",
 		"function $canDecGe",
@@ -126,8 +126,8 @@ func TestEmitNumerics(t *testing.T) {
 	// own plumbing (dec scale handling, the 3-way str comparator);
 	// every can value is bigint or string.
 	for _, line := range strings.Split(got, "\n") {
-		if strings.Contains(line, ":number") &&
-			!strings.Contains(line, "scale:number") &&
+		if strings.Contains(line, ": number") &&
+			!strings.Contains(line, "scale: number") &&
 			!strings.Contains(line, "function $canStrCmp(") {
 			t.Errorf("emit maps an can value to lossy number: %q", line)
 		}

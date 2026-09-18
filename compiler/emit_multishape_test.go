@@ -60,9 +60,9 @@ func TestMultiShapeEmit(t *testing.T) {
 	}
 	ts := string(raw)
 	for _, want := range []string{
-		`{$can_kind:"ok";value:bigint}`,
-		`{$can_kind:"ok";got:bigint;limit:bigint}`,
-		`{$can_kind:"m.too_big";value:bigint;limit:bigint}`,
+		`{ $can_kind: "ok"; value: bigint }`,
+		`{ $can_kind: "ok"; got: bigint; limit: bigint }`,
+		`{ $can_kind: "m.too_big"; value: bigint; limit: bigint }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("emit missing %s\n%s", want, ts)
@@ -88,16 +88,16 @@ func TestPerFnResultUnions(t *testing.T) {
 	ts := string(raw)
 	// m__use returns only its own ok shape plus the errors it emits:
 	// the value-shape ok member of m__check must not appear.
-	wantRet := `export function m__use(value:bigint,limit:bigint):{$can_kind:"ok";got:bigint;limit:bigint}|{$can_kind:"m.too_big";value:bigint;limit:bigint}{`
+	wantRet := `export function m__use(value: bigint, limit: bigint): { $can_kind: "ok"; got: bigint; limit: bigint } | { $can_kind: "m.too_big"; value: bigint; limit: bigint } {`
 	if !strings.Contains(ts, wantRet) {
 		t.Errorf("emit missing per-function return:\n%s", ts)
 	}
 	// The m__check call temporary carries m__check's union, not MResult.
-	wantTmp := `const $can_m1:{$can_kind:"ok";value:bigint}|{$can_kind:"m.too_big";value:bigint;limit:bigint}=m__check(value,limit);`
+	wantTmp := `const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "m.too_big"; value: bigint; limit: bigint } = m__check(value, limit);`
 	if !strings.Contains(ts, wantTmp) {
 		t.Errorf("emit missing per-function call temporary:\n%s", ts)
 	}
-	if strings.Contains(ts, "const $can_m1:MResult") {
+	if strings.Contains(ts, "const $can_m1: MResult") {
 		t.Errorf("call temporary uses module-wide union:\n%s", ts)
 	}
 	if !strings.Contains(ts, "throw new Error(\"unreachable\");") {
@@ -117,8 +117,14 @@ func TestSingleShapeEmitUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `export type MResult={$can_kind:"ok";id:string}|{$can_kind:"m.bad"};`
-	if !strings.Contains(string(raw), want) {
-		t.Errorf("single-shape union changed:\n got: %s\nwant: %s", string(raw), want)
+	line := ""
+	for _, l := range strings.Split(string(raw), "\n") {
+		if strings.HasPrefix(l, "export type MResult") {
+			line = l
+		}
+	}
+	want := `export type MResult = { $can_kind: "ok"; id: string } | { $can_kind: "m.bad" };`
+	if line != want {
+		t.Errorf("single-shape union changed:\n got: %s\nwant: %s", line, want)
 	}
 }

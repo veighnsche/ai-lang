@@ -196,7 +196,7 @@ func TestBytesF6EmitPins(t *testing.T) {
 	ts := compileEmit(t, bytesB64DecodeFull())
 	for _, want := range []string{
 		"$canB64Decode(",
-		`{$can_kind:"ok";value:Uint8Array}|{$can_kind:"encoding.invalid_base64";value:string}`,
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
@@ -412,14 +412,14 @@ func TestBytesF11bCoexistEmitPins(t *testing.T) {
 	for _, want := range []string{
 		"$canHexDecode(",
 		"$canB64Decode(",
-		`{$can_kind:"ok";value:Uint8Array}|{$can_kind:"encoding.invalid_hex";value:string}`,
-		`{$can_kind:"ok";value:Uint8Array}|{$can_kind:"encoding.invalid_base64";value:string}`,
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string }`,
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("coexist emit missing %q:\n%s", want, ts)
 		}
 	}
-	if strings.Contains(ts, "value:string|Uint8Array") {
+	if strings.Contains(ts, "value: string | Uint8Array") {
 		t.Fatalf("coexist emit must not merge payload types:\n%s", ts)
 	}
 }

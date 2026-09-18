@@ -289,7 +289,7 @@ func TestBytesV5WrongExpectation(t *testing.T) {
 func TestBytesV6EmitPins(t *testing.T) {
 	body := strings.ReplaceAll(bytesV0, `Bytes(Seq<int>[])`, `Bytes(Seq<int>[0, 127, 128, 255, 255, 0])`)
 	ts := compileEmit(t, body)
-	if !strings.Contains(ts, `Uint8Array.from([0,127,128,255,255,0])`) {
+	if !strings.Contains(ts, `Uint8Array.from([0, 127, 128, 255, 255, 0])`) {
 		t.Fatalf("emit missing numeric byte lowering:\n%s", ts)
 	}
 	if strings.Contains(ts, "255n") {

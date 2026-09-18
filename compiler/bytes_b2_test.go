@@ -584,7 +584,7 @@ func TestBytesE11EmitPins(t *testing.T) {
 	withField = strings.Replace(withField, "provides [Pub__Doc, pub__export]",
 		"provides [Pub__Doc, pub__export, M__Wrap]", 1)
 	ts2 := compileEmit(t, withField)
-	if !strings.Contains(ts2, "export type Bytes__Value={value:Uint8Array};") {
+	if !strings.Contains(ts2, "export type Bytes__Value = { value: Uint8Array };") {
 		t.Fatalf("emit missing builtin record definition:\n%s", ts2)
 	}
 }

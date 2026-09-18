@@ -69,7 +69,7 @@ func TestSeqBrandPlusRefusals(t *testing.T) {
 // (a + "y"), with no helper call.
 func TestSeqBrandPlusEmit(t *testing.T) {
 	ts := compileEmit(t, seqBrandPlusMod)
-	if !strings.Contains(ts, `(a+"y")`) {
+	if !strings.Contains(ts, `(a + "y")`) {
 		t.Fatalf("emit missing native concat:\n%s", ts)
 	}
 	for _, helper := range []string{"$canStr", "$canSeq", "$canDec", "$canDivMod", "$canEqRec"} {

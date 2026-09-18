@@ -111,12 +111,12 @@ func TestStrSemanticsEmit(t *testing.T) {
 	// Patterns use the same encoder as values: the raw backslash and
 	// the raw quotes round-trip instead of becoming TS escapes.
 	for _, want := range []string{
-		`(v==="a\\nb")`,
-		`(v==="say \\\"hi\\\"")`,
-		"$canStrGe(left,right)",
+		`(v === "a\\nb")`,
+		`(v === "say \\\"hi\\\"")`,
+		"$canStrGe(left, right)",
 		"(BigInt([...v].length))",
-		"$canStrAt(v,i)",
-		"$canStrSlice(v,a,b)",
+		"$canStrAt(v, i)",
+		"$canStrSlice(v, a, b)",
 		"function $canStrCmp",
 		"function $canStrGe",
 		"function $canStrAt",
@@ -129,7 +129,7 @@ func TestStrSemanticsEmit(t *testing.T) {
 	}
 	// No native string ordering remains; the old unescaped pattern
 	// form is gone.
-	for _, banned := range []string{"(left>=right)", `(v==="a\nb")`} {
+	for _, banned := range []string{"(left >= right)", `(v === "a\nb")`} {
 		if strings.Contains(src, banned) {
 			t.Errorf("emit contains %q\n--- emit ---\n%s", banned, src)
 		}

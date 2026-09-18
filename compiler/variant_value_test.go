@@ -375,10 +375,10 @@ fn cons__go(id: str) -> Cons__Out rev 1
 		t.Fatalf("read cons.ts: %v", err)
 	}
 	ts := string(raw)
-	if !strings.Contains(ts, `import{prov__make,type Login__State,type Prov__Data,type ProvResult}from"./prov";`) {
+	if !strings.Contains(ts, `import { prov__make, type Login__State, type Prov__Data, type ProvResult } from "./prov";`) {
 		t.Fatalf("missing provider type imports in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, `{$can_kind:"Login__Anonymous"}`) {
+	if !strings.Contains(ts, `{ $can_kind: "Login__Anonymous" }`) {
 		t.Fatalf("missing nullary case construction in emit:\n%s", ts)
 	}
 }
@@ -422,10 +422,10 @@ func TestVariantEmitUnion(t *testing.T) {
 		t.Fatalf("read m.ts: %v", err)
 	}
 	ts := string(raw)
-	if !strings.Contains(ts, `export type Login__State={$can_kind:"Login__Anonymous"}|{$can_kind:"Login__Authenticated";session:Auth__Session}`) {
+	if !strings.Contains(ts, `export type Login__State = { $can_kind: "Login__Anonymous" } | { $can_kind: "Login__Authenticated"; session: Auth__Session }`) {
 		t.Fatalf("missing variant union in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, `{$can_kind:"Login__Authenticated",session:`) {
+	if !strings.Contains(ts, `{ $can_kind: "Login__Authenticated", session:`) {
 		t.Fatalf("missing tagged construction in emit:\n%s", ts)
 	}
 }

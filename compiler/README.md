@@ -15,11 +15,6 @@ go build -o /tmp/canlc ./compiler
 go test ./...
 ```
 
-Every `--out` compile emits minified `<stem>.ts` directly:
-comments and unneeded whitespace stripped by the built-in
-`minify.go` pass (stdlib only, no node needed). There is no
-separate readable artifact; the goldens pin the minified bytes.
-
 `go test` runs the golden gates (`emit_golden_test.go` covers
 `auth-login/`, `retry-loop/`, `counter/` byte-identical) plus the
 diagnosis suites (`lsp_test.go`, `arith_test.go`, `helper_test.go`,
