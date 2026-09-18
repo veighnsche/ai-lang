@@ -1010,6 +1010,11 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 	if node.Kind == MatchCall {
 		return evCallMatch(node, env, ctx, owner)
 	}
+	if node.Kind == MatchChain {
+		// a86: chains elaborate in buildWorld before any run;
+		// reaching evaluation unelaborated is a compiler bug.
+		return nil, fmt.Errorf("%s: match chain reached evaluation unelaborated", owner)
+	}
 	return evValueMatch(node, env, ctx, owner)
 }
 
@@ -1951,6 +1956,13 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 	var walk func(n *Node, owner string, anc []matchMissing)
 	walk = func(n *Node, owner string, anc []matchMissing) {
 		if n == nil || !n.IsMatch {
+			return
+		}
+		if n.Kind == MatchChain {
+			// a86: chains elaborate in buildWorld before any
+			// proof; reaching verification unelaborated is a
+			// compiler bug.
+			out = append(out, at(n.Line, fmt.Errorf("%s: match chain reached proof unelaborated", owner)))
 			return
 		}
 		if n.Kind == MatchCall {

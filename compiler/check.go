@@ -395,6 +395,16 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			emit(m, d)
 		}
 	}
+	// a86: elaborate chain blocks into nested call matches on the
+	// same terms: once, here, with callee contracts complete and
+	// before any proof, run, or emit sees the function. Chains
+	// vanish in place, so a second run is a no-op (and checkSem
+	// must not re-run it for the same doubling reason).
+	for _, m := range mods {
+		for _, d := range elaborateChains(m, prog, texts[m.ID]) {
+			emit(m, d)
+		}
+	}
 	return prog, out
 }
 

@@ -515,34 +515,18 @@ fn schema__asset__approve(request: Schema__AssetRequest, snapshot: Schema__Regis
     approve_no_transitive(request = Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), snapshot = Schema__RegistrySnapshot(program = "shop", policy = seal Schema__AssetPolicy("shop|prod"), sequence = 7, entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "app-js", revision = "2.0.0", url = "https://cdn.example/app.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200)], revoked = Seq<Schema__Revoked>[]), policy = seal Schema__AssetPolicy("shop|prod"), site = Schema__Site(program = "shop", module = "pages", function = "home"), head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
     approve_conflict(request = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), snapshot = Schema__RegistrySnapshot(program = "shop", policy = seal Schema__AssetPolicy("shop|prod"), sequence = 7, entries = Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200), Schema__RegistryEntry(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet", program = "shop", module = "pages", function = "home", not_before = 100, not_after = 200)], revoked = Seq<Schema__Revoked>[]), policy = seal Schema__AssetPolicy("shop|prod"), site = Schema__Site(program = "shop", module = "pages", function = "home"), head = 7, t = 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/app.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"))
 =
-  match call schema__role__check(request.role)
-    on Ok rc => match rc.value
-      true => match call schema__url__prefix(request.url)
-        on Ok pc => match pc.value
-          true => match call schema__url__tail_check(request.url, #request.url, true)
-            on Ok tc => match tc.value
-              true => match call schema__tokens__check(request.id, request.revision, site)
-                on Ok tk => match tk.value
-                  true => match call schema__digest__check(request.digest)
-                    on Ok dc => match dc.value
-                      true => match snapshot.policy == policy
-                        true => match snapshot.program == site.program
-                          true => match snapshot.sequence == head
-                            true => match call schema__snapshot__scan(snapshot.entries, request, site, 0, #snapshot.entries + 1)
-                              on Ok sc => match sc.count == 1
-                                true => match call schema__snapshot__entry_at(snapshot.entries, sc.first)
-                                  on Ok found => match call schema__revoked__contains(snapshot.revoked, found.entry.id, found.entry.revision, 0, #snapshot.revoked + 1)
-                                    on Ok rv => match rv.value
-                                      true => schema.asset_not_approved(asset = request)
-                                      false => match found.entry.not_before <= t, t < found.entry.not_after
-                                        true, true => Ok(approval = seal Schema__ApprovedAsset(request.id + "|" + request.revision + "|" + request.url + "|" + request.digest + "|" + request.role + "|" + site.program + "|" + site.module + "|" + site.function))
-                                        _, _ => schema.asset_not_approved(asset = request)
-                                false => schema.asset_not_approved(asset = request)
-                            false => schema.asset_not_approved(asset = request)
-                          false => schema.asset_not_approved(asset = request)
-                        false => schema.asset_not_approved(asset = request)
-                      false => schema.asset_not_approved(asset = request)
-                  false => schema.asset_not_approved(asset = request)
-              false => schema.asset_not_approved(asset = request)
-          false => schema.asset_not_approved(asset = request)
-      false => schema.asset_not_approved(asset = request)
+  match snapshot.policy == policy and snapshot.program == site.program and snapshot.sequence == head
+    true => match chain
+      call schema__role__check(request.role) as rc when rc.value
+      call schema__url__prefix(request.url) as pc when pc.value
+      call schema__url__tail_check(request.url, #request.url, true) as tc when tc.value
+      call schema__tokens__check(request.id, request.revision, site) as tk when tk.value
+      call schema__digest__check(request.digest) as dc when dc.value
+      call schema__snapshot__scan(snapshot.entries, request, site, 0, #snapshot.entries + 1) as sc when sc.count == 1
+      call schema__snapshot__entry_at(snapshot.entries, sc.first) as found
+      call schema__revoked__contains(snapshot.revoked, found.entry.id, found.entry.revision, 0, #snapshot.revoked + 1) as rv when not rv.value
+      then match found.entry.not_before <= t, t < found.entry.not_after
+        true, true => Ok(approval = seal Schema__ApprovedAsset(request.id + "|" + request.revision + "|" + request.url + "|" + request.digest + "|" + request.role + "|" + site.program + "|" + site.module + "|" + site.function))
+        _, _ => schema.asset_not_approved(asset = request)
+      else schema.asset_not_approved(asset = request)
+    false => schema.asset_not_approved(asset = request)

@@ -1,4 +1,4 @@
-# a86 — Sequential fallible chains (DRAFT proposal, not accepted)
+# a86 — Sequential fallible chains (implemented; approve migrated)
 
 ## Problem
 
@@ -93,3 +93,36 @@ Accepting this note means: implement as one slice with probes in the
 a78 style (parse, check-time elaboration, emit parity, row-law tests,
 asset-guard extensions), migrate `approve` onto it with zero row
 changes, and only then consider further migrations.
+
+## Implementation record
+
+Shipped as `MatchChain` (`compiler/chain.go`, elaborated in
+`buildWorld` beside `elaborateForwards`) with probes in
+`compiler/chain_test.go`. Surface deltas from the draft above:
+
+- Newline-separated steps with a `then` tail and one shared `else`,
+  not comma-separated steps with a trailing `else`. The `then` tail
+  shares the arm-result grammar (an inline `match` tail carries the
+  validity window), and `else` is a single expression re-parsed per
+  level, never an aliased node.
+- Step syntax `call F(args) as binder [when guard]`; `when` guards
+  are call-free pure Smalls, so `when not rv.value` spells the
+  inverted revoked rung with no new operator.
+- Pure-bool rungs stay out of the chain per the draft: approve folds
+  policy/program/sequence into one scrutinee-`and` *first*, as a
+  plain value match wrapping the chain.
+- `given` tables are grammatically allowed on chain steps (same table
+  grammar, carried onto the elaborated call); the approval path stays
+  script-free through `TestAssetNoScriptedEvidence`, not a ban.
+- Checker obligations hold without new machinery: elaborated ladders
+  reuse admission, prover, coverage, emit, and AIL4107, so the
+  step-row law is the existing test-per-arm rule pointed at step
+  lines, and short-circuit/termination/fault behavior is the ladder's.
+
+Approve migration (`std/schema/schema.ail`): 13 rungs become the
+`and`-wrapper plus 8 chain steps plus the window tail, zero test-row
+changes. `ailc normalize` old-vs-new is byte-identical over all 122
+schema decision rows; the re-emitted `std/schema/schema.ts` differs
+only in `approve` (the `and` wrapper with the `$ailBoolAnd` helper,
+`!(rv.value)` for the inverted rung). Full gates green:
+`go test ./...`, `modcheck`, `gramcheck`, `tsc`.

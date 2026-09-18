@@ -162,7 +162,28 @@ const (
 	// MatchCall discriminates one call's outcome: Ok or emitted error
 	// variants, scripted through given. Always a single scrutinee.
 	MatchCall
+	// MatchChain is sequential fallible composition (a86): ordered
+	// call steps binding Ok payloads with a shared failure arm. The
+	// checker elaborates it into nested MatchCall nodes before any
+	// proof, run, or emit sees it, so downstream phases only ever
+	// meet the two shapes above; an unelaborated chain reaching them
+	// is a compiler bug and fails closed wherever Kind switches.
+	MatchChain
 )
+
+// ChainStep is one chain link: a call, its Ok-payload binder, and an
+// optional boolean guard over bound values. Guard holds parsed Small
+// or nil; calls and forward are rejected inside guards at parse.
+type ChainStep struct {
+	Call   *Small
+	Binder string
+	Guard  *Small
+	// Given scripts a foreign step call with the ordinary table
+	// grammar; nil scripts nothing. The elaborated call node
+	// carries it untouched.
+	Given map[string]*Small
+	Line  int
+}
 
 type Node struct {
 	IsMatch bool
@@ -177,6 +198,14 @@ type Node struct {
 	Given  map[string]*Small // nil value node = "-" unreachable
 	Small  *Small
 	Line   int
+	// ChainSteps holds a86 chain links; ChainTail continues on full
+	// success and ChainElseText is the shared failure source text,
+	// parsed fresh per level at elaboration so no Small is aliased.
+	// Meaningful only when Kind is MatchChain, empty otherwise.
+	ChainSteps    []ChainStep
+	ChainTail     *Node
+	ChainElse     string
+	ChainElseLine int
 	// analysis carries the value-table proof from verification to
 	// emit (nil until verifyValueMatch proves the table). Unexported:
 	// invisible to any serialization, meaningful only post-proof.
@@ -2064,6 +2093,9 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 		return nil, i, at(mline, fmt.Errorf("expected expression, found dedent: %s", code))
 	}
 	if strings.HasPrefix(code, "match ") {
+		if strings.TrimSpace(code) == "match chain" && isChainBlock(rows, i+1, indent) {
+			return parseChainBlock(rows, i+1, indent, mline)
+		}
 		scruts, err := parseScrutList(strings.TrimSpace(code[len("match "):]))
 		if err != nil {
 			return nil, i, at(mline, err)
@@ -2115,25 +2147,10 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 			if node.Given != nil {
 				return nil, i, at(aline, fmt.Errorf("duplicate given table"))
 			}
-			node.Given = map[string]*Small{}
-			i++
-			for i < len(rows) && rows[i].indent > ind {
-				gline := rows[i].line
-				gm := reGiven.FindStringSubmatch(rows[i].code)
-				if gm == nil {
-					return nil, i, at(gline, fmt.Errorf("bad given entry: %s", rows[i].code))
-				}
-				rhs := strings.TrimSpace(gm[2])
-				if rhs == "-" {
-					node.Given[gm[1]] = nil
-				} else {
-					sm, err := parseSmall(rhs)
-					if err != nil {
-						return nil, i, at(gline, err)
-					}
-					node.Given[gm[1]] = sm
-				}
-				i++
+			var err error
+			node.Given, i, err = parseGivenBlock(rows, i, ind)
+			if err != nil {
+				return nil, i, err
 			}
 			continue
 		}
@@ -2162,38 +2179,9 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 		rest := strings.TrimSpace(m[2])
 		i++
 		var rhs *Node
-		switch {
-		case strings.HasPrefix(rest, "match "):
-			sub, err := parseScrutList(strings.TrimSpace(rest[len("match "):]))
-			if err != nil {
-				return nil, i, at(aline, err)
-			}
-			rhs, i, err = parseMatchArms(rows, i, ind, aline, sub)
-			if err != nil {
-				return nil, i, err
-			}
-		case rest != "":
-			var sm *Small
-			if rest == "forward" || strings.HasPrefix(rest, "forward ") {
-				// Slice 2: `forward v` is an arm-RHS shape only.
-				// The operand rides raw in Str; the checker
-				// validates it strictly (AIL3011) and
-				// elaborates exact binders. Anywhere else
-				// `forward ...` stays a parse error.
-				sm = &Small{Kind: "forward", Str: strings.TrimSpace(strings.TrimPrefix(rest, "forward"))}
-			} else {
-				var err error
-				sm, err = parseSmall(rest)
-				if err != nil {
-					return nil, i, at(aline, err)
-				}
-			}
-			rhs = &Node{Small: sm, Line: aline}
-		default:
-			rhs, i, err = parseExprBlock(rows, i, ind)
-			if err != nil {
-				return nil, i, err
-			}
+		rhs, i, err = parseRhs(rows, i, ind, aline, rest)
+		if err != nil {
+			return nil, i, err
 		}
 		node.Arms = append(node.Arms, Arm{Pats: pats, Rhs: rhs, Line: aline})
 	}

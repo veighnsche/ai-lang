@@ -12,6 +12,10 @@ export type Schema__BoolResult = { value: boolean };
 export type Schema__EntryResult = { entry: Schema__RegistryEntry };
 export type Schema__RevokedResult = { entry: Schema__Revoked };
 export type Schema__ScanResult = { first: bigint; count: bigint };
+// Strict boolean runtime (slice 5): eager helpers, never bare &&.
+function $ailBoolAnd(a: boolean, b: boolean): boolean {
+  return a && b;
+}
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $ailStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -458,73 +462,62 @@ export function schema__policy__admit(program: string, policy: string): { $ail_k
   return { $ail_kind: "ok", policy: ((program + "|") + policy) };
 }
 export function schema__asset__approve(request: Schema__AssetRequest, snapshot: Schema__RegistrySnapshot, policy: string, site: Schema__Site, head: bigint, t: bigint): { $ail_kind: "ok"; approval: string } | { $ail_kind: "schema.asset_not_approved"; asset: Schema__AssetRequest } {
-  const $ail_m1: { $ail_kind: "ok"; value: boolean } = schema__role__check(request.role);
-  switch ($ail_m1.$ail_kind) {
-  case "ok": {
-    const rc = $ail_m1;
-    if (rc.value) {
-      const $ail_m2: { $ail_kind: "ok"; value: boolean } = schema__url__prefix(request.url);
-      switch ($ail_m2.$ail_kind) {
-      case "ok": {
-        const pc = $ail_m2;
-        if (pc.value) {
-          const $ail_m3: { $ail_kind: "ok"; value: boolean } = schema__url__tail_check(request.url, (BigInt([...request.url].length)), true);
-          switch ($ail_m3.$ail_kind) {
-          case "ok": {
-            const tc = $ail_m3;
-            if (tc.value) {
-              const $ail_m4: { $ail_kind: "ok"; value: boolean } = schema__tokens__check(request.id, request.revision, site);
-              switch ($ail_m4.$ail_kind) {
-              case "ok": {
-                const tk = $ail_m4;
-                if (tk.value) {
-                  const $ail_m5: { $ail_kind: "ok"; value: boolean } = schema__digest__check(request.digest);
-                  switch ($ail_m5.$ail_kind) {
-                  case "ok": {
-                    const dc = $ail_m5;
-                    if (dc.value) {
-                      if ((snapshot.policy === policy)) {
-                        if ((snapshot.program === site.program)) {
-                          if ((snapshot.sequence === head)) {
-                            const $ail_m6: { $ail_kind: "ok"; count: bigint; first: bigint } = schema__snapshot__scan(snapshot.entries, request, site, 0n, ((BigInt([...snapshot.entries].length)) + 1n));
-                            switch ($ail_m6.$ail_kind) {
+  if ($ailBoolAnd((snapshot.policy === policy), $ailBoolAnd((snapshot.program === site.program), (snapshot.sequence === head)))) {
+    const $ail_m1: { $ail_kind: "ok"; value: boolean } = schema__role__check(request.role);
+    switch ($ail_m1.$ail_kind) {
+    case "ok": {
+      const rc = $ail_m1;
+      if (rc.value) {
+        const $ail_m2: { $ail_kind: "ok"; value: boolean } = schema__url__prefix(request.url);
+        switch ($ail_m2.$ail_kind) {
+        case "ok": {
+          const pc = $ail_m2;
+          if (pc.value) {
+            const $ail_m3: { $ail_kind: "ok"; value: boolean } = schema__url__tail_check(request.url, (BigInt([...request.url].length)), true);
+            switch ($ail_m3.$ail_kind) {
+            case "ok": {
+              const tc = $ail_m3;
+              if (tc.value) {
+                const $ail_m4: { $ail_kind: "ok"; value: boolean } = schema__tokens__check(request.id, request.revision, site);
+                switch ($ail_m4.$ail_kind) {
+                case "ok": {
+                  const tk = $ail_m4;
+                  if (tk.value) {
+                    const $ail_m5: { $ail_kind: "ok"; value: boolean } = schema__digest__check(request.digest);
+                    switch ($ail_m5.$ail_kind) {
+                    case "ok": {
+                      const dc = $ail_m5;
+                      if (dc.value) {
+                        const $ail_m6: { $ail_kind: "ok"; count: bigint; first: bigint } = schema__snapshot__scan(snapshot.entries, request, site, 0n, ((BigInt([...snapshot.entries].length)) + 1n));
+                        switch ($ail_m6.$ail_kind) {
+                        case "ok": {
+                          const sc = $ail_m6;
+                          if ((sc.count === 1n)) {
+                            const $ail_m7: { $ail_kind: "ok"; entry: Schema__RegistryEntry } = schema__snapshot__entry_at(snapshot.entries, sc.first);
+                            switch ($ail_m7.$ail_kind) {
                             case "ok": {
-                              const sc = $ail_m6;
-                              if ((sc.count === 1n)) {
-                                const $ail_m7: { $ail_kind: "ok"; entry: Schema__RegistryEntry } = schema__snapshot__entry_at(snapshot.entries, sc.first);
-                                switch ($ail_m7.$ail_kind) {
-                                case "ok": {
-                                  const found = $ail_m7;
-                                  const $ail_m8: { $ail_kind: "ok"; value: boolean } = schema__revoked__contains(snapshot.revoked, found.entry.id, found.entry.revision, 0n, ((BigInt([...snapshot.revoked].length)) + 1n));
-                                  switch ($ail_m8.$ail_kind) {
-                                  case "ok": {
-                                    const rv = $ail_m8;
-                                    if (rv.value) {
-                                      return { $ail_kind: "schema.asset_not_approved", asset: request };
-                                    }
-                                    else {
-                                      const $ail_m9 = (found.entry.not_before <= t);
-                                      const $ail_m10 = (t < found.entry.not_after);
-                                      if ($ail_m9 && $ail_m10) {
-                                        return { $ail_kind: "ok", approval: ((((((((((((((request.id + "|") + request.revision) + "|") + request.url) + "|") + request.digest) + "|") + request.role) + "|") + site.program) + "|") + site.module) + "|") + site.function) };
-                                      }
-                                      else {
-                                        return { $ail_kind: "schema.asset_not_approved", asset: request };
-                                      }
-                                    }
+                              const found = $ail_m7;
+                              const $ail_m8: { $ail_kind: "ok"; value: boolean } = schema__revoked__contains(snapshot.revoked, found.entry.id, found.entry.revision, 0n, ((BigInt([...snapshot.revoked].length)) + 1n));
+                              switch ($ail_m8.$ail_kind) {
+                              case "ok": {
+                                const rv = $ail_m8;
+                                if (!(rv.value)) {
+                                  const $ail_m9 = (found.entry.not_before <= t);
+                                  const $ail_m10 = (t < found.entry.not_after);
+                                  if ($ail_m9 && $ail_m10) {
+                                    return { $ail_kind: "ok", approval: ((((((((((((((request.id + "|") + request.revision) + "|") + request.url) + "|") + request.digest) + "|") + request.role) + "|") + site.program) + "|") + site.module) + "|") + site.function) };
                                   }
-                                  default: {
-                                    throw new Error("unreachable");
-                                  }
+                                  else {
+                                    return { $ail_kind: "schema.asset_not_approved", asset: request };
                                   }
                                 }
-                                default: {
-                                  throw new Error("unreachable");
-                                }
+                                else {
+                                  return { $ail_kind: "schema.asset_not_approved", asset: request };
                                 }
                               }
-                              else {
-                                return { $ail_kind: "schema.asset_not_approved", asset: request };
+                              default: {
+                                throw new Error("unreachable");
+                              }
                               }
                             }
                             default: {
@@ -536,56 +529,57 @@ export function schema__asset__approve(request: Schema__AssetRequest, snapshot: 
                             return { $ail_kind: "schema.asset_not_approved", asset: request };
                           }
                         }
-                        else {
-                          return { $ail_kind: "schema.asset_not_approved", asset: request };
+                        default: {
+                          throw new Error("unreachable");
+                        }
                         }
                       }
                       else {
                         return { $ail_kind: "schema.asset_not_approved", asset: request };
                       }
                     }
-                    else {
-                      return { $ail_kind: "schema.asset_not_approved", asset: request };
+                    default: {
+                      throw new Error("unreachable");
+                    }
                     }
                   }
-                  default: {
-                    throw new Error("unreachable");
-                  }
+                  else {
+                    return { $ail_kind: "schema.asset_not_approved", asset: request };
                   }
                 }
-                else {
-                  return { $ail_kind: "schema.asset_not_approved", asset: request };
+                default: {
+                  throw new Error("unreachable");
+                }
                 }
               }
-              default: {
-                throw new Error("unreachable");
-              }
+              else {
+                return { $ail_kind: "schema.asset_not_approved", asset: request };
               }
             }
-            else {
-              return { $ail_kind: "schema.asset_not_approved", asset: request };
+            default: {
+              throw new Error("unreachable");
+            }
             }
           }
-          default: {
-            throw new Error("unreachable");
-          }
+          else {
+            return { $ail_kind: "schema.asset_not_approved", asset: request };
           }
         }
-        else {
-          return { $ail_kind: "schema.asset_not_approved", asset: request };
+        default: {
+          throw new Error("unreachable");
+        }
         }
       }
-      default: {
-        throw new Error("unreachable");
-      }
+      else {
+        return { $ail_kind: "schema.asset_not_approved", asset: request };
       }
     }
-    else {
-      return { $ail_kind: "schema.asset_not_approved", asset: request };
+    default: {
+      throw new Error("unreachable");
+    }
     }
   }
-  default: {
-    throw new Error("unreachable");
-  }
+  else {
+    return { $ail_kind: "schema.asset_not_approved", asset: request };
   }
 }

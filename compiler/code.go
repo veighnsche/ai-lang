@@ -48,6 +48,7 @@ const (
 	CodeNoGuard                  = "AIL3009"
 	CodeBadBinding               = "AIL3010"
 	CodeBadForward               = "AIL3011"
+	CodeChainElab                = "AIL3012"
 	CodeUndeclaredEffect         = "AIL3107"
 	CodeStaleEffect              = "AIL3108"
 	CodeNoGiven                  = "AIL3101"
@@ -118,7 +119,7 @@ var allCodes = []string{
 	CodeDupFn, CodeDupSibling, CodeDupVariant, CodeCaseCollision, CodeDupConst,
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
-	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward,
+	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab,
 	CodeUndeclaredEffect, CodeStaleEffect,
 	CodeNoGiven, CodeGivenOnLocal, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeNoExchange, CodeInconsistentScript,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind,

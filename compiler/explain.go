@@ -211,6 +211,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `on m.bad e => forward e.value, or forward x from an outer scope.`,
 		fix:     "Write forward with exactly the arm binder: on KIND binder => forward binder. Anything else (projections, outer names, constructors, value matches) is handwritten reconstruction.",
 	},
+	CodeChainElab: {
+		rule:    "A match chain elaborates into nested call matches at check time; the elaborated ladder must be well-formed (AIL3012).",
+		violate: `a chain whose shared else cannot parse on some level.`,
+		fix:     "The else text parsed when the chain was read; report the chain, the step, and the else text as a compiler bug.",
+	},
 	CodeUndeclaredEffect: {
 		rule:    "State authority is declared beside emits: effects [C.read, C.write], transitive through local calls, no inference (R6).",
 		violate: `touching Count__total with no effects line, or via a helper whose authority you did not declare.`,
