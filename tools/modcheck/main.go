@@ -34,6 +34,8 @@ var (
 	caseRe     = regexp.MustCompile(`^\s*(\w+)\(`)
 	givenRe    = regexp.MustCompile(`(?m)^\s*given\s*$`)
 	givenKeyRe = regexp.MustCompile(`(?m)^\s*(\w+)\s*=>`)
+	fnStartRe  = regexp.MustCompile(`(?m)^fn (\w+)`)
+	callRe     = regexp.MustCompile(`\bcall\s+(\w+)\s*\(`)
 	demoRe     = regexp.MustCompile(`(?m)^\s*//\s*DEMO-EXPECTS:\s*(.+?)\s*$`)
 )
 
@@ -249,8 +251,14 @@ func checkGroup(files []string, keyOf func(string) string, shared map[string][]s
 				}
 			}
 		}
-		blocks := givenRe.Split(body, -1)
-		for _, block := range blocks[1:] {
+		// Reaching tests per function: a given block must script
+		// its own fn's rows plus same-file transitive callers'
+		// rows (mirroring check.go reachingTests), not every row
+		// in the file. Keys outside the file's rows are still
+		// rejected. Single-fn files behave exactly as before.
+		spans := fnSpans(body)
+		for _, loc := range givenRe.FindAllStringIndex(body, -1) {
+			block := body[loc[0]:]
 			if i := strings.Index(block, "on "); i >= 0 {
 				block = block[:i]
 			}
@@ -258,9 +266,13 @@ func checkGroup(files []string, keyOf func(string) string, shared map[string][]s
 			for _, m := range givenKeyRe.FindAllStringSubmatch(block, -1) {
 				keys[m[1]] = true
 			}
-			if len(testNames) > 0 && !equalSets(keys, testNames) {
+			required := testNames
+			if fn := enclosingFn(spans, loc[0]); fn != "" {
+				required = reachingRows(body, spans, fn)
+			}
+			if len(required) > 0 && (!subsetOf(required, keys) || !subsetOf(keys, testNames)) {
 				add(base, "given table %v != tests %v",
-					sortedKeys(keys), sortedKeys(testNames))
+					sortedKeys(keys), sortedKeys(required))
 			}
 		}
 	}
@@ -308,6 +320,117 @@ func sortedKeys(m map[string]bool) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// fnSpan is one fn declaration's byte range and name.
+type fnSpan struct {
+	name       string
+	start, end int
+}
+
+// fnSpans splits a file body at `fn` lines. A span runs to the
+// next fn (or EOF); non-fn decls between fns carry no tests or
+// calls, so attribution is harmless.
+func fnSpans(body string) []fnSpan {
+	locs := fnStartRe.FindAllStringSubmatchIndex(body, -1)
+	var out []fnSpan
+	for i, l := range locs {
+		end := len(body)
+		if i+1 < len(locs) {
+			end = locs[i+1][0]
+		}
+		out = append(out, fnSpan{name: body[l[2]:l[3]], start: l[0], end: end})
+	}
+	return out
+}
+
+// enclosingFn names the fn whose span contains off, or "" when
+// the offset sits outside every fn (malformed input keeps the
+// old file-wide comparison via the caller's fallback).
+func enclosingFn(spans []fnSpan, off int) string {
+	for _, s := range spans {
+		if off >= s.start && off < s.end {
+			return s.name
+		}
+	}
+	return ""
+}
+
+// spanTests collects decision-table rows within one fn span,
+// using the same tests/case scan as the file-wide pass.
+func spanTests(span string) map[string]bool {
+	out := map[string]bool{}
+	inTests := false
+	for _, line := range strings.Split(span, "\n") {
+		switch {
+		case testsRe.MatchString(line):
+			inTests = true
+		case inTests && eqRe.MatchString(line):
+			inTests = false
+		default:
+			if inTests {
+				if m := caseRe.FindStringSubmatch(line); m != nil {
+					out[m[1]] = true
+				}
+			}
+		}
+	}
+	return out
+}
+
+// reachingRows mirrors check.go reachingTests textually: the
+// fn's own rows plus same-file transitive callers' rows.
+// Foreign and intrinsic callees never contribute callers:
+// their bodies don't execute under scripts.
+func reachingRows(body string, spans []fnSpan, fn string) map[string]bool {
+	byName := map[string]fnSpan{}
+	for _, s := range spans {
+		byName[s.name] = s
+	}
+	callers := map[string][]string{}
+	for _, s := range spans {
+		seen := map[string]bool{}
+		for _, m := range callRe.FindAllStringSubmatch(body[s.start:s.end], -1) {
+			if callee := m[1]; !seen[callee] {
+				seen[callee] = true
+				if _, ok := byName[callee]; ok {
+					callers[callee] = append(callers[callee], s.name)
+				}
+			}
+		}
+	}
+	out := map[string]bool{}
+	if s, ok := byName[fn]; ok {
+		for r := range spanTests(body[s.start:s.end]) {
+			out[r] = true
+		}
+	}
+	seen := map[string]bool{fn: true}
+	queue := []string{fn}
+	for len(queue) > 0 {
+		u := queue[0]
+		queue = queue[1:]
+		for _, caller := range callers[u] {
+			if seen[caller] {
+				continue
+			}
+			seen[caller] = true
+			queue = append(queue, caller)
+			for r := range spanTests(body[byName[caller].start:byName[caller].end]) {
+				out[r] = true
+			}
+		}
+	}
+	return out
+}
+
+func subsetOf(a, b map[string]bool) bool {
+	for k := range a {
+		if !b[k] {
+			return false
+		}
+	}
+	return true
 }
 
 func main() {

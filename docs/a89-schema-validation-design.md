@@ -357,3 +357,43 @@ target-conformance evidence.
 
 **Sequence: P1 string membership → S1a flat validator →
 S1b nesting witness.**
+
+## Implementation amendments (S1a)
+
+1. **Cross-file converter, dangling committed import.**
+   S1a pins `std__convert__int_to_str@1` from scalars.can
+   (user ruling over same-file vendoring). Emit hardcodes
+   same-dir, extensionless imports (`"./scalars"`), so the
+   committed `std/quota/quota.ts` import dangles beside the
+   goldens; it resolves in whole-program compiles (golden
+   test, linked vectors), and node parity rewrites the
+   specifier to `./scalars.ts` in the temp copy only
+   (`rewriteSpecifier`; goldens pin emitted bytes verbatim).
+   Cross-dir TS import paths and specifier style need their
+   own emit slice — not smuggled into S1a. Regen deletes
+   the co-emitted `std/quota/scalars.ts`.
+2. **Payload reconstruction instead of payload reads.**
+   `CodeForeignRaise` (`eachRaise`, `compiler/check.go`)
+   treats reading a matched error binder's fields as
+   raising that kind, so the verdict's "use the
+   producer's actual error payload" instruction cannot
+   hold under the frozen single-kind emits. S1a binds
+   `_` and reconstructs from its own inputs
+   (`request.label`, schema bounds, `request.amount`,
+   `request.mode`). The values are identical to the
+   producer payloads by construction — same-file
+   executed calls whose bodies echo their inputs — so
+   the verdict's intent (no fabricated payloads) holds;
+   only the mechanism differs. Decision tables, linked
+   vectors, and node parity pin the exact payloads.
+3. **modcheck given-scope fix (tool, in-slice).** modcheck
+   demanded every given block key every test in the FILE
+   (a rule never exercised on a multi-concern file with
+   foreign calls); quota.can would need ~450 mostly-`-`
+   entries. Fixed to reaching scope — own fn rows plus
+   same-file transitive callers, mirroring check.go
+   `reachingTests` — with unknown keys still rejected.
+   Single-fn files behave byte-identically (both demo
+   fixtures and all suite messages unchanged); three
+   regression tests pin the new scope. Precedent: the a13
+   in-slice emitter fix. No language change.

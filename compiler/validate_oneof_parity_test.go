@@ -20,9 +20,14 @@ func TestValidateStrOneOfRuntimeParity(t *testing.T) {
 		t.Fatalf("node missing: runtime parity refuses to skip: %v", err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{"../std/quota/quota.can"}); err != nil {
+	if err := compile(out, []string{"../std/quota/quota.can", "../std/scalars/scalars.can"}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
+	// Harness shim for the S1a packaging gap (a89 amendment 1):
+	// emit writes extensionless "./scalars", which node ESM cannot
+	// resolve. Rewrite the specifier in the temp copy only; the
+	// golden pins the emitted bytes verbatim.
+	rewriteSpecifier(t, filepath.Join(out, "quota.ts"), "./scalars", "./scalars.ts")
 	driver := `import { std__validate__str_one_of } from "./quota.ts";
 const eq = (got, want, name) => {
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(name + ": got " + JSON.stringify(got));
@@ -54,5 +59,23 @@ console.log("ONEOF_PARITY_OK");
 	}
 	if !strings.Contains(string(raw), "ONEOF_PARITY_OK") {
 		t.Fatalf("parity driver silent:\n%s", raw)
+	}
+}
+
+// rewriteSpecifier swaps one module specifier in a temp-dir emit
+// so node ESM can resolve it. Test-harness only: committed
+// goldens keep the emitted bytes, and the cross-dir import story
+// (paths and extensions) belongs to a future emit slice.
+func rewriteSpecifier(t *testing.T, path, old, new string) {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"`+old+`"`) {
+		t.Fatalf("specifier %q not found in %s", old, path)
+	}
+	if err := os.WriteFile(path, []byte(strings.Replace(string(raw), `"`+old+`"`, `"`+new+`"`, 1)), 0o644); err != nil {
+		t.Fatal(err)
 	}
 }

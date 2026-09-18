@@ -1,11 +1,15 @@
 // GENERATED from quota.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string };
+import { std__convert__int_to_str, type ScalarsResult } from "./scalars";
+export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string };
 export type Quota__Usage = { used: bigint; remaining: bigint };
 export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
 export type Dec__Value = { value: string };
 export type Str__Value = { value: string };
+export type Quota__Request = { label: string; amount: bigint; mode: string };
+export type Quota__RequestSchema = { label_minimum: bigint; label_maximum: bigint; amount_lower: bigint; amount_upper: bigint; allowed_modes: string[] };
+export type Quota__RequestValue = { value: Quota__Request };
 let Quota__used: bigint = 0n;
 // Exact-decimal runtime (a10): canonical-digit strings, BigInt math.
 function $canDecSplit(d: string): { neg: boolean; ip: string; fp: string } {
@@ -227,6 +231,152 @@ export function std__validate__str_one_of(value: string, allowed: string[]): { $
   case "ok": {
     const r = $can_m1;
     return { $can_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function quota__request__validate(request: Quota__Request, schema: Quota__RequestSchema): { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  if ((schema.label_minimum >= 0n)) {
+    const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } = std__validate__str_length(request.label, schema.label_minimum, schema.label_maximum);
+    switch ($can_m1.$can_kind) {
+    case "validation.invalid_bounds": {
+      const _ = $can_m1;
+      const $can_m2: { $can_kind: "ok"; value: string } = std__convert__int_to_str(schema.label_minimum);
+      switch ($can_m2.$can_kind) {
+      case "ok": {
+        const lo = $can_m2;
+        const $can_m3: { $can_kind: "ok"; value: string } = std__convert__int_to_str(schema.label_maximum);
+        switch ($can_m3.$can_kind) {
+        case "ok": {
+          const hi = $can_m3;
+          return { $can_kind: "validation.schema_violation", path: "", rule: "schema.label_bounds", value: ((("minimum=" + lo.value) + ";maximum=") + hi.value) };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    case "validation.invalid_length": {
+      const _ = $can_m1;
+      return { $can_kind: "validation.schema_violation", path: "label", rule: "str.length_scalars", value: request.label };
+    }
+    case "ok": {
+      const _ = $can_m1;
+      const $can_m4: { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } = std__validate__int_range(request.amount, schema.amount_lower, schema.amount_upper);
+      switch ($can_m4.$can_kind) {
+      case "validation.invalid_bounds": {
+        const _ = $can_m4;
+        const $can_m5: { $can_kind: "ok"; value: string } = std__convert__int_to_str(schema.amount_lower);
+        switch ($can_m5.$can_kind) {
+        case "ok": {
+          const lo = $can_m5;
+          const $can_m6: { $can_kind: "ok"; value: string } = std__convert__int_to_str(schema.amount_upper);
+          switch ($can_m6.$can_kind) {
+          case "ok": {
+            const hi = $can_m6;
+            return { $can_kind: "validation.schema_violation", path: "", rule: "schema.amount_bounds", value: ((("lower=" + lo.value) + ";upper=") + hi.value) };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      case "validation.out_of_range": {
+        const _ = $can_m4;
+        const $can_m7: { $can_kind: "ok"; value: string } = std__convert__int_to_str(request.amount);
+        switch ($can_m7.$can_kind) {
+        case "ok": {
+          const r = $can_m7;
+          return { $can_kind: "validation.schema_violation", path: "amount", rule: "int.closed_range", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      case "ok": {
+        const _ = $can_m4;
+        const $can_m8: { $can_kind: "ok"; value: string } | { $can_kind: "validation.not_allowed"; value: string } = std__validate__str_one_of(request.mode, schema.allowed_modes);
+        switch ($can_m8.$can_kind) {
+        case "validation.not_allowed": {
+          const _ = $can_m8;
+          return { $can_kind: "validation.schema_violation", path: "mode", rule: "str.one_of", value: request.mode };
+        }
+        case "ok": {
+          const _ = $can_m8;
+          return { $can_kind: "ok", value: request };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  else {
+    const $can_m9: { $can_kind: "ok"; value: string } = std__convert__int_to_str(schema.label_minimum);
+    switch ($can_m9.$can_kind) {
+    case "ok": {
+      const r = $can_m9;
+      return { $can_kind: "validation.schema_violation", path: "", rule: "schema.label_minimum", value: r.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}
+export function quota__request__admit(request: Quota__Request, schema: Quota__RequestSchema, quota: bigint): { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } {
+  const $can_m1: { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } = quota__request__validate(request, schema);
+  switch ($can_m1.$can_kind) {
+  case "validation.schema_violation": {
+    const e = $can_m1;
+    return { $can_kind: "validation.schema_violation", path: e.path, rule: e.rule, value: e.value };
+  }
+  case "ok": {
+    const v = $can_m1;
+    const $can_m2: { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } = quota__consume(v.value.amount, quota);
+    switch ($can_m2.$can_kind) {
+    case "validation.negative_value": {
+      const e = $can_m2;
+      return { $can_kind: "validation.negative_value", value: e.value };
+    }
+    case "validation.invalid_bounds": {
+      const e = $can_m2;
+      return { $can_kind: "validation.invalid_bounds", lower: e.lower, upper: e.upper };
+    }
+    case "validation.out_of_range": {
+      const e = $can_m2;
+      return { $can_kind: "validation.out_of_range", value: e.value, lower: e.lower, upper: e.upper };
+    }
+    case "ok": {
+      const u = $can_m2;
+      return { $can_kind: "ok", used: u.used, remaining: u.remaining };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
   }
   default: {
     throw new Error("unreachable");

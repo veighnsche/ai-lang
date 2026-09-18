@@ -83,11 +83,14 @@ func TestGoldenCounter(t *testing.T) {
 // TestGoldenQuotaCounter freezes row 1 of the stdlib program: the
 // validation module plus its quota counter must transpile
 // byte-identical, so validator payloads and the multi-shape ok union
-// can never silently rot.
+// can never silently rot. Since S1a the quota module pins
+// std__convert__int_to_str, so scalars.can compiles alongside;
+// only quota.ts and errors.json are golden-kept.
 func TestGoldenQuotaCounter(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
 		"../std/quota/quota.can",
+		"../std/scalars/scalars.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
