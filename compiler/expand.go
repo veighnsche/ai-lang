@@ -1,0 +1,1133 @@
+package main
+
+import (
+	"fmt"
+	"math/big"
+	"sort"
+	"strings"
+)
+
+// G1 explicit generics (a93): monomorphic expansion before
+// checking. Every generic fn stamps one ordinary copy per
+// distinct instantiation; templates never reach checking,
+// and every downstream phase consumes plain monomorphic AST.
+// Runs at the top of checkProgram and diagnoseWith, so CLI,
+// tests, linked evaluation, and the editor share it.
+
+// mangleInstance names one stamped copy. $ never occurs in
+// source identifiers (\w+), so stamps cannot collide with
+// declared names; the escape keeps the mapping injective.
+func mangleInstance(base string, args []string) string {
+	esc := func(a string) string {
+		r := strings.NewReplacer("<", "$L$", ">", "$G$", ",", "$C$")
+		return r.Replace(a)
+	}
+	var b strings.Builder
+	b.WriteString(base)
+	for _, a := range args {
+		b.WriteString("$T$")
+		b.WriteString(esc(a))
+	}
+	return b.String()
+}
+
+type genericInfo struct {
+	decl *FnDecl
+	mod  *Module
+	pos  int
+}
+
+// describeStamp renders a stamped name back into source terms
+// for diagnostics: m__sel$T$str reads as generic m__sel at
+// <str>. Falls back to the raw name when the shape surprises.
+func describeStamp(stamp, base string) string {
+	rest, ok := strings.CutPrefix(stamp, base+"$T$")
+	if !ok {
+		return stamp
+	}
+	r := strings.NewReplacer("$L$", "<", "$G$", ">", "$C$", ",")
+	parts := strings.Split(rest, "$T$")
+	for i, p := range parts {
+		parts[i] = r.Replace(p)
+	}
+	return "generic " + base + " at <" + strings.Join(parts, ",") + ">"
+}
+
+// expandGenerics stamps every generic fn in mods. On success it
+// rewrites modules in place (stamps replace templates, call
+// sites and headers name stamps) and returns nil; on failure it
+// returns diagnostics and leaves mods unusable (callers abort).
+func expandGenerics(mods []*Module, texts map[string]string) []Diag {
+	var out []Diag
+	emit := func(m *Module, line int, token, format string, args ...any) {
+		d := spanDiag(texts[m.ID], line, "error", fmt.Sprintf(format, args...), token, CodeGenericExpand)
+		d.File = qualifiedFile(mods, m)
+		out = append(out, d)
+	}
+	gens := map[string]*genericInfo{}
+	fnBase := map[string]*Module{}
+	for _, m := range mods {
+		for i, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			if _, dup := fnBase[fn.Name]; dup {
+				_, wasGeneric := gens[fn.Name]
+				if wasGeneric || len(fn.TypeParams) > 0 {
+					emit(m, fn.Line, fn.Name, "generic %s is already declared: base names are unique", fn.Name)
+				}
+				continue
+			}
+			fnBase[fn.Name] = m
+			if len(fn.TypeParams) > 0 {
+				gens[fn.Name] = &genericInfo{decl: fn, mod: m, pos: i}
+			}
+		}
+	}
+	if len(gens) == 0 && !hasGenericSyntax(mods) {
+		return nil
+	}
+	types := genericTypeRegistry(mods)
+	for base, g := range gens {
+		checkGenericTemplate(base, g, emit)
+	}
+	if len(out) > 0 {
+		return out
+	}
+	known := collectInstances(mods, gens, types, emit)
+	if len(out) > 0 {
+		return out
+	}
+	for base := range gens {
+		if len(known[base]) == 0 {
+			g := gens[base]
+			emit(g.mod, g.decl.Line, base, "generic %s is never instantiated: give it a row", base)
+		}
+	}
+	if len(out) > 0 {
+		return out
+	}
+	if diags := stampGenerics(gens, known, types, mods, texts); len(diags) > 0 {
+		out = append(out, diags...)
+		return out
+	}
+	rewriteGenericHeaders(mods, gens, known, texts, &out)
+	rewriteGenericCalls(mods, gens)
+	return out
+}
+
+// hasGenericSyntax reports whether any generic surface exists:
+// a parameterized decl, a row with binds, or a call with type
+// args. Downstream phases ignore TypeArgs entirely, so a stray
+// `call f<str>(x)` with no generic in the program must still
+// reach expansion (which rejects it) rather than silently
+// degrading to a monomorphic call.
+func hasGenericSyntax(mods []*Module) bool {
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			if len(fn.TypeParams) > 0 {
+				return true
+			}
+			for i := range fn.Tests {
+				if len(fn.Tests[i].TypeBinds) > 0 {
+					return true
+				}
+			}
+			hit := false
+			everySmall(fn, func(st smallSite) {
+				if len(st.s.TypeArgs) > 0 {
+					hit = true
+				}
+			})
+			if hit {
+				return true
+			}
+		}
+		hit := false
+		everyModuleSmall(m, func(st smallSite) {
+			if len(st.s.TypeArgs) > 0 {
+				hit = true
+			}
+		})
+		if hit {
+			return true
+		}
+	}
+	return false
+}
+
+// genericTypeRegistry collects every name a G1 type argument may
+// name: base types, Bytes, declared records, brands, variants,
+// and builtin record shapes. Error kinds are not values.
+func genericTypeRegistry(mods []*Module) map[string]bool {
+	types := map[string]bool{"str": true, "int": true, "bool": true, "dec": true, "Bytes": true}
+	for _, b := range builtinTypeDecls() {
+		types[b.Name] = true
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			switch d := d.(type) {
+			case *TypeDecl:
+				types[d.Name] = true
+			case *BrandDecl:
+				types[d.Name] = true
+			case *VariantDecl:
+				types[d.Name] = true
+			}
+		}
+	}
+	return types
+}
+
+// checkGenericTemplate enforces the template rules: every param
+// is used in the signature, names collide with nothing usable
+// in annotation position, emits stay concrete, the base name is
+// unique, and chain-else text (parsed later, as source) mentions
+// neither params nor generic calls.
+func checkGenericTemplate(base string, g *genericInfo, emit func(*Module, int, string, string, ...any)) {
+	fn := g.decl
+	// No type-namespace collision check: params forbid `_`
+	// while every type name (record, variant, brand) requires
+	// `__`, so the charsets are disjoint by construction.
+	seenParam := map[string]bool{}
+	for _, p := range fn.TypeParams {
+		seenParam[p] = true
+	}
+	for _, p := range fn.Params {
+		if seenParam[p[0]] {
+			emit(g.mod, fn.Line, p[0], "value parameter %s of %s shadows a type parameter", p[0], base)
+		}
+	}
+	sigUses := map[string]bool{}
+	markSig := func(t string) {
+		if seenParam[t] {
+			sigUses[t] = true
+		}
+		if elem, ok := seqElemName(t); ok && seenParam[elem] {
+			sigUses[elem] = true
+		}
+	}
+	for _, p := range fn.Params {
+		markSig(p[1])
+	}
+	markSig(fn.Ret)
+	for _, p := range fn.TypeParams {
+		if !sigUses[p] {
+			emit(g.mod, fn.Line, p, "type parameter %s of %s is never used in its signature", p, base)
+		}
+	}
+	for _, e := range fn.Emits {
+		if seenParam[e] {
+			emit(g.mod, fn.Line, e, "emits %s of %s names a type parameter: error-set parameters are not admitted", e, base)
+		}
+	}
+	for _, n := range matchNodes(fn.Body) {
+		if n.Kind == MatchChain && chainElseMentions(n.ChainElse, fn.TypeParams) {
+			emit(g.mod, n.ChainElseLine, base, "chain else in generic %s must not mention type parameters or generic calls in G1", base)
+		}
+	}
+}
+
+// chainElseMentions reports whether else text (reparsed later by
+// chain elaboration) names a param or a generic call. Word-ish
+// matching is enough: this is a rejection gate, not a parser.
+func chainElseMentions(elseText string, params []string) bool {
+	if strings.Contains(elseText, "call ") && strings.Contains(elseText, "<") {
+		return true
+	}
+	for _, p := range params {
+		for _, tok := range strings.FieldsFunc(elseText, func(r rune) bool {
+			return !(r == '_' || r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z')
+		}) {
+			if tok == p {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// smallSite is one expression position that may hold a generic
+// call or a parameter mention, with its diagnostic line.
+type smallSite struct {
+	s    *Small
+	line int
+}
+
+// everySmall yields every Small rooted at fn (body, tests,
+// givens, contracts) plus module-level const and state
+// initializers are walked separately by everyModuleSmall.
+func everySmall(fn *FnDecl, yield func(smallSite)) {
+	var walk func(s *Small, line int)
+	walk = func(s *Small, line int) {
+		if s == nil {
+			return
+		}
+		yield(smallSite{s, line})
+		for _, a := range s.Args {
+			walk(a.V, line)
+		}
+		walk(s.L, line)
+		walk(s.R, line)
+		walk(s.Hi, line)
+		for _, it := range s.Items {
+			walk(it, line)
+		}
+		walk(s.Outcome, line)
+	}
+	var walkNode func(n *Node)
+	walkNode = func(n *Node) {
+		if n == nil {
+			return
+		}
+		for _, sc := range n.Scruts {
+			walk(sc, n.Line)
+		}
+		for _, a := range n.Arms {
+			walkNode(a.Rhs)
+		}
+		for _, g := range n.Given {
+			walk(g, n.Line)
+		}
+		walk(n.Small, n.Line)
+		for _, st := range n.ChainSteps {
+			walk(st.Call, n.Line)
+			walk(st.Guard, n.Line)
+			for _, g := range st.Given {
+				walk(g, n.Line)
+			}
+		}
+		walkNode(n.ChainTail)
+	}
+	walkNode(fn.Body)
+	for i := range fn.Tests {
+		t := &fn.Tests[i]
+		for _, a := range t.Args {
+			walk(a.V, t.Line)
+		}
+		walk(t.Expected, t.Line)
+	}
+	for _, r := range fn.Requires {
+		walk(r, fn.Line)
+	}
+	for _, a := range fn.Ensures {
+		for _, p := range a.Preds {
+			walk(p, a.Line)
+		}
+		for _, m := range a.Matches {
+			walkNode(m)
+		}
+	}
+}
+
+// everyModuleSmall yields const values and state initializers,
+// the only Small roots outside function bodies.
+func everyModuleSmall(m *Module, yield func(smallSite)) {
+	var walk func(s *Small, line int)
+	walk = func(s *Small, line int) {
+		if s == nil {
+			return
+		}
+		yield(smallSite{s, line})
+		for _, a := range s.Args {
+			walk(a.V, line)
+		}
+		walk(s.L, line)
+		walk(s.R, line)
+		walk(s.Hi, line)
+		for _, it := range s.Items {
+			walk(it, line)
+		}
+		walk(s.Outcome, line)
+	}
+	for _, d := range m.Decls {
+		switch d := d.(type) {
+		case *ConstDecl:
+			walk(d.Value, d.Line)
+		case *StateDecl:
+			walk(d.Init, d.Line)
+		}
+	}
+}
+
+// closedArg validates one type argument that must name a known
+// monomorphic type: no parameters, no nested instantiation, no
+// variant sequences (the checkDeclFields Decision 6 deferral,
+// extended to instantiation). Seq<X> admits one plain level.
+func closedArg(arg string, types map[string]bool, variants map[string]bool) error {
+	if elem, ok := seqElemName(arg); ok {
+		if _, nested := seqElemName(elem); nested {
+			return fmt.Errorf("nested instantiation %s is not admitted in G1", arg)
+		}
+		if !types[elem] {
+			return fmt.Errorf("unknown type %s", elem)
+		}
+		if variants[elem] {
+			return fmt.Errorf("Seq<%s> is deferred: variant sequences are not admitted", elem)
+		}
+		return nil
+	}
+	if strings.Contains(arg, "<") {
+		return fmt.Errorf("nested instantiation %s is not admitted in G1", arg)
+	}
+	if !types[arg] {
+		return fmt.Errorf("unknown type %s", arg)
+	}
+	return nil
+}
+
+// variantNames collects declared variant parents for the
+// Seq<Variant> instantiation rule.
+func variantNames(mods []*Module) map[string]bool {
+	out := map[string]bool{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if vd, ok := d.(*VariantDecl); ok {
+				out[vd.Name] = true
+			}
+		}
+	}
+	return out
+}
+
+// collectInstances gathers every concrete instantiation: rows
+// pin their own, monomorphic call sites name theirs, and
+// pass-through calls inside generics resolve through a
+// fixpoint over enclosing stamps. Only closed and
+// bare-parameter forms are admitted, so the pair space is
+// finite and the loop terminates when no new pair appears.
+func collectInstances(mods []*Module, gens map[string]*genericInfo, types map[string]bool, emit func(*Module, int, string, string, ...any)) map[string][][]string {
+	variants := variantNames(mods)
+	known := map[string][][]string{}
+	seen := map[string]bool{}
+	add := func(base string, args []string) bool {
+		key := base + "\x00" + strings.Join(args, "\x00")
+		if seen[key] {
+			return false
+		}
+		seen[key] = true
+		known[base] = append(known[base], append([]string{}, args...))
+		return true
+	}
+	genericOf := func(name string) *genericInfo { return gens[name] }
+	// Rows seed their own generic; binds must be complete and
+	// concrete, and monomorphic rows take no binds.
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			g := genericOf(fn.Name)
+			for i := range fn.Tests {
+				t := &fn.Tests[i]
+				if g == nil {
+					if len(t.TypeBinds) > 0 {
+						emit(m, t.Line, t.Name, "row %s of monomorphic %s takes no type binds", t.Name, fn.Name)
+					}
+					continue
+				}
+				args, ok := resolveBinds(fn, t, emit, m)
+				if !ok {
+					continue
+				}
+				fine := true
+				for _, a := range args {
+					if err := closedArg(a, types, variants); err != nil {
+						emit(m, t.Line, t.Name, "row %s of %s: %v", t.Name, fn.Name, err)
+						fine = false
+						break
+					}
+				}
+				if fine {
+					add(fn.Name, args)
+				}
+			}
+		}
+	}
+	// Call sites: arity, param-or-closed form, self-call identity.
+	// Unknown callees are left for CodeUnknownCall downstream.
+	type pending struct {
+		mod    *Module
+		caller *FnDecl
+		site   smallSite
+		callee string
+	}
+	var calls []pending
+	consider := func(m *Module, caller *FnDecl, site smallSite) {
+		s := site.s
+		if s.Kind != "call" {
+			return
+		}
+		g := genericOf(s.Fname)
+		if g == nil {
+			if len(s.TypeArgs) > 0 {
+				if _, knownFn := fnBaseOf(mods, s.Fname); knownFn {
+					emit(m, site.line, s.Fname, "type arguments on monomorphic function %s", s.Fname)
+				}
+			}
+			return
+		}
+		if len(s.TypeArgs) == 0 {
+			emit(m, site.line, s.Fname, "generic %s needs explicit type arguments", s.Fname)
+			return
+		}
+		if len(s.TypeArgs) != len(g.decl.TypeParams) {
+			emit(m, site.line, s.Fname, "generic %s takes %d type arguments, got %d", s.Fname, len(g.decl.TypeParams), len(s.TypeArgs))
+			return
+		}
+		if caller != nil && caller.Name == s.Fname {
+			for i, a := range s.TypeArgs {
+				if a != g.decl.TypeParams[i] {
+					emit(m, site.line, s.Fname, "recursive call of %s must repeat its own type arguments", s.Fname)
+					return
+				}
+			}
+		}
+		calls = append(calls, pending{m, caller, site, s.Fname})
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			everySmall(fn, func(st smallSite) { consider(m, fn, st) })
+		}
+		everyModuleSmall(m, func(st smallSite) { consider(m, nil, st) })
+	}
+	// Validate every call's forms once (arity already checked):
+	// each arg is a bare caller parameter or a closed type.
+	// Mixed, nested, and unknown forms fail here; only valid
+	// calls enter the fixpoint, so errors never duplicate.
+	type valid struct {
+		call      pending
+		usesParam bool
+	}
+	var valids []valid
+	failed := false
+	for _, c := range calls {
+		params := map[string]bool{}
+		if c.caller != nil && genericOf(c.caller.Name) != nil {
+			for _, p := range c.caller.TypeParams {
+				params[p] = true
+			}
+		}
+		usesParam := false
+		formsOK := true
+		for _, a := range c.site.s.TypeArgs {
+			if params[a] {
+				usesParam = true
+				continue
+			}
+			if elem, ok := seqElemName(a); ok {
+				if _, nested := seqElemName(elem); nested {
+					emit(c.mod, c.site.line, c.callee, "call of %s: nested instantiation %s is not admitted in G1", c.callee, a)
+					formsOK = false
+					break
+				}
+				if params[elem] {
+					emit(c.mod, c.site.line, c.callee, "call of %s: type arguments must be bare parameters or closed types", c.callee)
+					formsOK = false
+					break
+				}
+			} else if strings.Contains(a, "<") {
+				emit(c.mod, c.site.line, c.callee, "call of %s: nested instantiation %s is not admitted in G1", c.callee, a)
+				formsOK = false
+				break
+			}
+			if err := closedArg(a, types, variants); err != nil {
+				// A bare unknown name inside a generic caller
+				// is an unknown parameter, not an unknown
+				// type: name the scope it missed.
+				if len(params) > 0 && !strings.Contains(a, "<") {
+					emit(c.mod, c.site.line, c.callee, "call of %s: %s is not a type parameter of %s", c.callee, a, c.caller.Name)
+				} else {
+					emit(c.mod, c.site.line, c.callee, "call of %s: %v", c.callee, err)
+				}
+				formsOK = false
+				break
+			}
+		}
+		if !formsOK {
+			failed = true
+			continue
+		}
+		valids = append(valids, valid{c, usesParam})
+	}
+	if failed {
+		return known
+	}
+	// Concrete calls seed directly; pass-through resolves per
+	// enclosing instance to a fixpoint. Only closed forms and
+	// bare parameters survived validation, so resolution
+	// synthesizes no new type expressions and the memoized pair
+	// space is finite: the loop ends when nothing new appears.
+	for changed := true; changed; {
+		changed = false
+		for _, v := range valids {
+			if !v.usesParam {
+				if add(v.call.callee, v.call.site.s.TypeArgs) {
+					changed = true
+				}
+				continue
+			}
+			for _, inst := range known[v.call.caller.Name] {
+				sub := map[string]string{}
+				for i, p := range v.call.caller.TypeParams {
+					sub[p] = inst[i]
+				}
+				resolved := make([]string, len(v.call.site.s.TypeArgs))
+				for i, a := range v.call.site.s.TypeArgs {
+					if r, ok := sub[a]; ok {
+						resolved[i] = r
+					} else {
+						resolved[i] = a
+					}
+				}
+				if add(v.call.callee, resolved) {
+					changed = true
+				}
+			}
+		}
+	}
+	return known
+}
+
+// resolveBinds orders a row's P=E pairs by the decl's parameter
+// list, enforcing known names, completeness, and no dupes.
+func resolveBinds(fn *FnDecl, t *Test, emit func(*Module, int, string, string, ...any), m *Module) ([]string, bool) {
+	idx := map[string]int{}
+	for i, p := range fn.TypeParams {
+		idx[p] = i
+	}
+	args := make([]string, len(fn.TypeParams))
+	filled := map[string]bool{}
+	for _, b := range t.TypeBinds {
+		at, ok := idx[b[0]]
+		if !ok {
+			emit(m, t.Line, t.Name, "row %s of %s pins unknown type parameter %s", t.Name, fn.Name, b[0])
+			return nil, false
+		}
+		if filled[b[0]] {
+			emit(m, t.Line, t.Name, "row %s of %s pins %s twice", t.Name, fn.Name, b[0])
+			return nil, false
+		}
+		filled[b[0]] = true
+		args[at] = b[1]
+	}
+	for _, p := range fn.TypeParams {
+		if !filled[p] {
+			emit(m, t.Line, t.Name, "row %s of %s must pin every type parameter: missing %s", t.Name, fn.Name, p)
+			return nil, false
+		}
+	}
+	return args, true
+}
+
+// fnBaseOf reports whether any module declares fn (any shape).
+func fnBaseOf(mods []*Module, name string) (*Module, bool) {
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if fn, ok := d.(*FnDecl); ok && fn.Name == name {
+				return m, true
+			}
+		}
+	}
+	return nil, false
+}
+
+// substType replaces whole parameters: T becomes its argument,
+// Seq<T> becomes Seq<arg>. Annotation grammar admits only these
+// two positions, so anything else passes through untouched.
+func substType(t string, sub map[string]string) string {
+	if r, ok := sub[t]; ok {
+		return r
+	}
+	if elem, ok := seqElemName(t); ok {
+		if r, ok := sub[elem]; ok {
+			return "Seq<" + r + ">"
+		}
+	}
+	return t
+}
+
+// substSmall rewrites one expression in place: call type args,
+// sequence element names, and constructor heads that name a
+// parameter. Refs, seals, literals, and operator structure are
+// type-free positions and pass through.
+func substSmall(s *Small, sub map[string]string) {
+	if s == nil {
+		return
+	}
+	for i, a := range s.TypeArgs {
+		if r, ok := sub[a]; ok {
+			s.TypeArgs[i] = r
+		}
+	}
+	if r, ok := sub[s.Ctor]; ok && s.Ctor != "" {
+		s.Ctor = r
+	}
+	if r, ok := sub[s.Elem]; ok && s.Elem != "" {
+		s.Elem = r
+	}
+	for _, a := range s.Args {
+		substSmall(a.V, sub)
+	}
+	substSmall(s.L, sub)
+	substSmall(s.R, sub)
+	substSmall(s.Hi, sub)
+	for _, it := range s.Items {
+		substSmall(it, sub)
+	}
+	substSmall(s.Outcome, sub)
+}
+
+// substNode rewrites a match tree in place. ChainElse is source
+// text, not AST: templates mentioning params or generic calls
+// there are rejected at template validation, so nothing here
+// can hide a parameter.
+func substNode(n *Node, sub map[string]string) {
+	if n == nil {
+		return
+	}
+	for _, sc := range n.Scruts {
+		substSmall(sc, sub)
+	}
+	for _, a := range n.Arms {
+		substNode(a.Rhs, sub)
+	}
+	for _, g := range n.Given {
+		substSmall(g, sub)
+	}
+	substSmall(n.Small, sub)
+	for i := range n.ChainSteps {
+		substSmall(n.ChainSteps[i].Call, sub)
+		substSmall(n.ChainSteps[i].Guard, sub)
+		for _, g := range n.ChainSteps[i].Given {
+			substSmall(g, sub)
+		}
+	}
+	substNode(n.ChainTail, sub)
+}
+
+func cloneBig(n *big.Int) *big.Int {
+	if n == nil {
+		return nil
+	}
+	return new(big.Int).Set(n)
+}
+
+func cloneArgs(args []Arg) []Arg {
+	if args == nil {
+		return nil
+	}
+	out := make([]Arg, len(args))
+	for i, a := range args {
+		out[i] = Arg{Name: a.Name, HasName: a.HasName, V: cloneSmall(a.V)}
+	}
+	return out
+}
+
+// cloneSmall deep-copies an expression: every stamp owns its
+// whole tree, since checking annotates Small.T in place and
+// shared subtrees would cross-contaminate instances.
+func cloneSmall(s *Small) *Small {
+	if s == nil {
+		return nil
+	}
+	c := *s
+	c.Num = cloneBig(s.Num)
+	c.TypeArgs = append([]string{}, s.TypeArgs...)
+	c.Args = cloneArgs(s.Args)
+	c.L = cloneSmall(s.L)
+	c.R = cloneSmall(s.R)
+	c.Hi = cloneSmall(s.Hi)
+	if s.Items != nil {
+		c.Items = make([]*Small, len(s.Items))
+		for i, it := range s.Items {
+			c.Items[i] = cloneSmall(it)
+		}
+	}
+	c.Outcome = cloneSmall(s.Outcome)
+	return &c
+}
+
+func clonePattern(p Pattern) Pattern {
+	c := p
+	c.Num = cloneBig(p.Num)
+	c.Hi = cloneBig(p.Hi)
+	if p.Alts != nil {
+		c.Alts = make([]Pattern, len(p.Alts))
+		for i, a := range p.Alts {
+			c.Alts[i] = clonePattern(a)
+		}
+	}
+	return c
+}
+
+func cloneGiven(g map[string]*Small) map[string]*Small {
+	if g == nil {
+		return nil
+	}
+	out := make(map[string]*Small, len(g))
+	for k, v := range g {
+		out[k] = cloneSmall(v)
+	}
+	return out
+}
+
+func cloneNode(n *Node) *Node {
+	if n == nil {
+		return nil
+	}
+	c := *n
+	if n.Scruts != nil {
+		c.Scruts = make([]*Small, len(n.Scruts))
+		for i, s := range n.Scruts {
+			c.Scruts[i] = cloneSmall(s)
+		}
+	}
+	if n.Arms != nil {
+		c.Arms = make([]Arm, len(n.Arms))
+		for i, a := range n.Arms {
+			c.Arms[i] = Arm{Line: a.Line, Rhs: cloneNode(a.Rhs)}
+			if a.Pats != nil {
+				c.Arms[i].Pats = make([]Pattern, len(a.Pats))
+				for j, p := range a.Pats {
+					c.Arms[i].Pats[j] = clonePattern(p)
+				}
+			}
+		}
+	}
+	c.Given = cloneGiven(n.Given)
+	c.Small = cloneSmall(n.Small)
+	if n.ChainSteps != nil {
+		c.ChainSteps = make([]ChainStep, len(n.ChainSteps))
+		for i, st := range n.ChainSteps {
+			c.ChainSteps[i] = ChainStep{
+				Call:   cloneSmall(st.Call),
+				Binder: st.Binder,
+				Guard:  cloneSmall(st.Guard),
+				Given:  cloneGiven(st.Given),
+			}
+		}
+	}
+	c.ChainTail = cloneNode(n.ChainTail)
+	c.analysis = nil
+	return &c
+}
+
+func cloneTest(t Test) Test {
+	c := t
+	c.TypeBinds = append([][2]string{}, t.TypeBinds...)
+	c.Args = cloneArgs(t.Args)
+	c.Expected = cloneSmall(t.Expected)
+	return c
+}
+
+// stampGenerics replaces every template with its sorted stamps.
+// Each stamp substitutes its instance through signature and
+// body, keeps only its routed rows (binds stripped: stamps are
+// monomorphic), and inherits rev and line for error locality.
+// Substituted signature positions re-validate as closed types,
+// so Seq<T> at T=Seq<str> fails here with its instantiation
+// named instead of confusing downstream checks.
+func stampGenerics(gens map[string]*genericInfo, known map[string][][]string, types map[string]bool, mods []*Module, texts map[string]string) []Diag {
+	var out []Diag
+	variants := variantNames(mods)
+	for base, g := range gens {
+		for _, args := range known[base] {
+			sub := map[string]string{}
+			for i, p := range g.decl.TypeParams {
+				sub[p] = args[i]
+			}
+			check := func(t string) {
+				// Only param-mentioning positions validate
+				// here; closed positions keep their downstream
+				// codes (CAN6002 etc.) untouched.
+				mentions := false
+				if _, ok := sub[t]; ok {
+					mentions = true
+				} else if elem, ok := seqElemName(t); ok {
+					_, mentions = sub[elem]
+				}
+				if !mentions {
+					return
+				}
+				if err := closedArg(substType(t, sub), types, variants); err != nil {
+					d := spanDiag(texts[g.mod.ID], g.decl.Line, "error", fmt.Sprintf("generic %s at <%s>: %v", base, strings.Join(args, ","), err), base, CodeGenericExpand)
+					d.File = qualifiedFile(mods, g.mod)
+					out = append(out, d)
+				}
+			}
+			for _, p := range g.decl.Params {
+				check(p[1])
+			}
+			check(g.decl.Ret)
+		}
+	}
+	if len(out) > 0 {
+		return out
+	}
+	for base, g := range gens {
+		insts := append([][]string{}, known[base]...)
+		sort.Slice(insts, func(i, j int) bool {
+			return mangleInstance(base, insts[i]) < mangleInstance(base, insts[j])
+		})
+		// Row routing: each row's resolved args select its stamp.
+		byKey := map[string][]Test{}
+		for _, t := range g.decl.Tests {
+			idx := map[string]int{}
+			for i, p := range g.decl.TypeParams {
+				idx[p] = i
+			}
+			args := make([]string, len(g.decl.TypeParams))
+			for _, b := range t.TypeBinds {
+				args[idx[b[0]]] = b[1]
+			}
+			byKey[strings.Join(args, "\x00")] = append(byKey[strings.Join(args, "\x00")], t)
+		}
+		var stamps []Decl
+		for _, args := range insts {
+			sub := map[string]string{}
+			for i, p := range g.decl.TypeParams {
+				sub[p] = args[i]
+			}
+			st := &FnDecl{
+				Name:       mangleInstance(base, args),
+				Rev:        g.decl.Rev,
+				TypeParams: nil,
+				Ret:        substType(g.decl.Ret, sub),
+				Emits:      append([]string{}, g.decl.Emits...),
+				Effects:    append([]string{}, g.decl.Effects...),
+				DecNames:   append([]string{}, g.decl.DecNames...),
+				DecSchema:  g.decl.DecSchema,
+				Line:       g.decl.Line,
+			}
+			for _, p := range g.decl.Params {
+				st.Params = append(st.Params, [2]string{p[0], substType(p[1], sub)})
+			}
+			st.Body = cloneNode(g.decl.Body)
+			substNode(st.Body, sub)
+			for _, t := range byKey[strings.Join(args, "\x00")] {
+				rt := cloneTest(t)
+				rt.TypeBinds = nil
+				substTest(&rt, sub)
+				st.Tests = append(st.Tests, rt)
+			}
+			for _, r := range g.decl.Requires {
+				c := cloneSmall(r)
+				substSmall(c, sub)
+				st.Requires = append(st.Requires, c)
+			}
+			for _, a := range g.decl.Ensures {
+				ca := ContractArm{Outcome: a.Outcome, Bind: a.Bind, Line: a.Line}
+				for _, p := range a.Preds {
+					c := cloneSmall(p)
+					substSmall(c, sub)
+					ca.Preds = append(ca.Preds, c)
+				}
+				for _, m := range a.Matches {
+					c := cloneNode(m)
+					substNode(c, sub)
+					ca.Matches = append(ca.Matches, c)
+				}
+				st.Ensures = append(st.Ensures, ca)
+			}
+			stamps = append(stamps, st)
+		}
+		m := g.mod
+		decls := make([]Decl, 0, len(m.Decls)-1+len(stamps))
+		decls = append(decls, m.Decls[:g.pos]...)
+		decls = append(decls, stamps...)
+		decls = append(decls, m.Decls[g.pos+1:]...)
+		m.Decls = decls
+		if m.GenericBase == nil {
+			m.GenericBase = map[string]string{}
+		}
+		for _, args := range insts {
+			m.GenericBase[mangleInstance(base, args)] = base
+		}
+	}
+	return out
+}
+
+// substTest rewrites a routed row's args and expectation.
+func substTest(t *Test, sub map[string]string) {
+	for _, a := range t.Args {
+		substSmall(a.V, sub)
+	}
+	substSmall(t.Expected, sub)
+}
+
+// rewriteGenericCalls renames every generic call site to its
+// stamped copy. Monomorphic callers name concrete args
+// directly; stamps were substituted at stamping, so their
+// args are concrete here too.
+func rewriteGenericCalls(mods []*Module, gens map[string]*genericInfo) {
+	rewrite := func(s *Small) {
+		if s == nil || s.Kind != "call" || len(s.TypeArgs) == 0 {
+			return
+		}
+		if _, ok := gens[s.Fname]; !ok {
+			return
+		}
+		s.Fname = mangleInstance(s.Fname, s.TypeArgs)
+		s.TypeArgs = nil
+	}
+	var walk func(s *Small)
+	walk = func(s *Small) {
+		if s == nil {
+			return
+		}
+		rewrite(s)
+		for _, a := range s.Args {
+			walk(a.V)
+		}
+		walk(s.L)
+		walk(s.R)
+		walk(s.Hi)
+		for _, it := range s.Items {
+			walk(it)
+		}
+		walk(s.Outcome)
+	}
+	var walkNode func(n *Node)
+	walkNode = func(n *Node) {
+		if n == nil {
+			return
+		}
+		for _, sc := range n.Scruts {
+			walk(sc)
+		}
+		for _, a := range n.Arms {
+			walkNode(a.Rhs)
+		}
+		for _, g := range n.Given {
+			walk(g)
+		}
+		walk(n.Small)
+		for i := range n.ChainSteps {
+			walk(n.ChainSteps[i].Call)
+			walk(n.ChainSteps[i].Guard)
+			for _, g := range n.ChainSteps[i].Given {
+				walk(g)
+			}
+		}
+		walkNode(n.ChainTail)
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			walkNode(fn.Body)
+			for i := range fn.Tests {
+				for _, a := range fn.Tests[i].Args {
+					walk(a.V)
+				}
+				walk(fn.Tests[i].Expected)
+			}
+			for _, r := range fn.Requires {
+				walk(r)
+			}
+			for _, a := range fn.Ensures {
+				for _, p := range a.Preds {
+					walk(p)
+				}
+				for _, mt := range a.Matches {
+					walkNode(mt)
+				}
+			}
+		}
+		everyModuleSmall(m, func(st smallSite) { walk(st.s) })
+	}
+}
+
+// rewriteGenericHeaders swaps base names for stamps in provides
+// and per-module used stamps in uses. Runs before call
+// rewriting, so used sets read TypeArgs directly. A base pin no
+// body instantiates drops with the same warning a dead
+// monomorphic pin gets (CodeUnusedUses, same severity).
+func rewriteGenericHeaders(mods []*Module, gens map[string]*genericInfo, known map[string][][]string, texts map[string]string, out *[]Diag) {
+	for base, g := range gens {
+		var stamps []string
+		for _, args := range known[base] {
+			stamps = append(stamps, mangleInstance(base, args))
+		}
+		sort.Strings(stamps)
+		var provides []string
+		for _, p := range g.mod.Hdr["provides"] {
+			if p == base {
+				provides = append(provides, stamps...)
+			} else {
+				provides = append(provides, p)
+			}
+		}
+		g.mod.Hdr["provides"] = provides
+	}
+	for _, m := range mods {
+		used := map[string]map[string]bool{}
+		note := func(s *Small) {
+			if s == nil || s.Kind != "call" || len(s.TypeArgs) == 0 {
+				return
+			}
+			if _, ok := gens[s.Fname]; !ok {
+				return
+			}
+			if used[s.Fname] == nil {
+				used[s.Fname] = map[string]bool{}
+			}
+			used[s.Fname][mangleInstance(s.Fname, s.TypeArgs)] = true
+		}
+		// Same positions calledFns polices: leaf Smalls plus
+		// MatchCall scrutinees. Test-arg and script calls need
+		// no pins, exactly like monomorphic calls.
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			bodySmalls(fn.Body, func(s *Small, line int) { note(s) })
+			for _, n := range matchNodes(fn.Body) {
+				if n.Kind == MatchCall && len(n.Scruts) > 0 {
+					note(n.Scruts[0])
+				}
+			}
+		}
+		var uses []string
+		for _, u := range m.Hdr["uses"] {
+			base := pinRe.ReplaceAllString(u, "")
+			if _, ok := gens[base]; !ok {
+				uses = append(uses, u)
+				continue
+			}
+			set := used[base]
+			if len(set) == 0 {
+				d := spanDiag(texts[m.ID], locateLine(texts[m.ID], u, 1), "warning",
+					fmt.Sprintf("uses %s but %s never instantiates it", u, m.Mod), u, CodeUnusedUses)
+				d.File = qualifiedFile(mods, m)
+				*out = append(*out, d)
+				continue
+			}
+			suffix := ""
+			if i := strings.LastIndex(u, "@"); i >= 0 {
+				suffix = u[i:]
+			}
+			var mangled []string
+			for stamp := range set {
+				mangled = append(mangled, stamp+suffix)
+			}
+			sort.Strings(mangled)
+			uses = append(uses, mangled...)
+		}
+		m.Hdr["uses"] = uses
+	}
+}

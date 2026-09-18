@@ -226,6 +226,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `on Ok r => forward call db__get(r.id) to a uses-pinned callee, or forward call with a malformed call.`,
 		fix:     "Call same-file locals only (foreign calls need given tables, so they keep their match). Undeclared forwarded kinds report as CAN4001, like handwritten relays.",
 	},
+	CodeGenericExpand: {
+		rule:    "Explicit generics stamp one monomorphic copy per distinct instantiation before checking: complete type arguments at every use, no inference, no nesting in G1 (CAN3014).",
+		violate: `a generic call missing arguments, a row pinning an unknown parameter, a nested Box<str> argument, or a generic nobody instantiates.`,
+		fix:     "Name every argument at every use site (calls and rows); keep arguments to known monomorphic types; give every generic at least one row. The message names the site and the missing piece.",
+	},
 	CodeUndeclaredEffect: {
 		rule:    "State authority is declared beside emits: effects [C.read, C.write], transitive through local calls, no inference (R6).",
 		violate: `touching Count__total with no effects line, or via a helper whose authority you did not declare.`,

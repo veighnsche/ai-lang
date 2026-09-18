@@ -412,6 +412,17 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 		}
 	}
 	all, texts = usesFallback(dir, all, texts)
+	// G1 expansion, same position as the CLI pipeline: stamps
+	// replace templates before any static check runs.
+	if diags := expandGenerics(all, texts); len(diags) > 0 {
+		out = append(out, diags...)
+		for _, d := range diags {
+			if d.Sev == "error" {
+				sortDiags(out)
+				return withFile(out, name)
+			}
+		}
+	}
 	out = append(out, checkStatic(open, text)...)
 	prog, world := buildWorld(open, all, texts)
 	out = append(out, world...)
@@ -491,8 +502,15 @@ func checkStatic(open *Module, text string) []Diag {
 			continue
 		}
 		if len(fn.Tests) == 0 {
+			// Stamps name their instance: a rowless instance is
+			// missing evidence for one shape, not an untested
+			// function, and the fix is a row pinning it.
+			who := fn.Name
+			if base, ok := open.GenericBase[fn.Name]; ok {
+				who = describeStamp(fn.Name, base)
+			}
 			out = append(out, spanDiag(text, fn.Line, "error",
-				fmt.Sprintf("%s ships no tests: every function needs its decision table", fn.Name), fn.Name, CodeMissingTests))
+				fmt.Sprintf("%s ships no tests: every function needs its decision table", who), fn.Name, CodeMissingTests))
 		}
 		out = append(out, resolveTestArgs(fn, text)...)
 		out = append(out, checkTestShapes(fn, text)...)

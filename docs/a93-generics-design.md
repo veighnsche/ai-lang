@@ -147,3 +147,46 @@ harness executes and how goldens pin generic shapes.
 (a) `select` family only (4→1) [recommended: smallest
 proof] or (b) `select` + `compare` (8→2, same
 machinery, stronger demonstration).
+
+## Implementation amendments (G1 expansion, same day)
+
+Found while building `compiler/expand.go`; all within
+the verdict unless noted:
+
+1. **Per-stamp coverage.** Decision-table coverage
+   (CAN4107) applies per stamp: rows must cover every
+   arm of every instance. Row routing splits evidence,
+   so a two-arm generic needs both arms rowed per
+   pinned shape. Unification preserves this naturally
+   (moved rows already cover their stamp).
+2. **Rowless stamps keep CAN3301.** An instance nobody
+   rows is missing evidence for one shape; the message
+   names base and args (`generic m__inner at <int>
+   ships no tests`), not the mangled stamp. Pass-through
+   composition works when the callee carries rows; the
+   expansion fixpoint stays load-bearing for stamping
+   (and precise erroring of) every called instance.
+3. **Charset disjointness.** Params forbid `_` while
+   every type name requires `__`: collision with the
+   type namespaces is grammatically impossible, so no
+   check exists for it (only value-param shadowing is
+   rejected).
+4. **`-> T` shape limits (v0, not generics).** One body
+   text cannot serve bare and record instances (`Ok`
+   constructs into record returns, identities bare
+   ones), and callers cannot consume bare returns
+   (`on Ok v` misbinds them — probed, pre-existing).
+   The bare-caller gap belongs to the outcomes design,
+   not G1. Consequence for Q2: `compare` (concrete
+   record return) is certain; `select` is attempted in
+   the same slice iff its all-bare stamps go green on
+   rows alone (zero in-repo callers either way).
+   Amendment verdict (principal, same day): proceed
+   compare-first, select iff green.
+5. **Headers expand with calls.** Expansion rewrites
+   `provides` (base → sorted stamps) and per-module
+   `uses` (base pin → used mangled pins, same rev) in
+   AST only; source text keeps base names for
+   text-level tools. Dead base pins warn CAN3401 like
+   dead monomorphic pins. Missing-pin errors name the
+   base, never the stamp.

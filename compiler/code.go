@@ -50,6 +50,7 @@ const (
 	CodeBadForward               = "CAN3011"
 	CodeChainElab                = "CAN3012"
 	CodeBadForwardCall           = "CAN3013"
+	CodeGenericExpand            = "CAN3014"
 	CodeUndeclaredEffect         = "CAN3107"
 	CodeStaleEffect              = "CAN3108"
 	CodeNoGiven                  = "CAN3101"
@@ -137,7 +138,7 @@ var allCodes = []string{
 	CodeDupFn, CodeDupSibling, CodeDupVariant, CodeCaseCollision, CodeDupConst,
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
-	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab, CodeBadForwardCall,
+	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab, CodeBadForwardCall, CodeGenericExpand,
 	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeGivenOnLocal,
 	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript, CodeGivenDashRetired,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind, CodeBadPositional,

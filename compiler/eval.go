@@ -325,6 +325,11 @@ type Program struct {
 	EmitsOf   map[string][]string
 	Uses      map[string]bool
 	Modules   []*Module
+	// GenericBase maps stamped fn names to their generic base
+	// (G1 expansion, merged from modules by buildWorld). Nil
+	// when no generic was stamped. Checkers consult it only
+	// for base-name diagnostics; linking uses stamps.
+	GenericBase map[string]string
 	// Variants maps variant name to its declaration (a73);
 	// Cases maps a qualified case name to its parent
 	// variant. Case identities are globally unique by
@@ -1911,7 +1916,9 @@ func checkNaming(m *Module, text string) []Diag {
 			if d.Name == "state__get" || d.Name == "state__put" {
 				out = append(out, spanDiag(text, d.Line, "error",
 					fmt.Sprintf("name %q is reserved for store operations", d.Name), d.Name, CodeFnNaming))
-			} else if !fnNameRe.MatchString(d.Name) {
+			} else if _, isStamp := m.GenericBase[d.Name]; !isStamp && !fnNameRe.MatchString(d.Name) {
+				// Stamps ($-mangled) never appear in source, so
+				// source naming grammar does not apply to them.
 				out = append(out, spanDiag(text, d.Line, "error",
 					fmt.Sprintf("function name %q must match domain__verb", d.Name), d.Name, CodeFnNaming))
 			}

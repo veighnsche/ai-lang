@@ -388,6 +388,9 @@ type Module struct {
 	Mod   string
 	Hdr   map[string][]string
 	Decls []Decl
+	// GenericBase maps stamped names to their generic base
+	// (G1 expansion). Nil for modules without generics.
+	GenericBase map[string]string
 }
 
 // ---------------------------------------------------------- scanning -------

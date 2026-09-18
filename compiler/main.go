@@ -439,6 +439,16 @@ func sanitizeStem(id string) string {
 // runs. pass fires per passing test. Execution-dependent phases are
 // skipped on a dirty world, mirroring the editor.
 func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pass func(mod, fn, test string)) (*Program, []Diag) {
+	// G1 expansion first: templates become monomorphic stamps,
+	// so every phase below consumes plain checked shapes.
+	if diags := expandGenerics(mods, texts); len(diags) > 0 {
+		collected = append(collected, diags...)
+		for _, d := range diags {
+			if d.Sev == "error" {
+				return nil, collected
+			}
+		}
+	}
 	for _, m := range mods {
 		collected = append(collected, checkStatic(m, texts[m.ID])...)
 	}

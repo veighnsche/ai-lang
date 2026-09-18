@@ -112,6 +112,12 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 		Modules: mods, FnFile: map[string]string{}, BrandFile: map[string]string{},
 		Variants: map[string]*VariantDecl{}, Cases: map[string]string{},
 		Consts: map[string]*ConstDecl{}, ConstFile: map[string]string{},
+		GenericBase: map[string]string{},
+	}
+	for _, m := range mods {
+		for stamp, base := range m.GenericBase {
+			prog.GenericBase[stamp] = base
+		}
 	}
 	provides := map[string]*Module{}
 	emit := func(m *Module, d Diag) {
@@ -744,8 +750,12 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 				continue
 			}
 			if !prog.Uses[fname] {
+				show := fname
+				if base, ok := prog.GenericBase[fname]; ok {
+					show = base
+				}
 				out = append(out, spanDiag(text, m.Line, "error",
-					fmt.Sprintf("%s calls %s which is not in uses: add name@rev to uses", fn.Name, fname), fname, CodeCallNotInUses))
+					fmt.Sprintf("%s calls %s which is not in uses: add name@rev to uses", fn.Name, show), show, CodeCallNotInUses))
 			}
 		}
 	}
