@@ -55,10 +55,7 @@ function $ailSeqAt<T>(a: T[], i: bigint): T {
   return a[k];
 }
 export function schema__role__check(role: string): { $ail_kind: "ok"; value: boolean } {
-  if (role === "stylesheet") {
-    return { $ail_kind: "ok", value: true };
-  }
-  else if (role === "script") {
+  if ((role === "stylesheet" || role === "script")) {
     return { $ail_kind: "ok", value: true };
   }
   return { $ail_kind: "ok", value: false };
@@ -77,32 +74,10 @@ export function schema__url__prefix(url: string): { $ail_kind: "ok"; value: bool
   }
 }
 export function schema__url__ws(code: bigint): { $ail_kind: "ok"; value: boolean } {
-  if ((code === 9n)) {
+  if ((code === 9n || code === 10n || code === 12n || code === 13n || code === 32n)) {
     return { $ail_kind: "ok", value: true };
   }
-  else {
-    if ((code === 10n)) {
-      return { $ail_kind: "ok", value: true };
-    }
-    else {
-      if ((code === 12n)) {
-        return { $ail_kind: "ok", value: true };
-      }
-      else {
-        if ((code === 13n)) {
-          return { $ail_kind: "ok", value: true };
-        }
-        else {
-          if ((code === 32n)) {
-            return { $ail_kind: "ok", value: true };
-          }
-          else {
-            return { $ail_kind: "ok", value: false };
-          }
-        }
-      }
-    }
-  }
+  return { $ail_kind: "ok", value: false };
 }
 export function schema__url__tail_check(s: string, n: bigint, in_authority: boolean): { $ail_kind: "ok"; value: boolean } {
   if ((n <= 0n)) {

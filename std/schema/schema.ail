@@ -155,8 +155,7 @@ fn schema__role__check(role: str) -> Schema__BoolResult rev 1
     role_upper(role = "Stylesheet") => Ok(value = false)
 =
   match role
-    "stylesheet" => Ok(value = true)
-    "script" => Ok(value = true)
+    "stylesheet" | "script" => Ok(value = true)
     _ => Ok(value = false)
 
 // Absolute-HTTPS gate: exactly lowercase https, nothing else present or
@@ -196,17 +195,9 @@ fn schema__url__ws(code: int) -> Schema__BoolResult rev 1
     ws_slash(code = 47) => Ok(value = false)
     ws_letter(code = 97) => Ok(value = false)
 =
-  match code == 9
-    true => Ok(value = true)
-    false => match code == 10
-      true => Ok(value = true)
-      false => match code == 12
-        true => Ok(value = true)
-        false => match code == 13
-          true => Ok(value = true)
-          false => match code == 32
-            true => Ok(value = true)
-            false => Ok(value = false)
+  match code
+    9 | 10 | 12 | 13 | 32 => Ok(value = true)
+    _ => Ok(value = false)
 
 // URL tail scan: no NUL, no other C0 control, no DEL, no fragment, no
 // backslash, no ASCII whitespace, no userinfo (@ before the first /),
@@ -299,20 +290,14 @@ fn schema__tokens__check(id: str, revision: str, site: Schema__Site) -> Schema__
     tokens_bad_module(id = "app-css", revision = "1.0.0", site = Schema__Site(program = "shop", module = "pa|ges", function = "home")) => Ok(value = false)
     tokens_bad_function(id = "app-css", revision = "1.0.0", site = Schema__Site(program = "shop", module = "pages", function = "ho|me")) => Ok(value = false)
 =
-  match call schema__token__check(id, #id)
-    on Ok a => match a.value
-      true => match call schema__token__check(revision, #revision)
-        on Ok b => match b.value
-          true => match call schema__token__check(site.program, #site.program)
-            on Ok c => match c.value
-              true => match call schema__token__check(site.module, #site.module)
-                on Ok d => match d.value
-                  true => match call schema__token__check(site.function, #site.function)
-                    on Ok e => Ok(value = e.value)
-                  false => Ok(value = false)
-              false => Ok(value = false)
-          false => Ok(value = false)
-      false => Ok(value = false)
+  match chain
+    call schema__token__check(id, #id) as a when a.value
+    call schema__token__check(revision, #revision) as b when b.value
+    call schema__token__check(site.program, #site.program) as c when c.value
+    call schema__token__check(site.module, #site.module) as d when d.value
+    call schema__token__check(site.function, #site.function) as e
+    then Ok(value = e.value)
+    else Ok(value = false)
 
 // SRI digest alphabet: standard base64 plus padding. One arm carries the
 // three symbols and the three ranges; the wildcard rejects. Every range
@@ -351,11 +336,11 @@ fn schema__digest__tail(s: str, n: int) -> Schema__BoolResult rev 1
 =
   match n <= 0
     true => Ok(value = true)
-    false => match call schema__digest__char(s[0])
-      on Ok c => match c.value
-        true => match call schema__digest__tail(s[1:#s], n - 1)
-          on Ok r => Ok(value = r.value)
-        false => Ok(value = false)
+    false => match chain
+      call schema__digest__char(s[0]) as c when c.value
+      call schema__digest__tail(s[1:#s], n - 1) as r
+      then Ok(value = r.value)
+      else Ok(value = false)
 
 // First integrity profile: exactly one SHA-384 digest in canonical SRI
 // form ("sha384-" plus 64 base64 scalars; 48 bytes need no padding, but the
