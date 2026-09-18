@@ -28,7 +28,6 @@ fn client__success(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
     good("41") => Ok(value = Bytes(Seq<int>[65]))
-=
   match call std__hex__decode(value = value)
     given
       good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
@@ -40,7 +39,6 @@ fn client__failure(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
     bad("zz") => encoding.invalid_hex(value = "zz")
-=
   match call std__hex__decode(value = value)
     given
       good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
@@ -83,7 +81,6 @@ fn client__success(value: str) -> Bytes__Value rev 1
   tests
     good("41") => Ok(value = Bytes(Seq<int>[65]))
     bad("zz") => encoding.invalid_hex(value = "zz")
-=
   match call std__hex__decode(value = value)
     given
       good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
@@ -96,7 +93,6 @@ fn client__failure(value: str) -> Bytes__Value rev 1
   tests
     bad("zz") => encoding.invalid_hex(value = "zz")
     good("41") => Ok(value = Bytes(Seq<int>[65]))
-=
   match call std__hex__decode(value = value)
     given
       good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))

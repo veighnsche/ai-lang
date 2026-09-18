@@ -16,5 +16,4 @@ fn hello__world() -> Hello__Message rev 1
   emits []
   tests
     greeting() => Ok(text = "Hello, world!")
-=
   Ok(text = "Hello, world!")

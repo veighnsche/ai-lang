@@ -26,7 +26,6 @@ fn m__go(a: M__B) -> M__BOut rev 1
   emits []
   tests
     go(seal M__B("x")) => Ok(v = seal M__B("xy"))
-=
   Ok(v = a + seal M__B("y"))
 `
 

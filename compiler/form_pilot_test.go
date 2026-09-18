@@ -37,7 +37,6 @@ fn form__message(state: Form__State) -> Form__Out rev 1
     empty(Form__Empty()) => Ok(message = "Start typing")
     editing(Form__Editing(draft = Form__Draft(name = "Al"))) => Ok(message = "Draft: Al")
     submitted(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo")
-=
   match state
     on Form__Empty _ => Ok(message = "Start typing")
     on Form__Editing d => Ok(message = "Draft: " + d.draft.name)
@@ -59,7 +58,6 @@ fn shell__greet(state: Form__State) -> Shell__Out rev 1
   tests
     e(Form__Empty()) => Ok(message = "Start typing", echo = Form__Empty())
     s(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))
-=
   match call form__message(state)
     given
       e => [exchange args (state = Form__Empty()) outcome Ok(message = "Start typing")]

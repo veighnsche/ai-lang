@@ -19,7 +19,6 @@ fn auth__need(id: str) -> Auth__Need rev 1
     ok(id = "u") => Ok(id = "u")
     missing(id = "x") => auth.bad()
     down(id = "u") => auth.bad
-=
   match call db__get(id)
     given
       ok => [exchange args (id = "u") outcome Ok(id = "u", pw_hash = "s", failed_attempts = 0)]

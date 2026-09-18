@@ -18,7 +18,6 @@ fn m__noop(value: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 
@@ -77,7 +76,6 @@ fn c__noop(value: int) -> C__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	}

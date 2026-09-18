@@ -24,7 +24,6 @@ fn fizz__label(n: int) -> Fizz__Label rev 1
     buzz(5) => Ok(word = "Buzz", n = 5)
     plain(7) => Ok(word = "", n = 7)
     plain_two_digits(41) => Ok(word = "", n = 41)
-=
   match n % 3 == 0, n % 5 == 0
     true, true => Ok(word = "FizzBuzz", n = n)
     true, false => Ok(word = "Fizz", n = n)

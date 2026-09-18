@@ -153,7 +153,6 @@ fn schema__role__check(role: str) -> Schema__BoolResult rev 1
     role_preload("preload") => Ok(value = false)
     role_empty("") => Ok(value = false)
     role_upper("Stylesheet") => Ok(value = false)
-=
   match role
     "stylesheet" | "script" => Ok(value = true)
     _ => Ok(value = false)
@@ -173,7 +172,6 @@ fn schema__url__prefix(url: str) -> Schema__BoolResult rev 1
     prefix_relative("/app.css") => Ok(value = false)
     prefix_protocol_relative("//cdn.example/app.css") => Ok(value = false)
     prefix_data("data:text/css,hi") => Ok(value = false)
-=
   match #url < 8
     true => Ok(value = false)
     false => match url[0:8] == "https://"
@@ -196,7 +194,6 @@ fn schema__url__ws(code: int) -> Schema__BoolResult rev 1
     ws_nul(0) => Ok(value = false)
     ws_slash(47) => Ok(value = false)
     ws_letter(97) => Ok(value = false)
-=
   match code
     9 | 10 | 12 | 13 | 32 => Ok(value = true)
     _ => Ok(value = false)
@@ -239,7 +236,6 @@ fn schema__url__tail_check(s: str, n: int, in_authority: bool) -> Schema__BoolRe
     tail_nul("/a b", 4, false) => Ok(value = false)
     tail_ctrl("/ab", 4, false) => Ok(value = false)
     tail_del("/ab", 4, false) => Ok(value = false)
-=
   match n <= 0
     true => Ok(value = true)
     false => match s[0]
@@ -264,7 +260,6 @@ fn schema__token__check(s: str, n: int) -> Schema__BoolResult rev 1
     token_clean("1.0.0", 5) => Ok(value = true)
     token_pipe("a|b", 3) => Ok(value = false)
     token_nul("a b", 3) => Ok(value = false)
-=
   match n <= 0
     true => Ok(value = true)
     false => match s[0]
@@ -284,7 +279,6 @@ fn schema__tokens__check(id: str, revision: str, site: Schema__Site) -> Schema__
     tokens_bad_program("app-css", "1.0.0", Schema__Site(program = "sh|op", module = "pages", function = "home")) => Ok(value = false)
     tokens_bad_module("app-css", "1.0.0", Schema__Site(program = "shop", module = "pa|ges", function = "home")) => Ok(value = false)
     tokens_bad_function("app-css", "1.0.0", Schema__Site(program = "shop", module = "pages", function = "ho|me")) => Ok(value = false)
-=
   match chain
     call schema__token__check(id, #id) as a when a.value
     call schema__token__check(revision, #revision) as b when b.value
@@ -314,7 +308,6 @@ fn schema__digest__char(code: int) -> Schema__BoolResult rev 1
     char_lower_z(122) => Ok(value = true)
     char_above_upper(91) => Ok(value = false)
     char_above_lower(123) => Ok(value = false)
-=
   match code
     43 | 47 | 61 | 48..57 | 65..90 | 97..122 => Ok(value = true)
     _ => Ok(value = false)
@@ -328,7 +321,6 @@ fn schema__digest__tail(s: str, n: int) -> Schema__BoolResult rev 1
     dtail_zero_budget("AB", 0) => Ok(value = true)
     dtail_good("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64) => Ok(value = true)
     dtail_bad("AAAAAAAAAAAA-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 64) => Ok(value = false)
-=
   match n <= 0
     true => Ok(value = true)
     false => match chain
@@ -350,7 +342,6 @@ fn schema__digest__check(digest: str) -> Schema__BoolResult rev 1
     digest_sha256("sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
     digest_bare("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
     digest_badchar("sha384-AAAAAAAAAAAA-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA") => Ok(value = false)
-=
   match #digest == 71
     true => match digest[0:7] == "sha384-"
       true => match call schema__digest__tail(digest[7:#digest], 64)
@@ -369,7 +360,6 @@ fn schema__entry__matches(entry: Schema__RegistryEntry, request: Schema__AssetRe
     entry_hit(schema__ENTRY_CSS, schema__REQ_CSS, schema__SITE_HOME) => Ok(value = true)
     entry_url_miss(schema__ENTRY_CSS, Schema__AssetRequest(id = "app-css", revision = "1.0.0", url = "https://cdn.example/other.css", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "stylesheet"), schema__SITE_HOME) => Ok(value = false)
     entry_site_miss(schema__ENTRY_CSS, schema__REQ_CSS, schema__SITE_ADMIN) => Ok(value = false)
-=
   match entry.id == request.id, entry.revision == request.revision, entry.url == request.url, entry.digest == request.digest, entry.role == request.role, entry.program == site.program, entry.module == site.module, entry.function == site.function
     true, true, true, true, true, true, true, true => Ok(value = true)
     _, _, _, _, _, _, _, _ => Ok(value = false)
@@ -388,7 +378,6 @@ fn schema__snapshot__scan(entries: Seq<Schema__RegistryEntry>, request: Schema__
     scan_single(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 2) => Ok(first = 0, count = 1)
     scan_nomatch(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 2) => Ok(first = 1, count = 0)
     scan_conflict(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9), Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], schema__REQ_A, schema__SITE_P, 0, 3) => Ok(first = 0, count = 2)
-=
   match fuel <= 0
     true => Ok(first = position, count = 0)
     false => match position < #entries
@@ -405,7 +394,6 @@ fn schema__snapshot__entry_at(entries: Seq<Schema__RegistryEntry>, position: int
   emits []
   tests
     entry_at_first(Seq<Schema__RegistryEntry>[Schema__RegistryEntry(id = "a", revision = "1", url = "https://h/a", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9), Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9)], 1) => Ok(entry = Schema__RegistryEntry(id = "b", revision = "1", url = "https://h/b", digest = "d", role = "stylesheet", program = "p", module = "m", function = "f", not_before = 0, not_after = 9))
-=
   Ok(entry = entries[position])
 
 // Revocation membership: a retained revocation for this exact id+revision
@@ -419,7 +407,6 @@ fn schema__revoked__contains(revoked: Seq<Schema__Revoked>, id: str, revision: s
     revoked_empty(Seq<Schema__Revoked>[], "a", "1", 0, 1) => Ok(value = false)
     revoked_hit(Seq<Schema__Revoked>[Schema__Revoked(id = "b", revision = "2"), Schema__Revoked(id = "a", revision = "1")], "a", "1", 0, 3) => Ok(value = true)
     revoked_miss(Seq<Schema__Revoked>[Schema__Revoked(id = "b", revision = "2")], "a", "1", 0, 2) => Ok(value = false)
-=
   match fuel <= 0
     true => Ok(value = false)
     false => match position < #revoked
@@ -434,7 +421,6 @@ fn schema__revoked__entry_at(revoked: Seq<Schema__Revoked>, position: int) -> Sc
   emits []
   tests
     revoked_at_first(Seq<Schema__Revoked>[Schema__Revoked(id = "a", revision = "1")], 0) => Ok(entry = Schema__Revoked(id = "a", revision = "1"))
-=
   Ok(entry = revoked[position])
 
 // Policy handle minting. This proves nothing: the handle is evidence of the
@@ -460,7 +446,6 @@ fn schema__asset__recheck(request: Schema__AssetRequest, snapshot: Schema__Regis
     recheck_mixed_policy(schema__REQ_CSS, schema__SNAP_OK, seal Schema__AssetPolicy("shop|dev"), schema__SITE_HOME, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
     recheck_wrong_site(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_ADMIN, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
     recheck_stale(schema__REQ_CSS, schema__SNAP_STALE, schema__POLICY_PROD, schema__SITE_HOME, 7, 150, seal Schema__ApprovedAsset("app-css|1.0.0|https://cdn.example/app.css|sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|stylesheet|shop|pages|home")) => schema.asset_not_approved(asset = schema__REQ_CSS)
-=
   match call schema__asset__approve(request, snapshot, policy, site, head, t)
     on Ok a => match a.approval == asset
       true => Ok(value = true)
@@ -472,7 +457,6 @@ fn schema__policy__admit(program: str, policy: str) -> Schema__PolicyResult rev 
   tests
     admit_prod("shop", "prod") => Ok(policy = seal Schema__AssetPolicy("shop|prod"))
     admit_dev("shop", "dev") => Ok(policy = seal Schema__AssetPolicy("shop|dev"))
-=
   Ok(policy = seal Schema__AssetPolicy(program + "|" + policy))
 
 // Construction-time authorization: the single gate that mints ApprovedAsset.
@@ -510,7 +494,6 @@ fn schema__asset__approve(request: Schema__AssetRequest, snapshot: Schema__Regis
     approve_not_yet(schema__REQ_CSS, schema__SNAP_OK, schema__POLICY_PROD, schema__SITE_HOME, 7, 99) => schema.asset_not_approved(asset = schema__REQ_CSS)
     approve_no_transitive(Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"), schema__SNAP_JS, schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = Schema__AssetRequest(id = "app-chunk", revision = "2.0.0", url = "https://cdn.example/chunk.js", digest = "sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", role = "script"))
     approve_conflict(schema__REQ_CSS, Schema__RegistrySnapshot(program = "shop", policy = schema__POLICY_PROD, sequence = 7, entries = Seq<Schema__RegistryEntry>[schema__ENTRY_CSS, schema__ENTRY_CSS], revoked = Seq<Schema__Revoked>[]), schema__POLICY_PROD, schema__SITE_HOME, 7, 150) => schema.asset_not_approved(asset = schema__REQ_CSS)
-=
   match snapshot.policy == policy and snapshot.program == site.program and snapshot.sequence == head
     true => match chain
       call schema__role__check(request.role) as rc when rc.value

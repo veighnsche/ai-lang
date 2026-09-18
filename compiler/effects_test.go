@@ -26,7 +26,6 @@ fn m__bump(by: int) -> M__T rev 1
   emits []
   tests
     three(3) => Ok(total = 3)
-=
   match call state__get(M__C)
     on Ok c => match call state__put(M__C, c.value + by)
       on Ok _ => Ok(total = c.value + by)
@@ -78,7 +77,6 @@ fn m__help(by: int) -> M__T rev 1
   emits []
   tests
     h(1) => Ok(total = 1)
-=
   match call state__get(M__C)
     on Ok c => match call state__put(M__C, c.value + by)
       on Ok _ => Ok(total = c.value + by)
@@ -87,7 +85,6 @@ fn m__go(by: int) -> M__T rev 1
   emits []
   tests
     g(1) => Ok(total = 1)
-=
   match call m__help(by)
     on Ok s => Ok(total = s.total)
 `
@@ -197,7 +194,6 @@ fn state__get() -> M__T rev 1
   emits []
   tests
     q() => Ok(total = 0)
-=
   Ok(total = 0)
 `
 	reserved = strings.Replace(reserved,
@@ -225,7 +221,6 @@ fn p__do(by: int) -> P__T rev 1
   emits []
   tests
     t(1) => Ok(total = 1)
-=
   match call state__get(P__C)
     on Ok c => match call state__put(P__C, c.value + by)
       on Ok _ => Ok(total = c.value + by)
@@ -244,7 +239,6 @@ fn c__go(by: int) -> C__T rev 1
   emits []
   tests
     g(1) => Ok(total = 1)
-=
   match call p__do(by)
     given
       g => [exchange args (by = 1) outcome Ok(total = 1)]
@@ -309,7 +303,6 @@ fn m__flag(by: int) -> M__T rev 1
   emits []
   tests
     on(1) => Ok(total = 1)
-=
   match call state__put(M__Flag, true)
     on Ok _ => match call state__get(M__Flag)
       on Ok c => Ok(total = by)
@@ -338,7 +331,6 @@ fn ` + fn + `() -> ` + typ + ` rev 1
   emits []
   tests
     g() => Ok(total = ` + want + `)
-=
   match call state__get(Shrd__C)
     on Ok c => Ok(total = c.value)
 `

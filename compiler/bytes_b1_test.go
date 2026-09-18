@@ -26,7 +26,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Bytes(Seq<int>[]))
-=
   Ok(vals = Bytes(Seq<int>[]))
 `
 
@@ -57,14 +56,12 @@ fn m__id(x: Bytes) -> M__Out rev 1
   emits []
   tests
     id(Bytes(Seq<int>[1])) => Ok(vals = Bytes(Seq<int>[1]))
-=
   Ok(vals = x)
 
 fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Bytes(Seq<int>[2]))
-=
   match call m__id(Bytes(Seq<int>[2]))
     on Ok r => Ok(vals = r.vals)
 `
@@ -87,14 +84,12 @@ fn m__mk() -> B__Out rev 1
   emits []
   tests
     mk() => Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0]), Bytes(Seq<int>[255])])
-=
   Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0]), Bytes(Seq<int>[255])])
 
 fn m__go() -> B__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0]), Bytes(Seq<int>[1])])
-=
   Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0])] + Bytes(Seq<int>[1]))
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
@@ -115,7 +110,6 @@ fn m__go() -> B__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0])])
-=
   Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0])] + "s")
 `, "Bytes"},
 		{"elem mismatch", `mod m
@@ -131,7 +125,6 @@ fn m__go() -> B__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0])])
-=
   Ok(vals = Seq<int>[0])
 `, "Seq<Bytes>"},
 	} {
@@ -159,7 +152,6 @@ fn m__go() -> M__Pair rev 1
   emits []
   tests
     go() => Ok(a = Bytes(Seq<int>[0, 255]), b = Bytes(Seq<int>[1]))
-=
   Ok(a = Bytes(Seq<int>[0, 255]), b = Bytes(Seq<int>[1]))
 `
 	seqClean(t, map[string]string{"m.can": rec}, "m.can")
@@ -181,7 +173,6 @@ fn m__go() -> M__Outer rev 1
   emits []
   tests
     go() => Ok(inner = M__Inner(vals = Bytes(Seq<int>[7])), tag = "t")
-=
   Ok(inner = M__Inner(vals = Bytes(Seq<int>[7])), tag = "t")
 `
 	seqClean(t, map[string]string{"m.can": nested}, "m.can")
@@ -201,7 +192,6 @@ fn m__go(flag: bool) -> M__Out rev 1
   tests
     hit(true) => m.boom(value = Bytes(Seq<int>[9]))
     miss(false) => Ok(vals = Bytes(Seq<int>[]))
-=
   match flag
     true => m.boom(value = Bytes(Seq<int>[9]))
     false => Ok(vals = Bytes(Seq<int>[]))
@@ -225,7 +215,6 @@ fn lib__byte(flag: bool) -> L__Out rev 1
   emits []
   tests
     go(true) => Ok(vals = Bytes(Seq<int>[0, 255]))
-=
   Ok(vals = Bytes(Seq<int>[0, 255]))
 `
 
@@ -242,7 +231,6 @@ fn app__go(flag: bool) -> A__Out rev 1
   emits []
   tests
     lie(true) => Ok(vals = Bytes(Seq<int>[0]))
-=
   match call lib__byte(flag)
     given
       lie => [exchange args (flag = true) outcome Ok(vals = Bytes(Seq<int>[0]))]
@@ -268,8 +256,8 @@ func TestBytesV5LinkageContradiction(t *testing.T) {
 
 func TestBytesV5WrongExpectation(t *testing.T) {
 	body := strings.Replace(bytesV0,
-		"=\n  Ok(vals = Bytes(Seq<int>[]))",
-		"=\n  Ok(vals = Bytes(Seq<int>[0, 255]))", 1)
+		"  Ok(vals = Bytes(Seq<int>[]))",
+		"  Ok(vals = Bytes(Seq<int>[0, 255]))", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": body})
 	diags := diagnose(dir, "m.can", body)
 	found := false
@@ -319,14 +307,12 @@ fn m__eq1(p: M__Pair, q: M__Pair) -> M__Flag rev 1
   emits []
   tests
     eq(M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1])), M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1]))) => Ok(flag = true)
-=
   Ok(flag = (p == q))
 
 fn m__eq2(p: M__Pair, q: M__Pair) -> M__Flag rev 1
   emits []
   tests
     ne(M__Pair(a = Bytes(Seq<int>[0]), b = Bytes(Seq<int>[1])), M__Pair(a = Bytes(Seq<int>[9]), b = Bytes(Seq<int>[1]))) => Ok(flag = false)
-=
   Ok(flag = (p == q))
 `
 	ts := compileEmit(t, body)
@@ -348,8 +334,8 @@ func TestBytesT0ElementRange(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			body := strings.Replace(bytesV0,
-				"=\n  Ok(vals = Bytes(Seq<int>[]))",
-				"=\n  Ok(vals = "+c.frag+")", 1)
+				"  Ok(vals = Bytes(Seq<int>[]))",
+				"  Ok(vals = "+c.frag+")", 1)
 			seqCode(t, map[string]string{"m.can": body}, "m.can",
 				CodeBytesElementRange, c.sub)
 		})
@@ -372,7 +358,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(x = 3) => Ok(vals = Bytes(Seq<int>[]))
-=
   Ok(vals = Bytes(Seq<int>[x]))
 `
 	seqCode(t, map[string]string{"m.can": runtimeMember}, "m.can",
@@ -390,7 +375,6 @@ fn m__go(xs: Seq<int>) -> M__Out rev 1
   emits []
   tests
     go(xs = Seq<int>[1]) => Ok(vals = Bytes(Seq<int>[]))
-=
   Ok(vals = Bytes(xs))
 `
 	seqCode(t, map[string]string{"m.can": runtimeSeq}, "m.can",
@@ -401,8 +385,8 @@ fn m__go(xs: Seq<int>) -> M__Out rev 1
 // heads, and unbound names keep their own codes; Bytes adds nothing.
 func TestBytesT2Positions(t *testing.T) {
 	bareList := strings.Replace(bytesV0,
-		"=\n  Ok(vals = Bytes(Seq<int>[]))",
-		"=\n  Ok(vals = Bytes([0, 1]))", 1)
+		"  Ok(vals = Bytes(Seq<int>[]))",
+		"  Ok(vals = Bytes([0, 1]))", 1)
 	seqCode(t, map[string]string{"m.can": bareList}, "m.can",
 		CodeSeqLiteral, "Seq<T>")
 	bareAnnot := `mod m
@@ -418,14 +402,13 @@ fn m__go(x: Seq) -> M__Out rev 1
   emits []
   tests
     go(0) => Ok(vals = Bytes(Seq<int>[]))
-=
   Ok(vals = Bytes(Seq<int>[]))
 `
 	seqCode(t, map[string]string{"m.can": bareAnnot}, "m.can",
 		CodeUnknownType, "Seq")
 	unbound := strings.Replace(bytesV0,
-		"=\n  Ok(vals = Bytes(Seq<int>[]))",
-		"=\n  Ok(vals = Bytes(Seq))", 1)
+		"  Ok(vals = Bytes(Seq<int>[]))",
+		"  Ok(vals = Bytes(Seq))", 1)
 	seqCode(t, map[string]string{"m.can": unbound}, "m.can",
 		CodeTypeMismatch, "unbound name Seq")
 }
@@ -475,7 +458,6 @@ fn m__go() -> M__Flag rev 1
   emits []
   tests
     go() => Ok(flag = true)
-=
   Ok(flag = (Bytes(Seq<int>[0]) OP Bytes(Seq<int>[0])))
 `, "OP", c.op, 1)
 			seqCode(t, map[string]string{"m.can": body}, "m.can",
@@ -495,7 +477,6 @@ fn m__go() -> Bytes rev 1
   emits []
   tests
     go() => Ok(vals = Bytes(Seq<int>[]))
-=
   Ok(vals = Bytes(Seq<int>[]))
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",

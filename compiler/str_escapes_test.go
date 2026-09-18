@@ -28,7 +28,6 @@ fn probe__utf8(value: str) -> Bytes__Value rev 1
     decoded_once(e"\\n") => Ok(value = Bytes(Seq<int>[92, 110]))
     escaped_nul(e"\0") => Ok(value = Bytes(Seq<int>[0]))
     not_octal(e"\01") => Ok(value = Bytes(Seq<int>[0, 49]))
-=
   match call bytes__utf8__encode(value)
     on Ok r => Ok(value = r.value)
 
@@ -38,7 +37,6 @@ fn probe__b64(value: str) -> Bytes__Value rev 1
     ok_abc(e"QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
     trailing_lf(e"QQ==\n") => encoding.invalid_base64(value = e"QQ==\n")
     crlf_tail(e"QUJD\r\n\r\n") => encoding.invalid_base64(value = e"QUJD\r\n\r\n")
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => forward e
@@ -67,7 +65,6 @@ fn probe__pat(value: str) -> Str__Value rev 1
   tests
     lf(e"a\nb") => Ok(value = "nl")
     other("x") => Ok(value = "other")
-=
   match value
     on e"a\nb" => Ok(value = "nl")
     on _ => Ok(value = "other")
@@ -95,7 +92,6 @@ fn probe__pat(value: str) -> Str__Value rev 1
   emits []
   tests
     other("x") => Ok(value = "other")
-=
   match value
     on e"a\nb" => Ok(value = "nl")
     on _ => Ok(value = "other")
@@ -131,7 +127,6 @@ fn probe__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
     hexescape(value = e"\x51Q==") => encoding.invalid_base64(value = e"\x51Q==")
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)

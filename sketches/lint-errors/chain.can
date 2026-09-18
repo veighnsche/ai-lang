@@ -21,7 +21,6 @@ fn chain__step(value: int) -> Chain__Value rev 1
   tests
     ok(1) => Ok(value = 0)
     bad(0) => chain.failed(value = 0)
-=
   match value == 0
     true => chain.failed(value = value)
     false => Ok(value = value - 1)
@@ -32,7 +31,6 @@ fn chain__go(value: int) -> Chain__Value rev 1
     two(2) => Ok(value = 0)
     one(1) => chain.failed(value = 0)
     zero(0) => chain.failed(value = 0)
-=
   match call chain__step(value)
     on Ok a => match call chain__step(a.value)
       on Ok b => Ok(value = b.value)

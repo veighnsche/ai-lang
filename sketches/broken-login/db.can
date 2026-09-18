@@ -22,7 +22,6 @@ fn db__get(id: str) -> Db__User rev 1
   tests
     known(id = "u_01") => Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)
     unknown(id = "u_99") => db.user_not_found(id = "u_99")
-=
   match id
     "u_01" => Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)
     _ => db.user_not_found(id = id)

@@ -28,7 +28,6 @@ fn m__go(value: Bytes) -> Encoding__Text rev 1
     ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
     notext(Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
     sweep(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
-=
   match call bytes__base64__encode(value)
     on Ok r => Ok(value = r.value)
 `
@@ -67,7 +66,6 @@ fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits []
   tests
     go(ARG) => Ok(value = "QQ==")
-=
   match call bytes__base64__encode(value)
     on Ok r => Ok(value = r.value)
 `

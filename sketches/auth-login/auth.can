@@ -46,7 +46,6 @@ fn auth__login(id: str, pw: Auth__Password) -> Auth__Session rev 5
     retry_badpw("u_01", seal Auth__Password("wrong")) => auth.login_failed(user_id = "u_01")
     retry_missing("u_99", seal Auth__Password("anything")) => auth.login_failed(user_id = "u_99")
     retry_locked("u_02", seal Auth__Password("secret")) => auth.account_locked(user_id = "u_02")
-=
   match call db__get_user(id)
     given
       happy => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = seal Db__Hash("secret"), failed_attempts = 0)]
@@ -94,7 +93,6 @@ fn auth__verify(user_id: str, failed_attempts: int, pw: Auth__Password, pw_hash:
     vh_ok("u_01", 0, seal Auth__Password("secret"), seal Db__Hash("secret")) => Ok(user_id = "u_01", remaining_tries = 3)
     vh_bad("u_01", 1, seal Auth__Password("secret"), seal Db__Hash("wrong")) => auth.login_failed(user_id = "u_01")
     vh_locked("u_01", 5, seal Auth__Password("secret"), seal Db__Hash("secret")) => auth.account_locked(user_id = "u_01")
-=
   match failed_attempts >= 3
     true => auth.account_locked(user_id = user_id)
     false => match call auth__check_pw(pw, pw_hash)

@@ -28,7 +28,6 @@ fn client__a(value: str) -> Bytes__Value rev 1
     ok("41") => Ok(value = Bytes(Seq<int>[65]))
     bad("41zz42") => encoding.invalid_hex(value = "41zz42")
     nul("a` + "\x00" + `b") => encoding.invalid_hex(value = "a` + "\x00" + `b")
-=
   match call std__hex__decode(value)
     given
       ok => [exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))]
@@ -43,7 +42,6 @@ fn client__b(value: str) -> Bytes__Value rev 1
     ok("ff") => Ok(value = Bytes(Seq<int>[255]))
     cjk("0中") => encoding.invalid_hex(value = "0中")
     bad("f") => encoding.invalid_hex(value = "f")
-=
   match call std__hex__decode(value)
     given
       ok => [exchange args (value = "ff") outcome Ok(value = Bytes(Seq<int>[255]))]

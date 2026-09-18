@@ -16,7 +16,6 @@ fn auth__unrev(id: str) -> Auth__Unrev
   emits [auth.bad]
   tests
     happy(id = "u_01") => Ok(id = "u_01")
-=
   match call db__get(id)
     given
       happy => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)]

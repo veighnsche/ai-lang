@@ -25,7 +25,6 @@ fn m__help(id: str) -> M__S rev 1
   tests
     h_ok("a") => Ok(id = "a")
     h_bad("b") => m.bad()
-=
   match id
     "a" => Ok(id = "a")
     _ => m.bad()
@@ -35,7 +34,6 @@ fn m__go(id: str) -> M__S rev 1
   tests
     g_ok("a") => Ok(id = "a")
     g_bad("b") => m.bad()
-=
   match call m__help(id)
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
@@ -75,7 +73,6 @@ fn m__loop(id: str) -> M__S rev 1
   emits [m.bad]
   tests
     l1("a") => m.bad()
-=
   match call m__loop(id)
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
@@ -103,7 +100,6 @@ fn m__a(id: str) -> M__S rev 1
   emits [m.bad]
   tests
     a1("a") => m.bad()
-=
   match call m__b(id)
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
@@ -112,7 +108,6 @@ fn m__b(id: str) -> M__S rev 1
   emits [m.bad]
   tests
     b1("a") => m.bad()
-=
   match call m__a(id)
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
@@ -151,7 +146,6 @@ fn m__help(id: str) -> M__S rev 1
   emits [m.bad]
   tests
     h_ok("a") => Ok(id = "a")
-=
   match id
     "a" => Ok(id = "a")
     _ => m.bad()
@@ -161,7 +155,6 @@ fn m__go(id: str) -> M__S rev 1
   tests
     g_ok("a") => Ok(id = "a")
     g_bad("b") => m.bad()
-=
   match call m__help(id)
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
@@ -191,7 +184,6 @@ fn db__get(id: str) -> Db__U rev 1
   tests
     ok("u") => Ok(id = "u")
     other("x") => db.down()
-=
   match id
     "u" => Ok(id = "u")
     _ => db.down()
@@ -211,7 +203,6 @@ fn m__help(id: str) -> M__S rev 1
   emits [m.bad]
   tests
     h_ok("a") => Ok(id = "a")
-=
   match call db__get(id)
     given
       h_ok => [exchange args (id = "a") outcome Ok(id = "a")]
@@ -222,7 +213,6 @@ fn m__go(id: str) -> M__S rev 1
   emits [m.bad]
   tests
     g_ok("a") => Ok(id = "a")
-=
   match call m__help(id)
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)

@@ -17,7 +17,6 @@ fn outcome__zero(value: int) -> Outcome__Value rev 1
   tests
     pos(1) => Ok(value = 0)
     neg(-1) => Ok(value = 0)
-=
   match value < 0
     true => Ok(value = 0)
     false => Ok(value = 0)

@@ -31,7 +31,6 @@ fn client__a(value: Bytes) -> Encoding__Text rev 1
     ok(Bytes(Seq<int>[65])) => Ok(value = "A")
     bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
     nul(Bytes(Seq<int>[97, 0, 98])) => Ok(value = "a` + "\x00" + `b")
-=
   match call std__utf8__decode(value)
     given
       ok => [exchange args (value = Bytes(Seq<int>[65])) outcome Ok(value = "A")]
@@ -45,7 +44,6 @@ fn client__b(value: Bytes) -> Encoding__Text rev 1
   tests
     bom(Bytes(Seq<int>[239, 187, 191, 65])) => Ok(value = "` + "\uFEFFA" + `")
     bad(Bytes(Seq<int>[255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
-=
   match call std__utf8__decode(value)
     given
       bom => [exchange args (value = Bytes(Seq<int>[239, 187, 191, 65])) outcome Ok(value = "` + "\uFEFFA" + `")]

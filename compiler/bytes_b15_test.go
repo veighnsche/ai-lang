@@ -37,7 +37,6 @@ fn client__go(value: str) -> Bytes__Value rev 1
     ordered("3q2+7w==") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
     odd("QUI") => encoding.invalid_base64(value = "QUI")
     nonascii("é===") => encoding.invalid_base64(value = "é===")
-=
   match call std__base64__decode(value)
     given
       empty => [exchange args (value = "") outcome Ok(value = Bytes(Seq<int>[]))]
@@ -71,7 +70,6 @@ fn text__probe__rt_utf8(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
     rt("Aé") => Ok(value = "Aé")
-=
   match call std__utf8__encode(value)
     on Ok b => match call std__utf8__decode(b.value)
       on Ok t => Ok(value = t.value)
@@ -81,7 +79,6 @@ fn text__probe__rt_hex(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
     rt("deadbeef") => Ok(value = "deadbeef")
-=
   match call std__hex__decode(value)
     on Ok b => match call std__hex__encode(b.value)
       on Ok t => Ok(value = t.value)
@@ -91,7 +88,6 @@ fn text__probe__rt_b64(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64]
   tests
     rt("3q2+7w==") => Ok(value = "3q2+7w==")
-=
   match call std__base64__decode(value)
     on Ok b => match call std__base64__encode(b.value)
       on Ok t => Ok(value = t.value)
@@ -101,7 +97,6 @@ fn text__probe__cross(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64]
   tests
     cross("3q2+7w==") => Ok(value = "deadbeef")
-=
   match call std__base64__decode(value)
     on Ok b => match call std__hex__encode(b.value)
       on Ok t => Ok(value = t.value)

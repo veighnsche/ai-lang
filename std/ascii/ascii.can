@@ -67,7 +67,6 @@ fn std__ascii__is_digit(code: int) -> Bool__Value rev 1
     digit_nine(57) => Ok(value = true)
     below_digits(47) => Ok(value = false)
     above_digits(58) => Ok(value = false)
-=
   Ok(value = (code >= std__ascii__ZERO) and (code <= std__ascii__NINE))
 
 fn std__ascii__is_alpha(code: int) -> Bool__Value rev 1
@@ -81,7 +80,6 @@ fn std__ascii__is_alpha(code: int) -> Bool__Value rev 1
     above_upper(91) => Ok(value = false)
     below_lower(96) => Ok(value = false)
     above_lower(123) => Ok(value = false)
-=
   Ok(value = ((code >= std__ascii__SMALL_A) and (code <= std__ascii__SMALL_Z)) or ((code >= std__ascii__A) and (code <= std__ascii__Z)))
 
 fn std__ascii__is_alnum(code: int) -> Bool__Value rev 1
@@ -92,7 +90,6 @@ fn std__ascii__is_alnum(code: int) -> Bool__Value rev 1
     alnum_upper(77) => Ok(value = true)
     alnum_underscore(95) => Ok(value = false)
     alnum_space(32) => Ok(value = false)
-=
   match call std__ascii__is_alpha(code)
     on Ok a => match call std__ascii__is_digit(code)
       on Ok d => Ok(value = a.value or d.value)

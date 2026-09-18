@@ -21,7 +21,6 @@ fn leap__is_leap(year: int) -> Leap__Answer rev 1
     century(1900) => Ok(leap = false)
     typical_leap(2024) => Ok(leap = true)
     typical_common(2023) => Ok(leap = false)
-=
   match year % 400 == 0, year % 100 == 0, year % 4 == 0
     true, _, _ => Ok(leap = true)
     false, true, _ => Ok(leap = false)

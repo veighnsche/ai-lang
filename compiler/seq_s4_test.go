@@ -25,7 +25,6 @@ fn t__app() -> T__Pair rev 1
   emits []
   tests
     go() => Ok(before = ` + wantBefore + `, after = ` + wantAfter + `)
-=
   Ok(before = ` + before + `, after = ` + before + ` + ` + item + `)
 `
 }
@@ -63,7 +62,6 @@ fn t__fork(base: Seq<str>) -> T__Fork rev 1
   emits []
   tests
     go(Seq<str>["a"]) => Ok(base = Seq<str>["a"], first = Seq<str>["a", "b"], second = Seq<str>["a", "c"])
-=
   Ok(base = base, first = base + "b", second = base + "c")
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
@@ -92,7 +90,6 @@ fn t__app() -> T__BPair rev 1
   emits []
   tests
     go() => Ok(before = Seq<M__B>[seal M__B("A")], after = Seq<M__B>[seal M__B("A"), seal M__B("B")])
-=
   Ok(before = Seq<M__B>[seal M__B("A")], after = Seq<M__B>[seal M__B("A")] + seal M__B("B"))
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
@@ -128,7 +125,6 @@ fn t__app() -> T__Pair rev 1
   emits []
   tests
     go() => Ok(before = Seq<str>[], after = Seq<str>[])
-=
   Ok(before = Seq<str>[], after = ` + c.expr + `)
 `
 			seqCode(t, map[string]string{"m.can": solo}, "m.can", c.code, c.sub)

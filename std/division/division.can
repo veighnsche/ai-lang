@@ -35,7 +35,6 @@ fn std__int__divmod(dividend: int, divisor: int) -> Int__DivMod rev 1
     divmod_neg_neg(-7, -3) => Ok(quotient = 3, remainder = 2)
     divmod_zero_dividend(0, 5) => Ok(quotient = 0, remainder = 0)
     divmod_zero_divisor(5, 0) => math.zero_divisor(divisor = 0)
-=
   match divisor == 0
     true => math.zero_divisor(divisor = divisor)
     false => Ok(quotient = dividend / divisor, remainder = dividend % divisor)
@@ -48,7 +47,6 @@ fn std__int__mod(value: int, modulus: int) -> Int__Value rev 1
     mod_neg_modulus(7, -3) => Ok(value = 1)
     mod_zero(0, 5) => Ok(value = 0)
     mod_zero_modulus(5, 0) => math.zero_divisor(divisor = 0)
-=
   match modulus == 0
     true => math.zero_divisor(divisor = modulus)
     false => Ok(value = value % modulus)
@@ -60,7 +58,6 @@ fn std__int__is_multiple(value: int, divisor: int) -> Bool__Value rev 1
     multiple_no(7, 3) => Ok(value = false)
     multiple_zero(0, 5) => Ok(value = true)
     multiple_zero_divisor(5, 0) => math.zero_divisor(divisor = 0)
-=
   match divisor == 0
     true => math.zero_divisor(divisor = divisor)
     false => Ok(value = value % divisor == 0)
@@ -73,7 +70,6 @@ fn std__int__is_even(value: int) -> Bool__Value rev 1
     even_odd_pos(3) => Ok(value = false)
     even_odd_neg(-3) => Ok(value = false)
     even_zero(0) => Ok(value = true)
-=
   Ok(value = value % 2 == 0)
 
 fn std__int__is_odd(value: int) -> Bool__Value rev 1
@@ -84,7 +80,6 @@ fn std__int__is_odd(value: int) -> Bool__Value rev 1
     odd_even_pos(4) => Ok(value = false)
     odd_even_neg(-4) => Ok(value = false)
     odd_zero(0) => Ok(value = false)
-=
   Ok(value = value % 2 == 1)
 
 // Shape notes, kept with the program, not in a second file.

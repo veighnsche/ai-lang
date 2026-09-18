@@ -34,7 +34,6 @@ fn sink__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Sink_
   tests
     css(seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f"), seal Schema__AssetPolicy("p|q")) => Ok(safe = seal Html__Safe("x"))
     css_role_mismatch(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"), seal Schema__AssetPolicy("p|q")) => sink.rejected(asset = seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"))
-=
   match call schema__asset__fields(asset, policy)
     on Ok f => match f.role
       "stylesheet" => Ok(safe = seal Html__Safe("x"))
@@ -109,7 +108,6 @@ fn lone__css(asset: str) -> Lone__Res rev 1
   emits []
   tests
     css("a|b|c|d|e|f|g|h") => Ok(safe = seal Html__Safe("x"))
-=
   match call schema__asset__fields(asset, asset)
     on Ok f => Ok(safe = seal Html__Safe("x"))
 `
@@ -139,7 +137,6 @@ fn wide__css(asset: str, policy: str) -> Wide__Res rev 1
   emits [wide.rejected]
   tests
     css("u", "p|q") => Ok(safe = seal Html__Safe("x"))
-=
   match call schema__asset__fields(asset, policy)
     on Ok f => match f.role
       "stylesheet" => Ok(safe = seal Html__Safe("x"))
@@ -171,7 +168,6 @@ fn norole__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Nor
   emits [norole.rejected]
   tests
     css(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"), seal Schema__AssetPolicy("p|q")) => norole.rejected(asset = seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"))
-=
   match call schema__asset__fields(asset, policy)
     on Ok f => norole.rejected(asset = asset)
 `
@@ -203,7 +199,6 @@ fn self__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Self_
   emits [self.rejected]
   tests
     css(seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f"), seal Schema__AssetPolicy("p|q")) => Ok(safe = seal Html__Safe("x"))
-=
   match call schema__asset__fields(asset, policy)
     on Ok f => match f.role
       "stylesheet" => Ok(safe = seal Html__Safe("x"))

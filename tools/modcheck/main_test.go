@@ -22,7 +22,6 @@ fn db__get(id: str) -> Db__U rev 1
   emits [db.down]
   tests
     ok(id = "u") => Ok(id = "u")
-=
   match id
     "u" => Ok(id = "u")
     _ => db.down()
@@ -44,7 +43,6 @@ fn auth__go(id: str) -> Auth__S rev 1
   tests
     ok(id = "u") => Ok(id = "u")
     down(id = "u") => auth.bad
-=
   match call db__get(id)
     given
       ok => [Ok(id = "u")]

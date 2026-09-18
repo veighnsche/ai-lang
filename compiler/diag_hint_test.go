@@ -29,7 +29,6 @@ fn client__go(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
     rt("deadbeef") => Ok(value = "deadbeef")
-=
   match call std__hex__decode(value = value)
     given
       rt => [exchange args (value = "deadbeef") outcome Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))]
@@ -75,7 +74,6 @@ fn client__missing(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
     rt("deadbeef") => Ok(value = "deadbeef")
-=
   match call std__hex__decode(value = value)
     given
       rt => [exchange args (value = "deadbeef") outcome Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))]
@@ -85,7 +83,6 @@ fn client__total(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
     ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
-=
   match call std__hex__encode(value = value)
     given
       ff => [exchange args (value = Bytes(Seq<int>[255])) outcome Ok(value = "ff")]

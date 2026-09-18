@@ -29,7 +29,6 @@ fn m__go(value: Bytes) -> Encoding__Text rev 1
     nulbyte(Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
     high(Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
     nibbles(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
-=
   match call bytes__hex__encode(value)
     on Ok r => Ok(value = r.value)
 `
@@ -69,7 +68,6 @@ fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits []
   tests
     go(ARG) => Ok(value = "41")
-=
   match call bytes__hex__encode(value)
     on Ok r => Ok(value = r.value)
 `

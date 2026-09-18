@@ -35,7 +35,6 @@ fn m__max(left: int, right: int) -> M__Out rev 1
   tests
     ordered(1, 2) => Ok(value = 2)
     reversed(2, 1) => Ok(value = 2)
-=
   match left <= right
     on true => Ok(value = right)
     on false => Ok(value = left)
@@ -75,7 +74,6 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
   tests
     ok(1, 0, 2) => Ok(value = 1)
     low(-1, 0, 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
-=
   match value >= lower
     on true => Ok(value = value)
     on false => m.out_of_range(value = value, lower = lower, upper = upper)
@@ -110,20 +108,17 @@ fn m__go(value: int) -> M__Out rev 1
       err.value == value
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `,
 		"empty requires": base + `  requires
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `,
 		"empty arm": base + `  ensures
     on Ok result
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `,
 		"duplicate requires": base + `  requires
@@ -132,7 +127,6 @@ fn m__go(value: int) -> M__Out rev 1
     true
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `,
 		"duplicate ensures": base + `  ensures
@@ -143,7 +137,6 @@ fn m__go(value: int) -> M__Out rev 1
       result.value == value
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `,
 	}

@@ -17,7 +17,6 @@ const linkLib = `mod lib
 fn lib__double(x: int) -> int rev 1
   tests
     eight(4) => Ok(value = 8)
-=
   match x
     _ => Ok(value = x * 2)
 `
@@ -30,7 +29,6 @@ const linkAppLie = `mod app
 fn app__go(x: int) -> int rev 1
   tests
     lie(4) => Ok(value = 999)
-=
   match call lib__double(x)
     given
       lie => [exchange args (x = 4) outcome Ok(value = 999)]
@@ -49,7 +47,6 @@ fn app__go(x: int) -> int rev 1
   tests
     truth(4) => Ok(value = 8)
     failure(4) => app.boom()
-=
   match call lib__double(x)
     given
       truth => [exchange args (x = 4) outcome Ok(value = 8)]
@@ -87,7 +84,6 @@ fn lib__double(x: int) -> int rev 1
   emits [lib.down]
   tests
     eight(4) => Ok(value = 8)
-=
   match x
     _ => Ok(value = x * 2)
 `
@@ -120,7 +116,6 @@ fn mid__go(x: int) -> Mid__Out rev 1
   tests
     m1(1) => Ok()
     m2(2) => mid.boom()
-=
   match call ext__thing(x)
     given
       m1 => [exchange args (x = 1) outcome Ok()]
@@ -140,7 +135,6 @@ fn app__go(x: int) -> Mid__Out rev 1
   tests
     t1(1) => Ok()
     t2(2) => app.boom()
-=
   match call mid__go(x)
     given
       t1 => [exchange args (x = 1) outcome Ok()]

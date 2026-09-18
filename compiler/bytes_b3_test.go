@@ -28,7 +28,6 @@ fn m__go(text: str) -> M__Out rev 1
     astral("😀") => Ok(vals = Bytes(Seq<int>[240, 159, 152, 128]))
 NULROW
 BOMROW
-=
   match call bytes__utf8__encode(text)
     on Ok r => Ok(vals = r.value)
 `
@@ -71,7 +70,6 @@ fn m__go(secret: M__Secret) -> M__Out rev 1
   emits []
   tests
     go(seal M__Secret("s")) => Ok(vals = Bytes(Seq<int>[115]))
-=
   match call bytes__utf8__encode(secret)
     on Ok r => Ok(vals = r.value)
 `
@@ -94,7 +92,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(3) => Ok(vals = Bytes(Seq<int>[51]))
-=
   match call bytes__utf8__encode(x)
     on Ok r => Ok(vals = r.value)
 `

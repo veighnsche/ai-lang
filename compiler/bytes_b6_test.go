@@ -58,7 +58,6 @@ BOUNDROWS
     trunc_after_a_f0c(Bytes(Seq<int>[65, 240, 159, 152])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 240, 159, 152]))
     bom_then_bad(Bytes(Seq<int>[239, 187, 191, 255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[239, 187, 191, 255]))
     mid_bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
-=
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_utf8 e => forward e
@@ -157,7 +156,6 @@ fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
     go(ARG) => Ok(value = "A")
-=
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
@@ -257,7 +255,6 @@ fn prov__go(value: Bytes) -> Encoding__Text rev 1
   tests
     good(Bytes(Seq<int>[65])) => Ok(value = "A")
     bad(Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
-=
   match call bytes__utf8__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
@@ -272,7 +269,6 @@ fn client__use() -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
     lie() => Ok(value = "A")
-=
   match call prov__go(Bytes(Seq<int>[65, 226, 130]))
     given
       lie => [exchange args (value = Bytes(Seq<int>[65, 226, 130])) outcome Ok(value = "A")]

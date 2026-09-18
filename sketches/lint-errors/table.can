@@ -19,7 +19,6 @@ fn table__signs(a: int, b: int) -> Table__Value rev 1
     negpos(-1, 2) => Ok(value = 1)
     posneg(1, -2) => Ok(value = 2)
     pospos(1, 2) => Ok(value = 3)
-=
   match a < 0
     true => match b < 0
       true => Ok(value = 0)

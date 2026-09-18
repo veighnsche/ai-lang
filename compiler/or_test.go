@@ -20,7 +20,6 @@ func TestOrBasic(t *testing.T) {
     two(2) => Ok(value = 2)
     three(3) => Ok(value = 3)
     other(9) => Ok(value = 9)
-=
   match x
     1 | 2 | 3 => Ok(value = x)
     _ => Ok(value = 9)
@@ -49,7 +48,6 @@ fn m__go(x: str) -> M__Out rev 1
     piped("a|b") => Ok(value = "a|b")
     plain("c") => Ok(value = "c")
     other("z") => Ok(value = "z")
-=
   match x
     "a|b" | "c" => Ok(value = x)
     _ => Ok(value = "z")
@@ -70,7 +68,6 @@ func TestOrRangePrecedence(t *testing.T) {
     low(7) => Ok(value = 1)
     high(12) => Ok(value = 1)
     out(99) => Ok(value = 2)
-=
   match x
     1..10 | 5..15 => Ok(value = 1)
     _ => Ok(value = 2)
@@ -91,7 +88,6 @@ func TestOrShadowedAlt(t *testing.T) {
   tests
     go(1) => Ok(value = 1)
     out(99) => Ok(value = 2)
-=
   match x
     ` + arm + ` => Ok(value = 1)
     _ => Ok(value = 2)
@@ -110,7 +106,6 @@ func TestOrWildcardRejected(t *testing.T) {
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   match x
     _ | 1 => Ok(value = 1)
 `
@@ -127,7 +122,6 @@ func TestOrMixedSlot(t *testing.T) {
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   match x
     1 | "a" => Ok(value = 1)
     _ => Ok(value = 2)
@@ -160,7 +154,6 @@ fn m__go(x: int) -> M__Out rev 1
     slash(47) => Ok(value = 1)
     query(63) => Ok(value = 1)
     other(9) => Ok(value = 2)
-=
   match x
     m__A | m__B => Ok(value = 1)
     _ => Ok(value = 2)
@@ -189,7 +182,6 @@ fn m__go(x: bool) -> M__Out rev 1
   tests
     t(true) => Ok(value = 1)
     f(false) => Ok(value = 1)
-=
   match x
     true | false => Ok(value = 1)
 `
@@ -208,7 +200,6 @@ func TestOrEmit(t *testing.T) {
     one(1) => Ok(value = 1)
     teen(12) => Ok(value = 12)
     out(99) => Ok(value = 99)
-=
   match x
     1 | 10..15 => Ok(value = x)
     _ => Ok(value = 99)
@@ -247,7 +238,6 @@ func TestOrVariantRejected(t *testing.T) {
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   match x
     Ok | 1 => Ok(value = 1)
     _ => Ok(value = 2)
@@ -275,7 +265,6 @@ fn m__go(x: int, y: str) -> M__Out rev 1
   tests
     hit(1, "a") => Ok(value = 1)
     miss(9, "z") => Ok(value = 2)
-=
   match x, y
     1 | 2, "a" | "b" => Ok(value = 1)
     _, _ => Ok(value = 2)
@@ -293,7 +282,6 @@ func TestOrCallMatchPipe(t *testing.T) {
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   match call m__id(x = x)
     on Ok r | Ok q => Ok(value = 1)
 `
@@ -312,7 +300,6 @@ func TestOrOneObligation(t *testing.T) {
   tests
     one(1) => Ok(value = 1)
     other(9) => Ok(value = 2)
-=
   match x
     1 | 2 => Ok(value = 1)
     _ => Ok(value = 2)

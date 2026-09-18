@@ -145,7 +145,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 58)
-=
   Ok(value = m__N)
 
 const m__N: int rev 1 = 58
@@ -175,7 +174,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 58)
-=
   Ok(value = m__N)
 `
 	dir := t.TempDir()
@@ -214,7 +212,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 59)
-=
   Ok(value = m__N)
 `
 	dir := t.TempDir()
@@ -242,7 +239,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = m__NOPE)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -273,7 +269,6 @@ fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 7)
-=
   Ok(value = lib__K)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
@@ -305,7 +300,6 @@ fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 7)
-=
   Ok(value = lib__K)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
@@ -351,7 +345,6 @@ fn m__go(x: int, s: str) -> M__Out rev 1
     one(1, ", ") => Ok(value = "yes")
     two(2, ", ") => Ok(value = "sep")
     three(2, ";") => Ok(value = "no")
-=
   match x <= 1
     m__FLAG => Ok(value = "yes")
     false => match s
@@ -384,7 +377,6 @@ fn m__go(x: int) -> M__Out rev 1
   tests
     colon(58) => Ok(value = 2)
     other(1) => Ok(value = 3)
-=
   match x
     m__N => Ok(value = 2)
     _ => Ok(value = 3)
@@ -418,7 +410,6 @@ fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
     go(lib__K) => Ok(value = 7)
-=
   Ok(value = x)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
@@ -452,7 +443,6 @@ fn app__go(x: int) -> A__Out rev 1
   tests
     one(1) => Ok(value = "yes")
     two(2) => Ok(value = "no")
-=
   match x <= 1
     lib__FLAG => Ok(value = "yes")
     false => Ok(value = "no")
@@ -488,7 +478,6 @@ fn app__go(x: int) -> A__Out rev 1
   tests
     one(1) => Ok(value = "yes")
     two(2) => Ok(value = "no")
-=
   match x <= 1
     lib__FLAG => Ok(value = "yes")
     false => Ok(value = "no")
@@ -569,7 +558,6 @@ fn m__poll(n: int) -> M__S rev 1
   tests
     now(0) => Ok(n = 0)
     later(2) => Ok(n = 0)
-=
   match n <= 0
     true => Ok(n = 0)
     false => match call m__poll(n - m__ONE)
@@ -613,7 +601,6 @@ fn m__go(p: M__Point) -> M__Bool rev 1
     via_const(m__ORIGIN) => Ok(value = true)
     via_inline(M__Point(x = 0, y = 0)) => Ok(value = true)
     elsewhere(M__Point(x = 1, y = 2)) => Ok(value = false)
-=
   match p.x == 0, p.y == 0
     true, true => Ok(value = true)
     _, _ => Ok(value = false)
@@ -660,7 +647,6 @@ fn m__go(s: M__Snap, r: Seq<M__Entry>) -> M__Bool rev 1
   tests
     nested(m__SNAP, m__REVL0) => Ok(value = true)
     renamed(M__Snap(entries = Seq<M__Entry>[], revoked = Seq<M__Entry>[], mark = seal M__Tag("no")), m__REVL0) => Ok(value = false)
-=
   match s.mark == seal M__Tag("ok"), #s.entries == 1, #r == 0
     true, true, true => Ok(value = true)
     _, _, _ => Ok(value = false)
@@ -709,7 +695,6 @@ fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
     origin(m__ORIGIN) => Ok(value = true)
-=
   Ok(value = p.x == 0)
 `
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -770,7 +755,6 @@ fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
     origin(m__B) => Ok(value = true)
-=
   Ok(value = p.x == 0)
 `
 		dir := writeLSPDir(t, map[string]string{"m.can": src})

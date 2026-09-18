@@ -38,21 +38,18 @@ fn audit__use(attrs: Audit__Attrs) -> Audit__Out rev 1
   emits []
   tests
     u(Audit__Attrs(id = "main")) => Ok(value = "main")
-=
   Ok(value = attrs.id)
 
 fn audit__wrap(page: Audit__Page) -> Audit__Out rev 1
   emits []
   tests
     w(Audit__Page(attrs = Audit__Attrs(id = "deep"), title = "t")) => Ok(value = "deep")
-=
   Ok(value = page.attrs.id)
 
 fn audit__main() -> Audit__Out rev 1
   emits []
   tests
     m() => Ok(value = "main")
-=
   match call audit__use(Audit__Attrs(id = "main"))
     on Ok r => Ok(value = r.value)
 
@@ -61,7 +58,6 @@ fn audit__box(flag: str) -> Audit__Box rev 1
   tests
     x("a") => Ok(attrs = Audit__Attrs(id = "a"))
     y("b") => Ok(attrs = Audit__Attrs(id = "b"))
-=
   Ok(attrs = Audit__Attrs(id = flag))
 
 fn audit__eq(flag: str) -> Audit__Out rev 1
@@ -69,7 +65,6 @@ fn audit__eq(flag: str) -> Audit__Out rev 1
   tests
     e("a") => Ok(value = "same")
     n("b") => Ok(value = "diff")
-=
   match call audit__box(flag)
     on Ok left => match call audit__box("a")
       on Ok right => match left == right
@@ -149,7 +144,6 @@ fn audit__probe() -> Audit__Attrs rev 1
   emits []
   tests
     g() => Audit__Attrs(id = "v")
-=
   USE
 `
 			mod = strings.Replace(mod, "USE", use, 1)
@@ -182,7 +176,6 @@ fn audit__probe() -> Audit__Session rev 1
   emits []
   tests
     g() => Audit__Session(token = seal Audit__Token("s"))
-=
   Audit__Session(token = seal Audit__Other("x"))
 `
 	dir := writeLSPDir(t, map[string]string{"audit.can": mod})

@@ -30,7 +30,6 @@ fn client__go(value: str) -> Bytes__Value rev 1
   tests
     go("QQ==") => Ok(value = Bytes(Seq<int>[65]))
     bad("QUI") => encoding.invalid_base64(value = "QUI")
-=
   match call nosuch__decode(value = value)
     given
       go => [exchange args (value = "QQ==") outcome Ok(value = Bytes(Seq<int>[65]))]
@@ -63,7 +62,6 @@ fn client__bare(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
     go("QQ==") => Ok(value = Bytes(Seq<int>[65]))
-=
   match call nosuch__decode(value = value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)

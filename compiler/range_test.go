@@ -30,7 +30,6 @@ func TestRangeSingleton(t *testing.T) {
   tests
     five(5) => Ok(value = 5)
     other(7) => Ok(value = 7)
-=
   match x
     5 => Ok(value = 5)
     _ => Ok(value = 7)
@@ -65,7 +64,6 @@ fn m__go(x: int) -> M__Out rev 1
     digit(50) => Ok(value = 1)
     colon(58) => Ok(value = 2)
     other(99) => Ok(value = 3)
-=
   match x
     m__LO..m__HI => Ok(value = 1)
     m__N => Ok(value = 2)
@@ -87,7 +85,6 @@ func TestRangeCutPoints(t *testing.T) {
     low(7) => Ok(value = 1)
     high(12) => Ok(value = 2)
     out(99) => Ok(value = 3)
-=
   match x
     1..10 => Ok(value = 1)
     5..15 => Ok(value = 2)
@@ -108,7 +105,6 @@ func TestRangeShadowed(t *testing.T) {
   tests
     low(2) => Ok(value = 1)
     out(99) => Ok(value = 3)
-=
   match x
     1..10 => Ok(value = 1)
     ` + arm + ` => Ok(value = 2)
@@ -131,7 +127,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   match x
     ` + arm + ` => Ok(value = 1)
     _ => Ok(value = 2)
@@ -151,7 +146,6 @@ func TestRangeUnknownBound(t *testing.T) {
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   match x
     m__NOPE..5 => Ok(value = 1)
     _ => Ok(value = 2)
@@ -169,7 +163,6 @@ func TestRangeMixedSlot(t *testing.T) {
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   match x
     true => Ok(value = 1)
     5 => Ok(value = 5)
@@ -188,7 +181,6 @@ func TestRangeUncovered(t *testing.T) {
   emits []
   tests
     mid(5) => Ok(value = 5)
-=
   match x
     1..10 => Ok(value = x)
 `
@@ -222,14 +214,12 @@ fn m__work(v: int) -> M__Work rev 1
   emits []
   tests
     w(1) => Ok(value = 1)
-=
   Ok(value = v)
 
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   match call m__work(x)
     5 => Ok(value = 5)
     on Ok r => Ok(value = r.value)
@@ -248,7 +238,6 @@ func TestRangeArmObligation(t *testing.T) {
   tests
     low(5) => Ok(value = 1)
     out(99) => Ok(value = 3)
-=
   match x
     1..10 => Ok(value = 1)
     11..20 => Ok(value = 2)
@@ -286,7 +275,6 @@ fn m__go(x: int) -> M__Out rev 1
   tests
     digit(50) => Ok(value = 1)
     out(99) => Ok(value = 2)
-=
   match x
     lib__LO..lib__HI => Ok(value = 1)
     _ => Ok(value = 2)
@@ -309,7 +297,6 @@ fn m__go(x: int) -> M__Out rev 1
   tests
     digit(50) => Ok(value = 1)
     out(99) => Ok(value = 2)
-=
   match x
     lib__LO..lib__HI => Ok(value = 1)
     _ => Ok(value = 2)
@@ -329,7 +316,6 @@ func TestRangeEmit(t *testing.T) {
     five(5) => Ok(value = 5)
     digit(50) => Ok(value = 50)
     out(99) => Ok(value = 99)
-=
   match x
     5 => Ok(value = 5)
     48..57 => Ok(value = x)
@@ -371,7 +357,6 @@ func TestRangeAdmissionContract(t *testing.T) {
   tests
     low(5) => Ok(value = 1)
     out(99) => Ok(value = 2)
-=
   match x
     1..10 => Ok(value = 1)
     _ => Ok(value = 2)

@@ -21,7 +21,6 @@ fn chain__is_big(value: int) -> Chain__Bool rev 1
   tests
     big(10) => Ok(value = true)
     small(3) => Ok(value = false)
-=
   Ok(value = value > 5)
 
 fn chain__is_odd(value: int) -> Chain__Bool rev 1
@@ -29,7 +28,6 @@ fn chain__is_odd(value: int) -> Chain__Bool rev 1
   tests
     odd(3) => Ok(value = true)
     even(4) => Ok(value = false)
-=
   Ok(value = value % 2 == 1)
 
 type Chain__Bool rev 1 (
@@ -45,7 +43,6 @@ fn chain__fail_if_small(value: int) -> Chain__Out rev 1
   tests
     big(10) => Ok(value = 10)
     small(3) => chain.too_small(value = 3)
-=
   match call chain__is_big(value)
     on Ok b => match b.value
       true => Ok(value = value)
@@ -89,7 +86,6 @@ fn client__check(value: int) -> Client__Out rev 1
     big_odd(11) => Ok(value = 11)
     big_even(10) => chain.too_small(value = 10)
     small(3) => chain.too_small(value = 3)
-=
   match chain
     call chain__is_big(value) as b when b.value
       given
@@ -126,7 +122,6 @@ fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
     big(10) => Ok(value = 10)
-=
   match chain
     call chain__is_big(value) as b when b.value
       given
@@ -166,7 +161,6 @@ fn client__relay(value: int) -> Client__Out rev 1
   tests
     big(10) => Ok(value = 10)
     small(3) => chain.too_small(value = 3)
-=
   match chain
     call chain__fail_if_small(value) as r
       given
@@ -197,7 +191,6 @@ fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
     big(10) => Ok(value = 10)
-=
   match chain
     call chain__is_big(value) as b when call chain__is_big(value = value)
     then Ok(value = value)
@@ -225,7 +218,6 @@ fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
     big(10) => Ok(value = 10)
-=
   match chain
     call chain__is_big(value) as _ when true
     then Ok(value = value)
@@ -260,7 +252,6 @@ fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
     big(10) => Ok(value = 10)
-=
   match chain
     call chain__is_big(value) as b when b.value
 ` + tc.tail
@@ -291,7 +282,6 @@ fn client__check(value: int) -> Client__Out rev 1
   tests
     big(10) => Ok(value = 10)
     small(3) => chain.too_small(value = 3)
-=
   match chain
     call chain__is_big(value) as b when b.value
       given
@@ -323,7 +313,6 @@ fn client__check(chain: bool) -> Client__Out rev 1
   tests
     yes(true) => Ok(value = 1)
     no(false) => Ok(value = 0)
-=
   match chain
     true => Ok(value = 1)
     false => Ok(value = 0)

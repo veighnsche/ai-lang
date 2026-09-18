@@ -39,28 +39,24 @@ const declaredFns = `fn audit__int(value: int) -> Int__Value rev 1
   emits []
   tests
     i(1) => Ok(value = value)
-=
   Ok(value = value)
 
 fn audit__bool(flag: bool) -> Bool__Value rev 1
   emits []
   tests
     b(true) => Ok(value = flag)
-=
   Ok(value = flag)
 
 fn audit__dec(amount: dec) -> Dec__Value rev 1
   emits []
   tests
     d(d"1.5") => Ok(value = amount)
-=
   Ok(value = amount)
 
 fn audit__str(name: str) -> Str__Value rev 1
   emits []
   tests
     s("x") => Ok(value = name)
-=
   Ok(value = name)
 `
 
@@ -113,7 +109,6 @@ func TestEvidenceCannotRetype(t *testing.T) {
   emits []
   tests
     two(2) => EXPECTED
-=
   Ok(value = value)
 `
 	head := `mod audit

@@ -29,7 +29,6 @@ fn m__go() -> M__Len rev 1
   emits []
   tests
     go() => Ok(n = ` + want + `)
-=
   Ok(n = ` + lenExpr + `)
 `
 }
@@ -72,7 +71,6 @@ fn m__go() -> M__Len rev 1
   emits []
   tests
     go() => Ok(n = #Seq<M__B>[seal M__B("x"), seal M__B("")])
-=
   Ok(n = #Seq<M__B>[seal M__B("x"), seal M__B("")])
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
@@ -91,7 +89,6 @@ fn m__go(xs: Seq<str>) -> M__Len rev 1
   tests
     empty(Seq<str>[]) => Ok(n = 0)
     two(Seq<str>["a", ""]) => Ok(n = 2)
-=
   Ok(n = #xs)
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")

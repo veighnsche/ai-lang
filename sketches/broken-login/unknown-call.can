@@ -16,7 +16,6 @@ fn auth__void(id: str) -> Auth__Void rev 1
   emits []
   tests
     happy(id = "u_01") => Ok(id = "u_01")
-=
   match call db__nope(id)
     given
       happy => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)]

@@ -45,7 +45,6 @@ func variantValueMod(body, expect string) string {
   emits []
   tests
     go("u") => ` + expect + `
-=
   ` + body + `
 `
 }
@@ -130,7 +129,6 @@ fn m__id(user: str) -> Login__State rev 1
   emits []
   tests
     go("u") => Ok()
-=
   Ok()
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -178,7 +176,6 @@ fn m__go(value: int) -> M__Out rev 1
   emits []
   tests
     g(1) => Ok(value = 1)
-=
   match call ext__help(value)
     given
       g => [exchange args (value = 1) outcome Login__Anonymous()]
@@ -225,7 +222,6 @@ fn m__eq(flag: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   match Login__Anonymous() == Login__Anonymous()
     true => Ok(value = 1)
     false => Ok(value = 0)
@@ -262,7 +258,6 @@ fn m__noop(value: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -294,7 +289,6 @@ fn m__pick(x: int) -> M__Out rev 1
   emits []
   tests
     go(1) => Ok(pick = Pick__B(x = 1))
-=
   Ok(pick = Pick__A(x = x))
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -333,7 +327,6 @@ fn prov__make(id: str) -> Prov__Data rev 1
   emits []
   tests
     m("u") => Ok(id = "u")
-=
   Ok(id = id)
 `
 	cons := `mod cons
@@ -350,7 +343,6 @@ fn cons__go(id: str) -> Cons__Out rev 1
   emits []
   tests
     g("u") => Ok(held = Prov__Data(id = "u"), state = Login__Anonymous())
-=
   match call prov__make(id)
     given
       g => [exchange args (id = "u") outcome Ok(id = "u")]

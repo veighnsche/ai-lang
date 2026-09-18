@@ -105,7 +105,6 @@ fn m__plain(x: int) -> M__Out rev 1
   emits []
   tests
     go(x = 1) => Ok(value = 1)
-=
   Ok(value = x)
 `
 	prog, _ = admitProg(t, mixed)

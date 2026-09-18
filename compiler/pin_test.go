@@ -23,7 +23,6 @@ fn alpha__read(id: str) -> Alpha__Data rev 1
   emits []
   tests
     r("u") => Ok(id = "u")
-=
   Ok(id = id)
 `
 
@@ -40,7 +39,6 @@ fn beta__go(id: str) -> Beta__Out rev 1
   emits []
   tests
     g("u") => Ok(id = "u")
-=
   match call alpha__read(id)
     given
       g => [exchange args (id = "u") outcome Ok(id = "u")]

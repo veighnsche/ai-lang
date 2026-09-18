@@ -37,7 +37,6 @@ fn audit__go(flag: str) -> Audit__Value rev 1
     k("x") => Ok(kind = "request")
     p("y") => Ok(kind = "other")
     e("z") => audit.bad(kind = "broken", code = 7)
-=
   match flag
     "x" => Ok(kind = "request")
     "y" => Ok(kind = "other")
@@ -47,14 +46,12 @@ fn audit__proto() -> Audit__Proto rev 1
   emits []
   tests
     w() => Ok(__proto__ = "kept")
-=
   Ok(__proto__ = "kept")
 
 fn audit__ctor() -> Audit__Ctor rev 1
   emits []
   tests
     c() => Ok(constructor = "mine")
-=
   Ok(constructor = "mine")
 `
 

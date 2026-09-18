@@ -55,7 +55,6 @@ fn m__affine(n: int) -> M__Out rev 1
   tests
     z(0) => Ok(value = 1)
     two(2) => Ok(value = 5)
-=
   Ok(value = 2 * n + 1)
 
 fn m__apply(req: M__Req) -> M__Out rev 1
@@ -73,7 +72,6 @@ fn m__apply(req: M__Req) -> M__Out rev 1
     hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)
     miss(M__Req(enabled = true, value = 1, policy = M__Pol(minimum = 2))) => Ok(value = 2)
     off(M__Req(enabled = false, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 2)
-=
   match req.enabled
     true => match req.value >= req.policy.minimum
       true => match call m__affine(req.value)
@@ -117,7 +115,6 @@ fn m__int(x: int) -> M__Out rev 1
         false => true
   tests
     z(0) => Ok(value = 0)
-=
   Ok(value = 0)
 `
 	prog, texts := admitProg(t, src)
@@ -147,7 +144,6 @@ fn m__pass(a: M__Out, b: M__Out) -> M__Out rev 1
       result == a
   tests
     same(M__Out(value = 1), M__Out(value = 1)) => Ok(value = 1)
-=
   Ok(value = a.value)
 `
 	prog, texts := admitProg(t, src)
@@ -178,7 +174,6 @@ fn svc__get(x: int) -> Svc__Out rev 1
       false
   tests
     go(2) => Ok(value = 2)
-=
   Ok(value = x)
 `
 
@@ -203,7 +198,6 @@ fn app__use(x: int) -> Svc__Out rev 1
   tests
     normal(2) => Ok(value = 2)
     outage(2) => app.down(code = 2)
-=
   match call svc__get(x)
     given
       normal => [exchange args (x = 2) outcome Ok(value = 2)]
@@ -305,7 +299,6 @@ fn m__step(n: int) -> M__Out rev 1
       result.value == n + 1
   tests
     z(0) => Ok(value = 1)
-=
   Ok(value = n + 1)
 
 fn m__call(x: int) -> M__Out rev 1
@@ -318,7 +311,6 @@ fn m__call(x: int) -> M__Out rev 1
   tests
     neg(-2) => Ok(value = 3)
     pos(2) => Ok(value = 3)
-=
   match x <= 0
     true => match call m__step(ARG)
       on Ok r => Ok(value = r.value)
@@ -371,7 +363,6 @@ fn m__go(x: int) -> M__Out rev 1
       result.value == x
   tests
     neg(-1) => Ok(value = -1)
-=
   Ok(value = x)
 `
 	prog, texts := admitProg(t, src)
@@ -432,7 +423,6 @@ fn m__clamp(x: int) -> M__Out rev 1
     lo(3) => Ok(value = 3)
     hi(15) => Ok(value = 10)
     edge(0) => Ok(value = 0)
-=
   match x
     0..10 => Ok(value = x)
     _ => Ok(value = 10)

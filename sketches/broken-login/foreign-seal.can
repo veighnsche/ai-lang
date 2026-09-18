@@ -17,5 +17,4 @@ fn auth__forge() -> Auth__Sealed rev 1
   emits []
   tests
     forge() => Ok(token = seal Db__Hash("minted"))
-=
   Ok(token = seal Db__Hash("minted"))

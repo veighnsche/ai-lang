@@ -110,7 +110,6 @@ fn m__arith(a: dec, b: dec) -> M__D rev 1
   emits []
   tests
     go(d"0.1", d"0.2") => Ok(value = d"0.1")
-=
   Ok(value = a + b - b * d"1.0")
 
 fn m__ge(a: dec, b: dec) -> M__B rev 1
@@ -118,7 +117,6 @@ fn m__ge(a: dec, b: dec) -> M__B rev 1
   tests
     hi(d"0.5", d"0.2") => Ok(value = true)
     lo(d"0.2", d"0.5") => Ok(value = false)
-=
   match a >= b
     true => Ok(value = true)
     false => Ok(value = false)
@@ -128,7 +126,6 @@ fn m__le(a: dec, b: dec) -> M__B rev 1
   tests
     lo(d"0.2", d"0.5") => Ok(value = true)
     hi(d"0.5", d"0.2") => Ok(value = false)
-=
   match a <= b
     true => Ok(value = true)
     false => Ok(value = false)
@@ -138,7 +135,6 @@ fn m__gt(a: dec, b: dec) -> M__B rev 1
   tests
     hi(d"0.5", d"0.2") => Ok(value = true)
     lo(d"0.2", d"0.5") => Ok(value = false)
-=
   match a > b
     true => Ok(value = true)
     false => Ok(value = false)
@@ -148,7 +144,6 @@ fn m__lt(a: dec, b: dec) -> M__B rev 1
   tests
     lo(d"0.2", d"0.5") => Ok(value = true)
     hi(d"0.5", d"0.2") => Ok(value = false)
-=
   match a < b
     true => Ok(value = true)
     false => Ok(value = false)
@@ -158,7 +153,6 @@ fn m__eq(a: dec, b: dec) -> M__B rev 1
   tests
     same(d"1.5", d"1.50") => Ok(value = true)
     diff(d"1.5", d"2.5") => Ok(value = false)
-=
   match a == b
     true => Ok(value = true)
     false => Ok(value = false)
@@ -168,7 +162,6 @@ fn m__ne(a: dec, b: dec) -> M__B rev 1
   tests
     diff(d"1.5", d"2.5") => Ok(value = true)
     same(d"1.5", d"1.50") => Ok(value = false)
-=
   match a != b
     true => Ok(value = true)
     false => Ok(value = false)

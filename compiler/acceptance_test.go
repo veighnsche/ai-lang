@@ -26,7 +26,6 @@ fn acc__f(n: int) -> Acc__V rev 1
     loose(8) => Ok(value = 8, note = "hi")
     wordy(9) => Ok(value = 9, note = "pinned")
     pinned(10) => Ok(value = 10, note = "hi")
-=
   match n == 9
     true => Ok(value = n, note = "pinned")
     false => Ok(value = n, note = "hi")
@@ -89,7 +88,6 @@ fn acc__w(n: int) -> Acc__V rev 1
   tests
     keep(5) => Ok(value = 5, note = "hi") pinned
     flex(6) => Ok(value = 6, note = "hi")
-=
   match n == 5
     true => Ok(value = 5, note = "hi")
     false => Ok(value = n, note = "hi")
@@ -164,7 +162,6 @@ fn acc__w(n: int) -> Acc__V rev 1
   tests
     keep(5) => Ok(value = 5, note = "hi") pinned
     flex(6) => Ok(value = 6, note = "hi")
-=
   Ok(value = n, note = "hi")
 `
 

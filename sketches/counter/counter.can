@@ -22,7 +22,6 @@ fn count__bump(by: int) -> Count__Tally rev 1
     three(3) => Ok(total = 3)
     three_again(3) => Ok(total = 3)
     zero(0) => Ok(total = 0)
-=
   match call state__get(Count__total)
     on Ok c => match call state__put(Count__total, c.value + by)
       on Ok _ => Ok(total = c.value + by)
@@ -32,7 +31,6 @@ fn count__twice(by: int) -> Count__Tally rev 1
   emits []
   tests
     double(2) => Ok(total = 4)
-=
   match call count__bump(by)
     on Ok s => match call count__bump(by)
       on Ok t => Ok(total = t.total)

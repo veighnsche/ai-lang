@@ -105,7 +105,6 @@ fn m__str(v: str) -> M__Out rev 1
   emits []
   tests
     t("ab") => Ok(n = 0)
-=
   match call dec__parts(v)
     on Ok p => Ok(n = p.coefficient)
 
@@ -113,7 +112,6 @@ fn m__named(v: dec) -> M__Out rev 1
   emits []
   tests
     t(d"1.0") => Ok(n = 0)
-=
   match call dec__parts(value = v)
     on Ok p => Ok(n = p.coefficient)
 
@@ -121,7 +119,6 @@ fn m__two(v: dec) -> M__Out rev 1
   emits []
   tests
     t(d"1.0") => Ok(n = 0)
-=
   match call dec__parts(v, v)
     on Ok p => Ok(n = p.coefficient)
 
@@ -129,7 +126,6 @@ fn m__given(v: dec) -> M__Out rev 1
   emits []
   tests
     t(d"1.0") => Ok(n = 0)
-=
   match call dec__parts(v)
     given
       t => [exchange args (value = d"1.0") outcome Ok(coefficient = 1, scale = 0)]
@@ -166,7 +162,6 @@ fn m__stale(v: dec) -> M__Out rev 1
   emits []
   tests
     t(d"1.0") => Ok(n = 1)
-=
   match call dec__parts(v)
     on Ok p => Ok(n = p.coefficient)
     on m.nope _ => Ok(n = 0)
@@ -175,7 +170,6 @@ fn m__missing(v: dec) -> M__Out rev 1
   emits []
   tests
     t(d"1.0") => Ok(n = 0)
-=
   match call dec__parts(v)
     on m.nope _ => Ok(n = 0)
 `
@@ -211,7 +205,6 @@ fn m__parts(v: dec) -> M__Out rev 1
   emits []
   tests
     t(d"1.0") => Ok(coefficient = 10, scale = 1)
-=
   match call dec__parts(v)
     on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)
 `

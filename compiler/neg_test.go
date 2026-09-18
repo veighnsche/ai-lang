@@ -34,7 +34,6 @@ fn m__go(x: int) -> M__Out rev 1
     pos(3) => Ok(value = -3)
     neg(-3) => Ok(value = 3)
     zero(0) => Ok(value = 0)
-=
   Ok(value = -x)
 
 fn m__dec(x: dec) -> M__Dec rev 1
@@ -43,7 +42,6 @@ fn m__dec(x: dec) -> M__Dec rev 1
     pos(d"1.5") => Ok(value = d"-1.5")
     neg(d"-1.5") => Ok(value = d"1.5")
     zero(d"0.0") => Ok(value = d"0.0")
-=
   Ok(value = -x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -68,14 +66,12 @@ fn m__go(a: int, b: int) -> M__Out rev 1
   emits []
   tests
     row(3, 2) => Ok(value = -6)
-=
   Ok(value = a * -b)
 
 fn m__sub(a: int, b: int) -> M__Out rev 1
   emits []
   tests
     row(3, 2) => Ok(value = 5)
-=
   Ok(value = a - -b)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -105,14 +101,12 @@ fn m__go(a: int, b: int) -> M__Out rev 1
   emits []
   tests
     row(3, 2) => Ok(value = -6)
-=
   Ok(value = -a * b)
 
 fn m__dec(x: dec) -> M__Dec rev 1
   emits []
   tests
     pos(d"1.5") => Ok(value = d"-1.5")
-=
   Ok(value = -x)
 `
 	dir := t.TempDir()
@@ -160,14 +154,12 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(value = -3)
-=
   Ok(value = - 3)
 
 fn m__dec() -> M__Dec rev 1
   emits []
   tests
     go() => Ok(value = d"-0.5")
-=
   Ok(value = -d"0.5")
 `
 	dir := t.TempDir()
@@ -215,7 +207,6 @@ fn m__go(a: int, b: int) -> M__Out rev 1
   emits []
   tests
     row(3, 2) => Ok(value = 5)
-=
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasError(diags) {
@@ -240,14 +231,12 @@ fn m__go(x: bool) -> M__Out rev 1
   emits []
   tests
     go(true) => Ok(value = true)
-=
   Ok(value = -x)
 
 fn m__str(y: str) -> M__Out rev 1
   emits []
   tests
     go("a") => Ok(value = true)
-=
   Ok(value = -y)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})

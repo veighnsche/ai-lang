@@ -17,7 +17,6 @@ fn redundant__sub(left: int, right: int) -> Redundant__Value rev 1
     ordered(left = 5, right = 8) => Ok(value = -3)
     mixed(5, right = 8) => Ok(value = -3)
     reordered(right = 8, left = 5) => Ok(value = -3)
-=
   match call redundant__id(value = left)
     on Ok r => Ok(value = r.value - right)
 
@@ -25,5 +24,4 @@ fn redundant__id(value: int) -> Redundant__Value rev 1
   emits []
   tests
     one(value = 1) => Ok(value = 1)
-=
   Ok(value = value)

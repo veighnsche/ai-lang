@@ -26,7 +26,6 @@ fn m__f(n: int) -> M__Out rev 1
     z(0) => Ok(v = false)
     t(1) => Ok(v = true)
     f(2) => Ok(v = false)
-=
   match n == 0, 10 % (n + 1) == 0
     true, _ => Ok(v = false)
     false, true => Ok(v = true)
@@ -39,7 +38,6 @@ fn m__g(a: bool, b: bool) -> M__Out rev 1
     tf(true, false) => Ok(v = false)
     ft(false, true) => Ok(v = false)
     ff(false, false) => Ok(v = true)
-=
   match a, b
     true, true => Ok(v = true)
     true, false => Ok(v = false)
@@ -51,7 +49,6 @@ fn m__h(n: int) -> M__Out rev 1
   tests
     t(2) => Ok(v = true)
     f(3) => Ok(v = false)
-=
   match 10 % n == 0
     true => Ok(v = true)
     false => Ok(v = false)
@@ -63,7 +60,6 @@ fn m__p(n: int, b: bool) -> M__Out rev 1
     ef(2, false) => Ok(v = false)
     ot(3, true) => Ok(v = false)
     of(3, false) => Ok(v = true)
-=
   match n % 2 == 0, b
     true, true => Ok(v = true)
     true, false => Ok(v = false)

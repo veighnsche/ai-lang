@@ -85,7 +85,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<str>[])
-=
   Ok(vals = Seq<str>[])
 `
 
@@ -101,7 +100,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<str>[""])
-=
   Ok(vals = Seq<str>[""])
 `
 
@@ -116,7 +114,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<str>["b", "", "a", "b"])
-=
   Ok(vals = Seq<str>["b", "", "a", "b"])
 `
 
@@ -131,7 +128,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<str>["a,b", "c"])
-=
   Ok(vals = Seq<str>["a,b", "c"])
 `
 
@@ -151,7 +147,6 @@ fn m__go() -> M__SeqOut rev 1
   emits []
   tests
     go() => Ok(vals = Seq<M__Safe>[seal M__Safe("A"), seal M__Safe("")])
-=
   Ok(vals = Seq<M__Safe>[seal M__Safe("A"), seal M__Safe("")])
 `
 
@@ -171,7 +166,6 @@ fn m__go() -> M__AttrOut rev 1
   emits []
   tests
     go() => Ok(vals = Seq<M__Attr>[seal M__Attr(""), seal M__Attr("disabled")])
-=
   Ok(vals = Seq<M__Attr>[seal M__Attr(""), seal M__Attr("disabled")])
 `
 
@@ -190,7 +184,6 @@ fn m__go() -> M__Wide rev 1
   emits []
   tests
     go() => Ok(name = "n", vals = Seq<str>["a", ""])
-=
   Ok(name = "n", vals = Seq<str>["a", ""])
 `
 
@@ -243,14 +236,12 @@ fn m__id(xs: Seq<str>) -> M__Out rev 1
   emits []
   tests
     go(Seq<str>[]) => Ok(vals = Seq<str>[])
-=
   Ok(vals = xs)
 
 fn m__go(dummy: str) -> M__Out rev 1
   emits []
   tests
     go(dummy = "d") => Ok(vals = Seq<str>[])
-=
   match call m__id(Seq<str>[1])
     on Ok v => Ok(vals = v.vals)
 `
@@ -264,7 +255,6 @@ fn m__go(xs: Seq<str>) -> M__Out rev 1
   emits []
   tests
     go(xs = Seq<str>[1]) => Ok(vals = Seq<str>[])
-=
   Ok(vals = xs)
 `
 	exp := strings.Replace(seqV0,
@@ -299,7 +289,6 @@ fn lib__echo(x: str) -> Lib__Out rev 1
   emits []
   tests
     go("a") => Ok(vals = Seq<str>["a", ""])
-=
   Ok(vals = Seq<str>[x, ""])
 `
 
@@ -319,7 +308,6 @@ fn lib__take(xs: Seq<str>) -> Lib__Out rev 1
   emits []
   tests
     go(Seq<str>[]) => Ok(vals = Seq<str>[])
-=
   Ok(vals = xs)
 `
 
@@ -337,7 +325,6 @@ fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
     go("a") => Ok(vals = Seq<str>["a", ""])
-=
   match call lib__take(Seq<str>[x, ""])
     given
       go => [exchange args (xs = Seq<str>[1]) outcome Ok(vals = Seq<str>["a", ""])]
@@ -361,7 +348,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<str>[])
-=
   Ok(vals = Seq<str>[seal M__B("x")])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
@@ -387,7 +373,6 @@ fn m__go() -> M__SeqOut rev 1
   emits []
   tests
     go() => Ok(vals = Seq<M__B>[])
-=
   Ok(vals = Seq<M__B>[seal M__A("x")])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
@@ -408,7 +393,6 @@ fn m__go() -> M__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<M__B>[])
-=
   Ok(vals = Seq<str>[])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
@@ -431,7 +415,6 @@ fn lib__get() -> Lib__Out rev 1
   emits []
   tests
     go() => Ok(echo = seal Lib__B("x"))
-=
   Ok(echo = seal Lib__B("x"))
 `
 
@@ -451,7 +434,6 @@ fn app__forge() -> App__Out rev 1
   emits []
   tests
     go() => Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
-=
   Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
 `
 	seqCode(t, map[string]string{"lib.can": seqBrandLib, "app.can": app},
@@ -473,7 +455,6 @@ fn app__go(xs: Seq<Lib__B>) -> App__Out rev 1
   emits []
   tests
     go(Seq<Lib__B>[seal Lib__B("x")]) => Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
-=
   Ok(vals = xs)
 `
 	seqClean(t, map[string]string{"lib.can": seqBrandLib, "app.can": app}, "app.can")
@@ -497,7 +478,6 @@ fn m__go() -> Seq<str> rev 1
   emits []
   tests
     go() => Ok(vals = Seq<str>[])
-=
   Ok(vals = Seq<str>[])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
@@ -508,7 +488,7 @@ fn m__go() -> Seq<str> rev 1
 // body alone names the bad type while the expectation stays clean,
 // so the single static error plus the executed mismatch pin both.
 func TestSeqUnknownElem(t *testing.T) {
-	body := strings.Replace(seqV0, "=\n  Ok(vals = Seq<str>[])", "=\n  Ok(vals = Seq<Nope>[\"a\"])", 1)
+	body := strings.Replace(seqV0, "  Ok(vals = Seq<str>[])", "  Ok(vals = Seq<Nope>[\"a\"])", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeUnknownType, "Nope")
 }
@@ -553,7 +533,6 @@ fn m__go() -> M__Flag rev 1
   emits []
   tests
     go() => Ok(flag = true)
-=
   Ok(flag = (Seq<str>["a"] == Seq<str>["a"]))
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
@@ -575,7 +554,6 @@ fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
     go("a") => Ok(vals = Seq<str>["a"])
-=
   match call lib__echo(x)
     given
       go => [exchange args (x = "a") outcome Ok(vals = Seq<str>["a"])]
@@ -602,7 +580,6 @@ fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
     go("a") => Ok(vals = ` + want + `)
-=
   match call lib__echo(x)
     given
       go => [exchange args (x = "a") outcome Ok(vals = ` + want + `)]

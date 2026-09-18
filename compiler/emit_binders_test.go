@@ -30,7 +30,6 @@ fn audit__fail(which: str) -> Audit__Value rev 1
     f("a") => audit.failed(code = 7)
     g("b") => audit.other(code = 8)
     o("z") => Ok(value = 0)
-=
   match which
     "a" => audit.failed(code = 7)
     "b" => audit.other(code = 8)
@@ -40,7 +39,6 @@ fn audit__double(_m1: int) -> Audit__Value rev 1
   emits []
   tests
     d(21) => Ok(value = 42)
-=
   Ok(value = _m1 + _m1)
 
 fn audit__go(flag: str) -> Audit__Value rev 1
@@ -49,7 +47,6 @@ fn audit__go(flag: str) -> Audit__Value rev 1
     h("a") => Ok(value = 7)
     k("b") => Ok(value = 8)
     j("z") => Ok(value = 0)
-=
   match call audit__fail(flag)
     on audit.failed err => Ok(value = err.code)
     on audit.other err => Ok(value = err.code)
@@ -61,7 +58,6 @@ fn audit__wrap(flag: str) -> Audit__Value rev 1
     w("a") => Ok(value = 28)
     v("b") => Ok(value = 8)
     u("z") => Ok(value = 0)
-=
   match call audit__fail(flag)
     on audit.failed err => match call audit__double(err.code)
       on Ok r => Ok(value = r.value + r.value)

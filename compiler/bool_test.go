@@ -34,7 +34,6 @@ func TestBoolBasic(t *testing.T) {
     tf(true, false) => Ok(value = false)
     ft(false, true) => Ok(value = false)
     ff(false, false) => Ok(value = false)
-=
   Ok(value = left and right)
 ` + `fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
@@ -43,14 +42,12 @@ func TestBoolBasic(t *testing.T) {
     tf(true, false) => Ok(value = true)
     ft(false, true) => Ok(value = true)
     ff(false, false) => Ok(value = false)
-=
   Ok(value = left or right)
 ` + `fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
     t(true) => Ok(value = false)
     f(false) => Ok(value = true)
-=
   Ok(value = not x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -77,13 +74,11 @@ fn m__go(a: bool, b: bool, c: bool) -> M__Out rev 1
   tests
     row(false, false, false) => Ok(value = false)
     row2(true, false, true) => Ok(value = true)
-=
   Ok(value = not a == b and c)
 ` + `fn m__or2(a: bool, b: bool, c: bool) -> M__Out rev 1
   emits []
   tests
     row(true, true, false) => Ok(value = true)
-=
   Ok(value = a or b and c)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -105,7 +100,6 @@ func TestBoolOperandTypes(t *testing.T) {
   emits []
   tests
     go(true, true) => Ok(value = true)
-=
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6003") {
@@ -130,13 +124,11 @@ fn m__flag() -> M__Out rev 1
   emits []
   tests
     go() => Ok(value = true)
-=
   Ok(value = true)
 ` + `fn m__go(left: bool) -> M__Out rev 1
   emits []
   tests
     go(true) => Ok(value = true)
-=
   Ok(value = left and call m__flag())
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -157,7 +149,6 @@ func TestBoolSymbolsRejected(t *testing.T) {
   emits []
   tests
     go(true, true) => Ok(value = true)
-=
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasError(diags) {
@@ -178,7 +169,6 @@ func TestBoolEagerFault(t *testing.T) {
   emits []
   tests
     go() => Ok(value = false)
-=
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4200") {
@@ -195,19 +185,16 @@ func TestBoolEmitHelpers(t *testing.T) {
   emits []
   tests
     go(left = true, right = true) => Ok(value = true)
-=
   Ok(value = left and right)
 ` + `fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
     go(true, true) => Ok(value = true)
-=
   Ok(value = left or right)
 ` + `fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
     go(true) => Ok(value = false)
-=
   Ok(value = not x)
 `
 	dir := t.TempDir()
@@ -241,7 +228,6 @@ fn m__go(left: bool) -> M__Out rev 1
   emits []
   tests
     go(left = true) => Ok(value = true)
-=
   Ok(value = left)
 `
 	dir2 := t.TempDir()
@@ -284,21 +270,18 @@ fn m__and(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
     go(true, true) => Ok(value = true)
-=
   Ok(value = left and right)
 
 fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
     go(true, true) => Ok(value = true)
-=
   Ok(value = left or right)
 
 fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
     go(true) => Ok(value = false)
-=
   Ok(value = not x)
 
 fn m__eager(x: int) -> M__Out rev 1
@@ -306,7 +289,6 @@ fn m__eager(x: int) -> M__Out rev 1
   tests
     big(200) => Ok(value = false)
     small(50) => Ok(value = false)
-=
   Ok(value = (x > 100) and ((10 / x) > 1))
 `
 	dir := t.TempDir()

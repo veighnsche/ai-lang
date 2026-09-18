@@ -26,7 +26,6 @@ fn m__mint(which: str) -> M__Out rev 1
   tests
     mint("a") => Ok(echo = seal M__B("a"))
     other("b") => Ok(echo = seal M__B("b"))
-=
   match which
     "a" => Ok(echo = seal M__B("a"))
     _ => Ok(echo = seal M__B("b"))
@@ -47,7 +46,6 @@ fn lib__get() -> Lib__Out rev 1
   emits []
   tests
     go() => Ok(echo = seal Lib__B("x"))
-=
   Ok(echo = seal Lib__B("x"))
 `
 
@@ -79,7 +77,6 @@ fn app__forge() -> App__Out rev 1
   emits []
   tests
     go() => Ok(echo = seal Lib__B("x"))
-=
   match call lib__get()
     given
       go => [exchange args () outcome Ok(echo = "x")]
@@ -108,7 +105,6 @@ fn app__pass() -> App__Out rev 1
   emits []
   tests
     go() => Ok(echo = seal Lib__B("x"))
-=
   match call lib__get()
     given
       go => [exchange args () outcome Ok(echo = seal Lib__B("x"))]
@@ -144,7 +140,6 @@ fn m__node(text: M__Text) -> M__SafeResult rev 1
   tests
     plain(seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
     escaped(seal M__Text("a&amp;b")) => Ok(safe = seal M__Safe("a&amp;b"))
-=
   Ok(safe = seal M__Safe(text))
 `
 
@@ -172,7 +167,6 @@ fn m__node(text: M__Text) -> M__SafeResult rev 1
   emits []
   tests
     plain(seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
-=
   Ok(safe = seal M__Safe(text))
 `
 
@@ -201,7 +195,6 @@ fn m__back(frag: M__Safe) -> M__BackResult rev 1
   emits []
   tests
     plain(seal M__Safe("hi")) => Ok(text = seal M__Text("hi"))
-=
   Ok(text = seal M__Text(frag))
 `
 
@@ -232,7 +225,6 @@ fn m__skip(start: M__A) -> M__CResult rev 1
   emits []
   tests
     plain(seal M__A("hi")) => Ok(value = seal M__C("hi"))
-=
   Ok(value = seal M__C(start))
 `
 
@@ -275,7 +267,6 @@ fn app__promote() -> App__Out rev 1
   emits []
   tests
     go() => Ok(echo = seal App__C("x"))
-=
   match call lib__get()
     given
       go => [exchange args () outcome Ok(echo = "x")]
@@ -301,7 +292,6 @@ fn m__bad(which: str) -> M__B rev 1
   emits []
   tests
     go("x") => Ok(value = seal M__B("x"))
-=
   Ok(value = seal M__B("x"))
 `
 

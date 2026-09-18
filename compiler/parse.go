@@ -1799,7 +1799,7 @@ func parseModuleText(name, text string) (*Module, error) {
 			}
 			fn := &FnDecl{Name: m[1], Rev: rev, Params: params, Ret: m[3], Line: declLine}
 			i++
-			for i < len(rows) && rows[i].indent > 0 {
+			for i < len(rows) && rows[i].indent > 0 && isMetaHead(rows[i].code) {
 				ind, c := rows[i].indent, rows[i].code
 				metaLine := rows[i].line
 				switch {
@@ -1928,10 +1928,12 @@ func parseModuleText(name, text string) (*Module, error) {
 					return nil, at(metaLine, fmt.Errorf("unexpected in fn %s: %s", fn.Name, c))
 				}
 			}
-			if i >= len(rows) || rows[i].code != "=" {
-				return nil, at(declLine, fmt.Errorf("fn %s missing = body", fn.Name))
+			if i < len(rows) && rows[i].code == "=" {
+				return nil, at(rows[i].line, fmt.Errorf("fn %s: lone = separator removed; delete this line", fn.Name))
 			}
-			i++
+			if i >= len(rows) || rows[i].indent == 0 {
+				return nil, at(declLine, fmt.Errorf("fn %s missing body", fn.Name))
+			}
 			body, next, err := parseExprBlock(rows, i, -1)
 			if err != nil {
 				return nil, err
@@ -1961,6 +1963,20 @@ func parseModuleText(name, text string) (*Module, error) {
 	mod.ID = filepath.Clean(path)
 	mod.File = filepath.Base(mod.ID)
 	return mod, nil
+}
+
+// isMetaHead reports whether a row opens fn metadata: emits,
+// decreases, effects, requires, ensures, or tests — mirroring
+// the metadata switch exactly. Anything else at body depth starts
+// the body: with no `=` separator, the first non-metadata row is
+// the body by construction, and malformed metadata still errors
+// inside its own case (a leading keyword always parses as metadata,
+// never as body).
+func isMetaHead(c string) bool {
+	return strings.HasPrefix(c, "emits ") ||
+		strings.HasPrefix(c, "decreases") ||
+		strings.HasPrefix(c, "effects ") ||
+		c == "requires" || c == "ensures" || c == "tests"
 }
 
 // isDigits reports whether s is a non-negative integer literal:

@@ -25,7 +25,6 @@ fn demo__sub(left: int, right: int) -> Int__Value rev 1
     named(left = 5, right = 8) => Ok(value = -3)
     mixed(5, right = 8) => Ok(value = -3)
     ordered(5, 8) => Ok(value = -3)
-=
   Ok(value = left - right)
 `
 

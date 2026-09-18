@@ -25,7 +25,6 @@ fn std__int__abs(value: int) -> M__Val rev 1
   tests
     neg(-3) => Ok(value = 3)
     pos(3) => Ok(value = 3)
-=
   match value >= 0
     true => Ok(value = value)
     false => Ok(value = 0 - value)

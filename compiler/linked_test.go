@@ -34,7 +34,6 @@ fn leaf__copy(value: str) -> Encoding__Text rev 1
   emits []
   tests
 ` + leafTests + `
-=
 ` + leafBody + `
 `
 	middle := `mod middle
@@ -47,7 +46,6 @@ fn middle__copy(value: str) -> Encoding__Text rev 1
   tests
     empty("") => Ok(value = "")
     a("A") => Ok(value = "A")
-=
   match call leaf__copy(value)
     given
       empty => [exchange args (value = "") outcome Ok(value = "")]
@@ -63,7 +61,6 @@ fn client__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
     a("A") => Ok(value = "A")
-=
   match call middle__copy(value)
     given
       a => [exchange args (value = "A") outcome Ok(value = "A")]
@@ -126,7 +123,6 @@ fn m__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
     a("A") => Ok(value = "A")
-=
   match call ext__thing(value = value)
     given
       a => [exchange args (value = "A") outcome Ok(value = "A")]
@@ -136,7 +132,6 @@ fn m__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
     a("A") => Ok(value = "A")
-=
   match call nope__missing(value = value)
     given
       a => [exchange args (value = "A") outcome Ok(value = "A")]
@@ -158,7 +153,6 @@ fn m__go(value: str) -> M__T rev 1
   emits []
   tests
     a("A") => Ok(total = 0)
-=
   match call state__get(M__C)
     on Ok c => Ok(total = c.value)
 `,

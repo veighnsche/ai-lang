@@ -43,7 +43,6 @@ func variantMatchMod(tests, body string) string {
   emits []
   tests
 ` + tests + `
-=
   ` + body + `
 `
 }
@@ -99,7 +98,6 @@ func TestVariantMatchWrongUnion(t *testing.T) {
   emits []
   tests
 ` + variantMatchTests + `
-=
   ` + body + `
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -160,7 +158,6 @@ func TestVariantMatchMultiSlot(t *testing.T) {
   emits []
   tests
     go(Login__Anonymous(), true) => Ok(message = "Sign in")
-=
   match state, flag
     on Login__Anonymous _, _ => Ok(message = "Sign in")
 `
@@ -217,7 +214,6 @@ func TestVariantMatchCaseOnBool(t *testing.T) {
   emits []
   tests
     go(true) => Ok(message = "Sign in")
-=
   match flag
     on Login__Anonymous _ => Ok(message = "Sign in")
 `
@@ -273,7 +269,6 @@ fn m__pick(state: Login__State, pick: Pick__State) -> M__Out rev 1
     ab(Login__Anonymous(), Pick__B()) => Ok(message = "B")
     au(Login__Authenticated(session = Auth__Session(user_id = "u")), Pick__A()) => Ok(message = "u")
     al(Login__Locked(user_id = "u", remaining_seconds = 1), Pick__A()) => Ok(message = "locked")
-=
   match state
     on Login__Anonymous _ => match pick
       on Pick__A _ => Ok(message = "A")
@@ -314,7 +309,6 @@ fn prov__go(state: Login__State) -> Prov__Out rev 1
   tests
     anon(Login__Anonymous()) => Ok(message = "in")
     auth(Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
-=
   match state
     on Login__Anonymous _ => Ok(message = "in")
     on Login__Authenticated a => Ok(message = a.session.user_id)
@@ -333,7 +327,6 @@ fn cons__go(state: Login__State) -> Cons__Out rev 1
   tests
     anon(Login__Anonymous()) => Ok(message = "in")
     auth(Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")
-=
   match state
     on Login__Anonymous _ => Ok(message = "in")
     on Login__Authenticated a => Ok(message = a.session.user_id)

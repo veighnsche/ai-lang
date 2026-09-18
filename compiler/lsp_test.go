@@ -24,7 +24,6 @@ fn db__get(id: str) -> Db__U rev 1
   tests
     ok("u") => Ok(id = "u")
     other("x") => db.down()
-=
   match id
     "u" => Ok(id = "u")
     _ => db.down()
@@ -46,7 +45,6 @@ fn auth__go(id: str) -> Auth__S rev 1
   tests
     ok("u") => Ok(id = "u")
     down("u") => auth.bad()
-=
   match call db__get(id)
     given
       ok => [exchange args (id = "u") outcome Ok(id = "u")]
@@ -132,7 +130,6 @@ fn m__go(id: str) -> M__S rev 1
   tests
     hit("u") => Ok(id = "u")
     miss("x") => m.bad(id = "x")
-=
   match id
     "u" => Ok(id = id)
     _ => m.bad(id = id)
@@ -332,7 +329,6 @@ fn db__ping() -> Db__U rev 1
   emits []
   tests
     ok() => Ok(id = "u")
-=
   Ok(id = "u")
 `
 	auth := strings.Replace(lspAuth, "uses [db__get@1]", "uses [db__get@1, db__ping@1]", 1)
@@ -539,7 +535,6 @@ fn db__ping() -> Db__U rev 1
   emits []
   tests
     ok() => Ok(id = "u")
-=
   Ok(id = "u")
 `
 	auth := strings.Replace(lspAuth, "uses [db__get@1]", "uses [db__get@1, db__ping@1]", 1)
@@ -609,7 +604,6 @@ fn math__sum_to(n: int) -> Int__Value rev 1
     neg(-3) => math.negative_input(value = -3)
     zero(0) => Ok(value = 0)
     pos(3) => Ok(value = 6)
-=
   match n <= 0
     true => match n == 0
       true => Ok(value = 0)
@@ -690,7 +684,6 @@ fn math2__go(n: int) -> Int__Value rev 1
     fail(-1) => math2.fail(a = 1, b = 2)
     zero(0) => Ok(value = 0)
     pos(2) => Ok(value = 3)
-=
   match n <= 0
     true => match n == 0
       true => Ok(value = 0)
@@ -776,14 +769,12 @@ fn dup__help(x: int) -> Dup__Val rev 1
   emits [dup.bad]
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = x)
 
 fn dup__go(x: int) -> Dup__Out rev 1
   emits [dup.bad]
   tests
     go(1) => Ok(value = 1)
-=
   match call dup__help(x)
     on Ok r => Ok(value = r.value)
     on dup.bad e => dup.bad(value = e.value)
@@ -822,7 +813,6 @@ fn lib__get() -> Lib__Out rev 1
   emits [lib.bad]
   tests
     go() => Ok(value = 1)
-=
   Ok(value = 1)
 `
 
@@ -839,7 +829,6 @@ fn app__go() -> App__Out rev 1
   emits [lib.bad]
   tests
     go() => Ok(value = 1)
-=
   match call lib__get()
     given
       go => [exchange args () outcome Ok(value = 1)]
@@ -883,14 +872,12 @@ fn cat__help(x: int) -> Cat__Val rev 1
   emits [cat.used]
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = x)
 
 fn cat__go(x: int) -> Cat__Out rev 1
   emits [cat.used, cat.free]
   tests
     go(1) => Ok(value = 1)
-=
   match call cat__help(x)
     on Ok r => Ok(value = r.value)
     on cat.used e => cat.used(value = e.value)
@@ -970,7 +957,6 @@ fn shop__price() -> Shop__Item rev 1
   emits []
   tests
     half() => Ok(price = d"1.5")
-=
   Ok(price = d"1.50")
 `
 
@@ -996,7 +982,6 @@ fn m__leak(pw: M__B) -> M__Out rev 1
   emits []
   tests
     t(seal M__B("s")) => Ok(echo = "s")
-=
   Ok(echo = pw)
 `
 
@@ -1022,7 +1007,6 @@ fn m__cmp(a: M__A, b: M__B) -> M__Out rev 1
   emits []
   tests
     t(seal M__A("x"), seal M__B("y")) => Ok(echo = "n")
-=
   match a == b
     true => Ok(echo = "y")
     false => Ok(echo = "n")
@@ -1047,7 +1031,6 @@ fn m__cmp(a: int, b: dec) -> M__Out rev 1
   emits []
   tests
     t(1, d"1.0") => Ok(echo = "n")
-=
   match a > b
     true => Ok(echo = "y")
     false => Ok(echo = "n")
@@ -1076,35 +1059,30 @@ fn m__len(v: int) -> M__Out rev 1
   emits []
   tests
     t(1) => Ok(n = 0)
-=
   Ok(n = #v)
 
 fn m__at(v: int, i: int) -> M__Out rev 1
   emits []
   tests
     t(1, 0) => Ok(n = 0)
-=
   Ok(n = v[i])
 
 fn m__at_str(v: str, i: str) -> M__Out rev 1
   emits []
   tests
     t("ab", "x") => Ok(n = 0)
-=
   Ok(n = v[i])
 
 fn m__slice(v: int, a: int, b: int) -> M__Str rev 1
   emits []
   tests
     t(1, 0, 1) => Ok(s = "x")
-=
   Ok(s = v[a:b])
 
 fn m__slice_str(v: str, a: str, b: int) -> M__Str rev 1
   emits []
   tests
     t("ab", "x", 1) => Ok(s = "x")
-=
   Ok(s = v[a:b])
 `
 
@@ -1139,7 +1117,6 @@ fn m__seal(pw: str, n: int) -> M__Out rev 1
   emits []
   tests
     t("s", 0) => Ok(echo = "s")
-=
   Ok(echo = seal M__B(pw))
 `
 
@@ -1190,7 +1167,6 @@ fn m__check(pw: M__Pw) -> M__Out rev 1
   tests
     yes(seal M__Pw("s")) => Ok(ok = true)
     no(seal M__Pw("s")) => m.nope()
-=
   match call m__use(pw)
     given
       yes => [exchange args (pw = seal M__Pw("s")) outcome Ok()]
@@ -1228,7 +1204,6 @@ fn o__go(id: str) -> O__Out rev 1
   emits []
   tests
     t("u") => Ok(id = "u")
-=
   match call m__use(id)
     given
       t => [exchange args (pw = "u") outcome Ok()]
@@ -1259,14 +1234,12 @@ fn m__calc(a: int, b: int, c: int) -> M__Out rev 1
   emits []
   tests
     t(10, 3, 2) => Ok(n = 5)
-=
   Ok(n = a - b - c)
 
 fn m__prec(a: int, b: int, c: int) -> M__Out rev 1
   emits []
   tests
     t(2, 3, 4) => Ok(n = 14)
-=
   Ok(n = a + b * c)
 `
 
@@ -1291,7 +1264,6 @@ fn m__exact(a: dec, b: dec, c: dec) -> M__Bit rev 1
   tests
     third(d"0.1", d"0.2", d"0.3") => Ok(yes = true)
     fourth(d"0.1", d"0.2", d"0.4") => Ok(yes = false)
-=
   match a + b == c
     true => Ok(yes = true)
     false => Ok(yes = false)
@@ -1315,8 +1287,8 @@ func TestDiagnoseArithStr(t *testing.T) {
 	// a16: + concatenates strings, so the refused string operation
 	// is now -. The contract under test is unchanged: strings do
 	// no arithmetic besides explicit construction.
-	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(10, 3, 2) => Ok(n = 5)\n=\n  Ok(n = a - b - c)",
-		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(\"x\", \"y\", 2) => Ok(n = 5)\n=\n  Ok(n = a - b)", 1)
+	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(10, 3, 2) => Ok(n = 5)\n  Ok(n = a - b - c)",
+		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(\"x\", \"y\", 2) => Ok(n = 5)\n  Ok(n = a - b)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	checkSpan(t, bad, diags, "cannot subtract str with str", "-", expectLine(t, bad, "Ok(n = a - b)"))
@@ -1336,7 +1308,6 @@ fn m__cat(left: str, right: str) -> M__Cat rev 1
   tests
     basic("x", "y") => Ok(s = "xy")
     empty("", "y") => Ok(s = "y")
-=
   Ok(s = left + right)
 `
 
@@ -1361,7 +1332,6 @@ fn m__div(a: int, b: int) -> M__Out rev 1
   emits []
   tests
     t(7, 3) => Ok(q = 2)
-=
   Ok(q = a / b)
 `
 

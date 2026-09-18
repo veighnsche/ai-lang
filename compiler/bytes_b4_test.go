@@ -37,7 +37,6 @@ func TestBytesB4NulChainProbe(t *testing.T) {
 		"  emits []\n" +
 		"  tests\n" +
 		"    chain() => Ok(value = Bytes(Seq<int>[65, 0, 38, 97, 109, 112, 59, 66]))\n" +
-		"=\n" +
 		"  match call html__text__node(seal Html__Text(\"A\x00&amp;B\"))\n" +
 		"    on Ok n => match call html__render__utf8(n.safe)\n" +
 		"      on Ok b => Ok(value = b.value)\n"

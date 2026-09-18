@@ -69,7 +69,6 @@ fn m__f(x: bool, y: bool) -> bool rev 1
   emits []
   tests
     t(true, true) => true
-=
 `
 
 func TestMultiFullTableClean(t *testing.T) {
@@ -119,7 +118,6 @@ fn m__g(s: str, b: bool) -> bool rev 1
   emits []
   tests
     t("a", true) => true
-=
   match s, b
     "a", true => true
     "a", false => false
@@ -250,7 +248,6 @@ fn m__multi(a: bool, b: bool) -> M__Out rev 1
     tf(true, false) => Ok(v = false)
     ft(false, true) => Ok(v = false)
     ff(false, false) => Ok(v = true)
-=
   match a, b
     true, true => Ok(v = true)
     true, false => Ok(v = false)
@@ -264,7 +261,6 @@ fn m__nested(a: bool, b: bool) -> M__Out rev 1
     tf(true, false) => Ok(v = false)
     ft(false, true) => Ok(v = false)
     ff(false, false) => Ok(v = true)
-=
   match a
     true => match b
       true => Ok(v = true)
@@ -279,7 +275,6 @@ fn m__words(s: str, b: bool) -> M__Word rev 1
     admin("admin", false) => Ok(w = "root")
     user("bob", true) => Ok(w = "user")
     guest("bob", false) => Ok(w = "guest")
-=
   match s, b
     "admin", _ => Ok(w = "root")
     _, true => Ok(w = "user")
@@ -362,7 +357,6 @@ fn m__w(s: str, b: bool) -> M__Word rev 1
     admin("admin", false) => Ok(w = "root")
     user("bob", true) => Ok(w = "user")
     guest("bob", false) => Ok(w = "guest")
-=
   match s, b
     "admin", _ => Ok(w = "root")
     _, true => Ok(w = "user")
@@ -385,7 +379,6 @@ fn m__q(a: bool, b: bool) -> M__Out rev 1
     tf(true, false) => Ok(v = false)
     ft(false, true) => Ok(v = false)
     ff(false, false) => Ok(v = true)
-=
   match a, b
     true, true => Ok(v = true)
     true, false => Ok(v = false)
@@ -455,7 +448,6 @@ fn m__h(s: str) -> bool rev 1
   emits []
   tests
     t("a,b") => true
-=
   match s
     "a,b" => true
     _ => false

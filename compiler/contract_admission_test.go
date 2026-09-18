@@ -34,7 +34,6 @@ fn m__max(left: int, right: int) -> M__Out rev 1
   tests
     ordered(1, 2) => Ok(value = 2)
     reversed(2, 1) => Ok(value = 2)
-=
   match left <= right
     on true => Ok(value = right)
     on false => Ok(value = left)
@@ -65,7 +64,6 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
   tests
     ok(1, 0, 2) => Ok(value = 1)
     low(-1, 0, 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
-=
   match value >= lower
     on true => Ok(value = value)
     on false => m.out_of_range(value = value, lower = lower, upper = upper)
@@ -112,7 +110,6 @@ fn m__go(x: int) -> M__Out rev 1
       false
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = x)
 `
 	prog, texts := admitProg(t, src)
@@ -211,7 +208,6 @@ fn m__sq(x: int) -> M__Out rev 1
       result.value == x * x
   tests
     zero(0) => Ok(value = 0)
-=
   Ok(value = 0)
 `
 	prog, texts := admitProg(t, src)
@@ -252,7 +248,6 @@ fn m__tag(x: int) -> M__Out rev 1
       result.name == "x"
   tests
     go(1) => Ok(name = "x")
-=
   Ok(name = "x")
 `
 	prog, texts := admitProg(t, src)
@@ -284,7 +279,6 @@ fn m__go(tok: M__B) -> M__Out rev 1
       result.value == 1
   tests
     go(seal M__B("a")) => Ok(value = 1)
-=
   Ok(value = 1)
 `
 	prog, texts := admitProg(t, src)
@@ -313,7 +307,6 @@ fn m__go(x: dec) -> M__Out rev 1
       result.value == 1
   tests
     go(d"1.5") => Ok(value = 1)
-=
   Ok(value = 1)
 `
 	prog, texts := admitProg(t, src)
@@ -346,7 +339,6 @@ fn m__go(x: int) -> M__Out rev 1
       result.n == x
   tests
     go(1) => Ok(n = 1)
-=
   match call ext__thing(x)
     given
       go => [exchange args (x = 1) outcome Ok(n = 1)]
@@ -381,7 +373,6 @@ fn m__poll(n: int) -> M__S rev 1
   tests
     now(0) => Ok(n = 0)
     later(2) => Ok(n = 0)
-=
   match n <= 0
     true => Ok(n = 0)
     false => match call m__poll(n - 1)
@@ -415,7 +406,6 @@ fn m__one() -> M__Out rev 1
       result.value == 1
   tests
     go() => Ok(value = 1)
-=
   Ok(value = 1)
 
 fn m__two() -> M__Out rev 1
@@ -427,7 +417,6 @@ fn m__two() -> M__Out rev 1
       result.value == 1
   tests
     go() => Ok(value = 1)
-=
   match call m__one()
     on Ok r => Ok(value = r.value)
 `
@@ -460,7 +449,6 @@ fn m__one() -> M__Out rev 1
   emits []
   tests
     go() => Ok(value = 1)
-=
   Ok(value = 1)
 
 fn m__two() -> M__Out rev 1
@@ -472,7 +460,6 @@ fn m__two() -> M__Out rev 1
       result.value == 1
   tests
     go() => Ok(value = 1)
-=
   match call m__one()
     on Ok r => Ok(value = r.value)
 `
@@ -498,7 +485,6 @@ fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
     go(2) => Ok(value = 4)
-=
   Ok(value = x * x)
 `
 	prog, texts := admitProg(t, src)

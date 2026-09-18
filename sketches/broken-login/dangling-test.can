@@ -18,7 +18,6 @@ fn auth__dangle(id: str) -> Auth__Dangle rev 1
   tests
     happy(id = "u_01") => Ok(id = "u_01")
     extra(id = "u_02") => Ok(id = "u_02")
-=
   match call db__get(id)
     given
       happy => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)]

@@ -18,7 +18,6 @@ fn go(id: str) -> Auth__S rev 1
     happy(id = "u_01") => Ok(id = "u_01")
     missing(id = "u_99") => auth.bad()
     down(id = "u_01") => auth.bad()
-=
   match call db__get(id)
     given
       happy => [exchange args (id = "u_01") outcome Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)]

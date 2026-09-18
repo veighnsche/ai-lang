@@ -26,7 +26,6 @@ fn audit__make(first: int, second: str) -> Audit__Pair rev 1
   emits []
   tests
     m(1, "a") => Ok(first = 1, second = "a")
-=
   Ok(first = first, second = second)
 
 fn audit__cmp(flag: str) -> Audit__Pair rev 1
@@ -34,7 +33,6 @@ fn audit__cmp(flag: str) -> Audit__Pair rev 1
   tests
     s("a") => Ok(first = 1, second = "a")
     d("b") => Ok(first = 0, second = "neq")
-=
   match call audit__make(1, "a")
     on Ok left => match call audit__make(1, flag)
       on Ok right => match left == right

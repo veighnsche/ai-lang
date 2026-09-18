@@ -39,7 +39,6 @@ fn t__get(xs: Seq<str>, index: int) -> T__Item rev 1
     negative(Seq<str>["a"], -1) => t.out_of_range(index = -1, length = 1)
     past_end(Seq<str>["a"], 1) => t.out_of_range(index = 1, length = 1)
     empty(Seq<str>[], 0) => t.out_of_range(index = 0, length = 0)
-=
   match index >= 0
     true => match index < #xs
       true => Ok(item = xs[index])
@@ -53,7 +52,6 @@ fn t__get_b(xs: Seq<M__B>, index: int) -> T__BItem rev 1
     negative(Seq<M__B>[seal M__B("A")], -1) => t.out_of_range(index = -1, length = 1)
     past_end(Seq<M__B>[seal M__B("A")], 1) => t.out_of_range(index = 1, length = 1)
     empty(Seq<M__B>[], 0) => t.out_of_range(index = 0, length = 0)
-=
   match index >= 0
     true => match index < #xs
       true => Ok(item = xs[index])
@@ -100,7 +98,6 @@ fn t__walk_from(xs: Seq<str>, position: int, fuel: int, count: int, trace: str) 
     one(Seq<str>["x"], 0, 2, 0, "") => Ok(count = 1, trace = "(x)")
     three(Seq<str>["b", "", "a"], 0, 4, 0, "") => Ok(count = 3, trace = "(b)()(a)")
     short(Seq<str>["a", "b"], 0, 1, 0, "") => Ok(count = 1, trace = "(a)")
-=
   match fuel <= 0
     true => Ok(count = count, trace = trace)
     false => match position < #xs
@@ -114,7 +111,6 @@ fn t__walk(xs: Seq<str>) -> T__Trace rev 1
     empty(Seq<str>[]) => Ok(count = 0, trace = "")
     one(Seq<str>[""]) => Ok(count = 1, trace = "()")
     three(Seq<str>["A", "", "B"]) => Ok(count = 3, trace = "(A)()(B)")
-=
   match call t__walk_from(xs, 0, #xs + 1, 0, "")
     on Ok r => Ok(count = r.count, trace = r.trace)
 `
@@ -171,7 +167,6 @@ fn t__raw(xs: Seq<str>) -> T__Item rev 1
   emits []
   tests
     go(Seq<str>["a", "b"]) => Ok(item = "b")
-=
   Ok(item = xs[5])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can", CodeTestFailed, "seq index out of range")
@@ -192,7 +187,6 @@ fn t__raw(xs: Seq<str>) -> T__Item rev 1
   emits []
   tests
     go(Seq<str>["a"]) => Ok(item = "a")
-=
   Ok(item = xs["a"])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can", CodeTypeMismatch, "cannot index with")

@@ -30,7 +30,6 @@ fn m__work(v: str) -> M__Work rev 1
   tests
     w("x") => Ok(value = "x")
     u("b") => m.bad(value = "b")
-=
   match v == "b"
     true => m.bad(value = v)
     false => Ok(value = v)
@@ -42,7 +41,6 @@ fn m__go(x: str) -> M__Out rev 1
   tests
     ok("a") => Ok(value = "a")
     bad("b") => m.bad(value = "b")
-=
   match call m__work(x)
 `
 
@@ -118,7 +116,6 @@ fn m__go(x: int) -> M__Out rev 1
   tests
     one(1) => Ok(value = "yes")
     two(2) => Ok(value = "no")
-=
   match x <= 1
     true => forward x
     false => Ok(value = "no")
@@ -149,14 +146,12 @@ fn m__work(v: str) -> M__Work rev 1
   emits []
   tests
     w("x") => Ok(value = "x")
-=
   Ok(value = v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
     ok("a") => Ok(other = "a")
-=
   match call m__work(x)
     given
       ok => [Ok(value = "a")]
@@ -185,7 +180,6 @@ fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
     ok("a") => Ok(value = "a")
-=
   match call nope__missing(x)
     on Ok r => forward r
 `
@@ -218,7 +212,6 @@ fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
     ok("a") => Ok(value = "a")
-=
   match call ex__work(x)
     given
       ok => [exchange args (v = "a") outcome Ok(value = "a")]
@@ -240,7 +233,6 @@ fn m__go(x: str) -> M__Out rev 1
   tests
     ok("a") => Ok(value = "a")
     bad("b") => m.bad(value = "b")
-=
   match call m__work(x)
     on m.bad e => forward e
     on Ok r => Ok(value = r.value)
@@ -260,7 +252,6 @@ fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
     ok("a") => Ok(value = "a")
-=
   match call m__work(x)
     on m.bad e => forward e
     on Ok r => Ok(value = r.value)
@@ -279,7 +270,6 @@ fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
     bad("b") => m.bad(value = "b")
-=
   match call m__work(x)
     on m.bad e => m.bad(value = e.value)
     on Ok r => forward r
@@ -309,7 +299,6 @@ fn lib__work(v: str) -> L__Work rev 1
   emits [lib.bad]
   tests
     w("x") => Ok(value = "x")
-=
   Ok(value = v)
 `
 	app := `mod app
@@ -325,7 +314,6 @@ fn app__go(x: str) -> A__Out rev 1
   emits [lib.bad]
   tests
     ok("a") => Ok(value = "a")
-=
   match call lib__work(x)
     given
       ok => [exchange args (v = "a") outcome Ok(value = "a")]
@@ -376,7 +364,6 @@ fn m__check(v: str, tag: str) -> M__Mid rev 1
   tests
     clean("a", "t") => Ok(clean = "a")
     dirty("a", "bad") => m.dirty(value = "CALLEE")
-=
   match tag == "bad"
     true => m.dirty(value = "CALLEE")
     false => Ok(clean = v)
@@ -386,7 +373,6 @@ fn m__go(value: str, tag: str) -> M__Out rev 1
   tests
     hit("a-b", "bad") => m.dirty(value = "a-b")
     pass("a", "t") => Ok(value = "a")
-=
   match call m__check(value, tag)
     on m.dirty e => m.dirty(value = value)
     on Ok c => Ok(value = c.clean)

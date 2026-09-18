@@ -27,7 +27,6 @@ fn alpha__get(id: str) -> Alpha__Data rev 1
   emits []
   tests
     r("u") => Ok(id = "u")
-=
   Ok(id = id)
 `
 
@@ -44,7 +43,6 @@ fn beta__go(id: str) -> Beta__Out rev 1
   emits []
   tests
     g("u") => Ok(id = "u")
-=
   match call alpha__get(id)
     given
       g => [exchange args (id = "u") outcome Ok(id = "u")]
@@ -136,7 +134,6 @@ fn beta__forge() -> Beta__Out rev 1
   emits []
   tests
     f() => Ok(id = "s")
-=
   Ok(id = seal Alpha__Seal("s"))
 `
 	_, a, b := writeSameBasename(t, forge)

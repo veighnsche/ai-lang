@@ -14,7 +14,6 @@ fn db__ping() -> Db__U rev 1
   emits []
   tests
     ok() => Ok(id = "u")
-=
   Ok(id = "u")
 `
 
@@ -35,7 +34,6 @@ fn auth__go(id: str) -> Auth__S rev 1
     ok("u") => Ok(id = "u")
     down("u") => auth.bad()
     extra("u") => auth.bad()
-=
   match call db__get(id)
     given
       ok => [exchange args (id = "u") outcome Ok(id = "u")]
@@ -66,8 +64,8 @@ func TestGoldenJSONDiags(t *testing.T) {
 const jsonGolden = `{"code":"CAN3401","sev":"warning","file":"auth.can","line":3,"start":19,"end":29,"msg":"uses db__ping@1 but auth never calls it"}
 {"code":"CAN4002","sev":"error","file":"auth.can","line":13,"start":19,"end":29,"msg":"auth__go declares unknown error kind auth.stale in emits"}
 {"code":"CAN4200","sev":"error","file":"auth.can","line":17,"start":4,"end":9,"msg":"test extra fails: auth__go/extra: no script for call db__get"}
-{"code":"CAN3105","sev":"error","file":"auth.can","line":17,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 19)","expected":"extra =\u003e [exchange args (...) outcome ...]","found":"extra","hint":"add a script row for this test under the given table at line 19"}
-{"code":"CAN3104","sev":"warning","file":"auth.can","line":23,"start":6,"end":9,"msg":"script zzz never runs: no test named zzz in auth__go"}
+{"code":"CAN3105","sev":"error","file":"auth.can","line":17,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 18)","expected":"extra =\u003e [exchange args (...) outcome ...]","found":"extra","hint":"add a script row for this test under the given table at line 18"}
+{"code":"CAN3104","sev":"warning","file":"auth.can","line":22,"start":6,"end":9,"msg":"script zzz never runs: no test named zzz in auth__go"}
 `
 
 // TestAllCodesSequenced pins the registry order: allCodes runs in

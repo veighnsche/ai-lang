@@ -32,7 +32,6 @@ fn m__check(value: int, limit: int) -> M__Val rev 1
   tests
     fits(3, 10) => Ok(value = 3)
     spills(11, 10) => m.too_big(value = 11, limit = 10)
-=
   match value <= limit
     true => Ok(value = value)
     false => m.too_big(value = value, limit = limit)
@@ -42,7 +41,6 @@ fn m__use(value: int, limit: int) -> M__Out rev 1
   tests
     ok(3, 10) => Ok(got = 3, limit = 10)
     bad(11, 10) => m.too_big(value = 11, limit = 10)
-=
   match call m__check(value, limit)
     on m.too_big _ => m.too_big(value = value, limit = limit)
     on Ok c => Ok(got = c.value, limit = limit)

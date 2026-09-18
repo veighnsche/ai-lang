@@ -67,7 +67,6 @@ fn c__help(value: int) -> C__T rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 
@@ -84,7 +83,6 @@ fn b__help(value: int) -> B__U rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 
@@ -101,7 +99,6 @@ fn a__go(value: int) -> A__O rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 
@@ -154,7 +151,6 @@ fn m__go(value: int) -> M__S rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	root := writeFallbackTree(t, map[string]string{
@@ -184,7 +180,6 @@ fn b__x(value: int) -> B__O rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	a := `mod a
@@ -200,7 +195,6 @@ fn a__go(value: int) -> A__O rev 1
   emits []
   tests
     one(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	root := writeFallbackTree(t, map[string]string{

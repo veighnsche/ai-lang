@@ -23,7 +23,6 @@ fn m__wrap(value: str) -> Str__Value rev 1
   tests
     plain("x") => Ok(value = "{x}")
     empty("") => Ok(value = "{}")
-=
   Ok(value = "{" + value + "}")
 `
 

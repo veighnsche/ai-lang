@@ -69,14 +69,12 @@ fn audit__subtract(left: int, right: int) -> Audit__Value rev 1
   emits []
   tests
     s(9, 2) => Ok(value = 7)
-=
   Ok(value = left - right)
 
 fn audit__go() -> Audit__Value rev 1
   emits []
   tests
     g() => Ok(value = 7)
-=
   match call audit__subtract(right = 2, left = 9)
     on Ok r => Ok(value = r.value)
 `

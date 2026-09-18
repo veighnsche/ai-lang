@@ -19,7 +19,6 @@ fn merge__classify(value: str) -> Merge__Value rev 1
     c("c") => Ok(value = 2)
     d("d") => Ok(value = 1)
     other("z") => Ok(value = 0)
-=
   match value
     "a" => Ok(value = 1)
     "b" => Ok(value = 1)

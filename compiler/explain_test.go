@@ -83,7 +83,6 @@ fn m__go(value: int) -> M__Out rev 1
   emits [m.known]
   tests
     go(1) => m.stray()
-=
   m.stray()
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -125,7 +124,6 @@ fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
     go(1) => m.bad
-=
   Ok(value = value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -192,7 +190,6 @@ fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
     go(1) => Ok(value = 1)
-=
   match call m__help(value)
     given
       go => [exchange args (value = 1) outcome Ok(value = 1)]
@@ -202,7 +199,6 @@ fn m__help(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -243,7 +239,6 @@ fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
     go(1) => Ok(value = 1)
-=
   match call m__help(value)
     given
       go => [exchange args (value = 1) outcome Ok(value = 1)]
@@ -253,7 +248,6 @@ fn m__help(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
     go(1) => Ok(value = 1)
-=
   Ok(value = value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})

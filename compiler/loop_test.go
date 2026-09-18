@@ -27,7 +27,6 @@ fn m__poll(n: int) -> M__S rev 1
   tests
     now(0) => Ok(n = 0)
     later(2) => Ok(n = 0)
-=
   match n <= 0
     true => Ok(n = 0)
     false => match call m__poll(n - 1)
@@ -172,7 +171,6 @@ fn m__gcd(a: int, b: int) -> M__S rev 1
     basic(12, 8) => Ok(n = 4)
     coprime(8, 9) => Ok(n = 1)
     zero_b(5, 0) => Ok(n = 5)
-=
   match b <= 0
     true => Ok(n = a)
     false => match call m__gcd(b, a % b)
@@ -227,7 +225,6 @@ fn m__sqrt(value: int, lo: int, hi: int) -> M__S rev 1
     ten(10, 0, 11) => Ok(n = 3)
     exact(9, 3, 4) => Ok(n = 3)
     nine(9, 0, 10) => Ok(n = 3)
-=
   match (hi - lo) <= 1
     true => Ok(n = lo)
     false => match ((lo + hi) / 2) * ((lo + hi) / 2) <= value
@@ -309,7 +306,6 @@ fn m__a(n: int) -> M__S rev 1
   emits []
   tests
     a0(0) => Ok(n = 0)
-=
   match n <= 0
     true => Ok(n = 0)
     false => match call m__b(n - 1)
@@ -320,7 +316,6 @@ fn m__b(n: int) -> M__S rev 1
   emits []
   tests
     b0(0) => Ok(n = 0)
-=
   match n <= 0
     true => Ok(n = 0)
     false => match call m__a(n - 1)
@@ -375,7 +370,6 @@ fn alpha__run(n: int) -> Alpha__Value rev 1
   emits []
   tests
     sample(0) => Ok(value = 0)
-=
   match call beta__run(n)
     given
       sample => [exchange args (n = 0) outcome Ok(value = 0)]
@@ -394,7 +388,6 @@ fn beta__run(n: int) -> Beta__Value rev 1
   emits []
   tests
     sample(0) => Ok(value = 0)
-=
   match call alpha__run(n)
     given
       sample => [exchange args (n = 0) outcome Ok(value = 0)]

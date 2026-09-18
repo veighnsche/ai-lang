@@ -27,7 +27,6 @@ func TestControlBytesRoundTrip(t *testing.T) {
 		"  emits []\n" +
 		"  tests\n" +
 		"    go() => Ok(value = \"a\x00b\x01c\x7fd\")\n" +
-		"=\n" +
 		"  Ok(value = \"a\x00b\x01c\x7fd\")\n"
 	dir := t.TempDir()
 	srcPath := filepath.Join(dir, "probe.can")
@@ -55,7 +54,7 @@ func TestControlBytesRoundTrip(t *testing.T) {
 // point). Only 0x0A is excluded from the expressible set, by line
 // structure — every other probe above remains valid UTF-8.
 func TestMalformedSourceRefused(t *testing.T) {
-	bad := "mod probe\n  provides [probe__go]\n  uses []\n  emits []\n\nfn probe__go() -> Probe__Out rev 1\n  emits []\n  tests\n    go() => Ok(value = \"a\xff\xfeb\")\n=\n  Ok(value = \"a\xff\xfeb\")\n"
+	bad := "mod probe\n  provides [probe__go]\n  uses []\n  emits []\n\nfn probe__go() -> Probe__Out rev 1\n  emits []\n  tests\n    go() => Ok(value = \"a\xff\xfeb\")\n  Ok(value = \"a\xff\xfeb\")\n"
 	dir := t.TempDir()
 	srcPath := filepath.Join(dir, "probe.can")
 	if err := os.WriteFile(srcPath, []byte(bad), 0o644); err != nil {

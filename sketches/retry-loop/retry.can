@@ -30,7 +30,6 @@ fn retry__fetch(fuel: int) -> Retry__Doc rev 1
     later(2) => Ok(body = "hi")
     never(2) => retry.exhausted()
     empty(0) => retry.exhausted()
-=
   match fuel <= 0
     true => retry.exhausted()
     false => match call net__fetch()

@@ -53,7 +53,6 @@ NONASCIIROWS
     prefix_attack("41zz42") => encoding.invalid_hex(value = "41zz42")
     prefix_trunc("00ffa") => encoding.invalid_hex(value = "00ffa")
     trunc_a("a") => encoding.invalid_hex(value = "a")
-=
   match call bytes__hex__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_hex e => forward e
@@ -137,7 +136,6 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
     go(ARG) => Ok(value = Bytes(Seq<int>[65]))
-=
   match call bytes__hex__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
@@ -245,7 +243,6 @@ fn prov__go(value: str) -> Bytes__Value rev 1
   tests
     good("41") => Ok(value = Bytes(Seq<int>[65]))
     bad("41zz42") => encoding.invalid_hex(value = "41zz42")
-=
   match call bytes__hex__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
@@ -261,7 +258,6 @@ fn client__use(value: str) -> Bytes__Value rev 1
   tests
     prefixlie("41zz42") => Ok(value = Bytes(Seq<int>[65]))
     suffixlie("ffzz") => Ok(value = Bytes(Seq<int>[255]))
-=
   match call prov__go(value)
     given
       prefixlie => [exchange args (value = "41zz42") outcome Ok(value = Bytes(Seq<int>[65]))]
@@ -344,7 +340,6 @@ fn probe__decode_text(value: str) -> Encoding__Text rev 1
     invalid_text("ff") => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
     invalid_hex("41zz42") => encoding.invalid_hex(value = "41zz42")
     incomplete_pair("00ffa") => encoding.invalid_hex(value = "00ffa")
-=
   match call bytes__hex__decode(value)
     on Ok b => match call bytes__utf8__decode(b.value)
       on Ok t => Ok(value = t.value)
@@ -387,7 +382,6 @@ fn client__use() -> Encoding__Text rev 1
   emits [encoding.invalid_hex, encoding.invalid_utf8]
   tests
     lie() => Ok(value = "A")
-=
   match call probe__decode_text("41zz42")
     given
       lie => [exchange args (value = "41zz42") outcome Ok(value = "A")]

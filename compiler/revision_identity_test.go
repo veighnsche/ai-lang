@@ -36,7 +36,6 @@ fn client__pass(state: Model__State) -> Client__Result rev 1
   tests
     ready(Model__Ready()) => Ok(state = Model__Ready())
     waiting(Model__Waiting()) => Ok(state = Model__Waiting())
-=
   Ok(state = state)
 `
 
@@ -149,7 +148,6 @@ fn m__go(left: int, right: int) -> M__Out rev 1
     // change test binding, so the fingerprint (not the tables)
     // carries the difference.
     go(left = 1, right = 2) => Ok(value = 1)
-=
   Ok(value = left)
 `
 	muts := map[string]string{
@@ -167,7 +165,7 @@ fn m__go(left: int, right: int) -> M__Out rev 1
 	}
 	for name, mut := range muts {
 		if name == "emits" {
-			mut = "mod m\n  provides [m__go, M__Out]\n  uses []\n  emits [m.oops]\n\nerror m.oops(value: int)\n\ntype M__Out rev 1 (\n  value: int\n)\n\nfn m__go(left: int, right: int) -> M__Out rev 1\n  emits [m.oops]\n  requires\n    true\n  tests\n    go(left = 1, right = 2) => Ok(value = 1)\n=\n  Ok(value = left)\n"
+			mut = "mod m\n  provides [m__go, M__Out]\n  uses []\n  emits [m.oops]\n\nerror m.oops(value: int)\n\ntype M__Out rev 1 (\n  value: int\n)\n\nfn m__go(left: int, right: int) -> M__Out rev 1\n  emits [m.oops]\n  requires\n    true\n  tests\n    go(left = 1, right = 2) => Ok(value = 1)\n  Ok(value = left)\n"
 		}
 		files := map[string]string{"m.can": mut}
 		prog, _ := revisionProg(t, files, []string{"m.can"})
@@ -241,7 +239,6 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
   tests
     ready(Model__Ready()) => Ok(ready = true)
     waiting(Model__Waiting()) => Ok(ready = false)
-=
   match state
     on Model__Ready _ => Ok(ready = true)
     on Model__Waiting _ => Ok(ready = false)
@@ -295,7 +292,6 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
   tests
     ready(Model__Ready()) => Ok(ready = true)
     waiting(Model__Waiting()) => Ok(ready = false)
-=
   match state
     on Model__Ready _ => Ok(ready = true)
     on Model__Waiting _ => Ok(ready = false)
@@ -383,7 +379,6 @@ fn m__max(left: int, right: int) -> M__Out rev 1
   tests
     ordered(2, 1) => Ok(value = 2)
     reversed(1, 2) => Ok(value = 2)
-=
   match left <= right
     on true => Ok(value = right)
     on false => Ok(value = left)

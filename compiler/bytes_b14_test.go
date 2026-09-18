@@ -58,7 +58,6 @@ NONASCIIROWS
     fidelity("QUJD!!!") => encoding.invalid_base64(value = "QUJD!!!")
     fidelity8("QUJD!!!!") => encoding.invalid_base64(value = "QUJD!!!!")
     trunc("QQ") => encoding.invalid_base64(value = "QQ")
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => forward e
@@ -140,7 +139,6 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
     go(ARG) => Ok(value = Bytes(Seq<int>[65, 66, 67]))
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
@@ -245,7 +243,6 @@ fn prov__go(value: str) -> Bytes__Value rev 1
   tests
     good("QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
     bad("QUJDQUJ=") => encoding.invalid_base64(value = "QUJDQUJ=")
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
@@ -261,7 +258,6 @@ fn client__use(value: str) -> Bytes__Value rev 1
   tests
     prefixlie("QUJD!!!") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
     padlie("QUJDQUJ=") => Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))
-=
   match call prov__go(value)
     given
       prefixlie => [exchange args (value = "QUJD!!!") outcome Ok(value = Bytes(Seq<int>[65, 66, 67]))]
@@ -346,7 +342,6 @@ fn probe__base64(value: str) -> Bytes__Value rev 1
     bad_four_bits("AE==") => encoding.invalid_base64(value = "AE==")
     bad_two_bits("QUJ=") => encoding.invalid_base64(value = "QUJ=")
     bad_final_quartet("QUJDQUJ=") => encoding.invalid_base64(value = "QUJDQUJ=")
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => forward e
@@ -364,7 +359,6 @@ fn chain__text(value: str) -> Encoding__Text rev 1
     bad_bytes("/w==") => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
     bad_b64("QUJD!!!") => encoding.invalid_base64(value = "QUJD!!!")
     bad_pad("QUJDQUJ=") => encoding.invalid_base64(value = "QUJDQUJ=")
-=
   match call bytes__base64__decode(value)
     on Ok b => match call bytes__utf8__decode(b.value)
       on Ok t => Ok(value = t.value)
@@ -392,7 +386,6 @@ fn m__hex(value: str) -> Bytes__Value rev 1
   tests
     disc("4142") => Ok(value = Bytes(Seq<int>[65, 66]))
     bad("zz") => encoding.invalid_hex(value = "zz")
-=
   match call bytes__hex__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_hex e => forward e
@@ -402,7 +395,6 @@ fn m__b64(value: str) -> Bytes__Value rev 1
   tests
     disc("4142") => Ok(value = Bytes(Seq<int>[227, 94, 54]))
     bad("!!!") => encoding.invalid_base64(value = "!!!")
-=
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => forward e
@@ -435,7 +427,6 @@ fn client__use(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
     strictlie("QUJDQUJ=") => Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))
-=
   match call probe__base64(value)
     given
       strictlie => [exchange args (value = "QUJDQUJ=") outcome Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))]

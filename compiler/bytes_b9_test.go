@@ -30,7 +30,6 @@ fn client__go(value: Bytes) -> Encoding__Text rev 1
     lower(Bytes(Seq<int>[171])) => Ok(value = "ab")
     ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
     notext(Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
-=
   match call std__hex__encode(value)
     given
       empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = "")]
