@@ -36,10 +36,10 @@ var explainDocs = map[string]explainEntry{
 		violate: `go(id = 1, 2) (positional after named), go(1, 2, 3) for two params (over arity), go(1, a = 2) (slot a claimed twice).`,
 		fix:     "Move positionals before the first named arg, drop the extra arg, or name the double-claimed slot once. The message names the test and the fault.",
 	},
-	CodeDanglingTest: {
-		rule:    "Every reaching test needs a script at every foreign call (R8).",
-		violate: `a test with no entry under the call's given table.`,
-		fix:     "Add `test => [exchange args (...) outcome ...]` under given. The diagnostic shows the row shape (expected) and the table line (hint).",
+	CodeGivenDashRetired: {
+		rule:    "Tables are partial (R8, a91): a test with no entry claims non-reach, so the retired `-` spelling is an error.",
+		violate: `happy => - under given.`,
+		fix:     "Delete the row; script an exchange only if the test reaches the call. Reaching without a script fails the test at execution.",
 	},
 	CodeMissingArm: {
 		rule:    "Call matches cover exactly the callee emits plus ok: missing or stale arms are compile errors.",
@@ -257,9 +257,9 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Script only what the callee declares, or fix the callee's emits. The table proves permitted responses, not imagined ones.",
 	},
 	CodeDeadScript: {
-		rule:    "Given-table keys must equal the reaching test names: a script no test selects is dead (R8).",
+		rule:    "Given-table keys must name real tests: a script no test selects is dead (R8).",
 		violate: `zzz => [...] under given with no test named zzz.`,
-		fix:     "Delete the row or add the test. Keys and tests are a set equality, checked both directions (see CAN3105).",
+		fix:     "Delete the row or add the test. Missing rows are fine (omission claims non-reach); unknown names are not.",
 	},
 	CodeNoExchange: {
 		rule:    "Every script row is an exchange binding expected call args to one permitted outcome: outcome-only rows prove nothing about the request (R8).",
@@ -350,6 +350,11 @@ var explainDocs = map[string]explainEntry{
 		rule:    "A call match forwarding every outcome to its own binder rewrites as one forward call relay (can-idioms C16).",
 		violate: `match call f(x) with on Ok r => forward r beside on E e => forward e.`,
 		fix:     "Write the arm as forward call f(x). Matches with given tables, foreign callees, or rebuilding arms stay matches.",
+	},
+	CodeLintUnreachedKey: {
+		rule:    "A given key naming a real test with no static path to the call never selects (a91): scripts run under the executing test's name.",
+		violate: `solo => [...] in one fn's table where solo belongs to a fn that never calls it.`,
+		fix:     "Delete the row. Omission claims non-reach; only unknown names (no such test) stay a compiler warning.",
 	},
 	CodeUnknownKind: {
 		rule:    "Every raised and declared error kind is declared somewhere: unknown kinds are rejected at both sites (R5).",

@@ -37,7 +37,6 @@ fn retry__fetch(fuel: int) -> Retry__Doc rev 1
         now => [exchange args () outcome Ok(body = "hi")]
         later => [exchange args () outcome net.down(), exchange args () outcome Ok(body = "hi")]
         never => [exchange args () outcome net.down(), exchange args () outcome net.down()]
-        empty => -
       on net.down _ => match call retry__fetch(fuel - 1)
         on retry.exhausted _ => retry.exhausted()
         on Ok d => Ok(body = d.body)

@@ -198,7 +198,7 @@ type Node struct {
 	// one or more for MatchValue.
 	Scruts []*Small
 	Arms   []Arm
-	Given  map[string]*Small // nil value node = "-" unreachable
+	Given  map[string]*Small // nil value node = retired "-" row, rejected in checkGiven (a91)
 	Small  *Small
 	Line   int
 	// ChainSteps holds a86 chain links; ChainTail continues on full

@@ -103,6 +103,7 @@ func lintFiles(files map[string]string) (findings []lintFinding, skipped []strin
 		findings = append(findings, lintRestatable(p)...)
 		findings = append(findings, lintLadderable(p)...)
 		findings = append(findings, lintRelayCallable(p)...)
+		findings = append(findings, lintUnreachedKeys(p)...)
 	}
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].file != findings[j].file {
@@ -2041,6 +2042,194 @@ func lintRelayCallable(lm lintModule) []lintFinding {
 		}
 	}
 	return out
+}
+
+// lintUnreachedKeys implements the stale-script rule (a91): a
+// given key naming a real test with no static path to the call
+// site never selects — scripts run under the executing test's
+// name — so the row is dead weight omission was meant to shed.
+// Unknown names stay the compiler's warning (CAN3104) and
+// retired `-` rows its error (CAN3111); this rule only flags
+// keys that name a real test elsewhere. Sound but partial: no
+// static path means truly unreachable (every call is static),
+// while a static path may still never execute. Chain-step
+// tables are covered like call-match tables.
+func lintUnreachedKeys(lm lintModule) []lintFinding {
+	lines := strings.Split(lm.text, "\n")
+	fns := map[string]*FnDecl{}
+	testsOf := map[string][]string{}
+	var order []string
+	for _, d := range lm.mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		fns[fn.Name] = fn
+		order = append(order, fn.Name)
+		for _, t := range fn.Tests {
+			testsOf[fn.Name] = append(testsOf[fn.Name], t.Name)
+		}
+	}
+	fileTests := map[string]bool{}
+	for _, names := range testsOf {
+		for _, n := range names {
+			fileTests[n] = true
+		}
+	}
+	callers := map[string][]string{}
+	for _, name := range order {
+		seen := map[string]bool{}
+		for _, callee := range lintCalledNames(fns[name].Body) {
+			if _, ok := fns[callee]; !ok || seen[callee] {
+				continue
+			}
+			seen[callee] = true
+			callers[callee] = append(callers[callee], name)
+		}
+	}
+	var out []lintFinding
+	for _, name := range order {
+		selectable := map[string]bool{}
+		for _, t := range testsOf[name] {
+			selectable[t] = true
+		}
+		seen := map[string]bool{name: true}
+		queue := []string{name}
+		for len(queue) > 0 {
+			u := queue[0]
+			queue = queue[1:]
+			for _, caller := range callers[u] {
+				if seen[caller] {
+					continue
+				}
+				seen[caller] = true
+				queue = append(queue, caller)
+				for _, t := range testsOf[caller] {
+					selectable[t] = true
+				}
+			}
+		}
+		for _, site := range lintGivenSites(fns[name].Body) {
+			for key, sm := range site.table {
+				if sm == nil || selectable[key] || !fileTests[key] {
+					continue
+				}
+				ln := locateLineFrom(lm.text, key+" =>", site.line, site.line)
+				f := lintFinding{file: lm.name, line: ln, msg: fmt.Sprintf(
+					"given key %q names a test that cannot reach this call; delete the row", key),
+					code: CodeLintUnreachedKey}
+				if s, e, ok := lintGivenKeySpan(lines, ln, key); ok {
+					f.start, f.end = s, e
+				}
+				out = append(out, f)
+			}
+		}
+	}
+	return out
+}
+
+// lintGivenSite is one given table with the source line anchoring
+// it: the match line for call tables, the step line for chains.
+type lintGivenSite struct {
+	table map[string]*Small
+	line  int
+}
+
+// lintGivenSites collects every given table in a body: call-match
+// tables plus chain-step tables, innermost included.
+func lintGivenSites(n *Node) []lintGivenSite {
+	var out []lintGivenSite
+	var walk func(x *Node)
+	walk = func(x *Node) {
+		if x == nil {
+			return
+		}
+		if x.IsMatch {
+			if x.Given != nil {
+				out = append(out, lintGivenSite{x.Given, x.Line})
+			}
+			for _, s := range x.ChainSteps {
+				if s.Given != nil {
+					out = append(out, lintGivenSite{s.Given, s.Line})
+				}
+			}
+			walk(x.ChainTail)
+			for _, a := range x.Arms {
+				walk(a.Rhs)
+			}
+		}
+	}
+	walk(n)
+	return out
+}
+
+// lintCalledNames collects every called name in a body, descending
+// into chain steps, guards, and tails where walkCalls stops: a
+// missed caller edge would become a false finding.
+func lintCalledNames(n *Node) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(fname string) {
+		if !seen[fname] {
+			seen[fname] = true
+			out = append(out, fname)
+		}
+	}
+	for _, c := range walkCalls(n) {
+		add(c.Fname)
+	}
+	var walkChain func(x *Node)
+	walkChain = func(x *Node) {
+		if x == nil {
+			return
+		}
+		for _, s := range x.ChainSteps {
+			for _, c := range walkCalls(&Node{Small: s.Call}) {
+				add(c.Fname)
+			}
+			for _, c := range walkCalls(&Node{Small: s.Guard}) {
+				add(c.Fname)
+			}
+		}
+		walkChain(x.ChainTail)
+		for _, a := range x.Arms {
+			walkChain(a.Rhs)
+		}
+	}
+	walkChain(n)
+	return out
+}
+
+// lintGivenKeySpan underlines the key token on its `key => ...`
+// row: leading whitespace, the exact key, then `=>`. Anything
+// else stays whole-line.
+func lintGivenKeySpan(lines []string, ln int, key string) (s, e int, ok bool) {
+	if ln < 1 || ln > len(lines) {
+		return 0, 0, false
+	}
+	code := lintCodePart(lines[ln-1])
+	i := 0
+	for i < len(code) && (code[i] == ' ' || code[i] == '\t') {
+		i++
+	}
+	if !strings.HasPrefix(code[i:], key) {
+		return 0, 0, false
+	}
+	j := i + len(key)
+	if j < len(code) && (code[j] == '_' ||
+		(code[j] >= '0' && code[j] <= '9') ||
+		(code[j] >= 'a' && code[j] <= 'z') ||
+		(code[j] >= 'A' && code[j] <= 'Z')) {
+		return 0, 0, false
+	}
+	k := j
+	for k < len(code) && (code[k] == ' ' || code[k] == '\t') {
+		k++
+	}
+	if !strings.HasPrefix(code[k:], "=>") {
+		return 0, 0, false
+	}
+	return u16col(code, i), u16col(code, j), true
 }
 
 // lintDiagsFor converts one file's lint findings into editor

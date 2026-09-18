@@ -113,9 +113,10 @@ complete error construction — `math.zero_divisor(divisor =
 during the build; any failure fails it (CAN4200). Foreign
 calls (uses-pinned or extern) carry one `given` table per call
 with an `exchange args (...) outcome ...` row per reaching
-test, keys equal to test names in both directions, outcomes
-restricted to the callee's emits (CAN3101–CAN3105, CAN3109,
-CAN3110; unreachable tests script `-`, per `docs/a07-helpers.md`).
+test that needs one, outcomes restricted to the callee's emits
+(CAN3101–CAN3104, CAN3106, CAN3109–CAN3111; tests with no
+entry claim non-reach, unknown keys are errors, the retired
+`-` spelling is an error, per R8).
 Local calls execute — no `given` on them, none on
 multi-scrutinee matches (CAN3106). Hence pure `std/` code has
 no `given` at all. Test rows take positional args front-to-back

@@ -165,9 +165,10 @@ fn m__go(id: str) -> M__S rev 1
 	}
 }
 
-// An inner given table must script every reaching test: the caller's
-// tests flow through the helper under their own names.
-func TestHelperInnerGivenNeedsCallerTests(t *testing.T) {
+// An inner given table may omit caller tests (a91): the caller's
+// tests flow through the helper under their own names, and a
+// scriptless arrival fails at execution instead of statically.
+func TestHelperInnerGivenOmissionBackstop(t *testing.T) {
 	needsDB := `mod db
   provides [db__get, Db__U]
   uses []
@@ -202,10 +203,10 @@ type M__S rev 1 (
 fn m__help(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    h_ok("a") => Ok(id = "a")
+    h_ok("u") => Ok(id = "u")
   match call db__get(id)
     given
-      h_ok => [exchange args (id = "a") outcome Ok(id = "a")]
+      h_ok => [exchange args (id = "u") outcome Ok(id = "u")]
     on db.down _ => m.bad()
     on Ok u => Ok(id = u.id)
 
@@ -219,7 +220,10 @@ fn m__go(id: str) -> M__S rev 1
 `
 	dir := writeLSPDir(t, map[string]string{"db.can": needsDB, "m.can": needsGo})
 	diags := diagnose(dir, "m.can", needsGo)
-	if !hasDiag(diags, "error", "test g_ok has no script at the call to db__get") {
-		t.Fatalf("expected dangling caller-test error, got %v", diags)
+	if hasDiag(diags, "error", "has no script") {
+		t.Fatalf("omission draws no static diagnostic, got %v", diags)
+	}
+	if !hasDiag(diags, "error", "test g_ok fails") {
+		t.Fatalf("expected execution backstop for g_ok, got %v", diags)
 	}
 }

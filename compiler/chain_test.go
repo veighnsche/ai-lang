@@ -96,7 +96,6 @@ fn client__check(value: int) -> Client__Out rev 1
       given
         big_odd => exchange args (value = 11) outcome Ok(value = true)
         big_even => exchange args (value = 10) outcome Ok(value = false)
-        small => -
     then Ok(value = value)
     else chain.too_small(value = value)
 `

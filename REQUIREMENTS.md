@@ -168,10 +168,11 @@ rows are proposed evidence.
 - Error expectations are complete constructions
   (`=> auth.login_failed(user_id = "u_99")`), compared kind and payload.
   Bare error kinds prove nothing about the payload and are errors (a12).
-- Tables are total: every test appears in every reachable table;
-  unreachable tests are written `-` explicitly. Omission = error.
+- Tables are partial (a91): a test with no entry claims non-reach;
+  reaching the call without a script fails the test. Unknown keys
+  are errors. The retired `-` spelling is an error.
 - Each evaluation consumes the head of that test's list. Calling with an
-  empty list = error. Leftover non-`-` entries at test end = error.
+  empty list = error. Leftover entries at test end = error.
 - Stub outcomes are restricted to the callee's declared `emits`, resolved
   through `uses` -> provider file. Invented outcomes = error.
 - Same extern called twice = two tables (retries, sequences). Same site hit
@@ -179,9 +180,9 @@ rows are proposed evidence.
 - Three callee kinds (a07, a09): foreign calls (can via `uses`, externs)
   are stubbed through `given`; same-file helpers execute with no table;
   `state__get` / `state__put` execute against the test's store, also with
-  no table. All three are deterministic per test; totality and `-` apply
-  to the tables that exist. Helper-internal tables script every reaching
-  test (own plus transitive callers).
+  no table. All three are deterministic per test. Helper-internal
+  tables need scripts only for tests that reach them (a91); caller
+  rows that never arrive need no entry.
 
 ## R9 — Retrieval surface
 
@@ -207,7 +208,8 @@ rows are proposed evidence.
   call resolution (unknown callee, not-in-uses, calls outside a match
   scrutinee, proven self-recursion via `decreases` (`CAN3006`–`CAN3008`),
   local-cycle refusal (`CAN3005`)), given/test cross-checks (R8: missing
-  given table, test with no script, script no test selects, stub outside
+  given table, script no test selects, retired `-` spelling
+  (`CAN3111`), stub outside
   callee emits, no table on deterministic calls (`CAN3106`)),
   emits integrity (R5: raising outside emits, unknown error kinds,
   undeclared emits entries), store authority (a09: undeclared `CAN3107`, stale

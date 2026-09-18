@@ -165,18 +165,18 @@ func TestExternSectionGone(t *testing.T) {
 	}
 }
 
-func TestGivenMustBeTotal(t *testing.T) {
-	bad := strings.Replace(goodAuth, "      down => [db.down()]\n", "", 1)
-	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
-	_, _, _, errs := check([]string{dir})
-	if !contains(errs, "given table") {
-		t.Fatalf("expected given-table error, got %v", errs)
+// a91: omission claims non-reach — a block missing a row passes.
+func TestGivenOmissionAllowed(t *testing.T) {
+	partial := strings.Replace(goodAuth, "      down => [db.down()]\n", "", 1)
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": partial})
+	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
+		t.Fatalf("expected omission to pass, got %v", errs)
 	}
 }
 
-// Reaching scope (S1a): a block in a multi-fn file scripts its
-// own rows plus same-file callers' rows — not every row in the
-// file — while unknown keys still fail.
+// Partial keys (a91): a block in a multi-fn file scripts any
+// subset of the file's rows — omission claims non-reach —
+// while unknown keys still fail.
 const multiFn = `mod auth
   provides [auth__go, auth__wrap, auth__other]
   uses [db__get@1]
@@ -197,7 +197,7 @@ fn auth__go(id: str) -> Auth__S rev 1
     given
       ok => [Ok(id = "u")]
       down => [db.down()]
-      caller => -
+      caller => [db.down()]
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
@@ -217,24 +217,23 @@ fn auth__other(id: str) -> Auth__S rev 1
     _ => Ok(id = id)
 `
 
-func TestGivenReachingOnly(t *testing.T) {
+func TestGivenPartialKeys(t *testing.T) {
 	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": multiFn})
 	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
-		t.Fatalf("expected reaching-only keys to pass, got %v", errs)
+		t.Fatalf("expected partial keys to pass, got %v", errs)
 	}
 }
 
-func TestGivenMissingCallerRow(t *testing.T) {
-	bad := strings.Replace(multiFn, "      caller => -\n", "", 1)
-	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
-	_, _, _, errs := check([]string{dir})
-	if !contains(errs, "given table") {
-		t.Fatalf("expected given-table error, got %v", errs)
+func TestGivenOmitsCallerRow(t *testing.T) {
+	partial := strings.Replace(multiFn, "      caller => [db.down()]\n", "", 1)
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": partial})
+	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
+		t.Fatalf("expected omitted caller row to pass, got %v", errs)
 	}
 }
 
 func TestGivenUnknownKey(t *testing.T) {
-	bad := strings.Replace(multiFn, "      caller => -\n", "      caller => -\n      zzz => -\n", 1)
+	bad := strings.Replace(multiFn, "      caller => [db.down()]\n", "      caller => [db.down()]\n      zzz => [db.down()]\n", 1)
 	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "given table") {
@@ -264,18 +263,18 @@ func contains(errs []string, sub string) bool {
 }
 
 func TestDemoExpects(t *testing.T) {
-	partial := strings.Replace(goodAuth, "      down => [db.down()]\n", "", 1)
-	marker := "// DEMO-EXPECTS: given table [ok] != tests [down ok]\n"
-	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": marker + partial})
+	unknown := strings.Replace(goodAuth, "      down => [db.down()]\n", "      down => [db.down()]\n      zzz => [db.down()]\n", 1)
+	marker := "// DEMO-EXPECTS: given table [down ok zzz] != tests [down ok]\n"
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": marker + unknown})
 	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
 		t.Fatalf("expected declared demo violation to pass, got %v", errs)
 	}
-	healed := strings.Replace(partial, "      ok => [Ok(id = \"u\")]\n", "      ok => [Ok(id = \"u\")]\n      down => [db.down()]\n", 1)
+	healed := strings.Replace(unknown, "      zzz => [db.down()]\n", "", 1)
 	dir = writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": marker + healed})
 	if _, _, _, errs := check([]string{dir}); !contains(errs, "demo expects") {
 		t.Fatalf("expected healed-demo error, got %v", errs)
 	}
-	rotted := marker + partial + "// { stray brace }\n"
+	rotted := marker + unknown + "// { stray brace }\n"
 	dir = writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": rotted})
 	if _, _, _, errs := check([]string{dir}); !contains(errs, "curly braces are banned") {
 		t.Fatalf("expected extra-violation error, got %v", errs)

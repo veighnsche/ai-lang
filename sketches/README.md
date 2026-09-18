@@ -15,10 +15,12 @@
   lint error live (red, error-severity — the linter has no warnings).
 - `broken-login/` — same domain, one broken file per squiggle (`db.can`
   provider plus `missing-tests`, `bad-name`, `missing-rev`,
-  `failing-test`, `missing-arm`, `dangling-test`, `dead-script`,
+  `failing-test`, `missing-arm`, `dead-script`,
   `foreign-raise`, `unknown-call`, `unknown-emits`,
   `incomplete-expectation`, `missing-exchange`). Open them with the
   editor extension installed to see each diagnostic live.
+  (`dangling-test` was retired by a91: omission is legal now,
+  so "test with no script" is no longer a squiggle.)
   Each example folder is named by its contents.
 
 Clean means compiler-clean AND lint-clean: gallery sketches carry

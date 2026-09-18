@@ -298,7 +298,7 @@ goldens byte-identical, `broken-login/` titles unchanged.
 ## 13. Verifying a claim (toolchain pointer, short)
 
 `go test ./...` (goldens + diagnosis suites), `go run
-./tools/modcheck` (uses/provides/totality), `go run
+./tools/modcheck` (uses/provides/given-keys), `go run
 ./tools/gramcheck` (editor grammar). Open any `sketches/*/*.can`
 file with the editor extension: clean files show zero diagnostics,
 `broken-login/` shows exactly its titled squiggles.

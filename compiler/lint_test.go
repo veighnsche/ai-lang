@@ -1011,6 +1011,104 @@ func TestLintRelayCallKeptUntouched(t *testing.T) {
 	}
 }
 
+// Stale scripts (a91): solo belongs to a fn that never calls the
+// scripted fns, so both its rows flag; own and caller keys stay
+// silent, as do the unknown key (compiler warning) and the dash
+// row (compiler error).
+const lintUnreached = `mod demo
+  provides [demo__go, demo__chain, demo__help, demo__other, Demo__S, net__fetch]
+  uses []
+  emits [net.down, demo.bad]
+
+error net.down()
+error demo.bad()
+
+type Demo__S rev 1 (
+  body: str
+)
+
+extern net__fetch() -> Demo__S rev 1
+  emits [net.down]
+
+fn demo__go() -> Demo__S rev 1
+  emits [demo.bad]
+  tests
+    ok() => Ok(body = "hi")
+    down() => demo.bad()
+  match call net__fetch()
+    given
+      ok => [exchange args () outcome Ok(body = "hi")]
+      down => [exchange args () outcome net.down()]
+      caller => [exchange args () outcome net.down()]
+      solo => [exchange args () outcome net.down()]
+      zzz => [exchange args () outcome net.down()]
+      dead => -
+    on net.down _ => demo.bad()
+    on Ok d => Ok(body = d.body)
+
+fn demo__help() -> Demo__S rev 1
+  emits [demo.bad]
+  tests
+    caller() => Ok(body = "hi")
+  match call demo__go()
+    on demo.bad e => forward e
+    on Ok d => Ok(body = d.body)
+
+fn demo__other() -> Demo__S rev 1
+  emits [demo.bad]
+  tests
+    solo() => demo.bad()
+  demo.bad()
+
+fn demo__chain() -> Demo__S rev 1
+  emits [demo.bad]
+  tests
+    linked() => Ok(body = "hi")
+  match chain
+    call net__fetch() as d
+      given
+        linked => exchange args () outcome Ok(body = "hi")
+        solo => exchange args () outcome net.down()
+    then Ok(body = d.body)
+    else demo.bad()
+`
+
+func TestLintUnreachedKeys(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintUnreached})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	want := []string{
+		`demo.can:26: given key "solo" names a test that cannot reach this call; delete the row`,
+		`demo.can:54: given key "solo" names a test that cannot reach this call; delete the row`,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("findings = %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i].String() != want[i] {
+			t.Fatalf("finding %d = %q, want %q", i, got[i].String(), want[i])
+		}
+		if got[i].code != CodeLintUnreachedKey {
+			t.Fatalf("finding %d code = %q, want CAN3420", i, got[i].code)
+		}
+	}
+}
+
+func TestLintUnreachedKeptUntouched(t *testing.T) {
+	clean := strings.Replace(lintUnreached, "      solo => [exchange args () outcome net.down()]\n", "", 1)
+	clean = strings.Replace(clean, "        solo => exchange args () outcome net.down()\n", "", 1)
+	got, skipped := lintFiles(map[string]string{"demo.can": clean})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	for _, f := range got {
+		if strings.Contains(f.msg, "cannot reach this call") {
+			t.Fatalf("kept tables must not flag, got %v (full %v)", f, got)
+		}
+	}
+}
+
 // Two sequential calls that cannot fail share no failure outcome:
 // the router's divergent plain sides must not establish unity for
 // the run (regression: the rejected router leaked failures=true).
@@ -1179,8 +1277,8 @@ func TestLintErrorFixtures(t *testing.T) {
 		}
 		files[e.Name()] = string(raw)
 	}
-	if len(files) != 10 {
-		t.Fatalf("want 10 proving fixtures, got %d: %v", len(files), files)
+	if len(files) != 11 {
+		t.Fatalf("want 11 proving fixtures, got %d: %v", len(files), files)
 	}
 	got, skipped := lintFiles(files)
 	if len(skipped) != 0 {
@@ -1224,6 +1322,9 @@ func TestLintErrorFixtures(t *testing.T) {
 		},
 		"relaycall.can": {
 			`relaycall.can:35: relay match forwards every outcome; write forward call relaycall__work(x)`,
+		},
+		"stale.can": {
+			`stale.can:31: given key "solo" names a test that cannot reach this call; delete the row`,
 		},
 	}
 	for name, lines := range want {
@@ -1311,6 +1412,9 @@ func TestLintSpanPositions(t *testing.T) {
 		},
 		"relaycall.can": {
 			{35, 2, 31, CodeLintRelayCall, "match call relaycall__work(x)"},
+		},
+		"stale.can": {
+			{31, 6, 10, CodeLintUnreachedKey, "solo"},
 		},
 	}
 	for name, ws := range wants {

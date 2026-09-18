@@ -1,10 +1,32 @@
-# a91: `given` omission amendment — design (proposal)
+# a91: `given` omission amendment — design (decided)
 
-Status: proposal (pre-decision). No rule, no code.
+Status: shipped 2026-09-18. S0 rulings recorded below;
+S1 (rule + tools) and S2 (migration) both landed same-day:
+`CAN3105` retired, `CAN3111` bans `-`, 191 dash rows deleted,
+full gates green.
 Parent: `REQUIREMENTS.md` R8 (frozen: "Omission = error"),
 a12 (producer-owned contracts), a89/S1a (the motivating
 pain: `std/quota/quota.can` carries ~150 `=> -` entries
 for 10 real exchanges).
+
+## S0 rulings
+
+- **Omission wins.** R8 replacement wording approved as
+  drafted (see Amendment plan). Tables are partial; a
+  missing entry claims non-reach; reaching it fails the
+  test at execution.
+- **`dangling-test.can` retired** (deleted), not
+  repurposed. `failing-test.can` already covers
+  execution failures; the static-error demo has no
+  subject left.
+- **`-` dies by hard cut.** Retired spelling is a new
+  `CAN3111` error from day one; all rows migrate
+  in-slice. No deprecation process invented.
+- **Unknown keys stay errors** (status quo ante kept:
+  modcheck errors, check.go `CAN3104` warns).
+- **Editor grammar untouched**: the `unreachable` scope
+  stays (gramcheck pins it); it simply never matches
+  legal code anymore.
 
 ## Goal
 
@@ -112,13 +134,11 @@ feedback. And the gap is narrower than it looks:
   demos re-pinned; `go test ./...`, modcheck, gramcheck
   green.
 
-## Open questions (must close before S1)
+## Open questions — closed at S0
 
-1. Exact R8 replacement wording (tagged amendment).
-2. `dangling-test.can`: retire or repurpose?
-3. Immediate `-` ban vs warning-first deprecation (the
-   repo has no deprecation process; hard cut is the
-   default — confirm, don't assume).
+1. R8 wording: approved as drafted (see S0 rulings).
+2. `dangling-test.can`: retire (deleted).
+3. `-` ban: hard cut, `CAN3111`, in-slice migration.
 
 ## Non-goals
 
@@ -131,3 +151,12 @@ no S1a/S1b rework (they ship first under totality).
 This doc authorizes no code, so there is nothing to roll
 back. If S0 declines, R8 stands and quota.can's `-`
 rows stay as written.
+
+## Follow-up: stale-script lint (shipped same day)
+
+`CAN3420` (`CodeLintUnreachedKey`): flags given keys naming
+real tests with no static path to the call — the advisory
+half omission enabled. Sound (no static path means truly
+unreachable; every call is static) and silent on all blessed
+code. Proving sketch: `sketches/lint-errors/stale.can`
+(11th gallery file, findings + spans pinned).

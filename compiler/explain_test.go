@@ -12,7 +12,7 @@ import (
 // TestExplainKnown pins per-code docs for the four
 // payload codes.
 func TestExplainKnown(t *testing.T) {
-	for _, code := range []string{CodeForeignRaise, CodeBareErrorKind, CodeDanglingTest, CodeMissingArm} {
+	for _, code := range []string{CodeForeignRaise, CodeBareErrorKind, CodeGivenDashRetired, CodeMissingArm} {
 		text, ok := explainCode(code)
 		if !ok {
 			t.Fatalf("expected explain entry for %s", code)
@@ -145,28 +145,59 @@ fn m__go(value: int) -> M__Out rev 1
 	}
 }
 
-// TestPayloadDangling pins CAN3105 fields, reusing the lsp
-// fixtures with one scriptless test added.
-func TestPayloadDangling(t *testing.T) {
+// TestPayloadOmissionBackstop pins the a91 world: a scriptless
+// test draws no static diagnostic, and reaching the call without
+// a script fails the test at execution (CAN4200).
+func TestPayloadOmissionBackstop(t *testing.T) {
 	auth := strings.Replace(lspAuth,
 		"    down(\"u\") => auth.bad()\n",
 		"    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad()\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": auth})
 	diags := diagnose(dir, "auth.can", auth)
+	for _, d := range diags {
+		if strings.Contains(d.Msg, "has no script") {
+			t.Fatalf("no static diagnostic for omission, got %+v", d)
+		}
+	}
 	var found *Diag
 	for i, d := range diags {
-		if d.Code == CodeDanglingTest {
+		if d.Code == CodeTestFailed && strings.Contains(d.Msg, "extra") {
 			found = &diags[i]
 		}
 	}
 	if found == nil {
-		t.Fatalf("expected CAN3105, got %v", diags)
+		t.Fatalf("expected CAN4200 for extra, got %v", diags)
 	}
-	if found.Found != "extra" {
-		t.Fatalf("Found must name the scriptless test, got %+v", found)
+	if !strings.Contains(found.Msg, "no script for call") {
+		t.Fatalf("backstop must name the missing script, got %+v", found)
 	}
-	if !strings.Contains(found.Expected, "extra =>") || !strings.Contains(found.Expected, "exchange") {
-		t.Fatalf("Expected must show the script-row shape, got %+v", found)
+}
+
+// TestPayloadGivenDashRetired pins CAN3111 fields: a `-` row
+// is a hard error naming the row and its deletion.
+func TestPayloadGivenDashRetired(t *testing.T) {
+	auth := strings.Replace(lspAuth,
+		"      down => [exchange args (id = \"u\") outcome db.down()]\n",
+		"      down => [exchange args (id = \"u\") outcome db.down()]\n      down2 => -\n", 1)
+	auth = strings.Replace(auth,
+		"    down(\"u\") => auth.bad()\n",
+		"    down(\"u\") => auth.bad()\n    down2(\"u\") => auth.bad()\n", 1)
+	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": auth})
+	diags := diagnose(dir, "auth.can", auth)
+	var found *Diag
+	for i, d := range diags {
+		if d.Code == CodeGivenDashRetired {
+			found = &diags[i]
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected CAN3111, got %v", diags)
+	}
+	if found.Found != "down2 => -" {
+		t.Fatalf("Found must name the dash row, got %+v", found)
+	}
+	if !strings.Contains(found.Expected, "omission") {
+		t.Fatalf("Expected must point at omission, got %+v", found)
 	}
 	if found.Hint == "" {
 		t.Fatalf("Hint must be non-empty, got %+v", found)

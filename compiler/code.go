@@ -57,9 +57,12 @@ const (
 	CodeBadStub                  = "CAN3102"
 	CodeStubNotInEmit            = "CAN3103"
 	CodeDeadScript               = "CAN3104"
-	CodeDanglingTest             = "CAN3105"
+	// CAN3105 (CodeDanglingTest) retired by a91: omission is legal,
+	// so "test with no script" is no longer a diagnostic. Numbers
+	// are never reused.
 	CodeNoExchange               = "CAN3109"
 	CodeInconsistentScript       = "CAN3110"
+	CodeGivenDashRetired         = "CAN3111"
 	CodeDupTest                  = "CAN3201"
 	CodeUnknownArg               = "CAN3202"
 	CodeMissingArg               = "CAN3203"
@@ -78,6 +81,7 @@ const (
 	CodeLintRestate              = "CAN3417"
 	CodeLintLadder               = "CAN3418"
 	CodeLintRelayCall            = "CAN3419"
+	CodeLintUnreachedKey         = "CAN3420"
 	CodeForeignRaise             = "CAN4001"
 	CodeUnknownKind              = "CAN4002"
 	CodeProofOther               = "CAN4100"
@@ -134,12 +138,12 @@ var allCodes = []string{
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
 	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab, CodeBadForwardCall,
-	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeGivenOnLocal,
-	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript,
+	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeGivenOnLocal,
+	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript, CodeGivenDashRetired,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind, CodeBadPositional,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeLintRedundant, CodeLintOrFold, CodeLintChain, CodeLintTable,
-	CodeLintSameOutcome, CodeLintRelay, CodeLintRange, CodeLintRestate, CodeLintLadder, CodeLintRelayCall,
+	CodeLintSameOutcome, CodeLintRelay, CodeLintRange, CodeLintRestate, CodeLintLadder, CodeLintRelayCall, CodeLintUnreachedKey,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm, CodeUselessAlt,
 	CodeTestFailed,

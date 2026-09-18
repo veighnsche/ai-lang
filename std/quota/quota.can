@@ -260,138 +260,20 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
       on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.label_minimum)
         given
           label_bounds => [exchange args (value = 5) outcome Ok(value = "5")]
-          ok => -
-          label_short => -
-          label_long => -
-          label_min_negative => -
-          amount_below => -
-          amount_above => -
-          amount_bounds => -
-          mode_bad => -
-          label_beats_policy => -
-          label_beats_amount => -
-          amount_beats_mode => -
-          label_min_edge => -
-          label_max_edge => -
-          amount_low_edge => -
-          amount_high_edge => -
-          unicode_ok => -
-          bigint => -
-          modes_empty => -
-          mode_case => -
-          ws_preserved => -
-          admitted => -
-          rejected => -
-          over => -
-          bad_quota => -
-          negative => -
-          env_ok => -
           env_root => [exchange args (value = 5) outcome Ok(value = "5")]
-          env_field => -
-          env_rendered => -
-          env_member => -
         on Ok lo => match call std__convert__int_to_str(schema.label_maximum)
           given
             label_bounds => [exchange args (value = 1) outcome Ok(value = "1")]
-            ok => -
-            label_short => -
-            label_long => -
-            label_min_negative => -
-            amount_below => -
-            amount_above => -
-            amount_bounds => -
-            mode_bad => -
-            label_beats_policy => -
-            label_beats_amount => -
-            amount_beats_mode => -
-            label_min_edge => -
-            label_max_edge => -
-            amount_low_edge => -
-            amount_high_edge => -
-            unicode_ok => -
-            bigint => -
-            modes_empty => -
-            mode_case => -
-            ws_preserved => -
-            admitted => -
-            rejected => -
-            over => -
-            bad_quota => -
-            negative => -
-            env_ok => -
             env_root => [exchange args (value = 1) outcome Ok(value = "1")]
-            env_field => -
-            env_rendered => -
-            env_member => -
           on Ok hi => validation.schema_violation(path = "", rule = "schema.label_bounds", value = "minimum=" + lo.value + ";maximum=" + hi.value)
       on validation.invalid_length _ => validation.schema_violation(path = "label", rule = "str.length_scalars", value = request.label)
       on Ok _ => match call std__validate__int_range(request.amount, schema.amount_lower, schema.amount_upper)
         on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.amount_lower)
           given
             amount_bounds => [exchange args (value = 10) outcome Ok(value = "10")]
-            ok => -
-            label_short => -
-            label_long => -
-            label_min_negative => -
-            label_bounds => -
-            amount_below => -
-            amount_above => -
-            mode_bad => -
-            label_beats_policy => -
-            label_beats_amount => -
-            amount_beats_mode => -
-            label_min_edge => -
-            label_max_edge => -
-            amount_low_edge => -
-            amount_high_edge => -
-            unicode_ok => -
-            bigint => -
-            modes_empty => -
-            mode_case => -
-            ws_preserved => -
-            admitted => -
-            rejected => -
-            over => -
-            bad_quota => -
-            negative => -
-            env_ok => -
-            env_root => -
-            env_field => -
-            env_rendered => -
-            env_member => -
           on Ok lo => match call std__convert__int_to_str(schema.amount_upper)
             given
               amount_bounds => [exchange args (value = 0) outcome Ok(value = "0")]
-              ok => -
-              label_short => -
-              label_long => -
-              label_min_negative => -
-              label_bounds => -
-              amount_below => -
-              amount_above => -
-              mode_bad => -
-              label_beats_policy => -
-              label_beats_amount => -
-              amount_beats_mode => -
-              label_min_edge => -
-              label_max_edge => -
-              amount_low_edge => -
-              amount_high_edge => -
-              unicode_ok => -
-              bigint => -
-              modes_empty => -
-              mode_case => -
-              ws_preserved => -
-              admitted => -
-              rejected => -
-              over => -
-              bad_quota => -
-              negative => -
-              env_ok => -
-              env_root => -
-              env_field => -
-              env_rendered => -
-              env_member => -
             on Ok hi => validation.schema_violation(path = "", rule = "schema.amount_bounds", value = "lower=" + lo.value + ";upper=" + hi.value)
         on validation.out_of_range _ => match call std__convert__int_to_str(request.amount)
           given
@@ -399,33 +281,7 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
             amount_above => [exchange args (value = 11) outcome Ok(value = "11")]
             amount_beats_mode => [exchange args (value = 99) outcome Ok(value = "99")]
             bigint => [exchange args (value = -9007199254740993) outcome Ok(value = "-9007199254740993")]
-            ok => -
-            label_short => -
-            label_long => -
-            label_min_negative => -
-            label_bounds => -
-            amount_bounds => -
-            mode_bad => -
-            label_beats_policy => -
-            label_beats_amount => -
-            label_min_edge => -
-            label_max_edge => -
-            amount_low_edge => -
-            amount_high_edge => -
-            unicode_ok => -
-            modes_empty => -
-            mode_case => -
-            ws_preserved => -
-            admitted => -
-            rejected => -
-            over => -
-            bad_quota => -
-            negative => -
-            env_ok => -
-            env_root => -
-            env_field => -
             env_rendered => [exchange args (value = 11) outcome Ok(value = "11")]
-            env_member => -
           on Ok r => validation.schema_violation(path = "amount", rule = "int.closed_range", value = r.value)
         on Ok _ => match call std__validate__str_one_of(request.mode, schema.allowed_modes)
           on validation.not_allowed _ => validation.schema_violation(path = "mode", rule = "str.one_of", value = request.mode)
@@ -433,36 +289,6 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
     false => match call std__convert__int_to_str(schema.label_minimum)
       given
         label_min_negative => [exchange args (value = -1) outcome Ok(value = "-1")]
-        ok => -
-        label_short => -
-        label_long => -
-        label_bounds => -
-        amount_below => -
-        amount_above => -
-        amount_bounds => -
-        mode_bad => -
-        label_beats_policy => -
-        label_beats_amount => -
-        amount_beats_mode => -
-        label_min_edge => -
-        label_max_edge => -
-        amount_low_edge => -
-        amount_high_edge => -
-        unicode_ok => -
-        bigint => -
-        modes_empty => -
-        mode_case => -
-        ws_preserved => -
-        admitted => -
-        rejected => -
-        over => -
-        bad_quota => -
-        negative => -
-        env_ok => -
-        env_root => -
-        env_field => -
-        env_rendered => -
-        env_member => -
       on Ok r => validation.schema_violation(path = "", rule = "schema.label_minimum", value = r.value)
 
 fn quota__request__admit(request: Quota__Request, schema: Quota__RequestSchema, quota: int) -> Quota__Usage rev 1

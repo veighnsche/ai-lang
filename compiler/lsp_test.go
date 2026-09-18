@@ -207,12 +207,15 @@ func TestDiagnoseMissingGiven(t *testing.T) {
 	}
 }
 
-func TestDiagnoseDanglingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad\n", 1)
+func TestDiagnoseOmissionBackstop(t *testing.T) {
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad()\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
-	if !hasDiag(diags, "error", "test extra has no script") {
-		t.Fatalf("expected dangling-test error, got %v", diags)
+	if hasDiag(diags, "error", "has no script") {
+		t.Fatalf("omission draws no static diagnostic, got %v", diags)
+	}
+	if !hasDiag(diags, "error", "test extra fails") {
+		t.Fatalf("expected execution backstop for extra, got %v", diags)
 	}
 }
 
@@ -463,11 +466,12 @@ func TestSpanUnknownCall(t *testing.T) {
 	checkSpan(t, bad, diags, "calls unknown function", "db__nope", expectLine(t, bad, "match call db__nope"))
 }
 
-func TestSpanDanglingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    extra(\"u\") => auth.bad\n", 1)
+func TestSpanGivenDashRetired(t *testing.T) {
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    down2(\"u\") => auth.bad()\n", 1)
+	bad = strings.Replace(bad, "      down => [exchange args (id = \"u\") outcome db.down()]\n", "      down => [exchange args (id = \"u\") outcome db.down()]\n      down2 => -\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
-	checkSpan(t, bad, diags, "has no script at the call", "extra", expectLine(t, bad, "extra("))
+	checkSpan(t, bad, diags, "retired `-` spelling", "down2", expectLine(t, bad, "down2 =>"))
 }
 
 func TestSpanDeadScript(t *testing.T) {

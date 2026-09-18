@@ -884,54 +884,11 @@ func firstTrappingOp(s *Small) string {
 	return found
 }
 
-// reachingTests returns every test that can execute fname's body: its
-// own tests plus every transitive local caller's tests. Helper bodies
-// run under the caller's test name, so an inner given table must
-// script the union, with `-` for tests that cannot reach it.
-func reachingTests(prog *Program, fname string) (own, extra []Test) {
-	callers := map[string][]string{}
-	testsOf := map[string][]Test{}
-	for _, m := range prog.Modules {
-		for _, d := range m.Decls {
-			fn, ok := d.(*FnDecl)
-			if !ok {
-				continue
-			}
-			testsOf[fn.Name] = fn.Tests
-			seen := map[string]bool{}
-			for _, c := range walkCalls(fn.Body) {
-				if localCallee(prog, fn.Name, c.Fname) == nil {
-					continue
-				}
-				if !seen[c.Fname] {
-					seen[c.Fname] = true
-					callers[c.Fname] = append(callers[c.Fname], fn.Name)
-				}
-			}
-		}
-	}
-	own = testsOf[fname]
-	seen := map[string]bool{fname: true}
-	queue := []string{fname}
-	for len(queue) > 0 {
-		u := queue[0]
-		queue = queue[1:]
-		for _, caller := range callers[u] {
-			if seen[caller] {
-				continue
-			}
-			seen[caller] = true
-			queue = append(queue, caller)
-			extra = append(extra, testsOf[caller]...)
-		}
-	}
-	return own, extra
-}
-
 // fileTests names every decision-table test in fname's file. Given
 // keys are valid when they name a test in the file (a helper's inner
-// table scripts caller tests); missing rows for reaching tests are
-// the error, unknown names the warning.
+// table scripts caller tests); unknown names are the warning. Missing
+// rows claim non-reach (a91): reaching the call without a script
+// fails the test at execution instead of a static error.
 func fileTests(prog *Program, fname string) map[string]bool {
 	out := map[string]bool{}
 	file, ok := prog.FnFile[fname]
@@ -955,10 +912,11 @@ func fileTests(prog *Program, fname string) map[string]bool {
 
 // checkGiven cross-checks call-site evidence against the decision table:
 // every foreign call needs a given table, every stub must be Ok or an
-// error the callee can actually produce, every reaching test needs a
-// script at every foreign call, and scripts no test selects are dead.
-// Local helper calls are deterministic: a given table on one is an
-// error, and none is required.
+// error the callee can actually produce, scripts no test selects are
+// dead, and the retired `-` spelling is an error. Missing rows claim
+// non-reach (a91): reaching the call without a script fails the test
+// at execution. Local helper calls are deterministic: a given table
+// on one is an error, and none is required.
 func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 	var out []Diag
 	valid := fileTests(prog, fn.Name)
@@ -1001,23 +959,21 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 			// The entry lives on its own `key => ...` row, below the
 			// match: point there, not at the match line.
 			entryLine := locateLineFrom(text, key+" =>", m.Line, m.Line)
-			if sm != nil {
-				checkStub(sm, fname, allowed, text, entryLine, key, fn.Name, &out)
+			if sm == nil {
+				// a91: the retired `-` spelling. Omission
+				// claims non-reach; a dash row is noise.
+				d := spanDiag(text, entryLine, "error",
+					fmt.Sprintf("given row %s uses the retired `-` spelling: delete the row", key), key, CodeGivenDashRetired)
+				d.Found = key + " => -"
+				d.Expected = "(no row: omission claims non-reach)"
+				d.Hint = "delete this row; script an exchange only if the test reaches the call"
+				out = append(out, d)
+				continue
 			}
+			checkStub(sm, fname, allowed, text, entryLine, key, fn.Name, &out)
 			if !valid[key] {
 				out = append(out, spanDiag(text, entryLine, "warning",
 					fmt.Sprintf("script %s never runs: no test named %s in %s", key, key, fn.Name), key, CodeDeadScript))
-			}
-		}
-		own, extra := reachingTests(prog, fn.Name)
-		for _, t := range append(append([]Test{}, own...), extra...) {
-			if _, ok := m.Given[t.Name]; !ok {
-				d := spanDiag(text, t.Line, "error",
-					fmt.Sprintf("test %s has no script at the call to %s (line %d)", t.Name, fname, m.Line), t.Name, CodeDanglingTest)
-				d.Found = t.Name
-				d.Expected = t.Name + " => [exchange args (...) outcome ...]"
-				d.Hint = fmt.Sprintf("add a script row for this test under the given table at line %d", m.Line)
-				out = append(out, d)
 			}
 		}
 	}
