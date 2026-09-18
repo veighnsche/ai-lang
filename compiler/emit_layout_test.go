@@ -34,25 +34,25 @@ type Audit__Ctor rev 1 (
 fn audit__go(flag: str) -> Audit__Value rev 1
   emits [audit.bad]
   tests
-    k("x") => Ok(kind = "request")
-    p("y") => Ok(kind = "other")
-    e("z") => audit.bad(kind = "broken", code = 7)
+    k("x") => Ok("request")
+    p("y") => Ok("other")
+    e("z") => audit.bad("broken", 7)
   match flag
-    "x" => Ok(kind = "request")
-    "y" => Ok(kind = "other")
-    _ => audit.bad(kind = "broken", code = 7)
+    "x" => Ok("request")
+    "y" => Ok("other")
+    _ => audit.bad("broken", 7)
 
 fn audit__proto() -> Audit__Proto rev 1
   emits []
   tests
-    w() => Ok(__proto__ = "kept")
-  Ok(__proto__ = "kept")
+    w() => Ok("kept")
+  Ok("kept")
 
 fn audit__ctor() -> Audit__Ctor rev 1
   emits []
   tests
-    c() => Ok(constructor = "mine")
-  Ok(constructor = "mine")
+    c() => Ok("mine")
+  Ok("mine")
 `
 
 func TestPayloadLayoutEvaluates(t *testing.T) {

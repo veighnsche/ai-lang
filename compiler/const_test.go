@@ -144,8 +144,8 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 58)
-  Ok(value = m__N)
+    go(1) => Ok(58)
+  Ok(m__N)
 
 const m__N: int rev 1 = 58
 `
@@ -173,8 +173,8 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 58)
-  Ok(value = m__N)
+    go(1) => Ok(58)
+  Ok(m__N)
 `
 	dir := t.TempDir()
 	fp := filepath.Join(dir, "m.can")
@@ -211,8 +211,8 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 59)
-  Ok(value = m__N)
+    go(1) => Ok(59)
+  Ok(m__N)
 `
 	dir := t.TempDir()
 	fp := filepath.Join(dir, "m.can")
@@ -238,8 +238,8 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = m__NOPE)
+    go(1) => Ok(1)
+  Ok(m__NOPE)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN2104") {
@@ -268,8 +268,8 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 7)
-  Ok(value = lib__K)
+    go(1) => Ok(7)
+  Ok(lib__K)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
 	if diags := diagnose(dir, "app.can", app); !hasCode(diags, "CAN2105") {
@@ -299,8 +299,8 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 7)
-  Ok(value = lib__K)
+    go(1) => Ok(7)
+  Ok(lib__K)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
 	if diags := diagnose(dir, "app.can", app); hasError(diags) {
@@ -342,14 +342,14 @@ const m__SEP: str rev 1 = ", "
 fn m__go(x: int, s: str) -> M__Out rev 1
   emits []
   tests
-    one(1, ", ") => Ok(value = "yes")
-    two(2, ", ") => Ok(value = "sep")
-    three(2, ";") => Ok(value = "no")
+    one(1, ", ") => Ok("yes")
+    two(2, ", ") => Ok("sep")
+    three(2, ";") => Ok("no")
   match x <= 1
-    m__FLAG => Ok(value = "yes")
+    m__FLAG => Ok("yes")
     false => match s
-      m__SEP => Ok(value = "sep")
-      _ => Ok(value = "no")
+      m__SEP => Ok("sep")
+      _ => Ok("no")
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -375,11 +375,11 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    colon(58) => Ok(value = 2)
-    other(1) => Ok(value = 3)
+    colon(58) => Ok(2)
+    other(1) => Ok(3)
   match x
-    m__N => Ok(value = 2)
-    _ => Ok(value = 3)
+    m__N => Ok(2)
+    _ => Ok(3)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -409,8 +409,8 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    go(lib__K) => Ok(value = 7)
-  Ok(value = x)
+    go(lib__K) => Ok(7)
+  Ok(x)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
 	if diags := diagnose(dir, "app.can", app); hasCode(diags, "CAN3401") {
@@ -441,11 +441,11 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = "yes")
-    two(2) => Ok(value = "no")
+    one(1) => Ok("yes")
+    two(2) => Ok("no")
   match x <= 1
-    lib__FLAG => Ok(value = "yes")
-    false => Ok(value = "no")
+    lib__FLAG => Ok("yes")
+    false => Ok("no")
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
 	if diags := diagnose(dir, "app.can", app); !hasCode(diags, "CAN2105") {
@@ -476,11 +476,11 @@ type A__Out rev 1 (
 fn app__go(x: int) -> A__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = "yes")
-    two(2) => Ok(value = "no")
+    one(1) => Ok("yes")
+    two(2) => Ok("no")
   match x <= 1
-    lib__FLAG => Ok(value = "yes")
-    false => Ok(value = "no")
+    lib__FLAG => Ok("yes")
+    false => Ok("no")
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
 	if diags := diagnose(dir, "app.can", app); hasCode(diags, "CAN3401") {
@@ -556,12 +556,12 @@ fn m__poll(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    now(0) => Ok(n = 0)
-    later(2) => Ok(n = 0)
+    now(0) => Ok(0)
+    later(2) => Ok(0)
   match n <= 0
-    true => Ok(n = 0)
+    true => Ok(0)
     false => match call m__poll(n - m__ONE)
-      on Ok s => Ok(n = s.n)
+      on Ok s => Ok(s.n)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)
@@ -593,17 +593,17 @@ type M__Bool rev 1 (
   value: bool
 )
 
-const m__ORIGIN: M__Point rev 1 = M__Point(x = 0, y = 0)
+const m__ORIGIN: M__Point rev 1 = M__Point(0, 0)
 
 fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
-    via_const(m__ORIGIN) => Ok(value = true)
-    via_inline(M__Point(x = 0, y = 0)) => Ok(value = true)
-    elsewhere(M__Point(x = 1, y = 2)) => Ok(value = false)
+    via_const(m__ORIGIN) => Ok(true)
+    via_inline(M__Point(0, 0)) => Ok(true)
+    elsewhere(M__Point(1, 2)) => Ok(false)
   match p.x == 0, p.y == 0
-    true, true => Ok(value = true)
-    _, _ => Ok(value = false)
+    true, true => Ok(true)
+    _, _ => Ok(false)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -638,18 +638,18 @@ type M__Bool rev 1 (
   value: bool
 )
 
-const m__SNAP: M__Snap rev 1 = M__Snap(entries = Seq<M__Entry>[M__Entry(id = "a", n = 1)], revoked = Seq<M__Entry>[], mark = seal M__Tag("ok"))
+const m__SNAP: M__Snap rev 1 = M__Snap(Seq<M__Entry>[M__Entry(id = "a", n = 1)], Seq<M__Entry>[], seal M__Tag("ok"))
 
 const m__REVL0: Seq<M__Entry> rev 1 = Seq<M__Entry>[]
 
 fn m__go(s: M__Snap, r: Seq<M__Entry>) -> M__Bool rev 1
   emits []
   tests
-    nested(m__SNAP, m__REVL0) => Ok(value = true)
-    renamed(M__Snap(entries = Seq<M__Entry>[], revoked = Seq<M__Entry>[], mark = seal M__Tag("no")), m__REVL0) => Ok(value = false)
+    nested(m__SNAP, m__REVL0) => Ok(true)
+    renamed(M__Snap(Seq<M__Entry>[], Seq<M__Entry>[], seal M__Tag("no")), m__REVL0) => Ok(false)
   match s.mark == seal M__Tag("ok"), #s.entries == 1, #r == 0
-    true, true, true => Ok(value = true)
-    _, _, _ => Ok(value = false)
+    true, true, true => Ok(true)
+    _, _, _ => Ok(false)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -694,8 +694,8 @@ const m__ORIGIN: M__Point rev 1 = M__Point(x = 0, y = 0)
 fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
-    origin(m__ORIGIN) => Ok(value = true)
-  Ok(value = p.x == 0)
+    origin(m__ORIGIN) => Ok(true)
+  Ok(p.x == 0)
 `
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6016") {
@@ -732,7 +732,7 @@ func TestCompositeConstFields(t *testing.T) {
 	for name, init := range map[string]string{
 		"unknown":  `M__Point(x = 0, z = 0)`,
 		"repeated": `M__Point(x = 0, x = 1, y = 0)`,
-		"missing":  `M__Point(x = 0)`,
+		"missing":  `M__Point(0)`,
 		"mistyped": `M__Point(x = "s", y = 0)`,
 	} {
 		src := `mod m
@@ -754,8 +754,8 @@ const m__B: M__Point rev 1 = ` + init + `
 fn m__go(p: M__Point) -> M__Bool rev 1
   emits []
   tests
-    origin(m__B) => Ok(value = true)
-  Ok(value = p.x == 0)
+    origin(m__B) => Ok(true)
+  Ok(p.x == 0)
 `
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6003") {

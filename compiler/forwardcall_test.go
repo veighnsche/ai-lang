@@ -34,20 +34,20 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => m.bad(value = "b")
-    other("z") => Ok(value = "no")
+    ok("a") => Ok("a")
+    bad("b") => m.bad("b")
+    other("z") => Ok("no")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call m__work(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -78,17 +78,17 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => m.bad(value = "b")
+    ok("a") => Ok("a")
+    bad("b") => m.bad("b")
   match call m__work(x)
     on Ok r => forward call m__work(r.value)
     on m.bad e => forward e
@@ -117,13 +117,13 @@ fn m__walk(s: str, acc: str, n: int) -> M__W rev 1
   decreases n
   emits [m.bad]
   tests
-    done("q", "", 0) => Ok(value = "")
-    step("ab", "", 2) => Ok(value = "ab")
-    bad("aB", "", 2) => m.bad(value = "a")
+    done("q", "", 0) => Ok("")
+    step("ab", "", 2) => Ok("ab")
+    bad("aB", "", 2) => m.bad("a")
   match n <= 0
-    true => Ok(value = acc)
+    true => Ok(acc)
     false => match s[0:1] == "B"
-      true => m.bad(value = acc)
+      true => m.bad(acc)
       false => forward call m__walk(s[1:#s], acc + s[0:1], n - 1)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -150,8 +150,8 @@ type L__Work rev 1 (
 fn lib__work(v: str) -> L__Work rev 1
   emits [lib.bad]
   tests
-    w("x") => Ok(value = "x")
-  Ok(value = v)
+    w("x") => Ok("x")
+  Ok(v)
 `
 	cases := []struct {
 		name  string
@@ -172,9 +172,9 @@ type A__Out rev 1 (
 fn app__go(x: str) -> A__Out rev 1
   emits [lib.bad]
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call lib__work(x)
 `},
 			"app.can",
@@ -199,9 +199,9 @@ type M__Work rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call ex__work(x)
 `},
 			"m.can",
@@ -220,9 +220,9 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call nope(x)
 `},
 			"m.can",
@@ -241,9 +241,9 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call
 `},
 			"m.can",
@@ -262,9 +262,9 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call 123
 `},
 			"m.can",
@@ -283,9 +283,9 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call m__go(
 `},
 			"m.can",
@@ -313,16 +313,16 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match call m__noop(x)
     on m.bad e => forward calling
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 
 fn m__noop(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-  Ok(value = x)
+    ok("a") => Ok("a")
+  Ok(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": binder})
 	diags := diagnose(dir, "m.can", binder)
@@ -356,22 +356,22 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => m.bad(value = "b")
+    ok("a") => Ok("a")
+    bad("b") => m.bad("b")
   match chain
     call m__work(x) as w
 `
 	tail := lib + `    then forward call m__work(w.value)
-    else m.bad(value = x)
+    else m.bad(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": tail})
 	diags := diagnose(dir, "m.can", tail)
@@ -387,7 +387,7 @@ fn m__go(x: str) -> M__Out rev 1
 	if !found {
 		t.Fatalf("chain tail refusal must name the bare forward: %v", diags)
 	}
-	els := lib + `    then Ok(value = w.value)
+	els := lib + `    then Ok(w.value)
     else forward call m__work(x)
 `
 	dir = writeLSPDir(t, map[string]string{"m.can": els})
@@ -428,18 +428,18 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call m__work(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -468,15 +468,15 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits []
   tests
-    w("x") => Ok(other = "x")
-  Ok(other = v)
+    w("x") => Ok("x")
+  Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call m__work(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -507,18 +507,18 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    bad("b") => m.bad(value = "b")
+    bad("b") => m.bad("b")
   match x == "z"
-    true => m.bad(value = x)
+    true => m.bad(x)
     false => forward call m__work(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": errOnly})
@@ -543,19 +543,19 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-    other("z") => Ok(value = "no")
+    ok("a") => Ok("a")
+    other("z") => Ok("no")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call m__work(x)
 `
 	dir = writeLSPDir(t, map[string]string{"m.can": okOnly})
@@ -586,20 +586,20 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => m.bad(value = "b")
-    other("z") => Ok(value = "no")
+    ok("a") => Ok("a")
+    bad("b") => m.bad("b")
+    other("z") => Ok("no")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => match call m__work(x)
       on Ok r => forward r
       on m.bad e => forward e

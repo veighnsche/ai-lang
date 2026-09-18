@@ -1040,7 +1040,8 @@ func (c *tycker) nodePartsArms(n *Node, env map[string]string, want string) {
 // the wanted record, dotted errors against their ErrorDecl, named
 // records against their TypeDecl. want="" (error-producing positions)
 // still checks error fields; unknown contracts belong to other codes,
-// so undeclared kinds are skipped, never double-reported.
+// so undeclared kinds are skipped, never double-reported. Positional
+// args resolve here by mutation (a92), so later phases see names.
 func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]string, where string) {
 	name := s.Ctor
 	var fields [][2]string
@@ -1054,6 +1055,14 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		}
 		rec, ok := c.recs[want]
 		if !ok {
+			// a92: scalar Ok takes exactly the conventional
+			// `value`: bind a lone positional, fault the
+			// rest. All-named keeps today's pass-through
+			// (scalar payloads are unchecked); unknown wants
+			// keep it too (their owner reports).
+			if want == "int" || want == "str" || want == "bool" || want == "dec" {
+				c.checkScalarOk(s, line, env, where)
+			}
 			return
 		}
 		fields, label = rec, "Ok"
@@ -1140,8 +1149,53 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 	for _, f := range fields {
 		byName[f[0]] = f[1]
 	}
-	seenArg := map[string]bool{}
+	// a92: positional construction. An unnamed arg at list
+	// index i claims field i (the calls rule, bindSlots —
+	// not the stricter test-row prefix rule). Resolution
+	// assigns names by mutation, so every later phase —
+	// runs, proofs, emit — sees one named shape.
+	// Idempotent: resolved args are named, so a second run
+	// is a no-op. Two faults are CAN6003: a positional past
+	// the arity, and a positional landing on a named-claimed
+	// field. Faulted args stay unnamed and are skipped
+	// below: resolution-owned, already reported.
+	claimed := map[int]bool{}
 	for _, a := range s.Args {
+		if !a.HasName {
+			continue
+		}
+		for j, f := range fields {
+			if f[0] == a.Name {
+				claimed[j] = true
+			}
+		}
+	}
+	bound := map[int]bool{}
+	for i := range s.Args {
+		a := &s.Args[i]
+		if a.HasName {
+			continue
+		}
+		if i >= len(fields) {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("%s takes %d args for %d fields", label, len(s.Args), len(fields)), label, CodeTypeMismatch))
+			continue
+		}
+		if claimed[i] {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("%s supplies field %s twice", label, fields[i][0]), fields[i][0], CodeTypeMismatch))
+			continue
+		}
+		claimed[i] = true
+		a.Name = fields[i][0]
+		a.HasName = true
+		bound[i] = true
+	}
+	seenArg := map[string]bool{}
+	for i, a := range s.Args {
+		if !a.HasName {
+			continue
+		}
 		if seenArg[a.Name] {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("%s repeats field %s", label, a.Name), a.Name, CodeTypeMismatch))
@@ -1158,7 +1212,14 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		c.value(a.V, "", line, env, flabel)
 		if c.knownType(ft) {
 			if got, ok := c.typeOf(a.V, env); ok && got != ft {
-				c.mismatch(line, flabel, got, ft, a.Name)
+				// a92: a bound name never appears in
+				// source, so the squiggle covers the
+				// offending value instead of nothing.
+				tok := a.Name
+				if bound[i] {
+					tok = tokenOf(a.V)
+				}
+				c.mismatch(line, flabel, got, ft, tok)
 			}
 		}
 	}
@@ -1177,6 +1238,52 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 	}
 }
 
+// checkScalarOk resolves Ok against a scalar want (a92): the
+// convention is exactly one field named `value`. A lone
+// positional binds it; anything else positional faults.
+// Values are never recursed, exactly like the bare return
+// this replaces: scalar payloads are unchecked (projections
+// like v.value on an int-typed binder are runtime-shaped),
+// and all-named keeps the pass-through untouched. Faulted
+// args stay unnamed: resolution-owned, already reported.
+func (c *tycker) checkScalarOk(s *Small, line int, env map[string]string, where string) {
+	hasPos := false
+	for _, a := range s.Args {
+		if !a.HasName {
+			hasPos = true
+			break
+		}
+	}
+	if !hasPos {
+		return
+	}
+	claimed := false
+	for _, a := range s.Args {
+		if a.HasName && a.Name == "value" {
+			claimed = true
+		}
+	}
+	for i := range s.Args {
+		a := &s.Args[i]
+		if a.HasName {
+			continue
+		}
+		if i >= 1 {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("Ok takes %d args for 1 field", len(s.Args)), "Ok", CodeTypeMismatch))
+			continue
+		}
+		if claimed {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("Ok supplies field value twice"), "value", CodeTypeMismatch))
+			continue
+		}
+		claimed = true
+		a.Name = "value"
+		a.HasName = true
+	}
+}
+
 // node walks a body threading the wanted type to final-value positions:
 // Ok arms and value matches produce the function's return, error arms
 // produce errors (checked against their decl, want-free). Bindings copy
@@ -1186,7 +1293,21 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		return
 	}
 	if !n.IsMatch {
-		c.value(n.Small, want, n.Line, env, "returns")
+		w := want
+		if w == "" && n.Small != nil && n.Small.Kind == "ctor" && n.Small.Ctor == "Ok" {
+			// a92: an Ok arm top is return-positioned even
+			// under error arms (want-free by threading), so
+			// check it against the fn return record and
+			// positional args bind. typeOf stays silent for
+			// Ok, so no comparison is added: anything else
+			// keeps want-free checking.
+			if f, ok := c.prog.Fns[c.fn]; ok {
+				if _, ok := c.recs[f.Ret]; ok {
+					w = f.Ret
+				}
+			}
+		}
+		c.value(n.Small, w, n.Line, env, "returns")
 		return
 	}
 	// Every scrutinee is valued, so a bad reference in any slot is

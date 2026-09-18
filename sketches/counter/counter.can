@@ -19,18 +19,18 @@ fn count__bump(by: int) -> Count__Tally rev 1
   effects [Count__total.read, Count__total.write]
   emits []
   tests
-    three(3) => Ok(total = 3)
-    three_again(3) => Ok(total = 3)
-    zero(0) => Ok(total = 0)
+    three(3) => Ok(3)
+    three_again(3) => Ok(3)
+    zero(0) => Ok(0)
   match call state__get(Count__total)
     on Ok c => match call state__put(Count__total, c.value + by)
-      on Ok _ => Ok(total = c.value + by)
+      on Ok _ => Ok(c.value + by)
 
 fn count__twice(by: int) -> Count__Tally rev 1
   effects [Count__total.read, Count__total.write]
   emits []
   tests
-    double(2) => Ok(total = 4)
+    double(2) => Ok(4)
   match call count__bump(by)
     on Ok s => match call count__bump(by)
-      on Ok t => Ok(total = t.total)
+      on Ok t => Ok(t.total)

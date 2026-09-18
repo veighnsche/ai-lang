@@ -79,104 +79,104 @@ fn std__validate__require(condition: bool, field: str, rule: str) -> Validate__P
   emits [validation.failed]
   tests
     pass(true, "quota", "nonnegative") => Ok()
-    fail(false, "quota", "nonnegative") => validation.failed(field = "quota", rule = "nonnegative")
+    fail(false, "quota", "nonnegative") => validation.failed("quota", "nonnegative")
   match condition
     true => Ok()
-    false => validation.failed(field = field, rule = rule)
+    false => validation.failed(field, rule)
 
 fn std__validate__int_range(value: int, lower: int, upper: int) -> Int__Value rev 1
   emits [validation.invalid_bounds, validation.out_of_range]
   tests
-    inside(5, 0, 10) => Ok(value = 5)
-    at_lower(0, 0, 10) => Ok(value = 0)
-    at_upper(10, 0, 10) => Ok(value = 10)
-    below(-1, 0, 10) => validation.out_of_range(value = -1, lower = 0, upper = 10)
-    above(11, 0, 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
-    bad_bounds(5, 10, 0) => validation.invalid_bounds(lower = 10, upper = 0)
+    inside(5, 0, 10) => Ok(5)
+    at_lower(0, 0, 10) => Ok(0)
+    at_upper(10, 0, 10) => Ok(10)
+    below(-1, 0, 10) => validation.out_of_range(-1, 0, 10)
+    above(11, 0, 10) => validation.out_of_range(11, 0, 10)
+    bad_bounds(5, 10, 0) => validation.invalid_bounds(10, 0)
   match lower <= upper, value >= lower, value <= upper
-    true, true, true => Ok(value = value)
-    true, true, false => validation.out_of_range(value = value, lower = lower, upper = upper)
-    true, false, _ => validation.out_of_range(value = value, lower = lower, upper = upper)
-    false, _, _ => validation.invalid_bounds(lower = lower, upper = upper)
+    true, true, true => Ok(value)
+    true, true, false => validation.out_of_range(value, lower, upper)
+    true, false, _ => validation.out_of_range(value, lower, upper)
+    false, _, _ => validation.invalid_bounds(lower, upper)
 
 fn std__validate__int_nonnegative(value: int) -> Int__Value rev 1
   emits [validation.negative_value]
   tests
-    zero(0) => Ok(value = 0)
-    positive(4) => Ok(value = 4)
-    negative(-1) => validation.negative_value(value = -1)
+    zero(0) => Ok(0)
+    positive(4) => Ok(4)
+    negative(-1) => validation.negative_value(-1)
   match value >= 0
-    true => Ok(value = value)
-    false => validation.negative_value(value = value)
+    true => Ok(value)
+    false => validation.negative_value(value)
 
 fn std__validate__int_positive(value: int) -> Int__Value rev 1
   emits [validation.not_positive]
   tests
-    positive(3) => Ok(value = 3)
-    zero(0) => validation.not_positive(value = 0)
-    negative(-2) => validation.not_positive(value = -2)
+    positive(3) => Ok(3)
+    zero(0) => validation.not_positive(0)
+    negative(-2) => validation.not_positive(-2)
   match value > 0
-    true => Ok(value = value)
-    false => validation.not_positive(value = value)
+    true => Ok(value)
+    false => validation.not_positive(value)
 
 fn std__validate__dec_range(value: dec, lower: dec, upper: dec) -> Dec__Value rev 1
   emits [validation.dec_invalid_bounds, validation.dec_out_of_range]
   tests
-    inside(d"5.0", d"0.0", d"10.0") => Ok(value = d"5.0")
-    at_lower(d"0.0", d"0.0", d"10.0") => Ok(value = d"0.0")
-    at_upper(d"10.0", d"0.0", d"10.0") => Ok(value = d"10.0")
-    below(d"-0.5", d"0.0", d"10.0") => validation.dec_out_of_range(value = d"-0.5", lower = d"0.0", upper = d"10.0")
-    above(d"10.5", d"0.0", d"10.0") => validation.dec_out_of_range(value = d"10.5", lower = d"0.0", upper = d"10.0")
-    bad_bounds(d"5.0", d"10.0", d"0.0") => validation.dec_invalid_bounds(lower = d"10.0", upper = d"0.0")
+    inside(d"5.0", d"0.0", d"10.0") => Ok(d"5.0")
+    at_lower(d"0.0", d"0.0", d"10.0") => Ok(d"0.0")
+    at_upper(d"10.0", d"0.0", d"10.0") => Ok(d"10.0")
+    below(d"-0.5", d"0.0", d"10.0") => validation.dec_out_of_range(d"-0.5", d"0.0", d"10.0")
+    above(d"10.5", d"0.0", d"10.0") => validation.dec_out_of_range(d"10.5", d"0.0", d"10.0")
+    bad_bounds(d"5.0", d"10.0", d"0.0") => validation.dec_invalid_bounds(d"10.0", d"0.0")
   match lower <= upper, value >= lower, value <= upper
-    true, true, true => Ok(value = value)
-    true, true, false => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
-    true, false, _ => validation.dec_out_of_range(value = value, lower = lower, upper = upper)
-    false, _, _ => validation.dec_invalid_bounds(lower = lower, upper = upper)
+    true, true, true => Ok(value)
+    true, true, false => validation.dec_out_of_range(value, lower, upper)
+    true, false, _ => validation.dec_out_of_range(value, lower, upper)
+    false, _, _ => validation.dec_invalid_bounds(lower, upper)
 
 fn std__validate__dec_positive(value: dec) -> Dec__Value rev 1
   emits [validation.dec_not_positive]
   tests
-    positive(d"0.5") => Ok(value = d"0.5")
-    zero(d"0.0") => validation.dec_not_positive(value = d"0.0")
-    negative(d"-2.0") => validation.dec_not_positive(value = d"-2.0")
+    positive(d"0.5") => Ok(d"0.5")
+    zero(d"0.0") => validation.dec_not_positive(d"0.0")
+    negative(d"-2.0") => validation.dec_not_positive(d"-2.0")
   match value > d"0.0"
-    true => Ok(value = value)
-    false => validation.dec_not_positive(value = value)
+    true => Ok(value)
+    false => validation.dec_not_positive(value)
 
 fn std__validate__dec_nonnegative(value: dec) -> Dec__Value rev 1
   emits [validation.dec_negative_value]
   tests
-    zero(d"0.0") => Ok(value = d"0.0")
-    positive(d"4.0") => Ok(value = d"4.0")
-    negative(d"-1.0") => validation.dec_negative_value(value = d"-1.0")
+    zero(d"0.0") => Ok(d"0.0")
+    positive(d"4.0") => Ok(d"4.0")
+    negative(d"-1.0") => validation.dec_negative_value(d"-1.0")
   match value >= d"0.0"
-    true => Ok(value = value)
-    false => validation.dec_negative_value(value = value)
+    true => Ok(value)
+    false => validation.dec_negative_value(value)
 
 fn std__validate__str_length(value: str, minimum: int, maximum: int) -> Str__Value rev 1
   emits [validation.invalid_bounds, validation.invalid_length]
   tests
-    length_ok("abc", 1, 5) => Ok(value = "abc")
-    length_at_min("a", 1, 5) => Ok(value = "a")
-    length_at_max("abcde", 1, 5) => Ok(value = "abcde")
-    length_short("ab", 3, 5) => validation.invalid_length(value = "ab", minimum = 3, maximum = 5)
-    length_long("abcdef", 1, 5) => validation.invalid_length(value = "abcdef", minimum = 1, maximum = 5)
-    length_bad_bounds("abc", 5, 1) => validation.invalid_bounds(lower = 5, upper = 1)
+    length_ok("abc", 1, 5) => Ok("abc")
+    length_at_min("a", 1, 5) => Ok("a")
+    length_at_max("abcde", 1, 5) => Ok("abcde")
+    length_short("ab", 3, 5) => validation.invalid_length("ab", 3, 5)
+    length_long("abcdef", 1, 5) => validation.invalid_length("abcdef", 1, 5)
+    length_bad_bounds("abc", 5, 1) => validation.invalid_bounds(5, 1)
   match minimum <= maximum, #value >= minimum, #value <= maximum
-    true, true, true => Ok(value = value)
-    true, true, false => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
-    true, false, _ => validation.invalid_length(value = value, minimum = minimum, maximum = maximum)
-    false, _, _ => validation.invalid_bounds(lower = minimum, upper = maximum)
+    true, true, true => Ok(value)
+    true, true, false => validation.invalid_length(value, minimum, maximum)
+    true, false, _ => validation.invalid_length(value, minimum, maximum)
+    false, _, _ => validation.invalid_bounds(minimum, maximum)
 
 fn std__validate__str_nonempty(value: str) -> Str__Value rev 1
   emits [validation.empty_value]
   tests
-    nonempty("u_01") => Ok(value = "u_01")
-    empty("") => validation.empty_value(value = "")
+    nonempty("u_01") => Ok("u_01")
+    empty("") => validation.empty_value("")
   match value
-    "" => validation.empty_value(value = value)
-    _ => Ok(value = value)
+    "" => validation.empty_value(value)
+    _ => Ok(value)
 
 fn std__validate__exclusive_pair(left: bool, right: bool) -> Validate__Pass rev 1
   emits [validation.exclusive_choice]
@@ -195,142 +195,142 @@ fn std__validate__str_one_of_from(value: str, allowed: Seq<str>, pos: int, n: in
   decreases n
   emits [validation.not_allowed]
   tests
-    exhausted("z", Seq<str>["a", "b"], 0, 0) => validation.not_allowed(value = "z")
-    over("a", Seq<str>["a"], 5, 2) => validation.not_allowed(value = "a")
-    immediate("a", Seq<str>["a", "b"], 0, 2) => Ok(value = "a")
-    later("b", Seq<str>["a", "b"], 0, 2) => Ok(value = "b")
-    miss("z", Seq<str>["a", "b"], 0, 2) => validation.not_allowed(value = "z")
+    exhausted("z", Seq<str>["a", "b"], 0, 0) => validation.not_allowed("z")
+    over("a", Seq<str>["a"], 5, 2) => validation.not_allowed("a")
+    immediate("a", Seq<str>["a", "b"], 0, 2) => Ok("a")
+    later("b", Seq<str>["a", "b"], 0, 2) => Ok("b")
+    miss("z", Seq<str>["a", "b"], 0, 2) => validation.not_allowed("z")
   match n <= 0
-    true => validation.not_allowed(value = value)
+    true => validation.not_allowed(value)
     false => match pos < #allowed
       true => match allowed[pos] == value
-        true => Ok(value = value)
+        true => Ok(value)
         false => match call std__validate__str_one_of_from(value, allowed, pos + 1, n - 1)
           on validation.not_allowed e => forward e
-          on Ok r => Ok(value = r.value)
-      false => validation.not_allowed(value = value)
+          on Ok r => Ok(r.value)
+      false => validation.not_allowed(value)
 
 fn std__validate__str_one_of(value: str, allowed: Seq<str>) -> Str__Value rev 1
   emits [validation.not_allowed]
   tests
-    empty_allowed("a", Seq<str>[]) => validation.not_allowed(value = "a")
-    singleton_hit("a", Seq<str>["a"]) => Ok(value = "a")
-    singleton_miss("b", Seq<str>["a"]) => validation.not_allowed(value = "b")
-    first("a", Seq<str>["a", "b", "c"]) => Ok(value = "a")
-    middle("b", Seq<str>["a", "b", "c"]) => Ok(value = "b")
-    last("c", Seq<str>["a", "b", "c"]) => Ok(value = "c")
-    absent("z", Seq<str>["a", "b", "c"]) => validation.not_allowed(value = "z")
-    dup_hit("a", Seq<str>["a", "a"]) => Ok(value = "a")
-    dup_miss("z", Seq<str>["a", "a"]) => validation.not_allowed(value = "z")
-    case("Batch", Seq<str>["batch"]) => validation.not_allowed(value = "Batch")
-    unicode("世界", Seq<str>["héllo", "世界"]) => Ok(value = "世界")
-    unicode_miss("世界x", Seq<str>["héllo", "世界"]) => validation.not_allowed(value = "世界x")
-    empty_value("", Seq<str>["", "a"]) => Ok(value = "")
-    empty_value_miss("", Seq<str>["a"]) => validation.not_allowed(value = "")
+    empty_allowed("a", Seq<str>[]) => validation.not_allowed("a")
+    singleton_hit("a", Seq<str>["a"]) => Ok("a")
+    singleton_miss("b", Seq<str>["a"]) => validation.not_allowed("b")
+    first("a", Seq<str>["a", "b", "c"]) => Ok("a")
+    middle("b", Seq<str>["a", "b", "c"]) => Ok("b")
+    last("c", Seq<str>["a", "b", "c"]) => Ok("c")
+    absent("z", Seq<str>["a", "b", "c"]) => validation.not_allowed("z")
+    dup_hit("a", Seq<str>["a", "a"]) => Ok("a")
+    dup_miss("z", Seq<str>["a", "a"]) => validation.not_allowed("z")
+    case("Batch", Seq<str>["batch"]) => validation.not_allowed("Batch")
+    unicode("世界", Seq<str>["héllo", "世界"]) => Ok("世界")
+    unicode_miss("世界x", Seq<str>["héllo", "世界"]) => validation.not_allowed("世界x")
+    empty_value("", Seq<str>["", "a"]) => Ok("")
+    empty_value_miss("", Seq<str>["a"]) => validation.not_allowed("")
   match call std__validate__str_one_of_from(value, allowed, 0, #allowed)
     on validation.not_allowed e => forward e
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 
 fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchema) -> Quota__RequestValue rev 1
   emits [validation.schema_violation]
   tests
-    ok(Quota__Request(label = "Ada", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = "Ada", amount = 5, mode = "batch"))
-    label_short(Quota__Request(label = "", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "label", rule = "str.length_scalars", value = "")
-    label_long(Quota__Request(label = "abcdefghijklm", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "label", rule = "str.length_scalars", value = "abcdefghijklm")
-    label_min_negative(Quota__Request(label = "Ada", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = -1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "", rule = "schema.label_minimum", value = "-1")
-    label_bounds(Quota__Request(label = "Ada", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 5, label_maximum = 1, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "", rule = "schema.label_bounds", value = "minimum=5;maximum=1")
-    amount_below(Quota__Request(label = "Ada", amount = 0, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "amount", rule = "int.closed_range", value = "0")
-    amount_above(Quota__Request(label = "Ada", amount = 11, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "amount", rule = "int.closed_range", value = "11")
-    amount_bounds(Quota__Request(label = "Ada", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 10, amount_upper = 0, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "", rule = "schema.amount_bounds", value = "lower=10;upper=0")
-    mode_bad(Quota__Request(label = "Ada", amount = 5, mode = "admin"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "mode", rule = "str.one_of", value = "admin")
-    label_beats_policy(Quota__Request(label = "", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 10, amount_upper = 0, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "label", rule = "str.length_scalars", value = "")
-    label_beats_amount(Quota__Request(label = "", amount = 99, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "label", rule = "str.length_scalars", value = "")
-    amount_beats_mode(Quota__Request(label = "Ada", amount = 99, mode = "admin"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "amount", rule = "int.closed_range", value = "99")
-    label_min_edge(Quota__Request(label = "A", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = "A", amount = 5, mode = "batch"))
-    label_max_edge(Quota__Request(label = "abcdefghijkl", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = "abcdefghijkl", amount = 5, mode = "batch"))
-    amount_low_edge(Quota__Request(label = "Ada", amount = 1, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = "Ada", amount = 1, mode = "batch"))
-    amount_high_edge(Quota__Request(label = "Ada", amount = 10, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = "Ada", amount = 10, mode = "batch"))
-    unicode_ok(Quota__Request(label = "héllo世界ab12", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = "héllo世界ab12", amount = 5, mode = "batch"))
-    bigint(Quota__Request(label = "Ada", amount = -9007199254740993, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "amount", rule = "int.closed_range", value = "-9007199254740993")
-    modes_empty(Quota__Request(label = "Ada", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>[])) => validation.schema_violation(path = "mode", rule = "str.one_of", value = "batch")
-    mode_case(Quota__Request(label = "Ada", amount = 5, mode = "Batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "mode", rule = "str.one_of", value = "Batch")
-    ws_preserved(Quota__Request(label = " ab ", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Request(label = " ab ", amount = 5, mode = "batch"))
+    ok(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request("Ada", 5, "batch"))
+    label_short(Quota__Request("", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("label", "str.length_scalars", "")
+    label_long(Quota__Request("abcdefghijklm", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("label", "str.length_scalars", "abcdefghijklm")
+    label_min_negative(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(-1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("", "schema.label_minimum", "-1")
+    label_bounds(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(5, 1, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("", "schema.label_bounds", "minimum=5;maximum=1")
+    amount_below(Quota__Request("Ada", 0, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("amount", "int.closed_range", "0")
+    amount_above(Quota__Request("Ada", 11, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("amount", "int.closed_range", "11")
+    amount_bounds(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(1, 12, 10, 0, Seq<str>["interactive", "batch"])) => validation.schema_violation("", "schema.amount_bounds", "lower=10;upper=0")
+    mode_bad(Quota__Request("Ada", 5, "admin"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("mode", "str.one_of", "admin")
+    label_beats_policy(Quota__Request("", 5, "batch"), Quota__RequestSchema(1, 12, 10, 0, Seq<str>["interactive", "batch"])) => validation.schema_violation("label", "str.length_scalars", "")
+    label_beats_amount(Quota__Request("", 99, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("label", "str.length_scalars", "")
+    amount_beats_mode(Quota__Request("Ada", 99, "admin"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("amount", "int.closed_range", "99")
+    label_min_edge(Quota__Request("A", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request("A", 5, "batch"))
+    label_max_edge(Quota__Request("abcdefghijkl", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request("abcdefghijkl", 5, "batch"))
+    amount_low_edge(Quota__Request("Ada", 1, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request("Ada", 1, "batch"))
+    amount_high_edge(Quota__Request("Ada", 10, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request("Ada", 10, "batch"))
+    unicode_ok(Quota__Request("héllo世界ab12", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request("héllo世界ab12", 5, "batch"))
+    bigint(Quota__Request("Ada", -9007199254740993, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("amount", "int.closed_range", "-9007199254740993")
+    modes_empty(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>[])) => validation.schema_violation("mode", "str.one_of", "batch")
+    mode_case(Quota__Request("Ada", 5, "Batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("mode", "str.one_of", "Batch")
+    ws_preserved(Quota__Request(" ab ", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Request(" ab ", 5, "batch"))
   match schema.label_minimum >= 0
     true => match call std__validate__str_length(request.label, schema.label_minimum, schema.label_maximum)
       on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.label_minimum)
         given
-          label_bounds => [exchange args (value = 5) outcome Ok(value = "5")]
-          env_root => [exchange args (value = 5) outcome Ok(value = "5")]
+          label_bounds => [exchange args (value = 5) outcome Ok("5")]
+          env_root => [exchange args (value = 5) outcome Ok("5")]
         on Ok lo => match call std__convert__int_to_str(schema.label_maximum)
           given
-            label_bounds => [exchange args (value = 1) outcome Ok(value = "1")]
-            env_root => [exchange args (value = 1) outcome Ok(value = "1")]
-          on Ok hi => validation.schema_violation(path = "", rule = "schema.label_bounds", value = "minimum=" + lo.value + ";maximum=" + hi.value)
-      on validation.invalid_length _ => validation.schema_violation(path = "label", rule = "str.length_scalars", value = request.label)
+            label_bounds => [exchange args (value = 1) outcome Ok("1")]
+            env_root => [exchange args (value = 1) outcome Ok("1")]
+          on Ok hi => validation.schema_violation("", "schema.label_bounds", "minimum=" + lo.value + ";maximum=" + hi.value)
+      on validation.invalid_length _ => validation.schema_violation("label", "str.length_scalars", request.label)
       on Ok _ => match call std__validate__int_range(request.amount, schema.amount_lower, schema.amount_upper)
         on validation.invalid_bounds _ => match call std__convert__int_to_str(schema.amount_lower)
           given
-            amount_bounds => [exchange args (value = 10) outcome Ok(value = "10")]
+            amount_bounds => [exchange args (value = 10) outcome Ok("10")]
           on Ok lo => match call std__convert__int_to_str(schema.amount_upper)
             given
-              amount_bounds => [exchange args (value = 0) outcome Ok(value = "0")]
-            on Ok hi => validation.schema_violation(path = "", rule = "schema.amount_bounds", value = "lower=" + lo.value + ";upper=" + hi.value)
+              amount_bounds => [exchange args (value = 0) outcome Ok("0")]
+            on Ok hi => validation.schema_violation("", "schema.amount_bounds", "lower=" + lo.value + ";upper=" + hi.value)
         on validation.out_of_range _ => match call std__convert__int_to_str(request.amount)
           given
-            amount_below => [exchange args (value = 0) outcome Ok(value = "0")]
-            amount_above => [exchange args (value = 11) outcome Ok(value = "11")]
-            amount_beats_mode => [exchange args (value = 99) outcome Ok(value = "99")]
-            bigint => [exchange args (value = -9007199254740993) outcome Ok(value = "-9007199254740993")]
-            env_rendered => [exchange args (value = 11) outcome Ok(value = "11")]
-          on Ok r => validation.schema_violation(path = "amount", rule = "int.closed_range", value = r.value)
+            amount_below => [exchange args (value = 0) outcome Ok("0")]
+            amount_above => [exchange args (value = 11) outcome Ok("11")]
+            amount_beats_mode => [exchange args (value = 99) outcome Ok("99")]
+            bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
+            env_rendered => [exchange args (value = 11) outcome Ok("11")]
+          on Ok r => validation.schema_violation("amount", "int.closed_range", r.value)
         on Ok _ => match call std__validate__str_one_of(request.mode, schema.allowed_modes)
-          on validation.not_allowed _ => validation.schema_violation(path = "mode", rule = "str.one_of", value = request.mode)
-          on Ok _ => Ok(value = request)
+          on validation.not_allowed _ => validation.schema_violation("mode", "str.one_of", request.mode)
+          on Ok _ => Ok(request)
     false => match call std__convert__int_to_str(schema.label_minimum)
       given
-        label_min_negative => [exchange args (value = -1) outcome Ok(value = "-1")]
-      on Ok r => validation.schema_violation(path = "", rule = "schema.label_minimum", value = r.value)
+        label_min_negative => [exchange args (value = -1) outcome Ok("-1")]
+      on Ok r => validation.schema_violation("", "schema.label_minimum", r.value)
 
 fn quota__request__admit(request: Quota__Request, schema: Quota__RequestSchema, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]
   emits [validation.schema_violation, validation.negative_value, validation.invalid_bounds, validation.out_of_range]
   tests
-    admitted(Quota__Request(label = "Ada", amount = 3, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"]), 10) => Ok(used = 3, remaining = 7)
-    rejected(Quota__Request(label = "", amount = 3, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"]), 10) => validation.schema_violation(path = "label", rule = "str.length_scalars", value = "")
-    over(Quota__Request(label = "Ada", amount = 10, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"]), 5) => validation.out_of_range(value = 10, lower = 0, upper = 5)
-    bad_quota(Quota__Request(label = "Ada", amount = 5, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"]), -1) => validation.invalid_bounds(lower = 0, upper = -1)
-    negative(Quota__Request(label = "Ada", amount = -2, mode = "batch"), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = -5, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"]), 10) => validation.negative_value(value = -2)
+    admitted(Quota__Request("Ada", 3, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"]), 10) => Ok(3, 7)
+    rejected(Quota__Request("", 3, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"]), 10) => validation.schema_violation("label", "str.length_scalars", "")
+    over(Quota__Request("Ada", 10, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"]), 5) => validation.out_of_range(10, 0, 5)
+    bad_quota(Quota__Request("Ada", 5, "batch"), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"]), -1) => validation.invalid_bounds(0, -1)
+    negative(Quota__Request("Ada", -2, "batch"), Quota__RequestSchema(1, 12, -5, 10, Seq<str>["interactive", "batch"]), 10) => validation.negative_value(-2)
   match call quota__request__validate(request, schema)
     on validation.schema_violation e => forward e
     on Ok v => match call quota__consume(v.value.amount, quota)
       on validation.negative_value e => forward e
       on validation.invalid_bounds e => forward e
       on validation.out_of_range e => forward e
-      on Ok u => Ok(used = u.used, remaining = u.remaining)
+      on Ok u => Ok(u.used, u.remaining)
 
 fn quota__envelope__validate(envelope: Quota__Envelope, schema: Quota__RequestSchema) -> Quota__EnvelopeValue rev 1
   emits [validation.schema_violation]
   tests
-    env_ok(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")))
-    env_root(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")), Quota__RequestSchema(label_minimum = 5, label_maximum = 1, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request", rule = "schema.label_bounds", value = "minimum=5;maximum=1")
-    env_field(Quota__Envelope(request = Quota__Request(label = "", amount = 5, mode = "batch")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request.label", rule = "str.length_scalars", value = "")
-    env_rendered(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 11, mode = "batch")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request.amount", rule = "int.closed_range", value = "11")
-    env_member(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "admin")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request.mode", rule = "str.one_of", value = "admin")
+    env_ok(Quota__Envelope(Quota__Request("Ada", 5, "batch")), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => Ok(Quota__Envelope(Quota__Request("Ada", 5, "batch")))
+    env_root(Quota__Envelope(Quota__Request("Ada", 5, "batch")), Quota__RequestSchema(5, 1, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("request", "schema.label_bounds", "minimum=5;maximum=1")
+    env_field(Quota__Envelope(Quota__Request("", 5, "batch")), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("request.label", "str.length_scalars", "")
+    env_rendered(Quota__Envelope(Quota__Request("Ada", 11, "batch")), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("request.amount", "int.closed_range", "11")
+    env_member(Quota__Envelope(Quota__Request("Ada", 5, "admin")), Quota__RequestSchema(1, 12, 1, 10, Seq<str>["interactive", "batch"])) => validation.schema_violation("request.mode", "str.one_of", "admin")
   match call quota__request__validate(envelope.request, schema)
     on validation.schema_violation e => match e.path == ""
-      true => validation.schema_violation(path = "request", rule = e.rule, value = e.value)
-      false => validation.schema_violation(path = "request." + e.path, rule = e.rule, value = e.value)
-    on Ok _ => Ok(value = envelope)
+      true => validation.schema_violation("request", e.rule, e.value)
+      false => validation.schema_violation("request." + e.path, e.rule, e.value)
+    on Ok _ => Ok(envelope)
 
 fn quota__consume(amount: int, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]
   emits [validation.negative_value, validation.invalid_bounds, validation.out_of_range]
   tests
-    first(3, 10) => Ok(used = 3, remaining = 7)
-    exact(10, 10) => Ok(used = 10, remaining = 0)
-    over(11, 10) => validation.out_of_range(value = 11, lower = 0, upper = 10)
-    negative(-2, 10) => validation.negative_value(value = -2)
-    bad_quota(1, -1) => validation.invalid_bounds(lower = 0, upper = -1)
+    first(3, 10) => Ok(3, 7)
+    exact(10, 10) => Ok(10, 0)
+    over(11, 10) => validation.out_of_range(11, 0, 10)
+    negative(-2, 10) => validation.negative_value(-2)
+    bad_quota(1, -1) => validation.invalid_bounds(0, -1)
   match chain
     call state__get(Quota__used) as s
     call std__validate__int_nonnegative(amount) as _
@@ -345,8 +345,8 @@ fn quota__usage(quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read]
   emits [validation.negative_value]
   tests
-    fresh(10) => Ok(used = 0, remaining = 10)
-    negative_quota(-1) => validation.negative_value(value = -1)
+    fresh(10) => Ok(0, 10)
+    negative_quota(-1) => validation.negative_value(-1)
   match chain
     call state__get(Quota__used) as s
     call std__validate__int_nonnegative(quota) as _

@@ -375,7 +375,7 @@
       },
       {
         "fn": "html.html__render__document",
-        "arm": "on html.invalid_identifier e =\u003e html.invalid_document_structure(value = e.value)"
+        "arm": "on html.invalid_identifier e =\u003e html.invalid_document_structure(e.value)"
       }
     ],
     "hit_by_tests": [
@@ -553,11 +553,11 @@
       },
       {
         "fn": "html.html__attribute__href",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = u.value)"
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(u.value)"
       },
       {
         "fn": "html.html__attribute__id",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = value)"
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(value)"
       },
       {
         "fn": "html.html__attribute__named_href",
@@ -577,7 +577,7 @@
       },
       {
         "fn": "html.html__attribute__src",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = u.value)"
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(u.value)"
       },
       {
         "fn": "html.html__attribute__text",
@@ -609,7 +609,7 @@
       },
       {
         "fn": "html.html__text__escape",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = raw)"
+        "arm": "on html.nul_byte e =\u003e html.nul_byte(raw)"
       },
       {
         "fn": "html.html__text__escape_from",

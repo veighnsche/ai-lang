@@ -66,8 +66,8 @@ type C__T rev 1 (
 fn c__help(value: int) -> C__T rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 
 const fallbackB = `mod b
@@ -82,8 +82,8 @@ type B__U rev 1 (
 fn b__help(value: int) -> B__U rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 
 const fallbackA = `mod a
@@ -98,8 +98,8 @@ type A__O rev 1 (
 fn a__go(value: int) -> A__O rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 
 // Transitive type pins close through two directories: a needs
@@ -150,8 +150,8 @@ type M__S rev 1 (
 fn m__go(value: int) -> M__S rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 	root := writeFallbackTree(t, map[string]string{
 		"go.mod":  "module fallbacktest\n",
@@ -179,8 +179,8 @@ type B__O rev 1 (
 fn b__x(value: int) -> B__O rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 	a := `mod a
   provides [a__go, A__O]
@@ -194,8 +194,8 @@ type A__O rev 1 (
 fn a__go(value: int) -> A__O rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 	root := writeFallbackTree(t, map[string]string{
 		"go.mod":  "module fallbacktest\n",

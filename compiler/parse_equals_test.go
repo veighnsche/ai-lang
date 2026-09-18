@@ -19,8 +19,8 @@ type M__O rev 1 (
 fn m__go(value: int) -> M__O rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
-  Ok(value = value)
+    one(1) => Ok(1)
+  Ok(value)
 `
 
 func TestParseBodyWithoutEquals(t *testing.T) {
@@ -42,7 +42,7 @@ func TestParseBodyWithoutEquals(t *testing.T) {
 // The old lone `=` fails loudly with a migration pointer,
 // never silently.
 func TestParseLoneEqualsRejected(t *testing.T) {
-	old := strings.Replace(eqBodyFree, "    one(1) => Ok(value = 1)\n", "    one(1) => Ok(value = 1)\n=\n", 1)
+	old := strings.Replace(eqBodyFree, "    one(1) => Ok(1)\n", "    one(1) => Ok(1)\n=\n", 1)
 	_, err := parseModuleText("m.can", old)
 	if err == nil || !strings.Contains(err.Error(), "lone = separator removed") {
 		t.Fatalf("expected lone-= rejection, got %v", err)
@@ -51,7 +51,7 @@ func TestParseLoneEqualsRejected(t *testing.T) {
 
 // A header with no body still fails, naming the function.
 func TestParseMissingBody(t *testing.T) {
-	nobody := strings.Replace(eqBodyFree, "  Ok(value = value)\n", "", 1)
+	nobody := strings.Replace(eqBodyFree, "  Ok(value)\n", "", 1)
 	_, err := parseModuleText("m.can", nobody)
 	if err == nil || !strings.Contains(err.Error(), "missing body") {
 		t.Fatalf("expected missing-body error, got %v", err)

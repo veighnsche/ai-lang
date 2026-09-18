@@ -15,11 +15,11 @@ type Ladder__Value rev 1 (
 fn ladder__signs(a: int, b: int) -> Ladder__Value rev 1
   emits []
   tests
-    neg_any(-1, 9) => Ok(value = 0)
-    pos_neg(1, -2) => Ok(value = 1)
-    pos_pos(1, 2) => Ok(value = 2)
+    neg_any(-1, 9) => Ok(0)
+    pos_neg(1, -2) => Ok(1)
+    pos_pos(1, 2) => Ok(2)
   match a < 0
-    true => Ok(value = 0)
+    true => Ok(0)
     false => match b < 0
-      true => Ok(value = 1)
-      false => Ok(value = 2)
+      true => Ok(1)
+      false => Ok(2)

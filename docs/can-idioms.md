@@ -108,8 +108,10 @@ table (tier 2, C1).
 
 Every function ships a `tests` block (CAN3301). Rows are
 uniquely named with complete args (CAN3201–CAN3203) and
-complete error construction — `math.zero_divisor(divisor =
-0)`, never a bare kind (CAN3204). Tables execute hermetically
+complete error construction — `math.zero_divisor(0)`, never
+a bare kind (CAN3204). Completeness means every field
+present; in-order names are redundant (C6) and stay unwritten.
+Tables execute hermetically
 during the build; any failure fails it (CAN4200). Foreign
 calls (uses-pinned or extern) carry one `given` table per call
 with an `exchange args (...) outcome ...` row per reaching
@@ -225,9 +227,13 @@ Uniqueness is law (CAN3201); the naming is convention.
 A named argument sitting in its own parameter slot is
 reported: with params `(left, right)`, `f(left = 5)` must be
 `f(5)`; `f(right = 8)` stays named (reordered, doing work).
-Applies to call args and test rows — the only lists with a
-positional spelling. Constructions and `given` exchange args
-have no positional form and are exempt.
+Applies to call args, test rows, and constructions (records,
+variant cases, errors, and Ok against a known return — a92).
+A known return is a record's fields, or the scalar singleton
+`value` (`Ok(value = x)` under `-> int` must be `Ok(x)`; any
+other single name stays, it has no positional form). `given`
+exchange args have no positional form and stay exempt, as does
+Ok without a provable return.
 
 ### C7. Flat ladders fold (`canlc lint`, rule 2, a88 draft)
 

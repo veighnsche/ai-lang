@@ -530,9 +530,12 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 			out = append(out, checkDecreases(fn, prog, text)...)
 			out = append(out, checkEffects(fn, prog, text)...)
 			out = append(out, checkGiven(fn, prog, text)...)
-			out = append(out, checkScriptConsistency(fn, prog, text)...)
-			out = append(out, checkEmits(fn, prog, text)...)
+			// a92: checkTypes resolves positional construction by
+			// mutation, so it runs before anything evaluates
+			// (a18's sandbox): mutation-before-eval.
 			out = append(out, checkTypes(fn, prog, text)...)
+			out = append(out, checkEmits(fn, prog, text)...)
+			out = append(out, checkScriptConsistency(fn, prog, text)...)
 			out = append(out, checkUnusedParams(fn, text)...)
 			out = append(out, checkConstRefs(fn, prog, open, text)...)
 			for k := range usedConsts(fn) {

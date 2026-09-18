@@ -15,11 +15,11 @@ type Restate__Value rev 1 (
 fn restate__classify(s: str) -> Restate__Value rev 1
   emits []
   tests
-    amp("&ab") => Ok(value = "amp")
-    lt("<ab") => Ok(value = "lt")
-    plain("ab") => Ok(value = "plain")
+    amp("&ab") => Ok("amp")
+    lt("<ab") => Ok("lt")
+    plain("ab") => Ok("plain")
   match s[0:1] == "&"
-    true => Ok(value = "amp")
+    true => Ok("amp")
     false => match s[0:1] == "<"
-      true => Ok(value = "lt")
-      false => Ok(value = "plain")
+      true => Ok("lt")
+      false => Ok("plain")

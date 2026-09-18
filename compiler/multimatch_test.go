@@ -244,41 +244,41 @@ type M__Word rev 1 (
 fn m__multi(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(true, true) => Ok(v = true)
-    tf(true, false) => Ok(v = false)
-    ft(false, true) => Ok(v = false)
-    ff(false, false) => Ok(v = true)
+    tt(true, true) => Ok(true)
+    tf(true, false) => Ok(false)
+    ft(false, true) => Ok(false)
+    ff(false, false) => Ok(true)
   match a, b
-    true, true => Ok(v = true)
-    true, false => Ok(v = false)
-    false, true => Ok(v = false)
-    false, false => Ok(v = true)
+    true, true => Ok(true)
+    true, false => Ok(false)
+    false, true => Ok(false)
+    false, false => Ok(true)
 
 fn m__nested(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(true, true) => Ok(v = true)
-    tf(true, false) => Ok(v = false)
-    ft(false, true) => Ok(v = false)
-    ff(false, false) => Ok(v = true)
+    tt(true, true) => Ok(true)
+    tf(true, false) => Ok(false)
+    ft(false, true) => Ok(false)
+    ff(false, false) => Ok(true)
   match a
     true => match b
-      true => Ok(v = true)
-      false => Ok(v = false)
+      true => Ok(true)
+      false => Ok(false)
     false => match b
-      true => Ok(v = false)
-      false => Ok(v = true)
+      true => Ok(false)
+      false => Ok(true)
 
 fn m__words(s: str, b: bool) -> M__Word rev 1
   emits []
   tests
-    admin("admin", false) => Ok(w = "root")
-    user("bob", true) => Ok(w = "user")
-    guest("bob", false) => Ok(w = "guest")
+    admin("admin", false) => Ok("root")
+    user("bob", true) => Ok("user")
+    guest("bob", false) => Ok("guest")
   match s, b
-    "admin", _ => Ok(w = "root")
-    _, true => Ok(w = "user")
-    _, false => Ok(w = "guest")
+    "admin", _ => Ok("root")
+    _, true => Ok("user")
+    _, false => Ok("guest")
 `
 
 func multiFn(t *testing.T, mods []*Module, name string) *FnDecl {
@@ -354,13 +354,13 @@ type M__Word rev 1 (
 fn m__w(s: str, b: bool) -> M__Word rev 1
   emits []
   tests
-    admin("admin", false) => Ok(w = "root")
-    user("bob", true) => Ok(w = "user")
-    guest("bob", false) => Ok(w = "guest")
+    admin("admin", false) => Ok("root")
+    user("bob", true) => Ok("user")
+    guest("bob", false) => Ok("guest")
   match s, b
-    "admin", _ => Ok(w = "root")
-    _, true => Ok(w = "user")
-    _, false => Ok(w = "guest")
+    "admin", _ => Ok("root")
+    _, true => Ok("user")
+    _, false => Ok("guest")
 `
 
 const multiEmitBoolText = `mod m
@@ -375,15 +375,15 @@ type M__Out rev 1 (
 fn m__q(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(true, true) => Ok(v = true)
-    tf(true, false) => Ok(v = false)
-    ft(false, true) => Ok(v = false)
-    ff(false, false) => Ok(v = true)
+    tt(true, true) => Ok(true)
+    tf(true, false) => Ok(false)
+    ft(false, true) => Ok(false)
+    ff(false, false) => Ok(true)
   match a, b
-    true, true => Ok(v = true)
-    true, false => Ok(v = false)
-    false, true => Ok(v = false)
-    false, false => Ok(v = true)
+    true, true => Ok(true)
+    true, false => Ok(false)
+    false, true => Ok(false)
+    false, false => Ok(true)
 `
 
 func compileEmit(t *testing.T, text string) string {

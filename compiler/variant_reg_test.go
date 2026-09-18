@@ -17,8 +17,8 @@ type M__Out rev 1 (
 fn m__noop(value: int) -> M__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `
 
 func variantMod(provides string, decls string) string {
@@ -75,8 +75,8 @@ type C__Out rev 1 (
 fn c__noop(value: int) -> C__Out rev 1
   emits []
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `
 	}
 	dir := writeLSPDir(t, map[string]string{"m.can": base, "c.can": consumer("Login__State@1")})

@@ -22,16 +22,16 @@ const bytesB64DecodeBase = `mod m
 fn m__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    empty("") => Ok(value = Bytes(Seq<int>[]))
-    one_pad("QQ==") => Ok(value = Bytes(Seq<int>[65]))
-    two_pad("QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
-    full("QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
-    foo("Zm9v") => Ok(value = Bytes(Seq<int>[102, 111, 111]))
-    stdpair("+/8=") => Ok(value = Bytes(Seq<int>[251, 255]))
-    unpadded4("AAAB") => Ok(value = Bytes(Seq<int>[0, 0, 1]))
-    slashes("////") => Ok(value = Bytes(Seq<int>[255, 255, 255]))
-    hexchars("0x00") => Ok(value = Bytes(Seq<int>[211, 29, 52]))
-    long("QUJDQUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66, 67]))
+    empty("") => Ok(Bytes(Seq<int>[]))
+    one_pad("QQ==") => Ok(Bytes(Seq<int>[65]))
+    two_pad("QUI=") => Ok(Bytes(Seq<int>[65, 66]))
+    full("QUJD") => Ok(Bytes(Seq<int>[65, 66, 67]))
+    foo("Zm9v") => Ok(Bytes(Seq<int>[102, 111, 111]))
+    stdpair("+/8=") => Ok(Bytes(Seq<int>[251, 255]))
+    unpadded4("AAAB") => Ok(Bytes(Seq<int>[0, 0, 1]))
+    slashes("////") => Ok(Bytes(Seq<int>[255, 255, 255]))
+    hexchars("0x00") => Ok(Bytes(Seq<int>[211, 29, 52]))
+    long("QUJDQUJD") => Ok(Bytes(Seq<int>[65, 66, 67, 65, 66, 67]))
 NULROW
 NONASCIIROWS
     odd_one("Q") => encoding.invalid_base64(value = "Q")
@@ -59,7 +59,7 @@ NONASCIIROWS
     fidelity8("QUJD!!!!") => encoding.invalid_base64(value = "QUJD!!!!")
     trunc("QQ") => encoding.invalid_base64(value = "QQ")
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => forward e
 `
 
@@ -95,7 +95,7 @@ func TestBytesF1MissingArms(t *testing.T) {
 		t.Fatalf("expected missing-arm rejection without error arm, got %v", diags)
 	}
 	noOk := strings.Replace(bytesB64DecodeFull(),
-		"    on Ok r => Ok(value = r.value)\n", "", 1)
+		"    on Ok r => Ok(r.value)\n", "", 1)
 	dir = writeLSPDir(t, map[string]string{"m.can": noOk})
 	diags = diagnose(dir, "m.can", noOk)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
@@ -106,8 +106,8 @@ func TestBytesF1MissingArms(t *testing.T) {
 // F2: a stale arm naming a declared unrelated error refuses.
 func TestBytesF2StaleArm(t *testing.T) {
 	body := strings.Replace(bytesB64DecodeFull(),
-		"    on Ok r => Ok(value = r.value)",
-		"    on Ok r => Ok(value = r.value)\n    on m.boom e2 => Ok(value = Bytes(Seq<int>[]))", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on m.boom e2 => Ok(Bytes(Seq<int>[]))", 1)
 	body = strings.Replace(body, "fn m__go(value: str)",
 		"error m.boom(value: str)\n\nfn m__go(value: str)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": body})
@@ -120,8 +120,8 @@ func TestBytesF2StaleArm(t *testing.T) {
 // F3: the deterministic kernel takes no given table.
 func TestBytesF3NoGiven(t *testing.T) {
 	body := strings.Replace(bytesB64DecodeFull(),
-		"  match call bytes__base64__decode(value)\n    on Ok r => Ok(value = r.value)",
-		"  match call bytes__base64__decode(value)\n    given\n      empty => [exchange args (value = \"\") outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(value = r.value)", 1)
+		"  match call bytes__base64__decode(value)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__base64__decode(value)\n    given\n      empty => [exchange args (value = \"\") outcome Ok(Bytes(Seq<int>[]))]\n    on Ok r => Ok(r.value)", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
@@ -138,9 +138,9 @@ func TestBytesF4Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    go(ARG) => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    go(ARG) => Ok(Bytes(Seq<int>[65, 66, 67]))
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
 		s = strings.Replace(s, "PARAM", param, 1)
@@ -154,16 +154,16 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	goodBrand = strings.Replace(goodBrand, "provides [m__go]", "provides [M__Secret, m__go]", 1)
 	goodBrand = strings.Replace(goodBrand,
-		`    go(seal M__Secret("QUJD")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))`,
-		"    go(seal M__Secret(\"QUJD\")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))\n    bad(value = seal M__Secret(\"!!!\")) => encoding.invalid_base64(value = \"!!!\")", 1)
+		`    go(seal M__Secret("QUJD")) => Ok(Bytes(Seq<int>[65, 66, 67]))`,
+		"    go(seal M__Secret(\"QUJD\")) => Ok(Bytes(Seq<int>[65, 66, 67]))\n    bad(value = seal M__Secret(\"!!!\")) => encoding.invalid_base64(value = \"!!!\")", 1)
 	seqCode(t, map[string]string{"m.can": goodBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 	badBrand := strings.Replace(mk("M__Secret", `seal M__Secret("!!!")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	badBrand = strings.Replace(badBrand, "provides [m__go]", "provides [M__Secret, m__go]", 1)
 	badBrand = strings.Replace(badBrand,
-		`    go(seal M__Secret("!!!")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))`,
-		"    go(seal M__Secret(\"!!!\")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))\n    bad(value = seal M__Secret(\"QUJD\")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))", 1)
+		`    go(seal M__Secret("!!!")) => Ok(Bytes(Seq<int>[65, 66, 67]))`,
+		"    go(seal M__Secret(\"!!!\")) => Ok(Bytes(Seq<int>[65, 66, 67]))\n    bad(value = seal M__Secret(\"QUJD\")) => Ok(Bytes(Seq<int>[65, 66, 67]))", 1)
 	seqCode(t, map[string]string{"m.can": badBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 }
@@ -241,10 +241,10 @@ const bytesB64DecodeProv = `mod prov
 fn prov__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    good("QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    good("QUJD") => Ok(Bytes(Seq<int>[65, 66, 67]))
     bad("QUJDQUJ=") => encoding.invalid_base64(value = "QUJDQUJ=")
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
 
@@ -256,13 +256,13 @@ const bytesB64DecodeLie = `mod client
 fn client__use(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    prefixlie("QUJD!!!") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
-    padlie("QUJDQUJ=") => Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))
+    prefixlie("QUJD!!!") => Ok(Bytes(Seq<int>[65, 66, 67]))
+    padlie("QUJDQUJ=") => Ok(Bytes(Seq<int>[65, 66, 67, 65, 66]))
   match call prov__go(value)
     given
-      prefixlie => [exchange args (value = "QUJD!!!") outcome Ok(value = Bytes(Seq<int>[65, 66, 67]))]
-      padlie => [exchange args (value = "QUJDQUJ=") outcome Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))]
-    on Ok r => Ok(value = r.value)
+      prefixlie => [exchange args (value = "QUJD!!!") outcome Ok(Bytes(Seq<int>[65, 66, 67]))]
+      padlie => [exchange args (value = "QUJDQUJ=") outcome Ok(Bytes(Seq<int>[65, 66, 67, 65, 66]))]
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
 
@@ -336,14 +336,14 @@ const bytesB64MixedProbe = `mod probe
 fn probe__base64(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    empty("") => Ok(value = Bytes(Seq<int>[]))
-    one_byte("AA==") => Ok(value = Bytes(Seq<int>[0]))
-    two_bytes("QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
+    empty("") => Ok(Bytes(Seq<int>[]))
+    one_byte("AA==") => Ok(Bytes(Seq<int>[0]))
+    two_bytes("QUI=") => Ok(Bytes(Seq<int>[65, 66]))
     bad_four_bits("AE==") => encoding.invalid_base64(value = "AE==")
     bad_two_bits("QUJ=") => encoding.invalid_base64(value = "QUJ=")
     bad_final_quartet("QUJDQUJ=") => encoding.invalid_base64(value = "QUJDQUJ=")
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => forward e
 `
 
@@ -355,13 +355,13 @@ const bytesB64ChainProbe = `mod chain
 fn chain__text(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64, encoding.invalid_utf8]
   tests
-    ascii("QQ==") => Ok(value = "A")
+    ascii("QQ==") => Ok("A")
     bad_bytes("/w==") => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
     bad_b64("QUJD!!!") => encoding.invalid_base64(value = "QUJD!!!")
     bad_pad("QUJDQUJ=") => encoding.invalid_base64(value = "QUJDQUJ=")
   match call bytes__base64__decode(value)
     on Ok b => match call bytes__utf8__decode(b.value)
-      on Ok t => Ok(value = t.value)
+      on Ok t => Ok(t.value)
       on encoding.invalid_utf8 e => forward e
     on encoding.invalid_base64 e => forward e
 `
@@ -384,19 +384,19 @@ const bytesB64HexCoexist = `mod m
 fn m__hex(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    disc("4142") => Ok(value = Bytes(Seq<int>[65, 66]))
+    disc("4142") => Ok(Bytes(Seq<int>[65, 66]))
     bad("zz") => encoding.invalid_hex(value = "zz")
   match call bytes__hex__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => forward e
 
 fn m__b64(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    disc("4142") => Ok(value = Bytes(Seq<int>[227, 94, 54]))
+    disc("4142") => Ok(Bytes(Seq<int>[227, 94, 54]))
     bad("!!!") => encoding.invalid_base64(value = "!!!")
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => forward e
 `
 
@@ -426,11 +426,11 @@ const bytesB64MixedLie = `mod client
 fn client__use(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    strictlie("QUJDQUJ=") => Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))
+    strictlie("QUJDQUJ=") => Ok(Bytes(Seq<int>[65, 66, 67, 65, 66]))
   match call probe__base64(value)
     given
-      strictlie => [exchange args (value = "QUJDQUJ=") outcome Ok(value = Bytes(Seq<int>[65, 66, 67, 65, 66]))]
-    on Ok r => Ok(value = r.value)
+      strictlie => [exchange args (value = "QUJDQUJ=") outcome Ok(Bytes(Seq<int>[65, 66, 67, 65, 66]))]
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => forward e
 `
 

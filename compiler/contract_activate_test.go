@@ -16,10 +16,10 @@ import (
 // activateMutant is max+1 with rows following the mutant body:
 // execution stays green, so only the proof can reject it.
 var activateMutant = strings.Replace(admitMax,
-	"on true => Ok(value = right)", "on true => Ok(value = right + 1)", 1)
+	"on true => Ok(right)", "on true => Ok(right + 1)", 1)
 
 var activateMutantRows = strings.Replace(activateMutant,
-	"ordered(1, 2) => Ok(value = 2)", "ordered(1, 2) => Ok(value = 3)", 1)
+	"ordered(1, 2) => Ok(2)", "ordered(1, 2) => Ok(3)", 1)
 
 func writeActivateDir(t *testing.T, files map[string]string) (string, []string) {
 	t.Helper()
@@ -76,7 +76,7 @@ func TestActivateDiagnoseSquiggles(t *testing.T) {
 // ordinary checks gain no proof noise on top of real errors.
 func TestActivateSkipsBroken(t *testing.T) {
 	broken := strings.Replace(admitMax,
-		"on false => Ok(value = left)", "on false => Ok(value = nosuch)", 1)
+		"on false => Ok(left)", "on false => Ok(nosuch)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": broken})
 	diags := diagnose(dir, "m.can", broken)
 	if len(diags) == 0 {
@@ -104,8 +104,8 @@ func TestActivateReport(t *testing.T) {
 fn m__plain(x: int) -> M__Out rev 1
   emits []
   tests
-    go(x = 1) => Ok(value = 1)
-  Ok(value = x)
+    go(x = 1) => Ok(1)
+  Ok(x)
 `
 	prog, _ = admitProg(t, mixed)
 	verified, uncontracted = contractIdentities(prog)

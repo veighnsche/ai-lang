@@ -28,8 +28,8 @@ func seqLenMod(lenExpr, want string) string {
 fn m__go() -> M__Len rev 1
   emits []
   tests
-    go() => Ok(n = ` + want + `)
-  Ok(n = ` + lenExpr + `)
+    go() => Ok(` + want + `)
+  Ok(` + lenExpr + `)
 `
 }
 
@@ -70,8 +70,8 @@ brand M__B is str rev 1
 fn m__go() -> M__Len rev 1
   emits []
   tests
-    go() => Ok(n = #Seq<M__B>[seal M__B("x"), seal M__B("")])
-  Ok(n = #Seq<M__B>[seal M__B("x"), seal M__B("")])
+    go() => Ok(#Seq<M__B>[seal M__B("x"), seal M__B("")])
+  Ok(#Seq<M__B>[seal M__B("x"), seal M__B("")])
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }
@@ -87,9 +87,9 @@ func TestSeqLengthParam(t *testing.T) {
 fn m__go(xs: Seq<str>) -> M__Len rev 1
   emits []
   tests
-    empty(Seq<str>[]) => Ok(n = 0)
-    two(Seq<str>["a", ""]) => Ok(n = 2)
-  Ok(n = #xs)
+    empty(Seq<str>[]) => Ok(0)
+    two(Seq<str>["a", ""]) => Ok(2)
+  Ok(#xs)
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }

@@ -25,19 +25,19 @@ type Audit__Pair rev 1 (
 fn audit__make(first: int, second: str) -> Audit__Pair rev 1
   emits []
   tests
-    m(1, "a") => Ok(first = 1, second = "a")
-  Ok(first = first, second = second)
+    m(1, "a") => Ok(1, "a")
+  Ok(first, second)
 
 fn audit__cmp(flag: str) -> Audit__Pair rev 1
   emits []
   tests
-    s("a") => Ok(first = 1, second = "a")
-    d("b") => Ok(first = 0, second = "neq")
+    s("a") => Ok(1, "a")
+    d("b") => Ok(0, "neq")
   match call audit__make(1, "a")
     on Ok left => match call audit__make(1, flag)
       on Ok right => match left == right
-        true => Ok(first = left.first, second = left.second)
-        false => Ok(first = 0, second = "neq")
+        true => Ok(left.first, left.second)
+        false => Ok(0, "neq")
 `
 
 func TestRecordEqualityEvaluates(t *testing.T) {

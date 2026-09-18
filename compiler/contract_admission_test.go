@@ -32,11 +32,11 @@ fn m__max(left: int, right: int) -> M__Out rev 1
         true => true
         false => result.value == right
   tests
-    ordered(1, 2) => Ok(value = 2)
-    reversed(2, 1) => Ok(value = 2)
+    ordered(1, 2) => Ok(2)
+    reversed(2, 1) => Ok(2)
   match left <= right
-    on true => Ok(value = right)
-    on false => Ok(value = left)
+    on true => Ok(right)
+    on false => Ok(left)
 `
 
 const admitValidator = `mod m
@@ -62,10 +62,10 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
       err.value == value
   emits [m.bad_bounds, m.out_of_range]
   tests
-    ok(1, 0, 2) => Ok(value = 1)
+    ok(1, 0, 2) => Ok(1)
     low(-1, 0, 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
   match value >= lower
-    on true => Ok(value = value)
+    on true => Ok(value)
     on false => m.out_of_range(value = value, lower = lower, upper = upper)
 `
 
@@ -109,8 +109,8 @@ fn m__go(x: int) -> M__Out rev 1
     on m.never err
       false
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = x)
+    go(1) => Ok(1)
+  Ok(x)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); len(diags) != 0 {
@@ -178,7 +178,7 @@ func TestAdmitDuplicateOutcome(t *testing.T) {
 // an ensures match must return a Boolean predicate.
 func TestAdmitMatchArmSort(t *testing.T) {
 	bad := strings.Replace(admitMax, "        false => result.value == right",
-		"        false => Ok(value = 1)", 1)
+		"        false => Ok(1)", 1)
 	prog, texts := admitProg(t, bad)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractMalformed) {
 		t.Fatalf("non-Boolean match arm reported no malformed finding")
@@ -207,8 +207,8 @@ fn m__sq(x: int) -> M__Out rev 1
       result.value >= 0
       result.value == x * x
   tests
-    zero(0) => Ok(value = 0)
-  Ok(value = 0)
+    zero(0) => Ok(0)
+  Ok(0)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnsupported) {
@@ -247,8 +247,8 @@ fn m__tag(x: int) -> M__Out rev 1
     on Ok result
       result.name == "x"
   tests
-    go(1) => Ok(name = "x")
-  Ok(name = "x")
+    go(1) => Ok("x")
+  Ok("x")
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnsupported) {
@@ -278,8 +278,8 @@ fn m__go(tok: M__B) -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go(seal M__B("a")) => Ok(value = 1)
-  Ok(value = 1)
+    go(seal M__B("a")) => Ok(1)
+  Ok(1)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnsupported) {
@@ -306,8 +306,8 @@ fn m__go(x: dec) -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go(d"1.5") => Ok(value = 1)
-  Ok(value = 1)
+    go(d"1.5") => Ok(1)
+  Ok(1)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnsupported) {
@@ -338,11 +338,11 @@ fn m__go(x: int) -> M__Out rev 1
     on Ok result
       result.n == x
   tests
-    go(1) => Ok(n = 1)
+    go(1) => Ok(1)
   match call ext__thing(x)
     given
-      go => [exchange args (x = 1) outcome Ok(n = 1)]
-    on Ok ok => Ok(n = ok.n)
+      go => [exchange args (x = 1) outcome Ok(1)]
+    on Ok ok => Ok(ok.n)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnsupported) {
@@ -371,12 +371,12 @@ fn m__poll(n: int) -> M__S rev 1
     on Ok s
       s.n == 0
   tests
-    now(0) => Ok(n = 0)
-    later(2) => Ok(n = 0)
+    now(0) => Ok(0)
+    later(2) => Ok(0)
   match n <= 0
-    true => Ok(n = 0)
+    true => Ok(0)
     false => match call m__poll(n - 1)
-      on Ok s => Ok(n = s.n)
+      on Ok s => Ok(s.n)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnsupported) {
@@ -405,8 +405,8 @@ fn m__one() -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go() => Ok(value = 1)
-  Ok(value = 1)
+    go() => Ok(1)
+  Ok(1)
 
 fn m__two() -> M__Out rev 1
   emits []
@@ -416,9 +416,9 @@ fn m__two() -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go() => Ok(value = 1)
+    go() => Ok(1)
   match call m__one()
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	prog, texts := admitProg(t, src)
 	diags := CheckContractAdmission(prog, texts)
@@ -448,8 +448,8 @@ type M__Out rev 1 (
 fn m__one() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(value = 1)
-  Ok(value = 1)
+    go() => Ok(1)
+  Ok(1)
 
 fn m__two() -> M__Out rev 1
   emits []
@@ -459,9 +459,9 @@ fn m__two() -> M__Out rev 1
     on Ok result
       result.value == 1
   tests
-    go() => Ok(value = 1)
+    go() => Ok(1)
   match call m__one()
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); !hasCode(diags, CodeContractUnverifiedDep) {
@@ -484,8 +484,8 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(2) => Ok(value = 4)
-  Ok(value = x * x)
+    go(2) => Ok(4)
+  Ok(x * x)
 `
 	prog, texts := admitProg(t, src)
 	if diags := CheckContractAdmission(prog, texts); len(diags) != 0 {

@@ -14,16 +14,16 @@ import (
 // leaf bug ("" for "A") hides behind empty-only rows;
 // middle relays through given; client scripts "A".
 func leafMiddleClient(broken bool) map[string]string {
-	leafTests := `    empty(value = "") => Ok(value = "")`
-	leafBody := `  Ok(value = "")`
+	leafTests := `    empty(value = "") => Ok("")`
+	leafBody := `  Ok("")`
 	if !broken {
-		leafTests = `    empty(value = "") => Ok(value = "")
-    a(value = "A") => Ok(value = "A")
-    other(value = "B") => Ok(value = "")`
+		leafTests = `    empty(value = "") => Ok("")
+    a(value = "A") => Ok("A")
+    other(value = "B") => Ok("")`
 		leafBody = `  match value
-    on "" => Ok(value = "")
-    on "A" => Ok(value = "A")
-    on _ => Ok(value = "")`
+    on "" => Ok("")
+    on "A" => Ok("A")
+    on _ => Ok("")`
 	}
 	leaf := `mod leaf
   provides [leaf__copy]
@@ -44,13 +44,13 @@ fn leaf__copy(value: str) -> Encoding__Text rev 1
 fn middle__copy(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    empty("") => Ok(value = "")
-    a("A") => Ok(value = "A")
+    empty("") => Ok("")
+    a("A") => Ok("A")
   match call leaf__copy(value)
     given
-      empty => [exchange args (value = "") outcome Ok(value = "")]
-      a => [exchange args (value = "A") outcome Ok(value = "A")]
-    on Ok r => Ok(value = r.value)
+      empty => [exchange args (value = "") outcome Ok("")]
+      a => [exchange args (value = "A") outcome Ok("A")]
+    on Ok r => Ok(r.value)
 `
 	client := `mod client
   provides [client__go]
@@ -60,11 +60,11 @@ fn middle__copy(value: str) -> Encoding__Text rev 1
 fn client__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    a("A") => Ok(value = "A")
+    a("A") => Ok("A")
   match call middle__copy(value)
     given
-      a => [exchange args (value = "A") outcome Ok(value = "A")]
-    on Ok r => Ok(value = r.value)
+      a => [exchange args (value = "A") outcome Ok("A")]
+    on Ok r => Ok(r.value)
 `
 	return map[string]string{"leaf.can": leaf, "middle.can": middle, "client.can": client}
 }
@@ -78,7 +78,7 @@ func TestLinkedPureMismatch(t *testing.T) {
 	} {
 		files := leafMiddleClient(true)
 		err := runLinkedPure(t, files, order, "middle__copy", 1,
-			map[string]string{"value": `"A"`}, `Ok(value = "A")`)
+			map[string]string{"value": `"A"`}, `Ok("A")`)
 		if err == nil {
 			t.Fatalf("order %v: expected mismatch failure, got pass", order)
 		}
@@ -95,7 +95,7 @@ func TestLinkedPureControl(t *testing.T) {
 	if err := runLinkedPure(t, files,
 		[]string{"leaf.can", "middle.can", "client.can"},
 		"middle__copy", 1,
-		map[string]string{"value": `"A"`}, `Ok(value = "A")`); err != nil {
+		map[string]string{"value": `"A"`}, `Ok("A")`); err != nil {
 		t.Fatalf("expected linked pass, got %v", err)
 	}
 }
@@ -122,20 +122,20 @@ func TestLinkedPureRefusals(t *testing.T) {
 fn m__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    a("A") => Ok(value = "A")
+    a("A") => Ok("A")
   match call ext__thing(value = value)
     given
-      a => [exchange args (value = "A") outcome Ok(value = "A")]
-    on Ok r => Ok(value = r.value)
+      a => [exchange args (value = "A") outcome Ok("A")]
+    on Ok r => Ok(r.value)
 `,
 		"unknown": base + `fn m__go(value: str) -> Encoding__Text rev 1
   emits []
   tests
-    a("A") => Ok(value = "A")
+    a("A") => Ok("A")
   match call nope__missing(value = value)
     given
-      a => [exchange args (value = "A") outcome Ok(value = "A")]
-    on Ok r => Ok(value = r.value)
+      a => [exchange args (value = "A") outcome Ok("A")]
+    on Ok r => Ok(r.value)
 `,
 		"state": `mod m
   provides [m__go, M__T]
@@ -152,15 +152,15 @@ fn m__go(value: str) -> M__T rev 1
   effects [M__C.read]
   emits []
   tests
-    a("A") => Ok(total = 0)
+    a("A") => Ok(0)
   match call state__get(M__C)
-    on Ok c => Ok(total = c.value)
+    on Ok c => Ok(c.value)
 `,
 	}
 	for name, src := range cases {
 		err := runLinkedPure(t, map[string]string{"m.can": src},
 			[]string{"m.can"}, "m__go", 1,
-			map[string]string{"value": `"A"`}, `Ok(value = "A")`)
+			map[string]string{"value": `"A"`}, `Ok("A")`)
 		if err == nil {
 			t.Fatalf("%s: expected refusal, got pass", name)
 		}

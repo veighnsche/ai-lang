@@ -23,22 +23,22 @@ func TestEscapedLiterals(t *testing.T) {
 fn probe__utf8(value: str) -> Bytes__Value rev 1
   emits []
   tests
-    raw_slash_n("\n") => Ok(value = Bytes(Seq<int>[92, 110]))
-    escaped_lf(e"\n") => Ok(value = Bytes(Seq<int>[10]))
-    decoded_once(e"\\n") => Ok(value = Bytes(Seq<int>[92, 110]))
-    escaped_nul(e"\0") => Ok(value = Bytes(Seq<int>[0]))
-    not_octal(e"\01") => Ok(value = Bytes(Seq<int>[0, 49]))
+    raw_slash_n("\n") => Ok(Bytes(Seq<int>[92, 110]))
+    escaped_lf(e"\n") => Ok(Bytes(Seq<int>[10]))
+    decoded_once(e"\\n") => Ok(Bytes(Seq<int>[92, 110]))
+    escaped_nul(e"\0") => Ok(Bytes(Seq<int>[0]))
+    not_octal(e"\01") => Ok(Bytes(Seq<int>[0, 49]))
   match call bytes__utf8__encode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 
 fn probe__b64(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    ok_abc(e"QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    ok_abc(e"QUJD") => Ok(Bytes(Seq<int>[65, 66, 67]))
     trailing_lf(e"QQ==\n") => encoding.invalid_base64(value = e"QQ==\n")
     crlf_tail(e"QUJD\r\n\r\n") => encoding.invalid_base64(value = e"QUJD\r\n\r\n")
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => forward e
 `
 	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
@@ -63,11 +63,11 @@ type Str__Value rev 1 (
 fn probe__pat(value: str) -> Str__Value rev 1
   emits []
   tests
-    lf(e"a\nb") => Ok(value = "nl")
-    other("x") => Ok(value = "other")
+    lf(e"a\nb") => Ok("nl")
+    other("x") => Ok("other")
   match value
-    on e"a\nb" => Ok(value = "nl")
-    on _ => Ok(value = "other")
+    on e"a\nb" => Ok("nl")
+    on _ => Ok("other")
 `
 	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
 	if diags := diagnose(dir, "probe.can", probe); len(diags) != 0 {
@@ -91,10 +91,10 @@ type Str__Value rev 1 (
 fn probe__pat(value: str) -> Str__Value rev 1
   emits []
   tests
-    other("x") => Ok(value = "other")
+    other("x") => Ok("other")
   match value
-    on e"a\nb" => Ok(value = "nl")
-    on _ => Ok(value = "other")
+    on e"a\nb" => Ok("nl")
+    on _ => Ok("other")
 `
 	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
 	diags := diagnose(dir, "probe.can", probe)
@@ -128,7 +128,7 @@ fn probe__go(value: str) -> Bytes__Value rev 1
   tests
     hexescape(value = e"\x51Q==") => encoding.invalid_base64(value = e"\x51Q==")
   match call bytes__base64__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
 	dir := writeLSPDir(t, map[string]string{"probe.can": probe})

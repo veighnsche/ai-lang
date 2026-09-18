@@ -134,6 +134,18 @@ func runLinkedPure(t *testing.T, files map[string]string, order []string, root s
 	if err != nil {
 		return err
 	}
+	// a92: the expect string parses raw, outside the checked
+	// program, so its Ok spellings bind here against the root
+	// return — the same want the provider body saw. Faults stay
+	// with evaluation (a bad expect is a mismatch, not a diag).
+	if want.Kind == "ctor" && want.Ctor == "Ok" {
+		bc := newTycker(prog, "", root)
+		benv := map[string]string{}
+		for _, p := range fn.Params {
+			benv[p[0]] = p[1]
+		}
+		bc.checkCtor(want, fn.Ret, fn.Line, benv, "linked expect for "+root)
+	}
 	if want.Kind == "ctor" && want.Ctor == "Ok" {
 		if got.Kind != "ok" {
 			return fmt.Errorf("linked %s: expected Ok, got %s", root, describe(got))

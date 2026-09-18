@@ -27,12 +27,12 @@ func TestArmTakenPerCaller(t *testing.T) {
 fn client__success(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    good("41") => Ok(value = Bytes(Seq<int>[65]))
+    good("41") => Ok(Bytes(Seq<int>[65]))
   match call std__hex__decode(value = value)
     given
-      good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
+      good => exchange args (value = "41") outcome Ok(Bytes(Seq<int>[65]))
       bad => exchange args (value = "zz") outcome encoding.invalid_hex(value = "zz")
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = "lost")
 
 fn client__failure(value: str) -> Bytes__Value rev 1
@@ -41,9 +41,9 @@ fn client__failure(value: str) -> Bytes__Value rev 1
     bad("zz") => encoding.invalid_hex(value = "zz")
   match call std__hex__decode(value = value)
     given
-      good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
+      good => exchange args (value = "41") outcome Ok(Bytes(Seq<int>[65]))
       bad => exchange args (value = "zz") outcome encoding.invalid_hex(value = "zz")
-    on Ok r => Ok(value = Bytes(Seq<int>[]))
+    on Ok r => Ok(Bytes(Seq<int>[]))
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
@@ -79,25 +79,25 @@ func TestArmTakenMissingRowsExposeBugs(t *testing.T) {
 fn client__success(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    good("41") => Ok(value = Bytes(Seq<int>[65]))
+    good("41") => Ok(Bytes(Seq<int>[65]))
     bad("zz") => encoding.invalid_hex(value = "zz")
   match call std__hex__decode(value = value)
     given
-      good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
+      good => exchange args (value = "41") outcome Ok(Bytes(Seq<int>[65]))
       bad => exchange args (value = "zz") outcome encoding.invalid_hex(value = "zz")
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = "lost")
 
 fn client__failure(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
     bad("zz") => encoding.invalid_hex(value = "zz")
-    good("41") => Ok(value = Bytes(Seq<int>[65]))
+    good("41") => Ok(Bytes(Seq<int>[65]))
   match call std__hex__decode(value = value)
     given
-      good => exchange args (value = "41") outcome Ok(value = Bytes(Seq<int>[65]))
+      good => exchange args (value = "41") outcome Ok(Bytes(Seq<int>[65]))
       bad => exchange args (value = "zz") outcome encoding.invalid_hex(value = "zz")
-    on Ok r => Ok(value = Bytes(Seq<int>[]))
+    on Ok r => Ok(Bytes(Seq<int>[]))
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}

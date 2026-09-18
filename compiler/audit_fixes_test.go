@@ -34,8 +34,8 @@ fn m__pick(a: int, b: int, c: int) -> M__Out rev 1
     on Ok result
       result.value == a + b + c
   tests
-    v(1, 3, 5) => Ok(value = 9)
-  Ok(value = a + b + c)
+    v(1, 3, 5) => Ok(9)
+  Ok(a + b + c)
 
 fn m__caller(n: int) -> M__Out rev 1
   emits []
@@ -45,9 +45,9 @@ fn m__caller(n: int) -> M__Out rev 1
     on Ok result
       result.value == 6
   tests
-    go(1) => Ok(value = 6)
+    go(1) => Ok(6)
   match call m__pick(n, c = 3, b = 2)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	prog, texts := admitProg(t, src)
 	diags := VerifyContracts(prog, texts)
@@ -77,8 +77,8 @@ fn m__pick(a: int, b: int, c: int) -> M__Out rev 1
     on Ok result
       result.value == a + b + c
   tests
-    v(1, 3, 5) => Ok(value = 9)
-  Ok(value = a + b + c)
+    v(1, 3, 5) => Ok(9)
+  Ok(a + b + c)
 
 fn m__caller(n: int) -> M__Out rev 1
   emits []
@@ -88,9 +88,9 @@ fn m__caller(n: int) -> M__Out rev 1
     on Ok result
       result.value == 9
   tests
-    go(1) => Ok(value = 9)
+    go(1) => Ok(9)
   match call m__pick(n, c = 5, b = 3)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	prog, texts := admitProg(t, src)
 	if diags := VerifyContracts(prog, texts); len(diags) != 0 {
@@ -192,8 +192,8 @@ type M__Out rev 1 (
 fn m__go(a: int, a: int) -> M__Out rev 1
   emits []
   tests
-    v(1, 2) => Ok(value = 1)
-  Ok(value = a)
+    v(1, 2) => Ok(1)
+  Ok(a)
 `
 	if _, err := parseModuleText("m.can", fn); err == nil || !strings.Contains(err.Error(), "duplicate param a") {
 		t.Fatalf("fn dup params: got %v", err)
@@ -213,8 +213,8 @@ extern e__f(a: int, a: int) -> int rev 1
 fn m__go(a: int) -> M__Out rev 1
   emits []
   tests
-    v(1) => Ok(value = 1)
-  Ok(value = a)
+    v(1) => Ok(1)
+  Ok(a)
 `
 	if _, err := parseModuleText("m.can", ext); err == nil || !strings.Contains(err.Error(), "duplicate param a") {
 		t.Fatalf("extern dup params: got %v", err)
@@ -285,10 +285,10 @@ type M__Out rev 1 (
 fn m__go(a: M__Out, b: M__Out) -> M__Out rev 1
   emits []
   tests
-    v(M__Out(value = 1), M__Out(value = 2)) => Ok(value = 1)
+    v(M__Out(1), M__Out(2)) => Ok(1)
   match a < b
-    true => Ok(value = 1)
-    false => Ok(value = 2)
+    true => Ok(1)
+    false => Ok(2)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": rec})
 	diags := diagnose(dir, "m.can", rec)
@@ -307,10 +307,10 @@ type M__Out rev 1 (
 fn m__go(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    v(true, false) => Ok(value = 1)
+    v(true, false) => Ok(1)
   match a > b
-    true => Ok(value = 1)
-    false => Ok(value = 2)
+    true => Ok(1)
+    false => Ok(2)
 `
 	dir = writeLSPDir(t, map[string]string{"m.can": boolean})
 	diags = diagnose(dir, "m.can", boolean)
@@ -370,11 +370,11 @@ type M__Out rev 1 (
 fn m__go(n: int, d: int) -> M__Out rev 1
   emits []
   tests
-    v(7, 3) => Ok(value = 0)
-    w(6, 3) => Ok(value = 0)
+    v(7, 3) => Ok(0)
+    w(6, 3) => Ok(0)
   match n % d
-    1 => Ok(value = 0)
-    _ => Ok(value = 0)
+    1 => Ok(0)
+    _ => Ok(0)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": trapping})
 	diags := diagnose(dir, "m.can", trapping)
@@ -406,8 +406,8 @@ type M__Out rev 1 (
 fn m__go(n: int) -> M__Out rev 1
   emits []
   tests
-    v(1) => Ok(value = 1)
-  Ok(value = n)
+    v(1) => Ok(1)
+  Ok(n)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)
@@ -433,7 +433,7 @@ type M__Out rev 1 (
 fn m__go(n: int) -> M__Out rev 1
   emits []
   tests
-    v(1) => Ok(value = 1)
+    v(1) => Ok(1)
   match n
 `
 	_, err := parseModuleText("m.can", src)

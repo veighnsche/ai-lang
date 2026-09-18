@@ -513,7 +513,7 @@
     "handled_by": [
       {
         "fn": "quota.quota__request__validate",
-        "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(path = \"label\", rule = \"str.length_scalars\", value = request.label)"
+        "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(\"label\", \"str.length_scalars\", request.label)"
       }
     ],
     "hit_by_tests": [
@@ -565,7 +565,7 @@
     "handled_by": [
       {
         "fn": "quota.quota__request__validate",
-        "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(path = \"mode\", rule = \"str.one_of\", value = request.mode)"
+        "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(\"mode\", \"str.one_of\", request.mode)"
       },
       {
         "fn": "quota.std__validate__str_one_of",

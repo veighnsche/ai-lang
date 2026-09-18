@@ -469,7 +469,9 @@ func exportShape(fn *FnDecl, brand string) (*Small, string) {
 		return nil, "must return the export result unchanged"
 	}
 	a := v.Args[0]
-	if a.Name != "value" || a.V == nil || a.V.Kind != "ref" || len(a.V.Ref) != 2 || a.V.Ref[0] != p.Var || a.V.Ref[1] != "value" {
+	// a92: the lone Ok arg binds `value` positionally;
+	// only a contrary name breaks the unchanged shape.
+	if (a.HasName && a.Name != "value") || a.V == nil || a.V.Kind != "ref" || len(a.V.Ref) != 2 || a.V.Ref[0] != p.Var || a.V.Ref[1] != "value" {
 		return nil, "must return the export result unchanged"
 	}
 	return scrut, ""

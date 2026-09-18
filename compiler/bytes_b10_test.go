@@ -23,15 +23,15 @@ const bytesHexDecodeBase = `mod m
 fn m__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    empty("") => Ok(value = Bytes(Seq<int>[]))
-    hex00("00") => Ok(value = Bytes(Seq<int>[0]))
-    lower("ff") => Ok(value = Bytes(Seq<int>[255]))
-    upper("FF") => Ok(value = Bytes(Seq<int>[255]))
-    mixed("aF") => Ok(value = Bytes(Seq<int>[175]))
-    deadbeef("deadbeef") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
-    upperlong("DEADBEEF") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
-    long("0123456789abcdef") => Ok(value = Bytes(Seq<int>[1, 35, 69, 103, 137, 171, 205, 239]))
-    eda080("eda080") => Ok(value = Bytes(Seq<int>[237, 160, 128]))
+    empty("") => Ok(Bytes(Seq<int>[]))
+    hex00("00") => Ok(Bytes(Seq<int>[0]))
+    lower("ff") => Ok(Bytes(Seq<int>[255]))
+    upper("FF") => Ok(Bytes(Seq<int>[255]))
+    mixed("aF") => Ok(Bytes(Seq<int>[175]))
+    deadbeef("deadbeef") => Ok(Bytes(Seq<int>[222, 173, 190, 239]))
+    upperlong("DEADBEEF") => Ok(Bytes(Seq<int>[222, 173, 190, 239]))
+    long("0123456789abcdef") => Ok(Bytes(Seq<int>[1, 35, 69, 103, 137, 171, 205, 239]))
+    eda080("eda080") => Ok(Bytes(Seq<int>[237, 160, 128]))
 NULROW
 NONASCIIROWS
     odd_f("f") => encoding.invalid_hex(value = "f")
@@ -54,7 +54,7 @@ NONASCIIROWS
     prefix_trunc("00ffa") => encoding.invalid_hex(value = "00ffa")
     trunc_a("a") => encoding.invalid_hex(value = "a")
   match call bytes__hex__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => forward e
 `
 
@@ -91,7 +91,7 @@ func TestBytesX1MissingArms(t *testing.T) {
 		t.Fatalf("expected missing-arm rejection without error arm, got %v", diags)
 	}
 	noOk := strings.Replace(bytesHexDecodeFull(),
-		"    on Ok r => Ok(value = r.value)\n", "", 1)
+		"    on Ok r => Ok(r.value)\n", "", 1)
 	dir = writeLSPDir(t, map[string]string{"m.can": noOk})
 	diags = diagnose(dir, "m.can", noOk)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
@@ -102,8 +102,8 @@ func TestBytesX1MissingArms(t *testing.T) {
 // X2: a stale arm naming a declared unrelated error refuses.
 func TestBytesX2StaleArm(t *testing.T) {
 	body := strings.Replace(bytesHexDecodeFull(),
-		"    on Ok r => Ok(value = r.value)",
-		"    on Ok r => Ok(value = r.value)\n    on m.boom e2 => Ok(value = Bytes(Seq<int>[]))", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on m.boom e2 => Ok(Bytes(Seq<int>[]))", 1)
 	body = strings.Replace(body, "fn m__go(value: str)",
 		"error m.boom(value: str)\n\nfn m__go(value: str)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": body})
@@ -116,8 +116,8 @@ func TestBytesX2StaleArm(t *testing.T) {
 // X3: the deterministic kernel takes no given table.
 func TestBytesX3NoGiven(t *testing.T) {
 	body := strings.Replace(bytesHexDecodeFull(),
-		"  match call bytes__hex__decode(value)\n    on Ok r => Ok(value = r.value)",
-		"  match call bytes__hex__decode(value)\n    given\n      empty => [exchange args (value = \"\") outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(value = r.value)", 1)
+		"  match call bytes__hex__decode(value)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__hex__decode(value)\n    given\n      empty => [exchange args (value = \"\") outcome Ok(Bytes(Seq<int>[]))]\n    on Ok r => Ok(r.value)", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
@@ -135,9 +135,9 @@ func TestBytesX4Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    go(ARG) => Ok(value = Bytes(Seq<int>[65]))
+    go(ARG) => Ok(Bytes(Seq<int>[65]))
   match call bytes__hex__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 		s = strings.Replace(s, "PARAM", param, 1)
@@ -154,16 +154,16 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	goodBrand = strings.Replace(goodBrand, "provides [m__go]", "provides [M__Secret, m__go]", 1)
 	goodBrand = strings.Replace(goodBrand,
-		`    go(seal M__Secret("41")) => Ok(value = Bytes(Seq<int>[65]))`,
-		"    go(seal M__Secret(\"41\")) => Ok(value = Bytes(Seq<int>[65]))\n    bad(value = seal M__Secret(\"zz\")) => encoding.invalid_hex(value = \"zz\")", 1)
+		`    go(seal M__Secret("41")) => Ok(Bytes(Seq<int>[65]))`,
+		"    go(seal M__Secret(\"41\")) => Ok(Bytes(Seq<int>[65]))\n    bad(value = seal M__Secret(\"zz\")) => encoding.invalid_hex(value = \"zz\")", 1)
 	seqCode(t, map[string]string{"m.can": goodBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 	badBrand := strings.Replace(mk("M__Secret", `seal M__Secret("zz")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	badBrand = strings.Replace(badBrand, "provides [m__go]", "provides [M__Secret, m__go]", 1)
 	badBrand = strings.Replace(badBrand,
-		`    go(seal M__Secret("zz")) => Ok(value = Bytes(Seq<int>[65]))`,
-		"    go(seal M__Secret(\"zz\")) => Ok(value = Bytes(Seq<int>[65]))\n    bad(value = seal M__Secret(\"41zz42\")) => encoding.invalid_hex(value = \"41zz42\")", 1)
+		`    go(seal M__Secret("zz")) => Ok(Bytes(Seq<int>[65]))`,
+		"    go(seal M__Secret(\"zz\")) => Ok(Bytes(Seq<int>[65]))\n    bad(value = seal M__Secret(\"41zz42\")) => encoding.invalid_hex(value = \"41zz42\")", 1)
 	seqCode(t, map[string]string{"m.can": badBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 }
@@ -241,10 +241,10 @@ const bytesHexDecodeProv = `mod prov
 fn prov__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    good("41") => Ok(value = Bytes(Seq<int>[65]))
+    good("41") => Ok(Bytes(Seq<int>[65]))
     bad("41zz42") => encoding.invalid_hex(value = "41zz42")
   match call bytes__hex__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 
@@ -256,13 +256,13 @@ const bytesHexDecodeLie = `mod client
 fn client__use(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_hex]
   tests
-    prefixlie("41zz42") => Ok(value = Bytes(Seq<int>[65]))
-    suffixlie("ffzz") => Ok(value = Bytes(Seq<int>[255]))
+    prefixlie("41zz42") => Ok(Bytes(Seq<int>[65]))
+    suffixlie("ffzz") => Ok(Bytes(Seq<int>[255]))
   match call prov__go(value)
     given
-      prefixlie => [exchange args (value = "41zz42") outcome Ok(value = Bytes(Seq<int>[65]))]
-      suffixlie => [exchange args (value = "ffzz") outcome Ok(value = Bytes(Seq<int>[255]))]
-    on Ok r => Ok(value = r.value)
+      prefixlie => [exchange args (value = "41zz42") outcome Ok(Bytes(Seq<int>[65]))]
+      suffixlie => [exchange args (value = "ffzz") outcome Ok(Bytes(Seq<int>[255]))]
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 
@@ -336,13 +336,13 @@ const bytesHexMixedProbe = `mod probe
 fn probe__decode_text(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex, encoding.invalid_utf8]
   tests
-    ascii("41") => Ok(value = "A")
+    ascii("41") => Ok("A")
     invalid_text("ff") => encoding.invalid_utf8(value = Bytes(Seq<int>[255]))
     invalid_hex("41zz42") => encoding.invalid_hex(value = "41zz42")
     incomplete_pair("00ffa") => encoding.invalid_hex(value = "00ffa")
   match call bytes__hex__decode(value)
     on Ok b => match call bytes__utf8__decode(b.value)
-      on Ok t => Ok(value = t.value)
+      on Ok t => Ok(t.value)
       on encoding.invalid_utf8 e => forward e
     on encoding.invalid_hex e => forward e
 `
@@ -381,11 +381,11 @@ const bytesHexMixedLie = `mod client
 fn client__use() -> Encoding__Text rev 1
   emits [encoding.invalid_hex, encoding.invalid_utf8]
   tests
-    lie() => Ok(value = "A")
+    lie() => Ok("A")
   match call probe__decode_text("41zz42")
     given
-      lie => [exchange args (value = "41zz42") outcome Ok(value = "A")]
-    on Ok r => Ok(value = r.value)
+      lie => [exchange args (value = "41zz42") outcome Ok("A")]
+    on Ok r => Ok(r.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
     on encoding.invalid_utf8 e2 => encoding.invalid_utf8(value = e2.value)
 `

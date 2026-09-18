@@ -22,10 +22,10 @@ type Int__Value rev 1 (
 fn demo__sub(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    named(left = 5, right = 8) => Ok(value = -3)
-    mixed(5, right = 8) => Ok(value = -3)
-    ordered(5, 8) => Ok(value = -3)
-  Ok(value = left - right)
+    named(left = 5, right = 8) => Ok(-3)
+    mixed(5, right = 8) => Ok(-3)
+    ordered(5, 8) => Ok(-3)
+  Ok(left - right)
 `
 
 func TestPositionalTestArgsEvaluate(t *testing.T) {
@@ -56,14 +56,14 @@ func TestPositionalTestArgFaultsAreCAN3205(t *testing.T) {
 		row  string
 		want string
 	}{
-		{"after named", "bad(left = 5, 8) => Ok(value = -3)", "takes positional arg after named arg"},
-		{"over arity", "bad(5, 8, 9) => Ok(value = -3)", "takes 3 args for 2 params"},
-		{"double claim", "bad(5, left = 6) => Ok(value = -3)", "supplies arg left twice"},
+		{"after named", "bad(left = 5, 8) => Ok(-3)", "takes positional arg after named arg"},
+		{"over arity", "bad(5, 8, 9) => Ok(-3)", "takes 3 args for 2 params"},
+		{"double claim", "bad(5, left = 6) => Ok(-3)", "supplies arg left twice"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			src := strings.Replace(positionalRows,
-				"    ordered(5, 8) => Ok(value = -3)", "    "+tc.row, 1)
+				"    ordered(5, 8) => Ok(-3)", "    "+tc.row, 1)
 			dir := writeLSPDir(t, map[string]string{"demo.can": src})
 			diags := diagnose(dir, "demo.can", src)
 			if !hasDiag(diags, "error", tc.want) {

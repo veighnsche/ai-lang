@@ -25,8 +25,8 @@ type M__BOut rev 1 (
 fn m__go(a: M__B) -> M__BOut rev 1
   emits []
   tests
-    go(seal M__B("x")) => Ok(v = seal M__B("xy"))
-  Ok(v = a + seal M__B("y"))
+    go(seal M__B("x")) => Ok(seal M__B("xy"))
+  Ok(a + seal M__B("y"))
 `
 
 func TestSeqBrandPlus(t *testing.T) {
@@ -40,7 +40,7 @@ func TestSeqBrandPlusTyped(t *testing.T) {
 	// compare equal, so only the checker can catch this): the one
 	// remaining error is the body's brand-vs-str refusal.
 	bad := strings.Replace(seqBrandPlusMod, "  v: M__B", "  v: str", 1)
-	bad = strings.Replace(bad, `Ok(v = seal M__B("xy"))`, `Ok(v = "xy")`, 1)
+	bad = strings.Replace(bad, `Ok(seal M__B("xy"))`, `Ok("xy")`, 1)
 	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTypeMismatch, "want str")
 }
 
@@ -58,7 +58,7 @@ func TestSeqBrandPlusRefusals(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			body := strings.Replace(seqBrandPlusMod,
-				`Ok(v = a + seal M__B("y"))`, `Ok(v = `+c.expr+`)`, 1)
+				`Ok(a + seal M__B("y"))`, `Ok(`+c.expr+`)`, 1)
 			seqCode(t, map[string]string{"m.can": body}, "m.can", CodeTypeMismatch, c.sub)
 		})
 	}

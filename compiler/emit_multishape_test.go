@@ -30,10 +30,10 @@ type M__Val rev 1 (
 fn m__check(value: int, limit: int) -> M__Val rev 1
   emits [m.too_big]
   tests
-    fits(3, 10) => Ok(value = 3)
+    fits(3, 10) => Ok(3)
     spills(11, 10) => m.too_big(value = 11, limit = 10)
   match value <= limit
-    true => Ok(value = value)
+    true => Ok(value)
     false => m.too_big(value = value, limit = limit)
 
 fn m__use(value: int, limit: int) -> M__Out rev 1

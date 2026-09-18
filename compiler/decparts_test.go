@@ -104,32 +104,32 @@ type M__Out rev 1 (
 fn m__str(v: str) -> M__Out rev 1
   emits []
   tests
-    t("ab") => Ok(n = 0)
+    t("ab") => Ok(0)
   match call dec__parts(v)
-    on Ok p => Ok(n = p.coefficient)
+    on Ok p => Ok(p.coefficient)
 
 fn m__named(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(0)
   match call dec__parts(value = v)
-    on Ok p => Ok(n = p.coefficient)
+    on Ok p => Ok(p.coefficient)
 
 fn m__two(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(0)
   match call dec__parts(v, v)
-    on Ok p => Ok(n = p.coefficient)
+    on Ok p => Ok(p.coefficient)
 
 fn m__given(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(0)
   match call dec__parts(v)
     given
       t => [exchange args (value = d"1.0") outcome Ok(coefficient = 1, scale = 0)]
-    on Ok p => Ok(n = p.coefficient)
+    on Ok p => Ok(p.coefficient)
 `
 
 func TestDiagnoseDecPartsMisuse(t *testing.T) {
@@ -161,17 +161,17 @@ type M__Out rev 1 (
 fn m__stale(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(d"1.0") => Ok(n = 1)
+    t(d"1.0") => Ok(1)
   match call dec__parts(v)
-    on Ok p => Ok(n = p.coefficient)
-    on m.nope _ => Ok(n = 0)
+    on Ok p => Ok(p.coefficient)
+    on m.nope _ => Ok(0)
 
 fn m__missing(v: dec) -> M__Out rev 1
   emits []
   tests
-    t(d"1.0") => Ok(n = 0)
+    t(d"1.0") => Ok(0)
   match call dec__parts(v)
-    on m.nope _ => Ok(n = 0)
+    on m.nope _ => Ok(0)
 `
 
 func TestDiagnoseDecPartsTotal(t *testing.T) {

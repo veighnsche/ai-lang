@@ -21,9 +21,9 @@ type Str__Value rev 1 (
 fn m__wrap(value: str) -> Str__Value rev 1
   emits []
   tests
-    plain("x") => Ok(value = "{x}")
-    empty("") => Ok(value = "{}")
-  Ok(value = "{" + value + "}")
+    plain("x") => Ok("{x}")
+    empty("") => Ok("{}")
+  Ok("{" + value + "}")
 `
 
 func TestBracesInStringsAllowed(t *testing.T) {

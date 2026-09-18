@@ -15,14 +15,14 @@ type Table__Value rev 1 (
 fn table__signs(a: int, b: int) -> Table__Value rev 1
   emits []
   tests
-    negneg(-1, -2) => Ok(value = 0)
-    negpos(-1, 2) => Ok(value = 1)
-    posneg(1, -2) => Ok(value = 2)
-    pospos(1, 2) => Ok(value = 3)
+    negneg(-1, -2) => Ok(0)
+    negpos(-1, 2) => Ok(1)
+    posneg(1, -2) => Ok(2)
+    pospos(1, 2) => Ok(3)
   match a < 0
     true => match b < 0
-      true => Ok(value = 0)
-      false => Ok(value = 1)
+      true => Ok(0)
+      false => Ok(1)
     false => match b < 0
-      true => Ok(value = 2)
-      false => Ok(value = 3)
+      true => Ok(2)
+      false => Ok(3)

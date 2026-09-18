@@ -23,20 +23,20 @@ type M__S rev 1 (
 fn m__help(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    h_ok("a") => Ok(id = "a")
+    h_ok("a") => Ok("a")
     h_bad("b") => m.bad()
   match id
-    "a" => Ok(id = "a")
+    "a" => Ok("a")
     _ => m.bad()
 
 fn m__go(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    g_ok("a") => Ok(id = "a")
+    g_ok("a") => Ok("a")
     g_bad("b") => m.bad()
   match call m__help(id)
     on m.bad _ => m.bad()
-    on Ok s => Ok(id = s.id)
+    on Ok s => Ok(s.id)
 `
 
 func TestHelperClean(t *testing.T) {
@@ -49,7 +49,7 @@ func TestHelperClean(t *testing.T) {
 func TestHelperGivenIsError(t *testing.T) {
 	bad := strings.Replace(helperClean,
 		"  match call m__help(id)\n    on m.bad _ => m.bad()",
-		"  match call m__help(id)\n    given\n      g_ok => [exchange args (id = \"a\") outcome Ok(id = \"a\")]\n      g_bad => [exchange args (id = \"a\") outcome m.bad()]\n    on m.bad _ => m.bad()", 1)
+		"  match call m__help(id)\n    given\n      g_ok => [exchange args (id = \"a\") outcome Ok(\"a\")]\n      g_bad => [exchange args (id = \"a\") outcome m.bad()]\n    on m.bad _ => m.bad()", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "takes no given table") {
@@ -75,7 +75,7 @@ fn m__loop(id: str) -> M__S rev 1
     l1("a") => m.bad()
   match call m__loop(id)
     on m.bad _ => m.bad()
-    on Ok s => Ok(id = s.id)
+    on Ok s => Ok(s.id)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": loop})
 	diags := diagnose(dir, "m.can", loop)
@@ -102,7 +102,7 @@ fn m__a(id: str) -> M__S rev 1
     a1("a") => m.bad()
   match call m__b(id)
     on m.bad _ => m.bad()
-    on Ok s => Ok(id = s.id)
+    on Ok s => Ok(s.id)
 
 fn m__b(id: str) -> M__S rev 1
   emits [m.bad]
@@ -110,7 +110,7 @@ fn m__b(id: str) -> M__S rev 1
     b1("a") => m.bad()
   match call m__a(id)
     on m.bad _ => m.bad()
-    on Ok s => Ok(id = s.id)
+    on Ok s => Ok(s.id)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": pair})
 	diags := diagnose(dir, "m.can", pair)
@@ -145,19 +145,19 @@ type M__S rev 1 (
 fn m__help(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    h_ok("a") => Ok(id = "a")
+    h_ok("a") => Ok("a")
   match id
-    "a" => Ok(id = "a")
+    "a" => Ok("a")
     _ => m.bad()
 
 fn m__go(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    g_ok("a") => Ok(id = "a")
+    g_ok("a") => Ok("a")
     g_bad("b") => m.bad()
   match call m__help(id)
     on m.bad _ => m.bad()
-    on Ok s => Ok(id = s.id)
+    on Ok s => Ok(s.id)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": flow})
 	if diags := diagnose(dir, "m.can", flow); len(diags) != 0 {
@@ -183,10 +183,10 @@ type Db__U rev 1 (
 fn db__get(id: str) -> Db__U rev 1
   emits [db.down]
   tests
-    ok("u") => Ok(id = "u")
+    ok("u") => Ok("u")
     other("x") => db.down()
   match id
-    "u" => Ok(id = "u")
+    "u" => Ok("u")
     _ => db.down()
 `
 	needsGo := `mod m
@@ -203,20 +203,20 @@ type M__S rev 1 (
 fn m__help(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    h_ok("u") => Ok(id = "u")
+    h_ok("u") => Ok("u")
   match call db__get(id)
     given
-      h_ok => [exchange args (id = "u") outcome Ok(id = "u")]
+      h_ok => [exchange args (id = "u") outcome Ok("u")]
     on db.down _ => m.bad()
-    on Ok u => Ok(id = u.id)
+    on Ok u => Ok(u.id)
 
 fn m__go(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    g_ok("a") => Ok(id = "a")
+    g_ok("a") => Ok("a")
   match call m__help(id)
     on m.bad _ => m.bad()
-    on Ok s => Ok(id = s.id)
+    on Ok s => Ok(s.id)
 `
 	dir := writeLSPDir(t, map[string]string{"db.can": needsDB, "m.can": needsGo})
 	diags := diagnose(dir, "m.can", needsGo)

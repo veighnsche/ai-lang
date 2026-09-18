@@ -23,11 +23,11 @@ type M__Val rev 1 (
 fn std__int__abs(value: int) -> M__Val rev 1
   emits []
   tests
-    neg(-3) => Ok(value = 3)
-    pos(3) => Ok(value = 3)
+    neg(-3) => Ok(3)
+    pos(3) => Ok(3)
   match value >= 0
-    true => Ok(value = value)
-    false => Ok(value = 0 - value)
+    true => Ok(value)
+    false => Ok(0 - value)
 `
 
 func TestMultiUnderscoreNameAccepted(t *testing.T) {

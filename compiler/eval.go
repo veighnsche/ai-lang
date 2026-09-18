@@ -694,84 +694,79 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			}
 			return &Value{Kind: "bytes", Bytes: out}, nil
 		}
-		if !isKwargList(node.Args) {
-			return nil, fmt.Errorf("positional construction is outside the v0 subset: %s", node.Ctor)
+		// a92: resolve field order first (same chain as
+		// before: Ok, declared errors, variant cases,
+		// records), then bind positionals from that order.
+		// Untyped contexts (given tables, test
+		// expectations) evaluate raw, so binding happens
+		// here; checked bodies arrive already named.
+		var order []string
+		kind := ""
+		verify := false
+		switch {
+		case node.Ctor == "Ok":
+			kind, order = "ok", []string{"value"}
+		case strings.Contains(node.Ctor, "."):
+			kind = "err"
+			if decl, ok := ctx.Prog.Errors[node.Ctor]; ok {
+				order, verify = append(order, decl...), true
+			}
+		default:
+			if decl := variantCaseDecl(ctx.Prog, node.Ctor); decl != nil {
+				kind, verify = "variant", true
+				for _, f := range decl.Fields {
+					order = append(order, f[0])
+				}
+			} else if decl := recordDecl(ctx.Prog, node.Ctor); decl != nil {
+				kind, verify = "rec", true
+				for _, f := range decl.Fields {
+					order = append(order, f[0])
+				}
+			}
+		}
+		names, berr := bindCtorArgs(node.Ctor, node.Args, order)
+		if berr != nil {
+			return nil, fmt.Errorf("%s: %s", owner, berr.Error())
 		}
 		fields := map[string]*Value{}
-		for _, a := range node.Args {
-			if _, dup := fields[a.Name]; dup {
-				return nil, fmt.Errorf("%s: %s repeats field %s", owner, node.Ctor, a.Name)
+		for i, a := range node.Args {
+			if _, dup := fields[names[i]]; dup {
+				return nil, fmt.Errorf("%s: %s repeats field %s", owner, node.Ctor, names[i])
 			}
 			v, err := evSmall(a.V, env, ctx, owner)
 			if err != nil {
 				return nil, err
 			}
-			fields[a.Name] = v
+			fields[names[i]] = v
 		}
-		if node.Ctor == "Ok" {
+		if kind == "ok" {
 			return &Value{Kind: "ok", Dict: fields}, nil
 		}
-		if strings.Contains(node.Ctor, ".") {
-			if decl, ok := ctx.Prog.Errors[node.Ctor]; ok {
-				want := map[string]bool{}
-				for _, f := range decl {
-					want[f] = true
-				}
-				for f := range fields {
-					if !want[f] {
-						return nil, fmt.Errorf("%s: %s has unknown field %s", owner, node.Ctor, f)
-					}
-				}
-				for f := range want {
-					if _, ok := fields[f]; !ok {
-						return nil, fmt.Errorf("%s: %s missing field %s", owner, node.Ctor, f)
-					}
+		if verify {
+			want := map[string]bool{}
+			for _, f := range order {
+				want[f] = true
+			}
+			for f := range fields {
+				if !want[f] {
+					return nil, fmt.Errorf("%s: %s has unknown field %s", owner, node.Ctor, f)
 				}
 			}
+			for f := range want {
+				if _, ok := fields[f]; !ok {
+					return nil, fmt.Errorf("%s: %s missing field %s", owner, node.Ctor, f)
+				}
+			}
+		}
+		// Declared variant cases (a74) stay tagged-payload
+		// with Kind "variant": a case is data and never
+		// enters error paths.
+		switch kind {
+		case "err":
 			return &Value{Kind: "err", ErrKind: node.Ctor, Dict: fields}, nil
-		}
-		// Declared variant cases in value positions (a74): exact
-		// named fields with explicit declared types (checked
-		// statically; re-verified here so execution never invents
-		// a shape the declaration does not name). The carrier is
-		// tagged-payload like errors, but Kind stays "variant": a
-		// case is data and never enters error paths.
-		if decl := variantCaseDecl(ctx.Prog, node.Ctor); decl != nil {
-			want := map[string]bool{}
-			for _, f := range decl.Fields {
-				want[f[0]] = true
-			}
-			for f := range fields {
-				if !want[f] {
-					return nil, fmt.Errorf("%s: %s has unknown field %s", owner, node.Ctor, f)
-				}
-			}
-			for f := range want {
-				if _, ok := fields[f]; !ok {
-					return nil, fmt.Errorf("%s: %s missing field %s", owner, node.Ctor, f)
-				}
-			}
+		case "variant":
 			return &Value{Kind: "variant", Tag: node.Ctor, Dict: fields}, nil
-		}
-		// Declared finite monomorphic records in value positions:
-		// exact named fields with explicit declared types (checked
-		// statically; re-verified here so execution never invents a
-		// shape the declaration does not name).
-		if decl := recordDecl(ctx.Prog, node.Ctor); decl != nil {
-			want := map[string]bool{}
-			for _, f := range decl.Fields {
-				want[f[0]] = true
-			}
-			for f := range fields {
-				if !want[f] {
-					return nil, fmt.Errorf("%s: %s has unknown field %s", owner, node.Ctor, f)
-				}
-			}
-			for f := range want {
-				if _, ok := fields[f]; !ok {
-					return nil, fmt.Errorf("%s: %s missing field %s", owner, node.Ctor, f)
-				}
-			}
+		case "rec":
 			return &Value{Kind: "rec", Rec: node.Ctor, Dict: fields}, nil
 		}
 		return nil, fmt.Errorf("unknown constructor: %s", node.Ctor)

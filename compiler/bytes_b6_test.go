@@ -24,13 +24,13 @@ const bytesDecodeBase = `mod m
 fn m__go(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    empty(Bytes(Seq<int>[])) => Ok(value = "")
-    ascii(Bytes(Seq<int>[65])) => Ok(value = "A")
-    latin(Bytes(Seq<int>[195, 169])) => Ok(value = "é")
-    cjk(Bytes(Seq<int>[228, 184, 150])) => Ok(value = "世")
-    astral(Bytes(Seq<int>[240, 159, 152, 128])) => Ok(value = "😀")
-    ufffd(Bytes(Seq<int>[239, 191, 189])) => Ok(value = "�")
-    mark(Bytes(Seq<int>[38, 60, 62])) => Ok(value = "&<>")
+    empty(Bytes(Seq<int>[])) => Ok("")
+    ascii(Bytes(Seq<int>[65])) => Ok("A")
+    latin(Bytes(Seq<int>[195, 169])) => Ok("é")
+    cjk(Bytes(Seq<int>[228, 184, 150])) => Ok("世")
+    astral(Bytes(Seq<int>[240, 159, 152, 128])) => Ok("😀")
+    ufffd(Bytes(Seq<int>[239, 191, 189])) => Ok("�")
+    mark(Bytes(Seq<int>[38, 60, 62])) => Ok("&<>")
 NULOUTROWS
 BOMOUTROWS
 BOUNDROWS
@@ -59,27 +59,27 @@ BOUNDROWS
     bom_then_bad(Bytes(Seq<int>[239, 187, 191, 255])) => encoding.invalid_utf8(value = Bytes(Seq<int>[239, 187, 191, 255]))
     mid_bad(Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))
   match call bytes__utf8__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_utf8 e => forward e
 `
 
 func bytesDecodeFull() string {
-	nul := "    nul_first(Bytes(Seq<int>[0, 104, 105])) => Ok(value = \"\x00hi\")\n" +
-		"    nul_middle(Bytes(Seq<int>[97, 0, 98])) => Ok(value = \"a\x00b\")\n" +
-		"    nul_last(Bytes(Seq<int>[97, 98, 0])) => Ok(value = \"ab\x00\")\n"
-	bom := "    bom_only(Bytes(Seq<int>[239, 187, 191])) => Ok(value = \"\uFEFF\")\n" +
-		"    bom_text(Bytes(Seq<int>[239, 187, 191, 65])) => Ok(value = \"\uFEFFA\")\n" +
-		"    bom_bom(Bytes(Seq<int>[239, 187, 191, 239, 187, 191])) => Ok(value = \"\uFEFF\uFEFF\")\n" +
-		"    bom_interior(Bytes(Seq<int>[65, 239, 187, 191, 66])) => Ok(value = \"A\uFEFFB\")\n"
-	bound := "    u007f(Bytes(Seq<int>[127])) => Ok(value = \"\u007f\")\n" +
-		"    u0080(Bytes(Seq<int>[194, 128])) => Ok(value = \"\u0080\")\n" +
-		"    u07ff(Bytes(Seq<int>[223, 191])) => Ok(value = \"\u07ff\")\n" +
-		"    u0800(Bytes(Seq<int>[224, 160, 128])) => Ok(value = \"\u0800\")\n" +
-		"    ud7ff(Bytes(Seq<int>[237, 159, 191])) => Ok(value = \"\ud7ff\")\n" +
-		"    ue000(Bytes(Seq<int>[238, 128, 128])) => Ok(value = \"\ue000\")\n" +
-		"    uffff(Bytes(Seq<int>[239, 191, 191])) => Ok(value = \"\uffff\")\n" +
-		"    u10000(Bytes(Seq<int>[240, 144, 128, 128])) => Ok(value = \"\U00010000\")\n" +
-		"    u10ffff(Bytes(Seq<int>[244, 143, 191, 191])) => Ok(value = \"\U0010ffff\")\n"
+	nul := "    nul_first(Bytes(Seq<int>[0, 104, 105])) => Ok(\"\x00hi\")\n" +
+		"    nul_middle(Bytes(Seq<int>[97, 0, 98])) => Ok(\"a\x00b\")\n" +
+		"    nul_last(Bytes(Seq<int>[97, 98, 0])) => Ok(\"ab\x00\")\n"
+	bom := "    bom_only(Bytes(Seq<int>[239, 187, 191])) => Ok(\"\uFEFF\")\n" +
+		"    bom_text(Bytes(Seq<int>[239, 187, 191, 65])) => Ok(\"\uFEFFA\")\n" +
+		"    bom_bom(Bytes(Seq<int>[239, 187, 191, 239, 187, 191])) => Ok(\"\uFEFF\uFEFF\")\n" +
+		"    bom_interior(Bytes(Seq<int>[65, 239, 187, 191, 66])) => Ok(\"A\uFEFFB\")\n"
+	bound := "    u007f(Bytes(Seq<int>[127])) => Ok(\"\u007f\")\n" +
+		"    u0080(Bytes(Seq<int>[194, 128])) => Ok(\"\u0080\")\n" +
+		"    u07ff(Bytes(Seq<int>[223, 191])) => Ok(\"\u07ff\")\n" +
+		"    u0800(Bytes(Seq<int>[224, 160, 128])) => Ok(\"\u0800\")\n" +
+		"    ud7ff(Bytes(Seq<int>[237, 159, 191])) => Ok(\"\ud7ff\")\n" +
+		"    ue000(Bytes(Seq<int>[238, 128, 128])) => Ok(\"\ue000\")\n" +
+		"    uffff(Bytes(Seq<int>[239, 191, 191])) => Ok(\"\uffff\")\n" +
+		"    u10000(Bytes(Seq<int>[240, 144, 128, 128])) => Ok(\"\U00010000\")\n" +
+		"    u10ffff(Bytes(Seq<int>[244, 143, 191, 191])) => Ok(\"\U0010ffff\")\n"
 	out := strings.Replace(bytesDecodeBase, "NULOUTROWS\n", nul, 1)
 	out = strings.Replace(out, "BOMOUTROWS\n", bom, 1)
 	return strings.Replace(out, "BOUNDROWS\n", bound, 1)
@@ -111,7 +111,7 @@ func TestBytesD1MissingArms(t *testing.T) {
 		t.Fatalf("expected missing-arm rejection without error arm, got %v", diags)
 	}
 	noOk := strings.Replace(bytesDecodeFull(),
-		"    on Ok r => Ok(value = r.value)\n", "", 1)
+		"    on Ok r => Ok(r.value)\n", "", 1)
 	dir = writeLSPDir(t, map[string]string{"m.can": noOk})
 	diags = diagnose(dir, "m.can", noOk)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
@@ -122,8 +122,8 @@ func TestBytesD1MissingArms(t *testing.T) {
 // D2: a stale arm naming a declared unrelated error refuses.
 func TestBytesD2StaleArm(t *testing.T) {
 	body := strings.Replace(bytesDecodeFull(),
-		"    on Ok r => Ok(value = r.value)",
-		"    on Ok r => Ok(value = r.value)\n    on m.boom e2 => Ok(value = \"\")", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on m.boom e2 => Ok(\"\")", 1)
 	body = strings.Replace(body, "fn m__go(value: Bytes)",
 		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": body})
@@ -136,8 +136,8 @@ func TestBytesD2StaleArm(t *testing.T) {
 // D3: the deterministic kernel takes no given table.
 func TestBytesD3NoGiven(t *testing.T) {
 	body := strings.Replace(bytesDecodeFull(),
-		"  match call bytes__utf8__decode(value)\n    on Ok r => Ok(value = r.value)",
-		"  match call bytes__utf8__decode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
+		"  match call bytes__utf8__decode(value)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__utf8__decode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(\"\")]\n    on Ok r => Ok(r.value)", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
@@ -155,9 +155,9 @@ func TestBytesD4Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    go(ARG) => Ok(value = "A")
+    go(ARG) => Ok("A")
   match call bytes__utf8__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
 `
 		s = strings.Replace(s, "PARAM", param, 1)
@@ -253,10 +253,10 @@ const bytesDecodeProv = `mod prov
 fn prov__go(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    good(Bytes(Seq<int>[65])) => Ok(value = "A")
+    good(Bytes(Seq<int>[65])) => Ok("A")
     bad(Bytes(Seq<int>[65, 226, 130])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 226, 130]))
   match call bytes__utf8__decode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
 `
 
@@ -268,11 +268,11 @@ const bytesDecodeLie = `mod client
 fn client__use() -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    lie() => Ok(value = "A")
+    lie() => Ok("A")
   match call prov__go(Bytes(Seq<int>[65, 226, 130]))
     given
-      lie => [exchange args (value = Bytes(Seq<int>[65, 226, 130])) outcome Ok(value = "A")]
-    on Ok r => Ok(value = r.value)
+      lie => [exchange args (value = Bytes(Seq<int>[65, 226, 130])) outcome Ok("A")]
+    on Ok r => Ok(r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
 `
 

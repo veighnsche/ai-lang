@@ -19,17 +19,17 @@ const bytesB64Base = `mod m
 fn m__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(Bytes(Seq<int>[])) => Ok(value = "")
-    zero(Bytes(Seq<int>[0])) => Ok(value = "AA==")
-    ff(Bytes(Seq<int>[255])) => Ok(value = "/w==")
-    one(Bytes(Seq<int>[65])) => Ok(value = "QQ==")
-    two(Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
-    three(Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
-    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
-    notext(Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
-    sweep(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "AAECAwQFBgcICQoLDA0ODw==")
+    empty(Bytes(Seq<int>[])) => Ok("")
+    zero(Bytes(Seq<int>[0])) => Ok("AA==")
+    ff(Bytes(Seq<int>[255])) => Ok("/w==")
+    one(Bytes(Seq<int>[65])) => Ok("QQ==")
+    two(Bytes(Seq<int>[65, 66])) => Ok("QUI=")
+    three(Bytes(Seq<int>[65, 66, 67])) => Ok("QUJD")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok("3q2+7w==")
+    notext(Bytes(Seq<int>[0, 65])) => Ok("AEE=")
+    sweep(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok("AAECAwQFBgcICQoLDA0ODw==")
   match call bytes__base64__encode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 
 // G0: base64 vectors, positional and named spellings. Padding
@@ -47,8 +47,8 @@ func TestBytesG0B64Vectors(t *testing.T) {
 // G1: the deterministic kernel takes no given table.
 func TestBytesG1NoGiven(t *testing.T) {
 	body := strings.Replace(bytesB64Base,
-		"  match call bytes__base64__encode(value)\n    on Ok r => Ok(value = r.value)",
-		"  match call bytes__base64__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
+		"  match call bytes__base64__encode(value)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__base64__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(\"\")]\n    on Ok r => Ok(r.value)", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
@@ -65,9 +65,9 @@ func TestBytesG2Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits []
   tests
-    go(ARG) => Ok(value = "QQ==")
+    go(ARG) => Ok("QQ==")
   match call bytes__base64__encode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
@@ -114,8 +114,8 @@ func TestBytesG4EmitPin(t *testing.T) {
 // G5: the empty contract is consulted: a stale error arm refuses.
 func TestBytesG5StaleArm(t *testing.T) {
 	body := strings.Replace(bytesB64Base,
-		"    on Ok r => Ok(value = r.value)",
-		"    on Ok r => Ok(value = r.value)\n    on m.boom e => Ok(value = \"\")", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on m.boom e => Ok(\"\")", 1)
 	body = strings.Replace(body, "fn m__go(value: Bytes)",
 		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": body})

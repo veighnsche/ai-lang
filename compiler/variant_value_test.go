@@ -49,8 +49,8 @@ func variantValueMod(body, expect string) string {
 `
 }
 
-const variantValueBody = `Ok(box = M__Box(state = Login__Authenticated(session = Auth__Session(user_id = user))))`
-const variantValueExpect = `Ok(box = M__Box(state = Login__Authenticated(session = Auth__Session(user_id = "u"))))`
+const variantValueBody = `Ok(M__Box(Login__Authenticated(Auth__Session(user))))`
+const variantValueExpect = `Ok(M__Box(Login__Authenticated(Auth__Session("u"))))`
 
 // TestVariantValueClean pins the positive: exact-field qualified
 // construction inside an Ok payload, through a variant-typed
@@ -58,6 +58,19 @@ const variantValueExpect = `Ok(box = M__Box(state = Login__Authenticated(session
 // accounting sees the case).
 func TestVariantValueClean(t *testing.T) {
 	src := variantValueMod(variantValueBody, variantValueExpect)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+// TestVariantValuePositional pins a92 for cases: the shared
+// field loop resolves positional args, so a fully positional
+// nest diagnoses clean and compares equal at execution.
+func TestVariantValuePositional(t *testing.T) {
+	body := `Ok(M__Box(Login__Authenticated(Auth__Session(user))))`
+	expect := `Ok(M__Box(Login__Authenticated(Auth__Session("u"))))`
+	src := variantValueMod(body, expect)
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
@@ -342,11 +355,11 @@ type Cons__Out rev 1 (
 fn cons__go(id: str) -> Cons__Out rev 1
   emits []
   tests
-    g("u") => Ok(held = Prov__Data(id = "u"), state = Login__Anonymous())
+    g("u") => Ok(Prov__Data("u"), Login__Anonymous())
   match call prov__make(id)
     given
-      g => [exchange args (id = "u") outcome Ok(id = "u")]
-    on Ok v => Ok(held = Prov__Data(id = v.id), state = Login__Anonymous())
+      g => [exchange args (id = "u") outcome Ok("u")]
+    on Ok v => Ok(Prov__Data(v.id), Login__Anonymous())
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "prov.can"), []byte(prov), 0o644); err != nil {

@@ -24,11 +24,11 @@ type M__Out rev 1 (
 fn m__mint(which: str) -> M__Out rev 1
   emits []
   tests
-    mint("a") => Ok(echo = seal M__B("a"))
-    other("b") => Ok(echo = seal M__B("b"))
+    mint("a") => Ok(seal M__B("a"))
+    other("b") => Ok(seal M__B("b"))
   match which
-    "a" => Ok(echo = seal M__B("a"))
-    _ => Ok(echo = seal M__B("b"))
+    "a" => Ok(seal M__B("a"))
+    _ => Ok(seal M__B("b"))
 `
 
 const sealLib = `mod lib
@@ -45,8 +45,8 @@ type Lib__Out rev 1 (
 fn lib__get() -> Lib__Out rev 1
   emits []
   tests
-    go() => Ok(echo = seal Lib__B("x"))
-  Ok(echo = seal Lib__B("x"))
+    go() => Ok(seal Lib__B("x"))
+  Ok(seal Lib__B("x"))
 `
 
 func TestSealOwnBrandInBody(t *testing.T) {
@@ -76,11 +76,11 @@ type App__Out rev 1 (
 fn app__forge() -> App__Out rev 1
   emits []
   tests
-    go() => Ok(echo = seal Lib__B("x"))
+    go() => Ok(seal Lib__B("x"))
   match call lib__get()
     given
-      go => [exchange args () outcome Ok(echo = "x")]
-    on Ok got => Ok(echo = seal Lib__B("minted"))
+      go => [exchange args () outcome Ok("x")]
+    on Ok got => Ok(seal Lib__B("minted"))
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": sealLib, "app.can": forge})
 	diags := diagnose(dir, "app.can", forge)
@@ -104,11 +104,11 @@ type App__Out rev 1 (
 fn app__pass() -> App__Out rev 1
   emits []
   tests
-    go() => Ok(echo = seal Lib__B("x"))
+    go() => Ok(seal Lib__B("x"))
   match call lib__get()
     given
-      go => [exchange args () outcome Ok(echo = seal Lib__B("x"))]
-    on Ok got => Ok(echo = got.echo)
+      go => [exchange args () outcome Ok(seal Lib__B("x"))]
+    on Ok got => Ok(got.echo)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": sealLib, "app.can": uses})
 	if diags := diagnose(dir, "app.can", uses); len(diags) != 0 {
@@ -138,9 +138,9 @@ type M__SafeResult rev 1 (
 fn m__node(text: M__Text) -> M__SafeResult rev 1
   emits []
   tests
-    plain(seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
-    escaped(seal M__Text("a&amp;b")) => Ok(safe = seal M__Safe("a&amp;b"))
-  Ok(safe = seal M__Safe(text))
+    plain(seal M__Text("hi")) => Ok(seal M__Safe("hi"))
+    escaped(seal M__Text("a&amp;b")) => Ok(seal M__Safe("a&amp;b"))
+  Ok(seal M__Safe(text))
 `
 
 func TestSealPromotionAuthorized(t *testing.T) {
@@ -166,8 +166,8 @@ type M__SafeResult rev 1 (
 fn m__node(text: M__Text) -> M__SafeResult rev 1
   emits []
   tests
-    plain(seal M__Text("hi")) => Ok(safe = seal M__Safe("hi"))
-  Ok(safe = seal M__Safe(text))
+    plain(seal M__Text("hi")) => Ok(seal M__Safe("hi"))
+  Ok(seal M__Safe(text))
 `
 
 func TestSealPromotionUnauthorized(t *testing.T) {
@@ -194,8 +194,8 @@ type M__BackResult rev 1 (
 fn m__back(frag: M__Safe) -> M__BackResult rev 1
   emits []
   tests
-    plain(seal M__Safe("hi")) => Ok(text = seal M__Text("hi"))
-  Ok(text = seal M__Text(frag))
+    plain(seal M__Safe("hi")) => Ok(seal M__Text("hi"))
+  Ok(seal M__Text(frag))
 `
 
 func TestSealPromotionNoReverse(t *testing.T) {
@@ -224,8 +224,8 @@ type M__CResult rev 1 (
 fn m__skip(start: M__A) -> M__CResult rev 1
   emits []
   tests
-    plain(seal M__A("hi")) => Ok(value = seal M__C("hi"))
-  Ok(value = seal M__C(start))
+    plain(seal M__A("hi")) => Ok(seal M__C("hi"))
+  Ok(seal M__C(start))
 `
 
 func TestSealPromotionNoTransitive(t *testing.T) {
@@ -266,11 +266,11 @@ type App__Out rev 1 (
 fn app__promote() -> App__Out rev 1
   emits []
   tests
-    go() => Ok(echo = seal App__C("x"))
+    go() => Ok(seal App__C("x"))
   match call lib__get()
     given
-      go => [exchange args () outcome Ok(echo = "x")]
-    on Ok got => Ok(echo = seal App__C(got.echo))
+      go => [exchange args () outcome Ok("x")]
+    on Ok got => Ok(seal App__C(got.echo))
 `
 
 func TestSealPromotionCrossFile(t *testing.T) {
@@ -291,8 +291,8 @@ brand M__B is str rev 1
 fn m__bad(which: str) -> M__B rev 1
   emits []
   tests
-    go("x") => Ok(value = seal M__B("x"))
-  Ok(value = seal M__B("x"))
+    go("x") => Ok(seal M__B("x"))
+  Ok(seal M__B("x"))
 `
 
 func TestFnBrandReturnRejected(t *testing.T) {

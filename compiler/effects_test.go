@@ -25,10 +25,10 @@ fn m__bump(by: int) -> M__T rev 1
   effects [M__C.read, M__C.write]
   emits []
   tests
-    three(3) => Ok(total = 3)
+    three(3) => Ok(3)
   match call state__get(M__C)
     on Ok c => match call state__put(M__C, c.value + by)
-      on Ok _ => Ok(total = c.value + by)
+      on Ok _ => Ok(c.value + by)
 `
 
 func TestEffectsClean(t *testing.T) {
@@ -76,17 +76,17 @@ fn m__help(by: int) -> M__T rev 1
   effects [M__C.read, M__C.write]
   emits []
   tests
-    h(1) => Ok(total = 1)
+    h(1) => Ok(1)
   match call state__get(M__C)
     on Ok c => match call state__put(M__C, c.value + by)
-      on Ok _ => Ok(total = c.value + by)
+      on Ok _ => Ok(c.value + by)
 
 fn m__go(by: int) -> M__T rev 1
   emits []
   tests
-    g(1) => Ok(total = 1)
+    g(1) => Ok(1)
   match call m__help(by)
-    on Ok s => Ok(total = s.total)
+    on Ok s => Ok(s.total)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": flow})
 	diags := diagnose(dir, "m.can", flow)
@@ -133,7 +133,7 @@ func TestEffectsUnknownCell(t *testing.T) {
 func TestEffectsGivenOnStore(t *testing.T) {
 	bad := strings.Replace(effectsBase,
 		"  match call state__get(M__C)\n    on Ok c =>",
-		"  match call state__get(M__C)\n    given\n      three => [exchange args () outcome Ok(value = 0)]\n    on Ok c =>", 1)
+		"  match call state__get(M__C)\n    given\n      three => [exchange args () outcome Ok(0)]\n    on Ok c =>", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "takes no given table") {
@@ -193,8 +193,8 @@ func TestEffectsReserved(t *testing.T) {
 fn state__get() -> M__T rev 1
   emits []
   tests
-    q() => Ok(total = 0)
-  Ok(total = 0)
+    q() => Ok(0)
+  Ok(0)
 `
 	reserved = strings.Replace(reserved,
 		"provides [m__bump, M__T]", "provides [m__bump, state__get, M__T]", 1)
@@ -220,10 +220,10 @@ fn p__do(by: int) -> P__T rev 1
   effects [P__C.read, P__C.write]
   emits []
   tests
-    t(1) => Ok(total = 1)
+    t(1) => Ok(1)
   match call state__get(P__C)
     on Ok c => match call state__put(P__C, c.value + by)
-      on Ok _ => Ok(total = c.value + by)
+      on Ok _ => Ok(c.value + by)
 `
 
 const effectsCon = `mod c
@@ -238,11 +238,11 @@ type C__T rev 1 (
 fn c__go(by: int) -> C__T rev 1
   emits []
   tests
-    g(1) => Ok(total = 1)
+    g(1) => Ok(1)
   match call p__do(by)
     given
-      g => [exchange args (by = 1) outcome Ok(total = 1)]
-    on Ok s => Ok(total = s.total)
+      g => [exchange args (by = 1) outcome Ok(1)]
+    on Ok s => Ok(s.total)
 `
 
 func TestEffectsForeignSuperset(t *testing.T) {
@@ -255,7 +255,7 @@ func TestEffectsForeignSuperset(t *testing.T) {
 
 func TestEffectsPutPayloadUse(t *testing.T) {
 	bad := strings.Replace(effectsBase,
-		"on Ok _ => Ok(total = c.value + by)", "on Ok x => Ok(total = x)", 1)
+		"on Ok _ => Ok(c.value + by)", "on Ok x => Ok(x)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "is the empty Ok of a put") {
@@ -265,7 +265,7 @@ func TestEffectsPutPayloadUse(t *testing.T) {
 
 func TestEffectsWrongField(t *testing.T) {
 	bad := strings.Replace(effectsBase,
-		"Ok(total = c.value + by)", "Ok(total = c.bogus)", 1)
+		"Ok(c.value + by)", "Ok(c.bogus)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "no field bogus on c") {
@@ -302,10 +302,10 @@ fn m__flag(by: int) -> M__T rev 1
   effects [M__Flag.read, M__Flag.write]
   emits []
   tests
-    on(1) => Ok(total = 1)
+    on(1) => Ok(1)
   match call state__put(M__Flag, true)
     on Ok _ => match call state__get(M__Flag)
-      on Ok c => Ok(total = by)
+      on Ok c => Ok(by)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": flag})
 	if diags := diagnose(dir, "m.can", flag); len(diags) != 0 {
@@ -330,9 +330,9 @@ fn ` + fn + `() -> ` + typ + ` rev 1
   effects [Shrd__C.read]
   emits []
   tests
-    g() => Ok(total = ` + want + `)
+    g() => Ok(` + want + `)
   match call state__get(Shrd__C)
-    on Ok c => Ok(total = c.value)
+    on Ok c => Ok(c.value)
 `
 	}
 	a := mk("a", "a__go", "A__T", "1", "1")

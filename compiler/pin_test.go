@@ -22,8 +22,8 @@ type Alpha__Data rev 1 (
 fn alpha__read(id: str) -> Alpha__Data rev 1
   emits []
   tests
-    r("u") => Ok(id = "u")
-  Ok(id = id)
+    r("u") => Ok("u")
+  Ok(id)
 `
 
 const pinConsumerHead = `mod beta
@@ -38,11 +38,11 @@ type Beta__Out rev 1 (
 fn beta__go(id: str) -> Beta__Out rev 1
   emits []
   tests
-    g("u") => Ok(id = "u")
+    g("u") => Ok("u")
   match call alpha__read(id)
     given
-      g => [exchange args (id = "u") outcome Ok(id = "u")]
-    on Ok v => Ok(id = v.id)
+      g => [exchange args (id = "u") outcome Ok("u")]
+    on Ok v => Ok(v.id)
 `
 
 func pinConsumer(uses string) string {

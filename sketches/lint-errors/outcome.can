@@ -15,8 +15,8 @@ type Outcome__Value rev 1 (
 fn outcome__zero(value: int) -> Outcome__Value rev 1
   emits []
   tests
-    pos(1) => Ok(value = 0)
-    neg(-1) => Ok(value = 0)
+    pos(1) => Ok(0)
+    neg(-1) => Ok(0)
   match value < 0
-    true => Ok(value = 0)
-    false => Ok(value = 0)
+    true => Ok(0)
+    false => Ok(0)

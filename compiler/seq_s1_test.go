@@ -84,8 +84,8 @@ const seqV0 = `mod m
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<str>[])
-  Ok(vals = Seq<str>[])
+    go() => Ok(Seq<str>[])
+  Ok(Seq<str>[])
 `
 
 // V1: singleton empty string is observably distinct from V0
@@ -99,8 +99,8 @@ const seqV1 = `mod m
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<str>[""])
-  Ok(vals = Seq<str>[""])
+    go() => Ok(Seq<str>[""])
+  Ok(Seq<str>[""])
 `
 
 // V2: order, empties, and repeats preserved exactly.
@@ -113,8 +113,8 @@ const seqV2 = `mod m
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<str>["b", "", "a", "b"])
-  Ok(vals = Seq<str>["b", "", "a", "b"])
+    go() => Ok(Seq<str>["b", "", "a", "b"])
+  Ok(Seq<str>["b", "", "a", "b"])
 `
 
 // V2b: members containing commas parse through top-level splitting.
@@ -127,8 +127,8 @@ const seqV2b = `mod m
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<str>["a,b", "c"])
-  Ok(vals = Seq<str>["a,b", "c"])
+    go() => Ok(Seq<str>["a,b", "c"])
+  Ok(Seq<str>["a,b", "c"])
 `
 
 // V3: branded members keep their static identity.
@@ -146,8 +146,8 @@ type M__SeqOut rev 1 (
 fn m__go() -> M__SeqOut rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<M__Safe>[seal M__Safe("A"), seal M__Safe("")])
-  Ok(vals = Seq<M__Safe>[seal M__Safe("A"), seal M__Safe("")])
+    go() => Ok(Seq<M__Safe>[seal M__Safe("A"), seal M__Safe("")])
+  Ok(Seq<M__Safe>[seal M__Safe("A"), seal M__Safe("")])
 `
 
 // V4: a second brand family in the same module stays distinct.
@@ -165,8 +165,8 @@ type M__AttrOut rev 1 (
 fn m__go() -> M__AttrOut rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<M__Attr>[seal M__Attr(""), seal M__Attr("disabled")])
-  Ok(vals = Seq<M__Attr>[seal M__Attr(""), seal M__Attr("disabled")])
+    go() => Ok(Seq<M__Attr>[seal M__Attr(""), seal M__Attr("disabled")])
+  Ok(Seq<M__Attr>[seal M__Attr(""), seal M__Attr("disabled")])
 `
 
 // V5: the sequence rides inside a wider result record.
@@ -183,8 +183,8 @@ type M__Wide rev 1 (
 fn m__go() -> M__Wide rev 1
   emits []
   tests
-    go() => Ok(name = "n", vals = Seq<str>["a", ""])
-  Ok(name = "n", vals = Seq<str>["a", ""])
+    go() => Ok("n", Seq<str>["a", ""])
+  Ok("n", Seq<str>["a", ""])
 `
 
 func TestSeqValuesClean(t *testing.T) {
@@ -209,21 +209,21 @@ func TestSeqValuesClean(t *testing.T) {
 // dropped empty and a reordered pair must both fail the test run.
 func TestSeqExpectationsExecute(t *testing.T) {
 	drop := strings.Replace(seqV2,
-		`go() => Ok(vals = Seq<str>["b", "", "a", "b"])`,
-		`go() => Ok(vals = Seq<str>["b", "a", "b"])`, 1)
+		`go() => Ok(Seq<str>["b", "", "a", "b"])`,
+		`go() => Ok(Seq<str>["b", "a", "b"])`, 1)
 	seqCode(t, map[string]string{"m.can": drop}, "m.can", CodeTestFailed, "go")
 
 	flip := strings.Replace(seqV2,
-		`go() => Ok(vals = Seq<str>["b", "", "a", "b"])`,
-		`go() => Ok(vals = Seq<str>["a", "", "b", "b"])`, 1)
+		`go() => Ok(Seq<str>["b", "", "a", "b"])`,
+		`go() => Ok(Seq<str>["a", "", "b", "b"])`, 1)
 	seqCode(t, map[string]string{"m.can": flip}, "m.can", CodeTestFailed, "go")
 }
 
 // T1: an int member in Seq<str> is CAN6003 in every value position
 // with its own checking path.
 func TestSeqT1Positions(t *testing.T) {
-	body := strings.Replace(seqV0, `Ok(vals = Seq<str>[])`,
-		`Ok(vals = Seq<str>[1])`, 1)
+	body := strings.Replace(seqV0, `Ok(Seq<str>[])`,
+		`Ok(Seq<str>[1])`, 1)
 	// Calls ride match scrutinees only (v0 subset): the Seq argument
 	// checks against the callee parameter at the call site.
 	call := `mod m
@@ -235,15 +235,15 @@ func TestSeqT1Positions(t *testing.T) {
 fn m__id(xs: Seq<str>) -> M__Out rev 1
   emits []
   tests
-    go(Seq<str>[]) => Ok(vals = Seq<str>[])
-  Ok(vals = xs)
+    go(Seq<str>[]) => Ok(Seq<str>[])
+  Ok(xs)
 
 fn m__go(dummy: str) -> M__Out rev 1
   emits []
   tests
-    go(dummy = "d") => Ok(vals = Seq<str>[])
+    go(dummy = "d") => Ok(Seq<str>[])
   match call m__id(Seq<str>[1])
-    on Ok v => Ok(vals = v.vals)
+    on Ok v => Ok(v.vals)
 `
 	targ := `mod m
   provides [m__go, M__Out]
@@ -254,12 +254,12 @@ fn m__go(dummy: str) -> M__Out rev 1
 fn m__go(xs: Seq<str>) -> M__Out rev 1
   emits []
   tests
-    go(xs = Seq<str>[1]) => Ok(vals = Seq<str>[])
-  Ok(vals = xs)
+    go(xs = Seq<str>[1]) => Ok(Seq<str>[])
+  Ok(xs)
 `
 	exp := strings.Replace(seqV0,
-		`go() => Ok(vals = Seq<str>[])`,
-		`go() => Ok(vals = Seq<str>[1])`, 1)
+		`go() => Ok(Seq<str>[])`,
+		`go() => Ok(Seq<str>[1])`, 1)
 	for _, c := range []struct {
 		name, body string
 	}{
@@ -307,8 +307,8 @@ type Lib__Out rev 1 (
 fn lib__take(xs: Seq<str>) -> Lib__Out rev 1
   emits []
   tests
-    go(Seq<str>[]) => Ok(vals = Seq<str>[])
-  Ok(vals = xs)
+    go(Seq<str>[]) => Ok(Seq<str>[])
+  Ok(xs)
 `
 
 func TestSeqT1Given(t *testing.T) {
@@ -328,7 +328,7 @@ fn app__go(x: str) -> App__Out rev 1
   match call lib__take(Seq<str>[x, ""])
     given
       go => [exchange args (xs = Seq<str>[1]) outcome Ok(vals = Seq<str>["a", ""])]
-    on Ok v => Ok(vals = v.vals)
+    on Ok v => Ok(v.vals)
 `
 	seqCode(t, map[string]string{"lib.can": seqLibTake, "app.can": app},
 		"app.can", CodeTypeMismatch, "want str")
@@ -347,8 +347,8 @@ brand M__B is str rev 1
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<str>[])
-  Ok(vals = Seq<str>[seal M__B("x")])
+    go() => Ok(Seq<str>[])
+  Ok(Seq<str>[seal M__B("x")])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want str")
@@ -372,8 +372,8 @@ type M__SeqOut rev 1 (
 fn m__go() -> M__SeqOut rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<M__B>[])
-  Ok(vals = Seq<M__B>[seal M__A("x")])
+    go() => Ok(Seq<M__B>[])
+  Ok(Seq<M__B>[seal M__A("x")])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want M__B")
@@ -392,8 +392,8 @@ brand M__B is str rev 1
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<M__B>[])
-  Ok(vals = Seq<str>[])
+    go() => Ok(Seq<M__B>[])
+  Ok(Seq<str>[])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want Seq<str>")
@@ -414,8 +414,8 @@ type Lib__Out rev 1 (
 fn lib__get() -> Lib__Out rev 1
   emits []
   tests
-    go() => Ok(echo = seal Lib__B("x"))
-  Ok(echo = seal Lib__B("x"))
+    go() => Ok(seal Lib__B("x"))
+  Ok(seal Lib__B("x"))
 `
 
 func TestSeqT5ForeignSeal(t *testing.T) {
@@ -433,8 +433,8 @@ type App__Out rev 1 (
 fn app__forge() -> App__Out rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
-  Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
+    go() => Ok(Seq<Lib__B>[seal Lib__B("x")])
+  Ok(Seq<Lib__B>[seal Lib__B("x")])
 `
 	seqCode(t, map[string]string{"lib.can": seqBrandLib, "app.can": app},
 		"app.can", CodeSealForeign, "Lib__B")
@@ -454,15 +454,15 @@ type App__Out rev 1 (
 fn app__go(xs: Seq<Lib__B>) -> App__Out rev 1
   emits []
   tests
-    go(Seq<Lib__B>[seal Lib__B("x")]) => Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
-  Ok(vals = xs)
+    go(Seq<Lib__B>[seal Lib__B("x")]) => Ok(Seq<Lib__B>[seal Lib__B("x")])
+  Ok(xs)
 `
 	seqClean(t, map[string]string{"lib.can": seqBrandLib, "app.can": app}, "app.can")
 }
 
 // T7: a bare [...] in a value position names the typed form.
 func TestSeqT7BareList(t *testing.T) {
-	body := strings.Replace(seqV0, `Ok(vals = Seq<str>[])`, `Ok(vals = ["a"])`, 1)
+	body := strings.Replace(seqV0, `Ok(Seq<str>[])`, `Ok(["a"])`, 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeSeqLiteral, "Seq<T>")
 }
@@ -477,8 +477,8 @@ func TestSeqT8BareReturn(t *testing.T) {
 fn m__go() -> Seq<str> rev 1
   emits []
   tests
-    go() => Ok(vals = Seq<str>[])
-  Ok(vals = Seq<str>[])
+    go() => Ok(Seq<str>[])
+  Ok(Seq<str>[])
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "bare-Seq")
@@ -488,7 +488,7 @@ fn m__go() -> Seq<str> rev 1
 // body alone names the bad type while the expectation stays clean,
 // so the single static error plus the executed mismatch pin both.
 func TestSeqUnknownElem(t *testing.T) {
-	body := strings.Replace(seqV0, "  Ok(vals = Seq<str>[])", "  Ok(vals = Seq<Nope>[\"a\"])", 1)
+	body := strings.Replace(seqV0, "  Ok(Seq<str>[])", "  Ok(Seq<Nope>[\"a\"])", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeUnknownType, "Nope")
 }
@@ -532,8 +532,8 @@ type M__Flag rev 1 (
 fn m__go() -> M__Flag rev 1
   emits []
   tests
-    go() => Ok(flag = true)
-  Ok(flag = (Seq<str>["a"] == Seq<str>["a"]))
+    go() => Ok(true)
+  Ok((Seq<str>["a"] == Seq<str>["a"]))
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "sequence equality")
@@ -553,11 +553,11 @@ type App__Out rev 1 (
 fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
-    go("a") => Ok(vals = Seq<str>["a"])
+    go("a") => Ok(Seq<str>["a"])
   match call lib__echo(x)
     given
-      go => [exchange args (x = "a") outcome Ok(vals = Seq<str>["a"])]
-    on Ok v => Ok(vals = v.vals)
+      go => [exchange args (x = "a") outcome Ok(Seq<str>["a"])]
+    on Ok v => Ok(v.vals)
 `
 	seqCode(t, map[string]string{"lib.can": seqLibEcho, "app.can": app},
 		"app.can", CodeInconsistentScript, "contradicts lib__echo")
@@ -579,11 +579,11 @@ type App__Out rev 1 (
 fn app__go(x: str) -> App__Out rev 1
   emits []
   tests
-    go("a") => Ok(vals = ` + want + `)
+    go("a") => Ok(` + want + `)
   match call lib__echo(x)
     given
-      go => [exchange args (x = "a") outcome Ok(vals = ` + want + `)]
-    on Ok v => Ok(vals = v.vals)
+      go => [exchange args (x = "a") outcome Ok(` + want + `)]
+    on Ok v => Ok(v.vals)
 `
 	}
 	seqCode(t,

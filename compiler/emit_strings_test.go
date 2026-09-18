@@ -26,51 +26,51 @@ type Int__Value rev 1 (
 fn str__match(v: str) -> Str__Value rev 1
   emits []
   tests
-    bslash("a\nb") => Ok(value = "hit")
-    quote("say \"hi\"") => Ok(value = "q")
-    plain("xy") => Ok(value = "miss")
+    bslash("a\nb") => Ok("hit")
+    quote("say \"hi\"") => Ok("q")
+    plain("xy") => Ok("miss")
   match v
-    "a\nb" => Ok(value = "hit")
-    "say \"hi\"" => Ok(value = "q")
-    _ => Ok(value = "miss")
+    "a\nb" => Ok("hit")
+    "say \"hi\"" => Ok("q")
+    _ => Ok("miss")
 
 fn str__order(left: str, right: str) -> Int__Value rev 1
   emits []
   tests
-    ascii("b", "a") => Ok(value = 1)
-    prefix("ab", "a") => Ok(value = 1)
-    equal("a", "a") => Ok(value = 0)
-    bmp_smp("", "𐀀") => Ok(value = -1)
-    smp_bmp("𐀀", "") => Ok(value = 1)
+    ascii("b", "a") => Ok(1)
+    prefix("ab", "a") => Ok(1)
+    equal("a", "a") => Ok(0)
+    bmp_smp("", "𐀀") => Ok(-1)
+    smp_bmp("𐀀", "") => Ok(1)
   match left == right, left >= right
-    true, _ => Ok(value = 0)
-    false, true => Ok(value = 1)
-    false, false => Ok(value = -1)
+    true, _ => Ok(0)
+    false, true => Ok(1)
+    false, false => Ok(-1)
 
 fn str__len(v: str) -> Int__Value rev 1
   emits []
   tests
-    ascii("abc") => Ok(value = 3)
-    mixed("héllo世界") => Ok(value = 7)
-    astral("a𝄞b") => Ok(value = 3)
-    empty("") => Ok(value = 0)
-  Ok(value = #v)
+    ascii("abc") => Ok(3)
+    mixed("héllo世界") => Ok(7)
+    astral("a𝄞b") => Ok(3)
+    empty("") => Ok(0)
+  Ok(#v)
 
 fn str__at(v: str, i: int) -> Int__Value rev 1
   emits []
   tests
-    ascii("abc", 1) => Ok(value = 98)
-    mixed("héllo世界", 5) => Ok(value = 19990)
-    astral("a𝄞b", 1) => Ok(value = 119070)
-  Ok(value = v[i])
+    ascii("abc", 1) => Ok(98)
+    mixed("héllo世界", 5) => Ok(19990)
+    astral("a𝄞b", 1) => Ok(119070)
+  Ok(v[i])
 
 fn str__slice(v: str, a: int, b: int) -> Str__Value rev 1
   emits []
   tests
-    inner("héllo", 1, 4) => Ok(value = "éll")
-    full("abc", 0, 3) => Ok(value = "abc")
-    empty("abc", 2, 2) => Ok(value = "")
-  Ok(value = v[a:b])
+    inner("héllo", 1, 4) => Ok("éll")
+    full("abc", 0, 3) => Ok("abc")
+    empty("abc", 2, 2) => Ok("")
+  Ok(v[a:b])
 `
 
 func TestStrSemanticsEvaluate(t *testing.T) {
@@ -154,14 +154,14 @@ type Fault__Str rev 1 (
 fn fault__at(v: str, i: int) -> Fault__Int rev 1
   emits []
   tests
-    go("abc", 1) => Ok(value = 98)
-  Ok(value = v[i])
+    go("abc", 1) => Ok(98)
+  Ok(v[i])
 
 fn fault__slice(v: str, a: int, b: int) -> Fault__Str rev 1
   emits []
   tests
-    go("abc", 0, 2) => Ok(value = "ab")
-  Ok(value = v[a:b])
+    go("abc", 0, 2) => Ok("ab")
+  Ok(v[a:b])
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "fault.can"), []byte(faultFixture), 0o644); err != nil {

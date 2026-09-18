@@ -22,19 +22,19 @@ type M__Out rev 1 (
 fn m__go(text: str) -> M__Out rev 1
   emits []
   tests
-    empty("") => Ok(vals = Bytes(Seq<int>[]))
-    ascii("A") => Ok(vals = Bytes(Seq<int>[65]))
-    latin("é") => Ok(vals = Bytes(Seq<int>[195, 169]))
-    astral("😀") => Ok(vals = Bytes(Seq<int>[240, 159, 152, 128]))
+    empty("") => Ok(Bytes(Seq<int>[]))
+    ascii("A") => Ok(Bytes(Seq<int>[65]))
+    latin("é") => Ok(Bytes(Seq<int>[195, 169]))
+    astral("😀") => Ok(Bytes(Seq<int>[240, 159, 152, 128]))
 NULROW
 BOMROW
   match call bytes__utf8__encode(text)
-    on Ok r => Ok(vals = r.value)
+    on Ok r => Ok(r.value)
 `
 
 func bytesEncodeFull() string {
-	nulRow := "    nul(\"a\x00b\") => Ok(vals = Bytes(Seq<int>[97, 0, 98]))\n"
-	bomRow := "    bom(\"\uFEFFA\") => Ok(vals = Bytes(Seq<int>[239, 187, 191, 65]))\n"
+	nulRow := "    nul(\"a\x00b\") => Ok(Bytes(Seq<int>[97, 0, 98]))\n"
+	bomRow := "    bom(\"\uFEFFA\") => Ok(Bytes(Seq<int>[239, 187, 191, 65]))\n"
 	out := strings.Replace(bytesEncodeBase, "NULROW\n", nulRow, 1)
 	return strings.Replace(out, "BOMROW\n", bomRow, 1)
 }
@@ -69,9 +69,9 @@ type M__Out rev 1 (
 fn m__go(secret: M__Secret) -> M__Out rev 1
   emits []
   tests
-    go(seal M__Secret("s")) => Ok(vals = Bytes(Seq<int>[115]))
+    go(seal M__Secret("s")) => Ok(Bytes(Seq<int>[115]))
   match call bytes__utf8__encode(secret)
-    on Ok r => Ok(vals = r.value)
+    on Ok r => Ok(r.value)
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want str")
@@ -91,9 +91,9 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    go(3) => Ok(vals = Bytes(Seq<int>[51]))
+    go(3) => Ok(Bytes(Seq<int>[51]))
   match call bytes__utf8__encode(x)
-    on Ok r => Ok(vals = r.value)
+    on Ok r => Ok(r.value)
 `
 	seqCode(t, map[string]string{"m.can": clean}, "m.can",
 		CodeTypeMismatch, "want str")
@@ -116,8 +116,8 @@ func TestBytesN3Arity(t *testing.T) {
 // N4: the deterministic kernel takes no given table.
 func TestBytesN4NoGiven(t *testing.T) {
 	body := strings.Replace(bytesEncodeFull(),
-		"  match call bytes__utf8__encode(text)\n    on Ok r => Ok(vals = r.value)",
-		"  match call bytes__utf8__encode(text)\n    given\n      empty => [exchange args (text = \"\") outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(vals = r.value)", 1)
+		"  match call bytes__utf8__encode(text)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__utf8__encode(text)\n    given\n      empty => [exchange args (text = \"\") outcome Ok(Bytes(Seq<int>[]))]\n    on Ok r => Ok(r.value)", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
@@ -152,8 +152,8 @@ func TestBytesN6EmitPin(t *testing.T) {
 // N7: the empty contract is consulted: a stale error arm refuses.
 func TestBytesN7StaleArm(t *testing.T) {
 	body := strings.Replace(bytesEncodeFull(),
-		"    on Ok r => Ok(vals = r.value)",
-		"    on Ok r => Ok(vals = r.value)\n    on m.boom e => Ok(vals = Bytes(Seq<int>[]))", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on m.boom e => Ok(Bytes(Seq<int>[]))", 1)
 	body = strings.Replace(body, "type M__Out rev 1 (",
 		"error m.boom(value: str)\n\ntype M__Out rev 1 (", 1)
 	// A stale arm is untaken by definition, so coverage co-fires;

@@ -14,10 +14,11 @@ package main
 // spelling, so it is reported: with params (left, right),
 // `f(right = 8)` is fine (reordered) but `f(left = 5)` must be
 // `f(5)`. Applies everywhere a positional spelling exists —
-// call args and test rows. Exempt by construction: Ok/error
-// constructions, seal payloads, and `given` exchange args,
-// which have no positional form (the parser refuses anything
-// else there, a12).
+// call args, test rows, and constructions (records, cases,
+// errors, provable Ok: a92). Exempt: seal payloads and `given`
+// exchange args, which have no positional form (the parser
+// refuses anything else there, a12); Ok without a provable
+// return record, whose slot names are uncheckable.
 //
 // Rule 2 — mergeable match arms (docs/a88-arm-minimization.md,
 // draft). Value matches only, one match at a time: arms with
@@ -215,11 +216,24 @@ func lintSigParams(mods []lintModule, cur, fname string) ([][2]string, bool) {
 func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 	lines := strings.Split(lm.text, "\n")
 	var out []lintFinding
-	report := func(line int, args []Arg, i int, owner string) {
+	report := func(line int, args []Arg, i int, owner, kind string, rhs bool) {
 		name := args[i].Name
+		// a92: a duplicated name is a fault for the checker,
+		// not a rewrite for the linter: removing one of two
+		// identical names never fixes the list, so neither
+		// occurrence is reported.
+		dups := 0
+		for _, b := range args {
+			if b.HasName && b.Name == name {
+				dups++
+			}
+		}
+		if dups > 1 {
+			return
+		}
 		f := lintFinding{file: lm.name, line: line, msg: fmt.Sprintf(
-			"redundant argument name %q (param %d of %s is %q); write positionally",
-			name, i+1, owner, name), code: CodeLintRedundant}
+			"redundant argument name %q (%s %d of %s is %q); write positionally",
+			name, kind, i+1, owner, name), code: CodeLintRedundant}
 		// Underline the name through its equals sign. same
 		// counts earlier same-named args, so duplicates and
 		// right-hand sides repeating the name never win.
@@ -231,8 +245,19 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 		}
 		if line >= 1 && line <= len(lines) {
 			code := lintCodePart(lines[line-1])
-			if ns, ne, ok := lintFindNameEq(code, name, same); ok {
-				f.start, f.end = u16col(code, ns), u16col(code, ne)
+			search, off := code, 0
+			if rhs {
+				// Expectations, arm right-hand sides, and
+				// outcomes live past their row arrow: start
+				// there so an identical name before the
+				// arrow never steals the span. No arrow
+				// (plain bodies) falls back to the whole line.
+				if sub, ok := splitArmRHS(code); ok {
+					search, off = sub, len(code)-len(sub)
+				}
+			}
+			if ns, ne, ok := lintFindNameEq(search, name, same); ok {
+				f.start, f.end = u16col(code, off+ns), u16col(code, off+ne)
 			}
 		}
 		out = append(out, f)
@@ -248,7 +273,7 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 					continue
 				}
 				if i < len(fn.Params) && fn.Params[i][0] == a.Name {
-					report(t.Line, t.Args, i, fn.Name)
+					report(t.Line, t.Args, i, fn.Name, "param", false)
 				}
 			}
 		}
@@ -262,7 +287,7 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 					continue
 				}
 				if i < len(params) && params[i][0] == a.Name {
-					report(line, s.Args, i, s.Fname)
+					report(line, s.Args, i, s.Fname, "param", false)
 				}
 			}
 		}
@@ -280,8 +305,242 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 				checkCall(s, line)
 			}
 		})
+		// a92: constructions. A top Ok resolves through the
+		// fn return record; records, cases, and errors
+		// through their decls. Nested values recurse with no
+		// Ok shape: only outermost Ok positions prove, so
+		// anything deeper keeps its names unflagged, never
+		// misflagged.
+		var checkCtorVal func(s *Small, line int, okRet string, rhs bool)
+		checkCtorVal = func(s *Small, line int, okRet string, rhs bool) {
+			if s == nil {
+				return
+			}
+			if s.Kind == "ctor" && s.Ctor == "Ok" {
+				if okFields, ok := lintOkFields(mods, lm.name, okRet); ok {
+					for i, a := range s.Args {
+						if !a.HasName {
+							continue
+						}
+						if i < len(okFields) && okFields[i][0] == a.Name {
+							report(line, s.Args, i, s.Ctor, "field", rhs)
+						}
+					}
+				}
+				for _, a := range s.Args {
+					checkCtorVal(a.V, line, "", rhs)
+				}
+				return
+			}
+			if s.Kind == "ctor" {
+				if fields, ok := lintCtorFields(mods, lm.name, s.Ctor); ok {
+					for i, a := range s.Args {
+						if !a.HasName {
+							continue
+						}
+						if i < len(fields) && fields[i][0] == a.Name {
+							report(line, s.Args, i, s.Ctor, "field", rhs)
+						}
+					}
+				}
+				for _, a := range s.Args {
+					checkCtorVal(a.V, line, "", rhs)
+				}
+				return
+			}
+			// Calls, binops, lists, exchanges: names here are
+			// call args (owned by the call pass), exchange
+			// args (grammar-mandated, exempt), or operators
+			// — never constructions. Recurse for nested
+			// values with no Ok shape.
+			for _, a := range s.Args {
+				checkCtorVal(a.V, line, "", rhs)
+			}
+			checkCtorVal(s.L, line, "", rhs)
+			checkCtorVal(s.R, line, "", rhs)
+			checkCtorVal(s.Hi, line, "", rhs)
+			for _, it := range s.Items {
+				checkCtorVal(it, line, "", rhs)
+			}
+			checkCtorVal(s.Outcome, line, "", rhs)
+		}
+		for _, t := range fn.Tests {
+			for _, a := range t.Args {
+				checkCtorVal(a.V, t.Line, "", false)
+			}
+			checkCtorVal(t.Expected, t.Line, fn.Ret, true)
+		}
+		lintTops(fn.Body, func(s *Small, line int) {
+			checkCtorVal(s, line, fn.Ret, true)
+		})
+		for _, m := range matchNodes(fn.Body) {
+			for _, sc := range m.Scruts {
+				checkCtorVal(sc, m.Line, "", false)
+			}
+			if m.Kind != MatchCall || m.Given == nil {
+				continue
+			}
+			ms := m.Scruts[0]
+			outRet := ""
+			if ret, ok := lintSigRet(mods, lm.name, ms.Fname); ok {
+				outRet = ret
+			}
+			for key, sm := range m.Given {
+				if sm == nil {
+					continue
+				}
+				line := locateLineFrom(lm.text, key+" =>", m.Line, m.Line)
+				items := []*Small{sm}
+				if sm.Kind == "list" {
+					items = sm.Items
+				}
+				for _, it := range items {
+					if it.Kind != "exchange" {
+						continue
+					}
+					checkCtorVal(it.Outcome, line, outRet, true)
+					for _, a := range it.Args {
+						checkCtorVal(a.V, line, "", false)
+					}
+				}
+			}
+		}
 	}
 	return out
+}
+
+// lintTops visits arm right-hand sides and plain expression
+// bodies at their top Small (bodySmalls without the deep
+// walk): the only body positions whose Ok proves.
+func lintTops(n *Node, f func(s *Small, line int)) {
+	var walk func(x *Node)
+	walk = func(x *Node) {
+		if x == nil {
+			return
+		}
+		if x.IsMatch {
+			for _, a := range x.Arms {
+				walk(a.Rhs)
+			}
+			return
+		}
+		f(x.Small, x.Line)
+	}
+	walk(n)
+}
+
+// lintSigRet resolves a callee's return for the construction
+// check: same discipline as lintSigParams, Ret instead of
+// Params.
+func lintSigRet(mods []lintModule, cur, fname string) (string, bool) {
+	for _, m := range mods {
+		if m.name != cur {
+			continue
+		}
+		for _, d := range m.mod.Decls {
+			if f, ok := d.(*FnDecl); ok && f.Name == fname {
+				return f.Ret, true
+			}
+		}
+		for _, d := range m.mod.Decls {
+			if e, ok := d.(*ExternDecl); ok && e.Name == fname {
+				return e.Ret, true
+			}
+		}
+	}
+	if k, ok := bytesKernels[fname]; ok {
+		return k.ret, true
+	}
+	var found string
+	n := 0
+	for _, m := range mods {
+		if m.name == cur {
+			continue
+		}
+		for _, d := range m.mod.Decls {
+			if f, ok := d.(*FnDecl); ok && f.Name == fname {
+				found = f.Ret
+				n++
+			}
+		}
+	}
+	if n == 1 {
+		return found, true
+	}
+	return "", false
+}
+
+// lintCtorFields resolves a constructor's field list: records
+// through their TypeDecl, variant cases through the qualified
+// case, dotted errors through their ErrorDecl. Own module
+// first, then a unique cross-module match — the lintSigParams
+// discipline. Ok and Bytes never resolve here: Ok wants its
+// return record (caller-supplied), Bytes takes no names.
+func lintCtorFields(mods []lintModule, cur, ctor string) ([][2]string, bool) {
+	if ctor == "Ok" || ctor == "Bytes" {
+		return nil, false
+	}
+	for _, m := range mods {
+		if m.name != cur {
+			continue
+		}
+		if f, ok := lintDeclFields(m.mod, ctor); ok {
+			return f, true
+		}
+	}
+	var found [][2]string
+	n := 0
+	for _, m := range mods {
+		if m.name == cur {
+			continue
+		}
+		if f, ok := lintDeclFields(m.mod, ctor); ok {
+			found = f
+			n++
+		}
+	}
+	if n == 1 {
+		return found, true
+	}
+	return nil, false
+}
+
+// lintOkFields resolves the provable Ok shape: the return
+// record's fields, or the scalar singleton `value` (a92).
+// Anything else (unknown, unresolvable) stays silent.
+func lintOkFields(mods []lintModule, cur, ret string) ([][2]string, bool) {
+	if ret == "" {
+		return nil, false
+	}
+	if fields, ok := lintCtorFields(mods, cur, ret); ok {
+		return fields, true
+	}
+	if ret == "int" || ret == "str" || ret == "bool" || ret == "dec" {
+		return [][2]string{{"value", ret}}, true
+	}
+	return nil, false
+}
+
+func lintDeclFields(m *Module, ctor string) ([][2]string, bool) {
+	for _, d := range m.Decls {
+		switch d := d.(type) {
+		case *TypeDecl:
+			if d.Name == ctor {
+				return d.Fields, true
+			}
+		case *VariantDecl:
+			for _, c := range d.Cases {
+				if qualifyCase(d.Name, c.Short) == ctor {
+					return c.Fields, true
+				}
+			}
+		case *ErrorDecl:
+			if d.Name == ctor {
+				return d.Fields, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // splitArmRHS cuts a match-arm row at the first => outside
@@ -1286,8 +1545,7 @@ func lintTableable(lm lintModule) []lintFinding {
 			if !foldable || key == "" {
 				continue
 			}
-			f := lintFinding{file: lm.name, line: m.Line, msg:
-				"nested matches share one scrutinee; fold into a multi-scrutinee table", code: CodeLintTable}
+			f := lintFinding{file: lm.name, line: m.Line, msg: "nested matches share one scrutinee; fold into a multi-scrutinee table", code: CodeLintTable}
 			// Underline the outer match head: the decision
 			// point the table replaces.
 			if s, e, ok := lintHeadSpan(lines, m.Line); ok {
@@ -1419,22 +1677,37 @@ func lintForwardable(lm lintModule, mods []lintModule) []lintFinding {
 				}
 				seen := map[string]bool{}
 				relay := true
-				for _, arg := range s.Args {
-					known := false
-					for _, f := range want {
-						if f == arg.Name {
-							known = true
+				for i, arg := range s.Args {
+					name := arg.Name
+					if !arg.HasName {
+						// a92: positional relays spell without
+						// names; the slot is the list index.
+						if i >= len(want) {
+							relay = false
+							break
+						}
+						name = want[i]
+					} else {
+						known := false
+						for _, f := range want {
+							if f == name {
+								known = true
+								break
+							}
+						}
+						if !known {
+							relay = false
 							break
 						}
 					}
-					if !arg.HasName || !known || seen[arg.Name] {
+					if seen[name] {
 						relay = false
 						break
 					}
-					seen[arg.Name] = true
+					seen[name] = true
 					v := arg.V
 					if v == nil || v.Kind != "ref" || len(v.Ref) != 2 ||
-						v.Ref[0] != pat.Var || v.Ref[1] != arg.Name {
+						v.Ref[0] != pat.Var || v.Ref[1] != name {
 						relay = false
 						break
 					}

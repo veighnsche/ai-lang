@@ -19,16 +19,16 @@ error chain.too_small(value: int)
 fn chain__is_big(value: int) -> Chain__Bool rev 1
   emits []
   tests
-    big(10) => Ok(value = true)
-    small(3) => Ok(value = false)
-  Ok(value = value > 5)
+    big(10) => Ok(true)
+    small(3) => Ok(false)
+  Ok(value > 5)
 
 fn chain__is_odd(value: int) -> Chain__Bool rev 1
   emits []
   tests
-    odd(3) => Ok(value = true)
-    even(4) => Ok(value = false)
-  Ok(value = value % 2 == 1)
+    odd(3) => Ok(true)
+    even(4) => Ok(false)
+  Ok(value % 2 == 1)
 
 type Chain__Bool rev 1 (
   value: bool
@@ -41,12 +41,12 @@ type Chain__Out rev 1 (
 fn chain__fail_if_small(value: int) -> Chain__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
-    small(3) => chain.too_small(value = 3)
+    big(10) => Ok(10)
+    small(3) => chain.too_small(3)
   match call chain__is_big(value)
     on Ok b => match b.value
-      true => Ok(value = value)
-      false => chain.too_small(value = value)
+      true => Ok(value)
+      false => chain.too_small(value)
 `
 
 func chainDiags(t *testing.T, body string) []Diag {
@@ -83,21 +83,21 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big_odd(11) => Ok(value = 11)
-    big_even(10) => chain.too_small(value = 10)
-    small(3) => chain.too_small(value = 3)
+    big_odd(11) => Ok(11)
+    big_even(10) => chain.too_small(10)
+    small(3) => chain.too_small(3)
   match chain
     call chain__is_big(value) as b when b.value
       given
-        big_odd => exchange args (value = 11) outcome Ok(value = true)
-        big_even => exchange args (value = 10) outcome Ok(value = true)
-        small => exchange args (value = 3) outcome Ok(value = false)
+        big_odd => exchange args (value = 11) outcome Ok(true)
+        big_even => exchange args (value = 10) outcome Ok(true)
+        small => exchange args (value = 3) outcome Ok(false)
     call chain__is_odd(value) as o when o.value
       given
-        big_odd => exchange args (value = 11) outcome Ok(value = true)
-        big_even => exchange args (value = 10) outcome Ok(value = false)
-    then Ok(value = value)
-    else chain.too_small(value = value)
+        big_odd => exchange args (value = 11) outcome Ok(true)
+        big_even => exchange args (value = 10) outcome Ok(false)
+    then Ok(value)
+    else chain.too_small(value)
 `
 	if errs := chainErrs(t, body); len(errs) != 0 {
 		t.Fatalf("expected clean chain, got %v", errs)
@@ -120,13 +120,13 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
+    big(10) => Ok(10)
   match chain
     call chain__is_big(value) as b when b.value
       given
-        big => exchange args (value = 10) outcome Ok(value = true)
-    then Ok(value = value)
-    else chain.too_small(value = value)
+        big => exchange args (value = 10) outcome Ok(true)
+    then Ok(value)
+    else chain.too_small(value)
 `
 	var taken []Diag
 	for _, d := range chainDiags(t, body) {
@@ -158,15 +158,15 @@ type Client__Out rev 1 (
 fn client__relay(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
-    small(3) => chain.too_small(value = 3)
+    big(10) => Ok(10)
+    small(3) => chain.too_small(3)
   match chain
     call chain__fail_if_small(value) as r
       given
-        big => exchange args (value = 10) outcome Ok(value = 10)
-        small => exchange args (value = 3) outcome chain.too_small(value = 3)
-    then Ok(value = r.value)
-    else chain.too_small(value = value)
+        big => exchange args (value = 10) outcome Ok(10)
+        small => exchange args (value = 3) outcome chain.too_small(3)
+    then Ok(r.value)
+    else chain.too_small(value)
 `
 	if errs := chainErrs(t, body); len(errs) != 0 {
 		t.Fatalf("expected clean emitting chain, got %v", errs)
@@ -189,11 +189,11 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
+    big(10) => Ok(10)
   match chain
     call chain__is_big(value) as b when call chain__is_big(value = value)
-    then Ok(value = value)
-    else chain.too_small(value = value)
+    then Ok(value)
+    else chain.too_small(value)
 `
 	errs := chainErrs(t, body)
 	if len(errs) == 0 || !hasDiag(errs, "error", "cannot call") {
@@ -216,11 +216,11 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
+    big(10) => Ok(10)
   match chain
     call chain__is_big(value) as _ when true
-    then Ok(value = value)
-    else chain.too_small(value = value)
+    then Ok(value)
+    else chain.too_small(value)
 `
 	errs := chainErrs(t, body)
 	if len(errs) == 0 || !hasDiag(errs, "error", "named binder") {
@@ -235,8 +235,8 @@ func TestChainMissingClauses(t *testing.T) {
 		name string
 		tail string
 	}{
-		{"no then", "    else chain.too_small(value = value)\n"},
-		{"no else", "    then Ok(value = value)\n"},
+		{"no then", "    else chain.too_small(value)\n"},
+		{"no else", "    then Ok(value)\n"},
 	} {
 		body := `mod client
   provides [client__check, Client__Out]
@@ -250,7 +250,7 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
+    big(10) => Ok(10)
   match chain
     call chain__is_big(value) as b when b.value
 ` + tc.tail
@@ -279,15 +279,15 @@ type Client__Out rev 1 (
 fn client__check(value: int) -> Client__Out rev 1
   emits [chain.too_small]
   tests
-    big(10) => Ok(value = 10)
-    small(3) => chain.too_small(value = 3)
+    big(10) => Ok(10)
+    small(3) => chain.too_small(3)
   match chain
     call chain__is_big(value) as b when b.value
       given
-        big => exchange args (value = 10) outcome Ok(value = true)
-        small => exchange args (value = 3) outcome Ok(value = false)
-    then Ok(value = value)
-    else chain.too_small(value = value)
+        big => exchange args (value = 10) outcome Ok(true)
+        small => exchange args (value = 3) outcome Ok(false)
+    then Ok(value)
+    else chain.too_small(value)
 `
 	if errs := chainErrs(t, body); len(errs) != 0 {
 		t.Fatalf("expected scripted chain to pass clean, got %v", errs)
@@ -310,11 +310,11 @@ type Client__Out rev 1 (
 fn client__check(chain: bool) -> Client__Out rev 1
   emits []
   tests
-    yes(true) => Ok(value = 1)
-    no(false) => Ok(value = 0)
+    yes(true) => Ok(1)
+    no(false) => Ok(0)
   match chain
-    true => Ok(value = 1)
-    false => Ok(value = 0)
+    true => Ok(1)
+    false => Ok(0)
 `
 	files := map[string]string{"client.can": client}
 	dir := writeLSPDir(t, files)

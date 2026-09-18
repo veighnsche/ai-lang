@@ -25,19 +25,19 @@ func TestBytesB9ForeignCaller(t *testing.T) {
 fn client__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(Bytes(Seq<int>[])) => Ok(value = "")
-    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
-    lower(Bytes(Seq<int>[171])) => Ok(value = "ab")
-    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
-    notext(Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
+    empty(Bytes(Seq<int>[])) => Ok("")
+    ff(Bytes(Seq<int>[255])) => Ok("ff")
+    lower(Bytes(Seq<int>[171])) => Ok("ab")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok("deadbeef")
+    notext(Bytes(Seq<int>[65, 66])) => Ok("4142")
   match call std__hex__encode(value)
     given
-      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = "")]
-      ff => [exchange args (value = Bytes(Seq<int>[255])) outcome Ok(value = "ff")]
-      lower => [exchange args (value = Bytes(Seq<int>[171])) outcome Ok(value = "ab")]
-      ordered => [exchange args (value = Bytes(Seq<int>[222, 173, 190, 239])) outcome Ok(value = "deadbeef")]
-      notext => [exchange args (value = Bytes(Seq<int>[65, 66])) outcome Ok(value = "4142")]
-    on Ok r => Ok(value = r.value)
+      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok("")]
+      ff => [exchange args (value = Bytes(Seq<int>[255])) outcome Ok("ff")]
+      lower => [exchange args (value = Bytes(Seq<int>[171])) outcome Ok("ab")]
+      ordered => [exchange args (value = Bytes(Seq<int>[222, 173, 190, 239])) outcome Ok("deadbeef")]
+      notext => [exchange args (value = Bytes(Seq<int>[65, 66])) outcome Ok("4142")]
+    on Ok r => Ok(r.value)
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)

@@ -30,23 +30,23 @@ func TestBytesB15ForeignCaller(t *testing.T) {
 fn client__go(value: str) -> Bytes__Value rev 1
   emits [encoding.invalid_base64]
   tests
-    empty("") => Ok(value = Bytes(Seq<int>[]))
-    one("QQ==") => Ok(value = Bytes(Seq<int>[65]))
-    nul("AA==") => Ok(value = Bytes(Seq<int>[0]))
-    ab("QUI=") => Ok(value = Bytes(Seq<int>[65, 66]))
-    ordered("3q2+7w==") => Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))
+    empty("") => Ok(Bytes(Seq<int>[]))
+    one("QQ==") => Ok(Bytes(Seq<int>[65]))
+    nul("AA==") => Ok(Bytes(Seq<int>[0]))
+    ab("QUI=") => Ok(Bytes(Seq<int>[65, 66]))
+    ordered("3q2+7w==") => Ok(Bytes(Seq<int>[222, 173, 190, 239]))
     odd("QUI") => encoding.invalid_base64(value = "QUI")
     nonascii("é===") => encoding.invalid_base64(value = "é===")
   match call std__base64__decode(value)
     given
-      empty => [exchange args (value = "") outcome Ok(value = Bytes(Seq<int>[]))]
-      one => [exchange args (value = "QQ==") outcome Ok(value = Bytes(Seq<int>[65]))]
-      nul => [exchange args (value = "AA==") outcome Ok(value = Bytes(Seq<int>[0]))]
-      ab => [exchange args (value = "QUI=") outcome Ok(value = Bytes(Seq<int>[65, 66]))]
-      ordered => [exchange args (value = "3q2+7w==") outcome Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))]
+      empty => [exchange args (value = "") outcome Ok(Bytes(Seq<int>[]))]
+      one => [exchange args (value = "QQ==") outcome Ok(Bytes(Seq<int>[65]))]
+      nul => [exchange args (value = "AA==") outcome Ok(Bytes(Seq<int>[0]))]
+      ab => [exchange args (value = "QUI=") outcome Ok(Bytes(Seq<int>[65, 66]))]
+      ordered => [exchange args (value = "3q2+7w==") outcome Ok(Bytes(Seq<int>[222, 173, 190, 239]))]
       odd => [exchange args (value = "QUI") outcome encoding.invalid_base64(value = "QUI")]
       nonascii => [exchange args (value = "é===") outcome encoding.invalid_base64(value = "é===")]
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on encoding.invalid_base64 e => forward e
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
@@ -69,37 +69,37 @@ func TestBytesB15RoundTrip(t *testing.T) {
 fn text__probe__rt_utf8(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_utf8]
   tests
-    rt("Aé") => Ok(value = "Aé")
+    rt("Aé") => Ok("Aé")
   match call std__utf8__encode(value)
     on Ok b => match call std__utf8__decode(b.value)
-      on Ok t => Ok(value = t.value)
+      on Ok t => Ok(t.value)
       on encoding.invalid_utf8 e => forward e
 
 fn text__probe__rt_hex(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    rt("deadbeef") => Ok(value = "deadbeef")
+    rt("deadbeef") => Ok("deadbeef")
   match call std__hex__decode(value)
     on Ok b => match call std__hex__encode(b.value)
-      on Ok t => Ok(value = t.value)
+      on Ok t => Ok(t.value)
     on encoding.invalid_hex e => forward e
 
 fn text__probe__rt_b64(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64]
   tests
-    rt("3q2+7w==") => Ok(value = "3q2+7w==")
+    rt("3q2+7w==") => Ok("3q2+7w==")
   match call std__base64__decode(value)
     on Ok b => match call std__base64__encode(b.value)
-      on Ok t => Ok(value = t.value)
+      on Ok t => Ok(t.value)
     on encoding.invalid_base64 e => forward e
 
 fn text__probe__cross(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_base64]
   tests
-    cross("3q2+7w==") => Ok(value = "deadbeef")
+    cross("3q2+7w==") => Ok("deadbeef")
   match call std__base64__decode(value)
     on Ok b => match call std__hex__encode(b.value)
-      on Ok t => Ok(value = t.value)
+      on Ok t => Ok(t.value)
     on encoding.invalid_base64 e => forward e
 `
 	copy := strings.Replace(string(raw),

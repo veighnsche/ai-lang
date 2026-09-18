@@ -34,9 +34,9 @@ type Client__Result rev 1 (
 fn client__pass(state: Model__State) -> Client__Result rev 1
   emits []
   tests
-    ready(Model__Ready()) => Ok(state = Model__Ready())
-    waiting(Model__Waiting()) => Ok(state = Model__Waiting())
-  Ok(state = state)
+    ready(Model__Ready()) => Ok(Model__Ready())
+    waiting(Model__Waiting()) => Ok(Model__Waiting())
+  Ok(state)
 `
 
 func revisionFiles(model, client string) map[string]string {
@@ -147,8 +147,8 @@ fn m__go(left: int, right: int) -> M__Out rev 1
     // Named on purpose: the param-reorder mutant below must not
     // change test binding, so the fingerprint (not the tables)
     // carries the difference.
-    go(left = 1, right = 2) => Ok(value = 1)
-  Ok(value = left)
+    go(left = 1, right = 2) => Ok(1)
+  Ok(left)
 `
 	muts := map[string]string{
 		"param reorder": strings.Replace(base, "(left: int, right: int)", "(right: int, left: int)", 1),
@@ -165,7 +165,7 @@ fn m__go(left: int, right: int) -> M__Out rev 1
 	}
 	for name, mut := range muts {
 		if name == "emits" {
-			mut = "mod m\n  provides [m__go, M__Out]\n  uses []\n  emits [m.oops]\n\nerror m.oops(value: int)\n\ntype M__Out rev 1 (\n  value: int\n)\n\nfn m__go(left: int, right: int) -> M__Out rev 1\n  emits [m.oops]\n  requires\n    true\n  tests\n    go(left = 1, right = 2) => Ok(value = 1)\n  Ok(value = left)\n"
+			mut = "mod m\n  provides [m__go, M__Out]\n  uses []\n  emits [m.oops]\n\nerror m.oops(value: int)\n\ntype M__Out rev 1 (\n  value: int\n)\n\nfn m__go(left: int, right: int) -> M__Out rev 1\n  emits [m.oops]\n  requires\n    true\n  tests\n    go(left = 1, right = 2) => Ok(1)\n  Ok(left)\n"
 		}
 		files := map[string]string{"m.can": mut}
 		prog, _ := revisionProg(t, files, []string{"m.can"})
@@ -203,8 +203,8 @@ func TestRevisionIdentityCommentsSilent(t *testing.T) {
 	base := revisionBaseline(t, progB, "review-base:B")
 	modelC := "// a comment\n" + revisionModelB
 	clientC := strings.Replace(revisionClientB,
-		"    waiting(state = Model__Waiting()) => Ok(state = Model__Waiting())",
-		"    waiting(state = Model__Waiting()) => Ok(state = Model__Waiting())\n    waiting2(state = Model__Waiting()) => Ok(state = Model__Waiting())", 1)
+		"    waiting(state = Model__Waiting()) => Ok(Model__Waiting())",
+		"    waiting(state = Model__Waiting()) => Ok(Model__Waiting())\n    waiting2(state = Model__Waiting()) => Ok(Model__Waiting())", 1)
 	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.can", "client.can"})
 	if diags := CheckRevisionIdentity(progC, textsC, base); len(diags) != 0 {
 		t.Fatalf("expected no identity findings, got %v", diags)
@@ -237,11 +237,11 @@ type Client__Result rev 1 (
 fn client__pick(state: Model__State) -> Client__Result rev 1
   emits []
   tests
-    ready(Model__Ready()) => Ok(ready = true)
-    waiting(Model__Waiting()) => Ok(ready = false)
+    ready(Model__Ready()) => Ok(true)
+    waiting(Model__Waiting()) => Ok(false)
   match state
-    on Model__Ready _ => Ok(ready = true)
-    on Model__Waiting _ => Ok(ready = false)
+    on Model__Ready _ => Ok(true)
+    on Model__Waiting _ => Ok(false)
 `
 	files := revisionFiles(modelB, clientB)
 	progB, _ := revisionProg(t, files, []string{"model.can", "client.can"})
@@ -249,11 +249,11 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
 	modelC := strings.Replace(modelB,
 		"  case Waiting()\n)", "  case Waiting()\n  case Expired()\n)", 1)
 	clientC := strings.Replace(clientB,
-		"    on Model__Waiting _ => Ok(ready = false)",
-		"    on Model__Waiting _ => Ok(ready = false)\n    on Model__Expired _ => Ok(ready = false)", 1)
+		"    on Model__Waiting _ => Ok(false)",
+		"    on Model__Waiting _ => Ok(false)\n    on Model__Expired _ => Ok(false)", 1)
 	clientC = strings.Replace(clientC,
-		"    waiting(Model__Waiting()) => Ok(ready = false)",
-		"    waiting(Model__Waiting()) => Ok(ready = false)\n    expired(state = Model__Expired()) => Ok(ready = false)", 1)
+		"    waiting(Model__Waiting()) => Ok(false)",
+		"    waiting(Model__Waiting()) => Ok(false)\n    expired(state = Model__Expired()) => Ok(false)", 1)
 	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.can", "client.can"})
 	diags := CheckRevisionIdentity(progC, textsC, base)
 	if !hasCode(diags, "CAN6013") {
@@ -290,11 +290,11 @@ type Client__Result rev 1 (
 fn client__pick(state: Model__State) -> Client__Result rev 1
   emits []
   tests
-    ready(Model__Ready()) => Ok(ready = true)
-    waiting(Model__Waiting()) => Ok(ready = false)
+    ready(Model__Ready()) => Ok(true)
+    waiting(Model__Waiting()) => Ok(false)
   match state
-    on Model__Ready _ => Ok(ready = true)
-    on Model__Waiting _ => Ok(ready = false)
+    on Model__Ready _ => Ok(true)
+    on Model__Waiting _ => Ok(false)
 `
 	modelC := strings.Replace(modelB,
 		"  case Waiting()\n)", "  case Waiting()\n  case Expired()\n)", 1)
@@ -377,11 +377,11 @@ fn m__max(left: int, right: int) -> M__Out rev 1
   requires
     left >= right
   tests
-    ordered(2, 1) => Ok(value = 2)
-    reversed(1, 2) => Ok(value = 2)
+    ordered(2, 1) => Ok(2)
+    reversed(1, 2) => Ok(2)
   match left <= right
-    on true => Ok(value = right)
-    on false => Ok(value = left)
+    on true => Ok(right)
+    on false => Ok(left)
 `
 	files := map[string]string{"m.can": modB}
 	progB, _ := revisionProg(t, files, []string{"m.can"})

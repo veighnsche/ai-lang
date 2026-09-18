@@ -74,8 +74,8 @@ type M__Out rev 1 (
 fn m__div(a: dec, b: dec) -> M__Out rev 1
   emits []
   tests
-    t(d"1.0", d"2.0") => Ok(q = d"0.5")
-  Ok(q = a / b)
+    t(d"1.0", d"2.0") => Ok(d"0.5")
+  Ok(a / b)
 `
 
 func TestDecDivisionRefused(t *testing.T) {
@@ -96,7 +96,7 @@ func TestDecDivisionRefused(t *testing.T) {
 }
 
 func TestDecRemainderRefused(t *testing.T) {
-	bad := strings.Replace(typeDivDec, "Ok(q = a / b)", "Ok(q = a % b)", 1)
+	bad := strings.Replace(typeDivDec, "Ok(a / b)", "Ok(a % b)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "has no exact result") {
@@ -135,6 +135,6 @@ type M__Out rev 1 (
 fn m__div(a: int) -> M__Out rev 1
   emits []
   tests
-    t(7) => Ok(q = 2)
-  Ok(q = a / 3)
+    t(7) => Ok(2)
+  Ok(a / 3)
 `

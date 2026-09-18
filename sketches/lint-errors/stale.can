@@ -22,15 +22,15 @@ extern net__fetch() -> Stale__Doc rev 1
 fn stale__go() -> Stale__Doc rev 1
   emits [stale.empty]
   tests
-    ok() => Ok(body = "hi")
+    ok() => Ok("hi")
     down() => stale.empty()
   match call net__fetch()
     given
-      ok => [exchange args () outcome Ok(body = "hi")]
+      ok => [exchange args () outcome Ok("hi")]
       down => [exchange args () outcome net.down()]
       solo => [exchange args () outcome net.down()]
     on net.down _ => stale.empty()
-    on Ok d => Ok(body = d.body)
+    on Ok d => Ok(d.body)
 
 fn stale__other() -> Stale__Doc rev 1
   emits [stale.empty]

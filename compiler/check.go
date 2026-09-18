@@ -1053,6 +1053,24 @@ func contradictScriptOk(callee *FnDecl, item *Small, test string, prog *Program)
 	if err != nil {
 		return "", "", false
 	}
+	// a92: the callee's file may never see the checker
+	// (diagnose visits the open file only), so its body and
+	// scripts bind here, bind-only — the same mutation
+	// checkTypes owns. Faults stay with the callee's own
+	// diagnosis; the sandbox evaluates what binding
+	// resolved. Idempotent: checked trees keep their names.
+	bc := newTycker(prog, "", callee.Name)
+	benv := map[string]string{}
+	for _, p := range callee.Params {
+		benv[p[0]] = p[1]
+	}
+	bret := ""
+	if bc.knownType(callee.Ret) {
+		bret = callee.Ret
+	}
+	bc.exec = true
+	bc.node(callee.Body, benv, bret)
+	bc.checkStubs(callee, "", benv)
 	argVals := map[string]*Value{}
 	for _, a := range item.Args {
 		v, err := evSmall(a.V, map[string]*Value{}, sandbox, callee.Name)

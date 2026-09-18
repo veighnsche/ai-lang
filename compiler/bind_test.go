@@ -68,15 +68,15 @@ type Audit__Value rev 1 (
 fn audit__subtract(left: int, right: int) -> Audit__Value rev 1
   emits []
   tests
-    s(9, 2) => Ok(value = 7)
-  Ok(value = left - right)
+    s(9, 2) => Ok(7)
+  Ok(left - right)
 
 fn audit__go() -> Audit__Value rev 1
   emits []
   tests
-    g() => Ok(value = 7)
+    g() => Ok(7)
   match call audit__subtract(right = 2, left = 9)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 
 func TestBindReorderedCallEvaluates(t *testing.T) {
@@ -132,6 +132,56 @@ func TestBindBadVectorIsCAN3010(t *testing.T) {
 	}
 	if !hasCode(diags, "CAN3010") {
 		t.Fatalf("expected CAN3010, got %v", diags)
+	}
+}
+
+// Untyped contexts (given tables, test expectations, linked expect
+// strings) evaluate raw, so evaluation names positional constructor
+// args from declaration order: the same rule as the static check,
+// minus named verification (unknown or missing fields stay with the
+// caller) and minus completeness (Ok() stays the empty ok dict).
+func TestBindCtorArgs(t *testing.T) {
+	lit := func() *Small { return &Small{Kind: "int"} }
+	cases := []struct {
+		name   string
+		ctor   string
+		fields []string
+		args   []Arg
+		want   []string
+		fail   string
+	}{
+		{"positional", "R", []string{"a", "b"}, []Arg{{V: lit()}, {V: lit()}}, []string{"a", "b"}, ""},
+		{"named kept", "R", []string{"a", "b"}, []Arg{{Name: "b", HasName: true, V: lit()}, {Name: "a", HasName: true, V: lit()}}, []string{"b", "a"}, ""},
+		{"mixed consistent", "R", []string{"a", "b"}, []Arg{{V: lit()}, {Name: "b", HasName: true, V: lit()}}, []string{"a", "b"}, ""},
+		{"ok singleton", "Ok", []string{"value"}, []Arg{{V: lit()}}, []string{"value"}, ""},
+		{"ok named kept", "Ok", []string{"value"}, []Arg{{Name: "value", HasName: true, V: lit()}}, []string{"value"}, ""},
+		{"ok empty", "Ok", []string{"value"}, nil, []string{}, ""},
+		{"partial kept", "R", []string{"a", "b"}, []Arg{{V: lit()}}, []string{"a"}, ""},
+		{"positional overflow", "R", []string{"a"}, []Arg{{V: lit()}, {V: lit()}}, nil, "takes 2 args for 1 fields"},
+		{"ok overflow", "Ok", []string{"value"}, []Arg{{V: lit()}, {V: lit()}}, nil, "takes 2 args for 1 fields"},
+		{"mixed double supply", "R", []string{"a", "b"}, []Arg{{V: lit()}, {Name: "a", HasName: true, V: lit()}}, nil, "supplies field a twice"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := bindCtorArgs(tc.ctor, tc.args, tc.fields)
+			if tc.fail == "" {
+				if err != nil {
+					t.Fatalf("bindCtorArgs: %v", err)
+				}
+				if len(got) != len(tc.want) {
+					t.Fatalf("names = %v, want %v", got, tc.want)
+				}
+				for i := range got {
+					if got[i] != tc.want[i] {
+						t.Fatalf("names = %v, want %v", got, tc.want)
+					}
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.fail) {
+				t.Fatalf("bindCtorArgs err = %v, want %q", err, tc.fail)
+			}
+		})
 	}
 }
 

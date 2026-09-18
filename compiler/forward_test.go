@@ -28,19 +28,19 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits [m.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => m.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => m.bad("b")
   match v == "b"
-    true => m.bad(value = v)
-    false => Ok(value = v)
+    true => m.bad(v)
+    false => Ok(v)
 `
 
 const forwardGoHead = `
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => m.bad(value = "b")
+    ok("a") => Ok("a")
+    bad("b") => m.bad("b")
   match call m__work(x)
 `
 
@@ -49,7 +49,7 @@ fn m__go(x: str) -> M__Out rev 1
 // reconstruction.
 func TestForwardErrorElaborates(t *testing.T) {
 	src := forwardLib + forwardGoHead + `    on m.bad e => forward e
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -60,7 +60,7 @@ func TestForwardErrorElaborates(t *testing.T) {
 // TestForwardOkElaborates pins the Ok rewrite: same field set on
 // both records reconstructs explicitly.
 func TestForwardOkElaborates(t *testing.T) {
-	src := forwardLib + forwardGoHead + `    on m.bad e => m.bad(value = e.value)
+	src := forwardLib + forwardGoHead + `    on m.bad e => m.bad(e.value)
     on Ok r => forward r
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -92,11 +92,11 @@ func TestForwardRejects(t *testing.T) {
 		"on m.bad e => forward x",
 		"on m.bad e => forward e.value",
 		"on m.bad e => forward",
-		"on m.bad e => forward m.bad(value = e.value)",
+		"on m.bad e => forward m.bad(e.value)",
 		"on m.bad _ => forward _",
 	}
 	for _, arm := range badArm {
-		src := forwardLib + forwardGoHead + "    " + arm + "\n    on Ok r => Ok(value = r.value)\n"
+		src := forwardLib + forwardGoHead + "    " + arm + "\n    on Ok r => Ok(r.value)\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN3011") {
 			t.Fatalf("%q reported no CAN3011: %v", arm, diags)
@@ -114,11 +114,11 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = "yes")
-    two(2) => Ok(value = "no")
+    one(1) => Ok("yes")
+    two(2) => Ok("no")
   match x <= 1
     true => forward x
-    false => Ok(value = "no")
+    false => Ok("no")
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": valueMatch})
 	if diags := diagnose(dir, "m.can", valueMatch); !hasCode(diags, "CAN3011") {
@@ -145,16 +145,16 @@ type M__Work rev 1 (
 fn m__work(v: str) -> M__Work rev 1
   emits []
   tests
-    w("x") => Ok(value = "x")
-  Ok(value = v)
+    w("x") => Ok("x")
+  Ok(v)
 
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(other = "a")
+    ok("a") => Ok("a")
   match call m__work(x)
     given
-      ok => [Ok(value = "a")]
+      ok => [Ok("a")]
     on Ok r => forward r
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -179,7 +179,7 @@ type M__Out rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match call nope__missing(x)
     on Ok r => forward r
 `
@@ -211,10 +211,10 @@ type M__Work rev 1 (
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match call ex__work(x)
     given
-      ok => [exchange args (v = "a") outcome Ok(value = "a")]
+      ok => [exchange args (v = "a") outcome Ok("a")]
     on Ok r => forward r
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -231,11 +231,11 @@ func TestForwardSameEmitsCheck(t *testing.T) {
 fn m__go(x: str) -> M__Out rev 1
   emits []
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => m.bad(value = "b")
+    ok("a") => Ok("a")
+    bad("b") => m.bad("b")
   match call m__work(x)
     on m.bad e => forward e
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4001") {
@@ -251,10 +251,10 @@ func TestForwardCertificate(t *testing.T) {
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match call m__work(x)
     on m.bad e => forward e
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -269,9 +269,9 @@ func TestForwardOkUntaken(t *testing.T) {
 fn m__go(x: str) -> M__Out rev 1
   emits [m.bad]
   tests
-    bad("b") => m.bad(value = "b")
+    bad("b") => m.bad("b")
   match call m__work(x)
-    on m.bad e => m.bad(value = e.value)
+    on m.bad e => m.bad(e.value)
     on Ok r => forward r
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
@@ -298,8 +298,8 @@ type L__Work rev 1 (
 fn lib__work(v: str) -> L__Work rev 1
   emits [lib.bad]
   tests
-    w("x") => Ok(value = "x")
-  Ok(value = v)
+    w("x") => Ok("x")
+  Ok(v)
 `
 	app := `mod app
   provides [app__go, A__Out]
@@ -313,12 +313,12 @@ type A__Out rev 1 (
 fn app__go(x: str) -> A__Out rev 1
   emits [lib.bad]
   tests
-    ok("a") => Ok(value = "a")
+    ok("a") => Ok("a")
   match call lib__work(x)
     given
-      ok => [exchange args (v = "a") outcome Ok(value = "a")]
+      ok => [exchange args (v = "a") outcome Ok("a")]
     on lib.bad e => forward e
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
 	if diags := diagnose(dir, "app.can", app); !hasCode(diags, "CAN4107") {
@@ -334,7 +334,9 @@ func TestForwardTrapStaysManual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), "on html.nul_byte e => html.nul_byte(value = value)") {
+	// a92: the manual spelling is positional now; the guard
+	// stays the same, the arm reconstructs (never forward e).
+	if !strings.Contains(string(raw), "on html.nul_byte e => html.nul_byte(value)") {
 		t.Fatalf("trap arm left its manual shape")
 	}
 }
@@ -362,20 +364,20 @@ type M__Mid rev 1 (
 fn m__check(v: str, tag: str) -> M__Mid rev 1
   emits [m.dirty]
   tests
-    clean("a", "t") => Ok(clean = "a")
-    dirty("a", "bad") => m.dirty(value = "CALLEE")
+    clean("a", "t") => Ok("a")
+    dirty("a", "bad") => m.dirty("CALLEE")
   match tag == "bad"
-    true => m.dirty(value = "CALLEE")
-    false => Ok(clean = v)
+    true => m.dirty("CALLEE")
+    false => Ok(v)
 
 fn m__go(value: str, tag: str) -> M__Out rev 1
   emits [m.dirty]
   tests
-    hit("a-b", "bad") => m.dirty(value = "a-b")
-    pass("a", "t") => Ok(value = "a")
+    hit("a-b", "bad") => m.dirty("a-b")
+    pass("a", "t") => Ok("a")
   match call m__check(value, tag)
-    on m.dirty e => m.dirty(value = value)
-    on Ok c => Ok(value = c.clean)
+    on m.dirty e => m.dirty(value)
+    on Ok c => Ok(c.clean)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {

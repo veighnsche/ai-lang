@@ -30,25 +30,25 @@ func TestBoolBasic(t *testing.T) {
 	src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    tt(true, true) => Ok(value = true)
-    tf(true, false) => Ok(value = false)
-    ft(false, true) => Ok(value = false)
-    ff(false, false) => Ok(value = false)
-  Ok(value = left and right)
+    tt(true, true) => Ok(true)
+    tf(true, false) => Ok(false)
+    ft(false, true) => Ok(false)
+    ff(false, false) => Ok(false)
+  Ok(left and right)
 ` + `fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    tt(true, true) => Ok(value = true)
-    tf(true, false) => Ok(value = true)
-    ft(false, true) => Ok(value = true)
-    ff(false, false) => Ok(value = false)
-  Ok(value = left or right)
+    tt(true, true) => Ok(true)
+    tf(true, false) => Ok(true)
+    ft(false, true) => Ok(true)
+    ff(false, false) => Ok(false)
+  Ok(left or right)
 ` + `fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
-    t(true) => Ok(value = false)
-    f(false) => Ok(value = true)
-  Ok(value = not x)
+    t(true) => Ok(false)
+    f(false) => Ok(true)
+  Ok(not x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -72,14 +72,14 @@ type M__Out rev 1 (
 fn m__go(a: bool, b: bool, c: bool) -> M__Out rev 1
   emits []
   tests
-    row(false, false, false) => Ok(value = false)
-    row2(true, false, true) => Ok(value = true)
-  Ok(value = not a == b and c)
+    row(false, false, false) => Ok(false)
+    row2(true, false, true) => Ok(true)
+  Ok(not a == b and c)
 ` + `fn m__or2(a: bool, b: bool, c: bool) -> M__Out rev 1
   emits []
   tests
-    row(true, true, false) => Ok(value = true)
-  Ok(value = a or b and c)
+    row(true, true, false) => Ok(true)
+  Ok(a or b and c)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -91,15 +91,15 @@ fn m__go(a: bool, b: bool, c: bool) -> M__Out rev 1
 // are CAN6003, never truthy.
 func TestBoolOperandTypes(t *testing.T) {
 	for _, body := range []string{
-		"Ok(value = 1 and right)",
-		"Ok(value = left and 1)",
-		"Ok(value = not 1)",
-		"Ok(value = left or 1)",
+		"Ok(1 and right)",
+		"Ok(left and 1)",
+		"Ok(not 1)",
+		"Ok(left or 1)",
 	} {
 		src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(true, true) => Ok(value = true)
+    go(true, true) => Ok(true)
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6003") {
@@ -123,13 +123,13 @@ type M__Out rev 1 (
 fn m__flag() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(value = true)
-  Ok(value = true)
+    go() => Ok(true)
+  Ok(true)
 ` + `fn m__go(left: bool) -> M__Out rev 1
   emits []
   tests
-    go(true) => Ok(value = true)
-  Ok(value = left and call m__flag())
+    go(true) => Ok(true)
+  Ok(left and call m__flag())
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN3003") {
@@ -141,14 +141,14 @@ fn m__flag() -> M__Out rev 1
 // and ! stay parse errors.
 func TestBoolSymbolsRejected(t *testing.T) {
 	for _, body := range []string{
-		"Ok(value = left && right)",
-		"Ok(value = left || right)",
-		"Ok(value = !left)",
+		"Ok(left && right)",
+		"Ok(left || right)",
+		"Ok(!left)",
 	} {
 		src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(true, true) => Ok(value = true)
+    go(true, true) => Ok(true)
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasError(diags) {
@@ -162,13 +162,13 @@ func TestBoolSymbolsRejected(t *testing.T) {
 // boolean or a typed outcome.
 func TestBoolEagerFault(t *testing.T) {
 	for _, body := range []string{
-		"Ok(value = false and ((1 / 0) == 0))",
-		"Ok(value = true or ((1 / 0) == 0))",
+		"Ok(false and ((1 / 0) == 0))",
+		"Ok(true or ((1 / 0) == 0))",
 	} {
 		src := boolLib + `fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(value = false)
+    go() => Ok(false)
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4200") {
@@ -184,18 +184,18 @@ func TestBoolEmitHelpers(t *testing.T) {
 	src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true, right = true) => Ok(value = true)
-  Ok(value = left and right)
+    go(left = true, right = true) => Ok(true)
+  Ok(left and right)
 ` + `fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(true, true) => Ok(value = true)
-  Ok(value = left or right)
+    go(true, true) => Ok(true)
+  Ok(left or right)
 ` + `fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
-    go(true) => Ok(value = false)
-  Ok(value = not x)
+    go(true) => Ok(false)
+  Ok(not x)
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
@@ -227,8 +227,8 @@ type M__Out rev 1 (
 fn m__go(left: bool) -> M__Out rev 1
   emits []
   tests
-    go(left = true) => Ok(value = true)
-  Ok(value = left)
+    go(left = true) => Ok(true)
+  Ok(left)
 `
 	dir2 := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir2, "m.can"), []byte(plain), 0o644); err != nil {
@@ -269,27 +269,27 @@ type M__Out rev 1 (
 fn m__and(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(true, true) => Ok(value = true)
-  Ok(value = left and right)
+    go(true, true) => Ok(true)
+  Ok(left and right)
 
 fn m__or(left: bool, right: bool) -> M__Out rev 1
   emits []
   tests
-    go(true, true) => Ok(value = true)
-  Ok(value = left or right)
+    go(true, true) => Ok(true)
+  Ok(left or right)
 
 fn m__not(x: bool) -> M__Out rev 1
   emits []
   tests
-    go(true) => Ok(value = false)
-  Ok(value = not x)
+    go(true) => Ok(false)
+  Ok(not x)
 
 fn m__eager(x: int) -> M__Out rev 1
   emits []
   tests
-    big(200) => Ok(value = false)
-    small(50) => Ok(value = false)
-  Ok(value = (x > 100) and ((10 / x) > 1))
+    big(200) => Ok(false)
+    small(50) => Ok(false)
+  Ok((x > 100) and ((10 / x) > 1))
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {

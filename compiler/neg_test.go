@@ -31,18 +31,18 @@ type M__Dec rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    pos(3) => Ok(value = -3)
-    neg(-3) => Ok(value = 3)
-    zero(0) => Ok(value = 0)
-  Ok(value = -x)
+    pos(3) => Ok(-3)
+    neg(-3) => Ok(3)
+    zero(0) => Ok(0)
+  Ok(-x)
 
 fn m__dec(x: dec) -> M__Dec rev 1
   emits []
   tests
-    pos(d"1.5") => Ok(value = d"-1.5")
-    neg(d"-1.5") => Ok(value = d"1.5")
-    zero(d"0.0") => Ok(value = d"0.0")
-  Ok(value = -x)
+    pos(d"1.5") => Ok(d"-1.5")
+    neg(d"-1.5") => Ok(d"1.5")
+    zero(d"0.0") => Ok(d"0.0")
+  Ok(-x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -65,14 +65,14 @@ type M__Out rev 1 (
 fn m__go(a: int, b: int) -> M__Out rev 1
   emits []
   tests
-    row(3, 2) => Ok(value = -6)
-  Ok(value = a * -b)
+    row(3, 2) => Ok(-6)
+  Ok(a * -b)
 
 fn m__sub(a: int, b: int) -> M__Out rev 1
   emits []
   tests
-    row(3, 2) => Ok(value = 5)
-  Ok(value = a - -b)
+    row(3, 2) => Ok(5)
+  Ok(a - -b)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -100,14 +100,14 @@ type M__Dec rev 1 (
 fn m__go(a: int, b: int) -> M__Out rev 1
   emits []
   tests
-    row(3, 2) => Ok(value = -6)
-  Ok(value = -a * b)
+    row(3, 2) => Ok(-6)
+  Ok(-a * b)
 
 fn m__dec(x: dec) -> M__Dec rev 1
   emits []
   tests
-    pos(d"1.5") => Ok(value = d"-1.5")
-  Ok(value = -x)
+    pos(d"1.5") => Ok(d"-1.5")
+  Ok(-x)
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
@@ -153,14 +153,14 @@ type M__Dec rev 1 (
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(value = -3)
-  Ok(value = - 3)
+    go() => Ok(-3)
+  Ok(- 3)
 
 fn m__dec() -> M__Dec rev 1
   emits []
   tests
-    go() => Ok(value = d"-0.5")
-  Ok(value = -d"0.5")
+    go() => Ok(d"-0.5")
+  Ok(-d"0.5")
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
@@ -191,8 +191,8 @@ fn m__dec() -> M__Dec rev 1
 // parse error.
 func TestNegNoPlus(t *testing.T) {
 	for _, body := range []string{
-		"Ok(value = +b)",
-		"Ok(value = a + +b)",
+		"Ok(+b)",
+		"Ok(a + +b)",
 	} {
 		src := `mod m
   provides [m__go, M__Out]
@@ -206,7 +206,7 @@ type M__Out rev 1 (
 fn m__go(a: int, b: int) -> M__Out rev 1
   emits []
   tests
-    row(3, 2) => Ok(value = 5)
+    row(3, 2) => Ok(5)
   ` + body + "\n"
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasError(diags) {
@@ -230,14 +230,14 @@ type M__Out rev 1 (
 fn m__go(x: bool) -> M__Out rev 1
   emits []
   tests
-    go(true) => Ok(value = true)
-  Ok(value = -x)
+    go(true) => Ok(true)
+  Ok(-x)
 
 fn m__str(y: str) -> M__Out rev 1
   emits []
   tests
-    go("a") => Ok(value = true)
-  Ok(value = -y)
+    go("a") => Ok(true)
+  Ok(-y)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6003") {

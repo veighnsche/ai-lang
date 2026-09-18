@@ -34,13 +34,13 @@ type Form__Out rev 1 (
 fn form__message(state: Form__State) -> Form__Out rev 1
   emits []
   tests
-    empty(Form__Empty()) => Ok(message = "Start typing")
-    editing(Form__Editing(draft = Form__Draft(name = "Al"))) => Ok(message = "Draft: Al")
-    submitted(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo")
+    empty(Form__Empty()) => Ok("Start typing")
+    editing(Form__Editing(Form__Draft("Al"))) => Ok("Draft: Al")
+    submitted(Form__Submitted("Bo")) => Ok("Hello, Bo")
   match state
-    on Form__Empty _ => Ok(message = "Start typing")
-    on Form__Editing d => Ok(message = "Draft: " + d.draft.name)
-    on Form__Submitted s => Ok(message = "Hello, " + s.name)
+    on Form__Empty _ => Ok("Start typing")
+    on Form__Editing d => Ok("Draft: " + d.draft.name)
+    on Form__Submitted s => Ok("Hello, " + s.name)
 `
 
 const pilotShellSrc = `mod shell
@@ -56,13 +56,13 @@ type Shell__Out rev 1 (
 fn shell__greet(state: Form__State) -> Shell__Out rev 1
   emits []
   tests
-    e(Form__Empty()) => Ok(message = "Start typing", echo = Form__Empty())
-    s(Form__Submitted(name = "Bo")) => Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))
+    e(Form__Empty()) => Ok("Start typing", Form__Empty())
+    s(Form__Submitted("Bo")) => Ok("Hello, Bo", Form__Submitted("Bo"))
   match call form__message(state)
     given
-      e => [exchange args (state = Form__Empty()) outcome Ok(message = "Start typing")]
-      s => [exchange args (state = Form__Submitted(name = "Bo")) outcome Ok(message = "Hello, Bo")]
-    on Ok v => Ok(message = v.message, echo = state)
+      e => [exchange args (state = Form__Empty()) outcome Ok("Start typing")]
+      s => [exchange args (state = Form__Submitted("Bo")) outcome Ok("Hello, Bo")]
+    on Ok v => Ok(v.message, state)
 `
 
 func pilotFiles() map[string]string {
@@ -95,8 +95,8 @@ func TestPilotLinked(t *testing.T) {
 	if err := runLinkedPure(t, pilotFiles(),
 		[]string{"form.can", "shell.can"},
 		"shell__greet", 1,
-		map[string]string{"state": `Form__Submitted(name = "Bo")`},
-		`Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))`); err != nil {
+		map[string]string{"state": `Form__Submitted("Bo")`},
+		`Ok(message = "Hello, Bo", echo = Form__Submitted("Bo"))`); err != nil {
 		t.Fatalf("linked submitted: %v", err)
 	}
 }
@@ -116,7 +116,7 @@ func TestPilotLinkedContradiction(t *testing.T) {
 		[]string{"form.can", "shell.can"},
 		"shell__greet", 1,
 		map[string]string{"state": `Form__Empty()`},
-		`Ok(message = "Start typing", echo = Form__Submitted(name = "Bo"))`)
+		`Ok(message = "Start typing", echo = Form__Submitted("Bo"))`)
 	if err == nil || !strings.Contains(err.Error(), "payload mismatch") {
 		t.Fatalf("expected tag-identity mismatch, got %v", err)
 	}

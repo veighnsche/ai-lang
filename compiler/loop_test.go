@@ -25,12 +25,12 @@ fn m__poll(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    now(0) => Ok(n = 0)
-    later(2) => Ok(n = 0)
+    now(0) => Ok(0)
+    later(2) => Ok(0)
   match n <= 0
-    true => Ok(n = 0)
+    true => Ok(0)
     false => match call m__poll(n - 1)
-      on Ok s => Ok(n = s.n)
+      on Ok s => Ok(s.n)
 `
 
 func TestLoopClean(t *testing.T) {
@@ -71,8 +71,8 @@ func TestLoopNonInt(t *testing.T) {
 
 func TestLoopStale(t *testing.T) {
 	stale := strings.Replace(loopPoll,
-		"    false => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)",
-		"    false => Ok(n = 0)", 1)
+		"    false => match call m__poll(n - 1)\n      on Ok s => Ok(s.n)",
+		"    false => Ok(0)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": stale})
 	diags := diagnose(dir, "m.can", stale)
 	if !hasDiag(diags, "error", "decreases n but never calls itself") {
@@ -116,8 +116,8 @@ func TestLoopLargerStepRefused(t *testing.T) {
 // site with no bound guard at all proves nothing (a11, CAN3009).
 func TestLoopUnguardedRefused(t *testing.T) {
 	trueArm := strings.Replace(loopPoll,
-		"    true => Ok(n = 0)\n    false => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)",
-		"    true => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)\n    false => Ok(n = 0)", 1)
+		"    true => Ok(0)\n    false => match call m__poll(n - 1)\n      on Ok s => Ok(s.n)",
+		"    true => match call m__poll(n - 1)\n      on Ok s => Ok(s.n)\n    false => Ok(0)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": trueArm})
 	diags := diagnose(dir, "m.can", trueArm)
 	if !hasDiag(diags, "error", "outside the positive branch") {
@@ -125,11 +125,11 @@ func TestLoopUnguardedRefused(t *testing.T) {
 	}
 	bare := strings.Replace(loopPoll,
 		`  match n <= 0
-    true => Ok(n = 0)
+    true => Ok(0)
     false => match call m__poll(n - 1)
-      on Ok s => Ok(n = s.n)`,
+      on Ok s => Ok(s.n)`,
 		`  match call m__poll(n - 1)
-    on Ok s => Ok(n = s.n)`, 1)
+    on Ok s => Ok(s.n)`, 1)
 	dir = writeLSPDir(t, map[string]string{"m.can": bare})
 	diags = diagnose(dir, "m.can", bare)
 	if !hasDiag(diags, "error", "outside the positive branch") {
@@ -168,13 +168,13 @@ fn m__gcd(a: int, b: int) -> M__S rev 1
   decreases a, b by euclid
   emits []
   tests
-    basic(12, 8) => Ok(n = 4)
-    coprime(8, 9) => Ok(n = 1)
-    zero_b(5, 0) => Ok(n = 5)
+    basic(12, 8) => Ok(4)
+    coprime(8, 9) => Ok(1)
+    zero_b(5, 0) => Ok(5)
   match b <= 0
-    true => Ok(n = a)
+    true => Ok(a)
     false => match call m__gcd(b, a % b)
-      on Ok r => Ok(n = r.n)
+      on Ok r => Ok(r.n)
 `
 
 func TestLoopEuclidClean(t *testing.T) {
@@ -200,8 +200,8 @@ func TestLoopEuclidBadStep(t *testing.T) {
 
 func TestLoopEuclidUnguarded(t *testing.T) {
 	trueArm := strings.Replace(loopEuclid,
-		"    true => Ok(n = a)\n    false => match call m__gcd(b, a % b)\n      on Ok r => Ok(n = r.n)",
-		"    true => match call m__gcd(b, a % b)\n      on Ok r => Ok(n = r.n)\n    false => Ok(n = a)", 1)
+		"    true => Ok(a)\n    false => match call m__gcd(b, a % b)\n      on Ok r => Ok(r.n)",
+		"    true => match call m__gcd(b, a % b)\n      on Ok r => Ok(r.n)\n    false => Ok(a)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": trueArm})
 	diags := diagnose(dir, "m.can", trueArm)
 	if !hasDiag(diags, "error", "must sit under the false arm of b <= 0") {
@@ -222,16 +222,16 @@ fn m__sqrt(value: int, lo: int, hi: int) -> M__S rev 1
   decreases lo, hi by narrowing
   emits []
   tests
-    ten(10, 0, 11) => Ok(n = 3)
-    exact(9, 3, 4) => Ok(n = 3)
-    nine(9, 0, 10) => Ok(n = 3)
+    ten(10, 0, 11) => Ok(3)
+    exact(9, 3, 4) => Ok(3)
+    nine(9, 0, 10) => Ok(3)
   match (hi - lo) <= 1
-    true => Ok(n = lo)
+    true => Ok(lo)
     false => match ((lo + hi) / 2) * ((lo + hi) / 2) <= value
       true => match call m__sqrt(value, (lo + hi) / 2, hi)
-        on Ok r => Ok(n = r.n)
+        on Ok r => Ok(r.n)
       false => match call m__sqrt(value, lo, (lo + hi) / 2)
-        on Ok r => Ok(n = r.n)
+        on Ok r => Ok(r.n)
 `
 
 func TestLoopNarrowingClean(t *testing.T) {
@@ -305,21 +305,21 @@ fn m__a(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    a0(0) => Ok(n = 0)
+    a0(0) => Ok(0)
   match n <= 0
-    true => Ok(n = 0)
+    true => Ok(0)
     false => match call m__b(n - 1)
-      on Ok s => Ok(n = s.n)
+      on Ok s => Ok(s.n)
 
 fn m__b(n: int) -> M__S rev 1
   decreases n
   emits []
   tests
-    b0(0) => Ok(n = 0)
+    b0(0) => Ok(0)
   match n <= 0
-    true => Ok(n = 0)
+    true => Ok(0)
     false => match call m__a(n - 1)
-      on Ok s => Ok(n = s.n)
+      on Ok s => Ok(s.n)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": pair})
 	diags := diagnose(dir, "m.can", pair)
@@ -333,8 +333,8 @@ fn m__b(n: int) -> M__S rev 1
 // branch, so fault-bounded evaluation is no longer the theorem.
 func TestLoopNegativeEntryTakesBase(t *testing.T) {
 	neg := strings.Replace(loopPoll,
-		"    later(2) => Ok(n = 0)",
-		"    later(2) => Ok(n = 0)\n    neg(-1) => Ok(n = 0)", 1)
+		"    later(2) => Ok(0)",
+		"    later(2) => Ok(0)\n    neg(-1) => Ok(0)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": neg})
 	if diags := diagnose(dir, "m.can", neg); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
@@ -369,11 +369,11 @@ type Alpha__Value rev 1 (
 fn alpha__run(n: int) -> Alpha__Value rev 1
   emits []
   tests
-    sample(0) => Ok(value = 0)
+    sample(0) => Ok(0)
   match call beta__run(n)
     given
-      sample => [exchange args (n = 0) outcome Ok(value = 0)]
-    on Ok result => Ok(value = result.value)
+      sample => [exchange args (n = 0) outcome Ok(0)]
+    on Ok result => Ok(result.value)
 `
 	beta := `mod beta
   provides [beta__run, Beta__Value]
@@ -387,11 +387,11 @@ type Beta__Value rev 1 (
 fn beta__run(n: int) -> Beta__Value rev 1
   emits []
   tests
-    sample(0) => Ok(value = 0)
+    sample(0) => Ok(0)
   match call alpha__run(n)
     given
-      sample => [exchange args (n = 0) outcome Ok(value = 0)]
-    on Ok result => Ok(value = result.value)
+      sample => [exchange args (n = 0) outcome Ok(0)]
+    on Ok result => Ok(result.value)
 `
 	files := map[string]string{"alpha.can": alpha, "beta.can": beta}
 	for _, open := range []string{"alpha.can", "beta.can"} {

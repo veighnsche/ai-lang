@@ -28,11 +28,11 @@ func TestRangeSingleton(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    five(5) => Ok(value = 5)
-    other(7) => Ok(value = 7)
+    five(5) => Ok(5)
+    other(7) => Ok(7)
   match x
-    5 => Ok(value = 5)
-    _ => Ok(value = 7)
+    5 => Ok(5)
+    _ => Ok(7)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -61,13 +61,13 @@ const m__N: int rev 1 = 58
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    digit(50) => Ok(value = 1)
-    colon(58) => Ok(value = 2)
-    other(99) => Ok(value = 3)
+    digit(50) => Ok(1)
+    colon(58) => Ok(2)
+    other(99) => Ok(3)
   match x
-    m__LO..m__HI => Ok(value = 1)
-    m__N => Ok(value = 2)
-    _ => Ok(value = 3)
+    m__LO..m__HI => Ok(1)
+    m__N => Ok(2)
+    _ => Ok(3)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -82,13 +82,13 @@ func TestRangeCutPoints(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(7) => Ok(value = 1)
-    high(12) => Ok(value = 2)
-    out(99) => Ok(value = 3)
+    low(7) => Ok(1)
+    high(12) => Ok(2)
+    out(99) => Ok(3)
   match x
-    1..10 => Ok(value = 1)
-    5..15 => Ok(value = 2)
-    _ => Ok(value = 3)
+    1..10 => Ok(1)
+    5..15 => Ok(2)
+    _ => Ok(3)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); hasError(diags) {
@@ -103,12 +103,12 @@ func TestRangeShadowed(t *testing.T) {
 		src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(2) => Ok(value = 1)
-    out(99) => Ok(value = 3)
+    low(2) => Ok(1)
+    out(99) => Ok(3)
   match x
-    1..10 => Ok(value = 1)
-    ` + arm + ` => Ok(value = 2)
-    _ => Ok(value = 3)
+    1..10 => Ok(1)
+    ` + arm + ` => Ok(2)
+    _ => Ok(3)
 `
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4111") {
@@ -126,10 +126,10 @@ func TestRangeBadBounds(t *testing.T) {
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
+    one(1) => Ok(1)
   match x
-    ` + arm + ` => Ok(value = 1)
-    _ => Ok(value = 2)
+    ` + arm + ` => Ok(1)
+    _ => Ok(2)
 `
 		dir := writeLSPDir(t, map[string]string{"m.can": src})
 		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4110") {
@@ -145,10 +145,10 @@ func TestRangeUnknownBound(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
+    one(1) => Ok(1)
   match x
-    m__NOPE..5 => Ok(value = 1)
-    _ => Ok(value = 2)
+    m__NOPE..5 => Ok(1)
+    _ => Ok(2)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN2104") {
@@ -162,11 +162,11 @@ func TestRangeMixedSlot(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
+    one(1) => Ok(1)
   match x
-    true => Ok(value = 1)
-    5 => Ok(value = 5)
-    _ => Ok(value = 0)
+    true => Ok(1)
+    5 => Ok(5)
+    _ => Ok(0)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4103") {
@@ -180,9 +180,9 @@ func TestRangeUncovered(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    mid(5) => Ok(value = 5)
+    mid(5) => Ok(5)
   match x
-    1..10 => Ok(value = x)
+    1..10 => Ok(x)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)
@@ -213,16 +213,16 @@ type M__Work rev 1 (
 fn m__work(v: int) -> M__Work rev 1
   emits []
   tests
-    w(1) => Ok(value = 1)
-  Ok(value = v)
+    w(1) => Ok(1)
+  Ok(v)
 
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    one(1) => Ok(value = 1)
+    one(1) => Ok(1)
   match call m__work(x)
-    5 => Ok(value = 5)
-    on Ok r => Ok(value = r.value)
+    5 => Ok(5)
+    on Ok r => Ok(r.value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4105") {
@@ -236,12 +236,12 @@ func TestRangeArmObligation(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    low(5) => Ok(value = 1)
-    out(99) => Ok(value = 3)
+    low(5) => Ok(1)
+    out(99) => Ok(3)
   match x
-    1..10 => Ok(value = 1)
-    11..20 => Ok(value = 2)
-    _ => Ok(value = 3)
+    1..10 => Ok(1)
+    11..20 => Ok(2)
+    _ => Ok(3)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4107") {
@@ -273,11 +273,11 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    digit(50) => Ok(value = 1)
-    out(99) => Ok(value = 2)
+    digit(50) => Ok(1)
+    out(99) => Ok(2)
   match x
-    lib__LO..lib__HI => Ok(value = 1)
-    _ => Ok(value = 2)
+    lib__LO..lib__HI => Ok(1)
+    _ => Ok(2)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": pinned})
 	if diags := diagnose(dir, "app.can", pinned); hasError(diags) {
@@ -295,11 +295,11 @@ type M__Out rev 1 (
 fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    digit(50) => Ok(value = 1)
-    out(99) => Ok(value = 2)
+    digit(50) => Ok(1)
+    out(99) => Ok(2)
   match x
-    lib__LO..lib__HI => Ok(value = 1)
-    _ => Ok(value = 2)
+    lib__LO..lib__HI => Ok(1)
+    _ => Ok(2)
 `
 	dir2 := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": unpinned})
 	if diags := diagnose(dir2, "app.can", unpinned); !hasCode(diags, "CAN2105") {
@@ -313,13 +313,13 @@ func TestRangeEmit(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
   emits []
   tests
-    five(5) => Ok(value = 5)
-    digit(50) => Ok(value = 50)
-    out(99) => Ok(value = 99)
+    five(5) => Ok(5)
+    digit(50) => Ok(50)
+    out(99) => Ok(99)
   match x
-    5 => Ok(value = 5)
-    48..57 => Ok(value = x)
-    _ => Ok(value = 99)
+    5 => Ok(5)
+    48..57 => Ok(x)
+    _ => Ok(99)
 `
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
@@ -355,11 +355,11 @@ func TestRangeAdmissionContract(t *testing.T) {
     on Ok result
       result.value >= 0
   tests
-    low(5) => Ok(value = 1)
-    out(99) => Ok(value = 2)
+    low(5) => Ok(1)
+    out(99) => Ok(2)
   match x
-    1..10 => Ok(value = 1)
-    _ => Ok(value = 2)
+    1..10 => Ok(1)
+    _ => Ok(2)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)

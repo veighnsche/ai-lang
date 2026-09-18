@@ -45,6 +45,99 @@ fn demo__id(value: int) -> Int__Value rev 1
   Ok(value = value)
 `
 
+// TestLintRedundantCtorNames pins a92 Rule 1 on constructions:
+// in-order record, error, and Ok fields flag; reordered and
+// positional spellings stay; exchange args stay exempt; a
+// scripted outcome resolves through the callee return across
+// files. Exact count proves no other rule fires.
+func TestLintRedundantCtorNames(t *testing.T) {
+	demo := `mod demo
+  provides [demo__go, demo__box, Demo__Pair, Demo__Box]
+  uses [lib__id@1]
+  emits [demo.oops]
+
+error demo.oops(code: int, note: str)
+
+type Demo__Pair rev 1 (
+  first: str
+  second: str
+)
+
+type Demo__Box rev 1 (
+  pair: Demo__Pair
+)
+
+fn demo__go(p: Demo__Pair) -> Demo__Pair rev 1
+  emits [demo.oops]
+  tests
+    fat(Demo__Pair(first = "a", second = "b")) => Ok(first = "a", second = "b")
+    slim(Demo__Pair(second = "b", first = "a")) => Ok("a", "b")
+  match call lib__id(1)
+    given
+      fat => [exchange args (x = 1) outcome Ok(value = "ok")]
+      slim => [exchange args (x = 1) outcome Ok("ok")]
+    on Ok v => Ok(first = "x", second = "y")
+    on demo.oops e => demo.oops(code = 0, note = "x")
+
+fn demo__box(p: Demo__Pair) -> Demo__Box rev 1
+  emits []
+  tests
+    nest(Demo__Pair("a", "b")) => Ok(pair = Demo__Pair(first = "a", second = "b"))
+  Ok(pair = p)
+
+fn demo__num(x: int) -> int rev 1
+  emits []
+  tests
+    n(1) => Ok(value = 1)
+    wild(1) => Ok(answer = 1)
+  Ok(value = x)
+`
+	lib := `mod lib
+  provides [lib__id, Lib__Box]
+  uses []
+  emits []
+
+type Lib__Box rev 1 (
+  value: str
+)
+
+fn lib__id(x: int) -> Lib__Box rev 1
+  emits []
+  tests
+    t(1) => Ok("ok")
+  Ok("ok")
+`
+	got, skipped := lintFiles(map[string]string{"demo.can": demo, "lib.can": lib})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	want := []string{
+		`demo.can:20: redundant argument name "first" (field 1 of Demo__Pair is "first"); write positionally`,
+		`demo.can:20: redundant argument name "first" (field 1 of Ok is "first"); write positionally`,
+		`demo.can:20: redundant argument name "second" (field 2 of Demo__Pair is "second"); write positionally`,
+		`demo.can:20: redundant argument name "second" (field 2 of Ok is "second"); write positionally`,
+		`demo.can:24: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+		`demo.can:26: redundant argument name "first" (field 1 of Ok is "first"); write positionally`,
+		`demo.can:26: redundant argument name "second" (field 2 of Ok is "second"); write positionally`,
+		`demo.can:27: redundant argument name "code" (field 1 of demo.oops is "code"); write positionally`,
+		`demo.can:27: redundant argument name "note" (field 2 of demo.oops is "note"); write positionally`,
+		`demo.can:32: redundant argument name "first" (field 1 of Demo__Pair is "first"); write positionally`,
+		`demo.can:32: redundant argument name "pair" (field 1 of Ok is "pair"); write positionally`,
+		`demo.can:32: redundant argument name "second" (field 2 of Demo__Pair is "second"); write positionally`,
+		`demo.can:33: redundant argument name "pair" (field 1 of Ok is "pair"); write positionally`,
+		`demo.can:38: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+		`demo.can:40: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("findings = %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i].String() != want[i] {
+			t.Fatalf("finding %d = %q, want %q", i, got[i].String(), want[i])
+		}
+	}
+}
+
 func TestLintRedundantNames(t *testing.T) {
 	got, skipped := lintFiles(map[string]string{"demo.can": lintRedundant})
 	if len(skipped) != 0 {
@@ -53,11 +146,19 @@ func TestLintRedundantNames(t *testing.T) {
 	want := []string{
 		`demo.can:13: redundant argument name "left" (param 1 of demo__go is "left"); write positionally`,
 		`demo.can:13: redundant argument name "right" (param 2 of demo__go is "right"); write positionally`,
+		`demo.can:13: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 		`demo.can:14: redundant argument name "right" (param 2 of demo__go is "right"); write positionally`,
+		`demo.can:14: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+		`demo.can:15: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 		`demo.can:16: redundant argument name "value" (param 1 of demo__id is "value"); write positionally`,
+		`demo.can:17: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 		`demo.can:22: redundant argument name "left" (param 1 of demo__pos is "left"); write positionally`,
 		`demo.can:22: redundant argument name "right" (param 2 of demo__pos is "right"); write positionally`,
+		`demo.can:22: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+		`demo.can:24: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+		`demo.can:29: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 		`demo.can:29: redundant argument name "value" (param 1 of demo__id is "value"); write positionally`,
+		`demo.can:30: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("findings = %v, want %v", got, want)
@@ -81,13 +182,13 @@ type Int__Value rev 1 (
 fn demo__go(value: str) -> Int__Value rev 1
   emits []
   tests
-    t(value = "a") => Ok(value = 1)
+    t(value = "a") => Ok(1)
   match value
-    "a" => Ok(value = 1)
-    "b" => Ok(value = 1)
-    "c" => Ok(value = 2)
-    "d" => Ok(value = 1)
-    _ => Ok(value = 0)
+    "a" => Ok(1)
+    "b" => Ok(1)
+    "c" => Ok(2)
+    "d" => Ok(1)
+    _ => Ok(0)
 `
 
 func TestLintMergeableLadder(t *testing.T) {
@@ -124,12 +225,12 @@ type Int__Value rev 1 (
 fn demo__go(left: int, right: int) -> Int__Value rev 1
   emits []
   tests
-    t(left = 1, right = 2) => Ok(value = 0)
+    t(left = 1, right = 2) => Ok(0)
   match left < 0, right < 0
-    true, true => Ok(value = 1)
-    true, false => Ok(value = -1)
-    false, true => Ok(value = -1)
-    false, false => Ok(value = 1)
+    true, true => Ok(1)
+    true, false => Ok(-1)
+    false, true => Ok(-1)
+    false, false => Ok(1)
 `
 
 func TestLintDiagonalTablesUntouched(t *testing.T) {
@@ -163,10 +264,10 @@ type Form__Msg rev 1 (
 fn demo__go(state: Form__State) -> Form__Msg rev 1
   emits []
   tests
-    t(state = Form__State.Empty()) => Ok(message = "none")
+    t(state = Form__State.Empty()) => Ok("none")
   match state
-    on Form__Empty _ => Ok(message = "none")
-    on Form__Named n => Ok(message = "none")
+    on Form__Empty _ => Ok("none")
+    on Form__Named n => Ok("none")
 `
 
 func TestLintVariantArmsUntouched(t *testing.T) {
@@ -195,11 +296,11 @@ type Int__Value rev 1 (
 fn demo__go(value: str) -> Int__Value rev 1
   emits []
   tests
-    t(value = "a") => Ok(value = 1)
+    t(value = "a") => Ok(1)
   match value
-    "a" => Ok(value = 1)
-    "z" => Ok(value = 9)
-    "b" => Ok(value = 1)
+    "a" => Ok(1)
+    "z" => Ok(9)
+    "b" => Ok(1)
 `
 
 func TestLintGappedPairUntouched(t *testing.T) {
@@ -228,18 +329,18 @@ type Int__Value rev 1 (
 fn demo__step(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__go(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match call demo__step(value)
     on Ok a => match call demo__step(a.value)
-      on Ok b => Ok(value = b.value)
-      on demo.failed e => demo.failed(value = 0)
-    on demo.failed e => demo.failed(value = 0)
+      on Ok b => Ok(b.value)
+      on demo.failed e => demo.failed(0)
+    on demo.failed e => demo.failed(0)
 `
 
 func TestLintChainable(t *testing.T) {
@@ -276,18 +377,18 @@ type Int__Value rev 1 (
 fn demo__step(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__go(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match call demo__step(value)
     on Ok a => match call demo__step(a.value)
-      on Ok b => Ok(value = b.value)
-      on demo.failed e => demo.failed(value = 0)
-    on demo.failed e => demo.failed(value = 1)
+      on Ok b => Ok(b.value)
+      on demo.failed e => demo.failed(0)
+    on demo.failed e => demo.failed(1)
 `
 
 func TestLintChainDivergedUntouched(t *testing.T) {
@@ -312,14 +413,14 @@ type Int__Value rev 1 (
 fn demo__go(a: int, b: int) -> Int__Value rev 1
   emits []
   tests
-    t(1, 2) => Ok(value = 3)
+    t(1, 2) => Ok(3)
   match a < 0
     true => match b < 0
-      true => Ok(value = 0)
-      false => Ok(value = 1)
+      true => Ok(0)
+      false => Ok(1)
     false => match b < 0
-      true => Ok(value = 2)
-      false => Ok(value = 3)
+      true => Ok(2)
+      false => Ok(3)
 `
 
 func TestLintTableable(t *testing.T) {
@@ -355,12 +456,12 @@ type Int__Value rev 1 (
 fn demo__guarded(s: str) -> Int__Value rev 1
   emits []
   tests
-    t("ab") => Ok(value = 1)
+    t("ab") => Ok(1)
   match #s >= 1
     true => match s[0:1] == "a"
-      true => Ok(value = 1)
-      false => Ok(value = 0)
-    false => Ok(value = 0)
+      true => Ok(1)
+      false => Ok(0)
+    false => Ok(0)
 `
 
 func TestLintTabledKeptUntouched(t *testing.T) {
@@ -387,10 +488,10 @@ type Int__Value rev 1 (
 fn demo__go(value: int) -> Int__Value rev 1
   emits []
   tests
-    t(1) => Ok(value = 0)
+    t(1) => Ok(0)
   match value < 0
-    true => Ok(value = 0)
-    false => Ok(value = 0)
+    true => Ok(0)
+    false => Ok(0)
 `
 
 func TestLintSameOutcome(t *testing.T) {
@@ -399,7 +500,7 @@ func TestLintSameOutcome(t *testing.T) {
 		t.Fatalf("unexpected skips: %v", skipped)
 	}
 	want := []string{
-		`demo.can:14: match always yields Ok(value = 0); drop the match`,
+		`demo.can:14: match always yields Ok(0); drop the match`,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("findings = %v, want %v", got, want)
@@ -425,10 +526,10 @@ type Int__Value rev 1 (
 fn demo__go(s: str) -> Int__Value rev 1
   emits []
   tests
-    t("ab") => Ok(value = 0)
+    t("ab") => Ok(0)
   match s[0:1] == "a"
-    true => Ok(value = 0)
-    false => Ok(value = 0)
+    true => Ok(0)
+    false => Ok(0)
 `
 
 func TestLintSameGuardedUntouched(t *testing.T) {
@@ -462,17 +563,17 @@ error demo.other(value: int, note: str)
 fn demo__step(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__go(value: int) -> Int__Value rev 1
   emits [demo.failed, demo.other]
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match call demo__step(value)
-    on Ok a => Ok(value = a.value)
-    on demo.failed e => demo.failed(value = e.value)
-    on demo.other e => demo.other(value = e.value, note = "x")
+    on Ok a => Ok(a.value)
+    on demo.failed e => demo.failed(e.value)
+    on demo.other e => demo.other(e.value, "x")
 `
 
 func TestLintForwardable(t *testing.T) {
@@ -505,12 +606,12 @@ type Int__Value rev 1 (
 fn demo__go(value: int) -> Int__Value rev 1
   emits []
   tests
-    t(2) => Ok(value = 1)
+    t(2) => Ok(1)
   match value
-    1..3 => Ok(value = 1)
-    4..6 => Ok(value = 1)
-    8..9 => Ok(value = 2)
-    _ => Ok(value = 0)
+    1..3 => Ok(1)
+    4..6 => Ok(1)
+    8..9 => Ok(2)
+    _ => Ok(0)
 `
 
 func TestLintRangeMerge(t *testing.T) {
@@ -545,14 +646,14 @@ type Demo__Out rev 1 (
 fn demo__go(s: str) -> Demo__Out rev 1
   emits []
   tests
-    amp("x&y") => Ok(value = "hit")
+    amp("x&y") => Ok("hit")
   match s[0:1] == "&"
-    true => Ok(value = "amp")
+    true => Ok("amp")
     false => match s[0:1] == "<"
-      true => Ok(value = "lt")
+      true => Ok("lt")
       false => match s[0:1] == ">"
-        true => Ok(value = "gt")
-        false => Ok(value = "plain")
+        true => Ok("gt")
+        false => Ok("plain")
 `
 
 func TestLintRestatable(t *testing.T) {
@@ -589,60 +690,60 @@ type Demo__Out rev 1 (
 fn demo__single(s: str) -> Demo__Out rev 1
   emits []
   tests
-    t("ab") => Ok(value = "x")
+    t("ab") => Ok("x")
   match s[0:1] == "a"
-    true => Ok(value = "hit")
-    false => Ok(value = "miss")
+    true => Ok("hit")
+    false => Ok("miss")
 
 fn demo__mixed(s: str, n: int) -> Demo__Out rev 1
   emits []
   tests
-    t("ab", 1) => Ok(value = "x")
+    t("ab", 1) => Ok("x")
   match s[0:1] == "a"
-    true => Ok(value = "hit")
+    true => Ok("hit")
     false => match n == 1
-      true => Ok(value = "one")
-      false => Ok(value = "other")
+      true => Ok("one")
+      false => Ok("other")
 
 fn demo__bools(b: bool) -> Demo__Out rev 1
   emits []
   tests
-    t(true) => Ok(value = "x")
+    t(true) => Ok("x")
   match b == true
-    true => Ok(value = "hit")
+    true => Ok("hit")
     false => match b == false
-      true => Ok(value = "miss")
-      false => Ok(value = "dead")
+      true => Ok("miss")
+      false => Ok("dead")
 
 fn demo__neq(s: str) -> Demo__Out rev 1
   emits []
   tests
-    t("ab") => Ok(value = "x")
+    t("ab") => Ok("x")
   match s[0:1] != "a"
-    true => Ok(value = "hit")
+    true => Ok("hit")
     false => match s[0:1] != "b"
-      true => Ok(value = "hit2")
-      false => Ok(value = "miss")
+      true => Ok("hit2")
+      false => Ok("miss")
 
 fn demo__dup(s: str) -> Demo__Out rev 1
   emits []
   tests
-    t("ab") => Ok(value = "x")
+    t("ab") => Ok("x")
   match s[0:1] == "a"
-    true => Ok(value = "hit")
+    true => Ok("hit")
     false => match s[0:1] == "a"
-      true => Ok(value = "hit2")
-      false => Ok(value = "miss")
+      true => Ok("hit2")
+      false => Ok("miss")
 
 fn demo__guard(n: int) -> Demo__Out rev 1
   emits []
   tests
-    t(1) => Ok(value = "x")
+    t(1) => Ok("x")
   match n <= 0
-    true => Ok(value = "base")
+    true => Ok("base")
     false => match n == 1
-      true => Ok(value = "one")
-      false => Ok(value = "other")
+      true => Ok("one")
+      false => Ok("other")
 `
 
 func TestLintRestateKeptUntouched(t *testing.T) {
@@ -672,24 +773,24 @@ type Int__Value rev 1 (
 fn demo__ladder(a: int, b: int) -> Int__Value rev 1
   emits []
   tests
-    t(1, 2) => Ok(value = 2)
+    t(1, 2) => Ok(2)
   match a == 0
-    true => Ok(value = 0)
+    true => Ok(0)
     false => match b == 0
-      true => Ok(value = 1)
-      false => Ok(value = 2)
+      true => Ok(1)
+      false => Ok(2)
 
 fn demo__diamond(a: int, b: int, c: int) -> Int__Value rev 1
   emits []
   tests
-    t(1, 2, 3) => Ok(value = 6)
+    t(1, 2, 3) => Ok(6)
   match a < 0
     true => match b < 0
-      true => Ok(value = 0)
-      false => Ok(value = 1)
+      true => Ok(0)
+      false => Ok(1)
     false => match c < 0
-      true => Ok(value = 2)
-      false => Ok(value = 3)
+      true => Ok(2)
+      false => Ok(3)
 `
 
 func TestLintLadderable(t *testing.T) {
@@ -728,61 +829,61 @@ type Int__Value rev 1 (
 fn demo__guarded(s: str) -> Int__Value rev 1
   emits []
   tests
-    t("ab") => Ok(value = 1)
+    t("ab") => Ok(1)
   match #s >= 1
     true => match s[0:1] == "a"
-      true => Ok(value = 1)
-      false => Ok(value = 0)
-    false => Ok(value = 0)
+      true => Ok(1)
+      false => Ok(0)
+    false => Ok(0)
 
 fn demo__same(a: int) -> Int__Value rev 1
   emits []
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match a == 0
-    true => Ok(value = 0)
+    true => Ok(0)
     false => match a == 0
-      true => Ok(value = 1)
-      false => Ok(value = 2)
+      true => Ok(1)
+      false => Ok(2)
 
 fn demo__tabled(a: int, b: int) -> Int__Value rev 1
   emits []
   tests
-    t(1, 2) => Ok(value = 3)
+    t(1, 2) => Ok(3)
   match a == 0, b == 0
-    true, true => Ok(value = 0)
-    true, false => Ok(value = 1)
-    false, true => Ok(value = 2)
-    false, false => Ok(value = 3)
+    true, true => Ok(0)
+    true, false => Ok(1)
+    false, true => Ok(2)
+    false, false => Ok(3)
 
 fn demo__shared(a: int, b: int) -> Int__Value rev 1
   emits []
   tests
-    t(1, 2) => Ok(value = 3)
+    t(1, 2) => Ok(3)
   match a < 0
     true => match b < 0
-      true => Ok(value = 0)
-      false => Ok(value = 1)
+      true => Ok(0)
+      false => Ok(1)
     false => match b < 0
-      true => Ok(value = 2)
-      false => Ok(value = 3)
+      true => Ok(2)
+      false => Ok(3)
 
 fn demo__help(value: int) -> Int__Value rev 1
   emits []
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__calls(a: int, b: int) -> Int__Value rev 1
   emits []
   tests
-    t(1, 2) => Ok(value = 2)
+    t(1, 2) => Ok(2)
   match a < 0
     true => match call demo__help(a)
-      on Ok r => Ok(value = r.value)
+      on Ok r => Ok(r.value)
     false => match b < 0
-      true => Ok(value = 1)
-      false => Ok(value = 2)
+      true => Ok(1)
+      false => Ok(2)
 `
 
 func TestLintLadderKeptUntouched(t *testing.T) {
@@ -814,32 +915,32 @@ type Demo__Out rev 1 (
 fn demo__help(v: str) -> Demo__Out rev 1
   emits []
   tests
-    t("a") => Ok(value = "a")
-  Ok(value = v)
+    t("a") => Ok("a")
+  Ok(v)
 
 fn demo__ladder(a: int, b: int) -> Demo__Out rev 1
   emits []
   tests
-    t(1, 2) => Ok(value = "x")
+    t(1, 2) => Ok("x")
   match a < 0
     true => forward call demo__help("x")
     false => match b < 0
-      true => Ok(value = "y")
-      false => Ok(value = "z")
+      true => Ok("y")
+      false => Ok("z")
 
 fn demo__fold(s: str) -> Demo__Out rev 1
   emits []
   tests
-    t("a") => Ok(value = "x")
+    t("a") => Ok("x")
   match s
     "a" => forward call demo__help("x")
     "b" => forward call demo__help("x")
-    _ => Ok(value = "z")
+    _ => Ok("z")
 
 fn demo__drop(v: int) -> Demo__Out rev 1
   emits []
   tests
-    t(1) => Ok(value = "x")
+    t(1) => Ok("x")
   match v < 0
     true => forward call demo__help("x")
     false => forward call demo__help("x")
@@ -885,19 +986,19 @@ type Demo__Work rev 1 (
 fn demo__work(v: str) -> Demo__Work rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
-  Ok(value = v)
+    t("a") => Ok("a")
+  Ok(v)
 
 fn demo__pure(v: str) -> Demo__Out rev 1
   emits []
   tests
-    t("a") => Ok(value = "a")
-  Ok(value = v)
+    t("a") => Ok("a")
+  Ok(v)
 
 fn demo__go(x: str) -> Demo__Out rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match call demo__work(x)
     on Ok r => forward r
     on demo.bad e => forward e
@@ -905,7 +1006,7 @@ fn demo__go(x: str) -> Demo__Out rev 1
 fn demo__one(x: str) -> Demo__Out rev 1
   emits []
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match call demo__pure(x)
     on Ok r => forward r
 `
@@ -953,31 +1054,31 @@ type Demo__Work rev 1 (
 fn demo__work(v: str) -> Demo__Work rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
-  Ok(value = v)
+    t("a") => Ok("a")
+  Ok(v)
 
 fn demo__rebuild(x: str) -> Demo__Out rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match call demo__work(x)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
     on demo.bad e => forward e
 
 fn demo__given(x: str) -> Demo__Out rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match call other__work(x)
     given
-      t => exchange args (x = "a") outcome Ok(value = "a")
+      t => exchange args (x = "a") outcome Ok("a")
     on Ok r => forward r
     on demo.bad e => forward e
 
 fn demo__foreign(x: str) -> Demo__Out rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match call other__work(x)
     on Ok r => forward r
     on demo.bad e => forward e
@@ -985,7 +1086,7 @@ fn demo__foreign(x: str) -> Demo__Out rev 1
 fn demo__extern(x: str) -> Demo__Out rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match call ex__work(x)
     on Ok r => forward r
     on demo.bad e => forward e
@@ -993,9 +1094,9 @@ fn demo__extern(x: str) -> Demo__Out rev 1
 fn demo__fixed(x: str) -> Demo__Out rev 1
   emits [demo.bad]
   tests
-    t("a") => Ok(value = "a")
+    t("a") => Ok("a")
   match x == "z"
-    true => Ok(value = "no")
+    true => Ok("no")
     false => forward call demo__work(x)
 `
 
@@ -1033,26 +1134,26 @@ extern net__fetch() -> Demo__S rev 1
 fn demo__go() -> Demo__S rev 1
   emits [demo.bad]
   tests
-    ok() => Ok(body = "hi")
+    ok() => Ok("hi")
     down() => demo.bad()
   match call net__fetch()
     given
-      ok => [exchange args () outcome Ok(body = "hi")]
+      ok => [exchange args () outcome Ok("hi")]
       down => [exchange args () outcome net.down()]
       caller => [exchange args () outcome net.down()]
       solo => [exchange args () outcome net.down()]
       zzz => [exchange args () outcome net.down()]
       dead => -
     on net.down _ => demo.bad()
-    on Ok d => Ok(body = d.body)
+    on Ok d => Ok(d.body)
 
 fn demo__help() -> Demo__S rev 1
   emits [demo.bad]
   tests
-    caller() => Ok(body = "hi")
+    caller() => Ok("hi")
   match call demo__go()
     on demo.bad e => forward e
-    on Ok d => Ok(body = d.body)
+    on Ok d => Ok(d.body)
 
 fn demo__other() -> Demo__S rev 1
   emits [demo.bad]
@@ -1063,13 +1164,13 @@ fn demo__other() -> Demo__S rev 1
 fn demo__chain() -> Demo__S rev 1
   emits [demo.bad]
   tests
-    linked() => Ok(body = "hi")
+    linked() => Ok("hi")
   match chain
     call net__fetch() as d
       given
-        linked => exchange args () outcome Ok(body = "hi")
+        linked => exchange args () outcome Ok("hi")
         solo => exchange args () outcome net.down()
-    then Ok(body = d.body)
+    then Ok(d.body)
     else demo.bad()
 `
 
@@ -1124,18 +1225,18 @@ type Int__Value rev 1 (
 fn demo__step(value: int) -> Int__Value rev 1
   emits []
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__go(value: int) -> Int__Value rev 1
   emits []
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match call demo__step(value)
     on Ok a => match call demo__step(a.value)
       on Ok b => match b.value == 0
-        true => Ok(value = 0)
-        false => Ok(value = b.value)
+        true => Ok(0)
+        false => Ok(b.value)
 `
 
 func TestLintChainInfallibleUntouched(t *testing.T) {
@@ -1168,18 +1269,18 @@ type Int__Value rev 1 (
 fn demo__step(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__go(value: int) -> Int__Value rev 1
   emits [demo.failed, demo.other]
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match call demo__step(value)
     on Ok a => match call demo__step(a.value)
-      on Ok b => Ok(value = b.value)
-      on demo.failed e => demo.failed(value = e.value)
-    on demo.failed e => demo.failed(value = e.value)
+      on Ok b => Ok(b.value)
+      on demo.failed e => demo.failed(e.value)
+    on demo.failed e => demo.failed(e.value)
 `
 
 // A ladder of forwards shares one spelling but no shared else:
@@ -1199,16 +1300,16 @@ type Int__Value rev 1 (
 fn demo__step(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
-  Ok(value = value)
+    t(1) => Ok(1)
+  Ok(value)
 
 fn demo__go(value: int) -> Int__Value rev 1
   emits [demo.failed]
   tests
-    t(1) => Ok(value = 1)
+    t(1) => Ok(1)
   match call demo__step(value)
     on Ok a => match call demo__step(a.value)
-      on Ok b => Ok(value = b.value)
+      on Ok b => Ok(b.value)
       on demo.failed e => forward e
     on demo.failed e => forward e
 `
@@ -1296,7 +1397,7 @@ func TestLintErrorFixtures(t *testing.T) {
 			`merge.can:23: mergeable match arms [23 24] (identical outcomes); fold into one or-pattern arm, saves 1 lines`,
 		},
 		"outcome.can": {
-			`outcome.can:20: match always yields Ok(value = 0); drop the match`,
+			`outcome.can:20: match always yields Ok(0); drop the match`,
 		},
 		"ranges.can": {
 			`ranges.can:22: mergeable ranges 1..3, 4..6; join into 1..6`,
@@ -1304,9 +1405,15 @@ func TestLintErrorFixtures(t *testing.T) {
 		"redundant.can": {
 			`redundant.can:17: redundant argument name "left" (param 1 of redundant__sub is "left"); write positionally`,
 			`redundant.can:17: redundant argument name "right" (param 2 of redundant__sub is "right"); write positionally`,
+			`redundant.can:17: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 			`redundant.can:18: redundant argument name "right" (param 2 of redundant__sub is "right"); write positionally`,
+			`redundant.can:18: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+			`redundant.can:19: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 			`redundant.can:20: redundant argument name "value" (param 1 of redundant__id is "value"); write positionally`,
+			`redundant.can:21: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
+			`redundant.can:26: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 			`redundant.can:26: redundant argument name "value" (param 1 of redundant__id is "value"); write positionally`,
+			`redundant.can:27: redundant argument name "value" (field 1 of Ok is "value"); write positionally`,
 		},
 		"relay.can": {
 			`relay.can:38: handwritten relay of relay.failed; write forward e`,
@@ -1394,12 +1501,18 @@ func TestLintSpanPositions(t *testing.T) {
 		"redundant.can": {
 			{17, 12, 18, CodeLintRedundant, "left ="},
 			{17, 22, 29, CodeLintRedundant, "right ="},
+			{17, 39, 46, CodeLintRedundant, "value ="},
 			{18, 13, 20, CodeLintRedundant, "right ="},
+			{18, 30, 37, CodeLintRedundant, "value ="},
+			{19, 41, 48, CodeLintRedundant, "value ="},
 			{20, 27, 34, CodeLintRedundant, "value ="},
+			{21, 18, 25, CodeLintRedundant, "value ="},
+			{26, 25, 32, CodeLintRedundant, "value ="},
 			{26, 8, 15, CodeLintRedundant, "value ="},
+			{27, 5, 12, CodeLintRedundant, "value ="},
 		},
 		"relay.can": {
-			{38, 25, 54, CodeLintRelay, "relay.failed(value = e.value)"},
+			{38, 25, 46, CodeLintRelay, "relay.failed(e.value)"},
 		},
 		"table.can": {
 			{22, 2, 13, CodeLintTable, "match a < 0"},
@@ -1493,15 +1606,15 @@ type Int__Value rev 1 (
 fn demo__go(value: str) -> Int__Value rev 1
   emits []
   tests
-    t("a") => Ok(value = 1)
-    b("b") => Ok(value = 1)
-    c("c") => Ok(value = 2)
-    z("z") => Ok(value = 0)
+    t("a") => Ok(1)
+    b("b") => Ok(1)
+    c("c") => Ok(2)
+    z("z") => Ok(0)
   match value
-    "a" => Ok(value = 1)
-    "b" => Ok(value = 1)
-    "c" => Ok(value = 2)
-    _ => Ok(value = 0)
+    "a" => Ok(1)
+    "b" => Ok(1)
+    "c" => Ok(2)
+    _ => Ok(0)
 `
 	dir := writeLSPDir(t, map[string]string{"demo.can": src})
 	diags := diagnose(dir, "demo.can", src)
@@ -1535,10 +1648,10 @@ type Int__Value rev 1 (
 fn demo__go(value: str) -> Int__Value rev 1
   emits []
   tests
-    t("a") => Ok(value = 1)
+    t("a") => Ok(1)
   match value
-    "a" => Ok(value = 1)
-    "b" => Ok(value = 1)
+    "a" => Ok(1)
+    "b" => Ok(1)
 `
 	dir := writeLSPDir(t, map[string]string{"demo.can": src})
 	diags := diagnose(dir, "demo.can", src)

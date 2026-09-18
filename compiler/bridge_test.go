@@ -32,12 +32,12 @@ asset_bridge Schema__ApprovedAsset, Schema__AssetPolicy from schema via sink__cs
 fn sink__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Sink__Res rev 1
   emits [sink.rejected]
   tests
-    css(seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f"), seal Schema__AssetPolicy("p|q")) => Ok(safe = seal Html__Safe("x"))
-    css_role_mismatch(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"), seal Schema__AssetPolicy("p|q")) => sink.rejected(asset = seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"))
+    css(seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f"), seal Schema__AssetPolicy("p|q")) => Ok(seal Html__Safe("x"))
+    css_role_mismatch(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"), seal Schema__AssetPolicy("p|q")) => sink.rejected(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"))
   match call schema__asset__fields(asset, policy)
     on Ok f => match f.role
-      "stylesheet" => Ok(safe = seal Html__Safe("x"))
-      _ => sink.rejected(asset = asset)
+      "stylesheet" => Ok(seal Html__Safe("x"))
+      _ => sink.rejected(asset)
 `
 
 func bridgeProgram(t *testing.T, files map[string]string) ([]*Module, []Diag) {
@@ -107,9 +107,9 @@ brand Html__Safe is str rev 1
 fn lone__css(asset: str) -> Lone__Res rev 1
   emits []
   tests
-    css("a|b|c|d|e|f|g|h") => Ok(safe = seal Html__Safe("x"))
+    css("a|b|c|d|e|f|g|h") => Ok(seal Html__Safe("x"))
   match call schema__asset__fields(asset, asset)
-    on Ok f => Ok(safe = seal Html__Safe("x"))
+    on Ok f => Ok(seal Html__Safe("x"))
 `
 	_, collected := bridgeProgram(t, map[string]string{"lone.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeAuthority, "not authorized by a valid asset_bridge grant")
@@ -136,11 +136,11 @@ asset_bridge Schema__ApprovedAsset, Schema__AssetPolicy from schema via wide__cs
 fn wide__css(asset: str, policy: str) -> Wide__Res rev 1
   emits [wide.rejected]
   tests
-    css("u", "p|q") => Ok(safe = seal Html__Safe("x"))
+    css("u", "p|q") => Ok(seal Html__Safe("x"))
   match call schema__asset__fields(asset, policy)
     on Ok f => match f.role
-      "stylesheet" => Ok(safe = seal Html__Safe("x"))
-      _ => wide.rejected(asset = asset)
+      "stylesheet" => Ok(seal Html__Safe("x"))
+      _ => wide.rejected(asset)
 `
 	_, collected := bridgeProgram(t, map[string]string{"wide.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeShape, "must have type Schema__ApprovedAsset")
@@ -167,9 +167,9 @@ asset_bridge Schema__ApprovedAsset, Schema__AssetPolicy from schema via norole__
 fn norole__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Norole__Res rev 1
   emits [norole.rejected]
   tests
-    css(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"), seal Schema__AssetPolicy("p|q")) => norole.rejected(asset = seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"))
+    css(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"), seal Schema__AssetPolicy("p|q")) => norole.rejected(seal Schema__ApprovedAsset("a|b|https://h/x|d|script|p|m|f"))
   match call schema__asset__fields(asset, policy)
-    on Ok f => norole.rejected(asset = asset)
+    on Ok f => norole.rejected(asset)
 `
 	_, collected := bridgeProgram(t, map[string]string{"norole.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeShape, "must gate the projected role")
@@ -198,11 +198,11 @@ asset_bridge Schema__ApprovedAsset, Schema__AssetPolicy from self via self__css@
 fn self__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Self__Res rev 1
   emits [self.rejected]
   tests
-    css(seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f"), seal Schema__AssetPolicy("p|q")) => Ok(safe = seal Html__Safe("x"))
+    css(seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f"), seal Schema__AssetPolicy("p|q")) => Ok(seal Html__Safe("x"))
   match call schema__asset__fields(asset, policy)
     on Ok f => match f.role
-      "stylesheet" => Ok(safe = seal Html__Safe("x"))
-      _ => self.rejected(asset = asset)
+      "stylesheet" => Ok(seal Html__Safe("x"))
+      _ => self.rejected(asset)
 `
 	_, collected := bridgeProgram(t, map[string]string{"self.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeAuthority, "not two-owner")
@@ -255,7 +255,7 @@ brand Schema__AssetPolicy is str rev 1
 		map[string]string{
 			"asset":  `seal Schema__ApprovedAsset("only|three|parts")`,
 			"policy": `seal Schema__AssetPolicy("p|q")`,
-		}, `Ok(safe = "x")`)
+		}, `Ok("x")`)
 	if err == nil {
 		t.Fatal("expected malformed-witness refusal, got pass")
 	}
@@ -280,7 +280,7 @@ brand Schema__AssetPolicy is str rev 1
 		map[string]string{
 			"asset":  `seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f")`,
 			"policy": `seal Schema__AssetPolicy("bare")`,
-		}, `Ok(safe = "x")`)
+		}, `Ok("x")`)
 	if err == nil {
 		t.Fatal("expected malformed-policy refusal, got pass")
 	}
@@ -324,7 +324,7 @@ func TestAssetBridgeRealModules(t *testing.T) {
 			map[string]string{
 				"asset":  `seal Schema__ApprovedAsset("` + witness + `")`,
 				"policy": `seal Schema__AssetPolicy("shop|prod")`,
-			}, `Ok(safe = "`+element+`")`)
+			}, `Ok("`+element+`")`)
 		if err != nil {
 			t.Fatalf("order %v: %v", order, err)
 		}
@@ -353,7 +353,7 @@ brand Schema__AssetPolicy is str rev 1
 			map[string]string{
 				"asset":  `seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f")`,
 				"policy": `seal Schema__AssetPolicy("p|q")`,
-			}, `Ok(safe = "x")`)
+			}, `Ok("x")`)
 		if err != nil {
 			t.Fatalf("order %v: %v", order, err)
 		}

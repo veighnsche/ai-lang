@@ -27,42 +27,42 @@ type Audit__Value rev 1 (
 fn audit__fail(which: str) -> Audit__Value rev 1
   emits [audit.failed, audit.other]
   tests
-    f("a") => audit.failed(code = 7)
-    g("b") => audit.other(code = 8)
-    o("z") => Ok(value = 0)
+    f("a") => audit.failed(7)
+    g("b") => audit.other(8)
+    o("z") => Ok(0)
   match which
-    "a" => audit.failed(code = 7)
-    "b" => audit.other(code = 8)
-    _ => Ok(value = 0)
+    "a" => audit.failed(7)
+    "b" => audit.other(8)
+    _ => Ok(0)
 
 fn audit__double(_m1: int) -> Audit__Value rev 1
   emits []
   tests
-    d(21) => Ok(value = 42)
-  Ok(value = _m1 + _m1)
+    d(21) => Ok(42)
+  Ok(_m1 + _m1)
 
 fn audit__go(flag: str) -> Audit__Value rev 1
   emits [audit.failed, audit.other]
   tests
-    h("a") => Ok(value = 7)
-    k("b") => Ok(value = 8)
-    j("z") => Ok(value = 0)
+    h("a") => Ok(7)
+    k("b") => Ok(8)
+    j("z") => Ok(0)
   match call audit__fail(flag)
-    on audit.failed err => Ok(value = err.code)
-    on audit.other err => Ok(value = err.code)
-    on Ok r => Ok(value = r.value)
+    on audit.failed err => Ok(err.code)
+    on audit.other err => Ok(err.code)
+    on Ok r => Ok(r.value)
 
 fn audit__wrap(flag: str) -> Audit__Value rev 1
   emits [audit.failed, audit.other]
   tests
-    w("a") => Ok(value = 28)
-    v("b") => Ok(value = 8)
-    u("z") => Ok(value = 0)
+    w("a") => Ok(28)
+    v("b") => Ok(8)
+    u("z") => Ok(0)
   match call audit__fail(flag)
     on audit.failed err => match call audit__double(err.code)
-      on Ok r => Ok(value = r.value + r.value)
-    on audit.other err => Ok(value = err.code)
-    on Ok r => Ok(value = r.value)
+      on Ok r => Ok(r.value + r.value)
+    on audit.other err => Ok(err.code)
+    on Ok r => Ok(r.value)
 `
 
 func TestEmitErrorBinders(t *testing.T) {

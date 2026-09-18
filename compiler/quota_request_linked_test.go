@@ -40,7 +40,7 @@ func TestQuotaRequestLinked(t *testing.T) {
 			"ok",
 			`Quota__Request(label = "Ada", amount = 5, mode = "batch")`,
 			schema,
-			`Ok(value = Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
+			`Ok(Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
 		},
 		{
 			"label",
@@ -102,25 +102,25 @@ func TestQuotaEnvelopeLinked(t *testing.T) {
 	}{
 		{
 			"ok",
-			`Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
+			`Quota__Envelope(Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
 			schema,
-			`Ok(value = Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")))`,
+			`Ok(Quota__Envelope(Quota__Request(label = "Ada", amount = 5, mode = "batch")))`,
 		},
 		{
 			"root",
-			`Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
+			`Quota__Envelope(Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
 			`Quota__RequestSchema(label_minimum = 5, label_maximum = 1, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])`,
 			`validation.schema_violation(path = "request", rule = "schema.label_bounds", value = "minimum=5;maximum=1")`,
 		},
 		{
 			"field",
-			`Quota__Envelope(request = Quota__Request(label = "", amount = 5, mode = "batch"))`,
+			`Quota__Envelope(Quota__Request(label = "", amount = 5, mode = "batch"))`,
 			schema,
 			`validation.schema_violation(path = "request.label", rule = "str.length_scalars", value = "")`,
 		},
 		{
 			"rendered",
-			`Quota__Envelope(request = Quota__Request(label = "Ada", amount = 11, mode = "batch"))`,
+			`Quota__Envelope(Quota__Request(label = "Ada", amount = 11, mode = "batch"))`,
 			schema,
 			`validation.schema_violation(path = "request.amount", rule = "int.closed_range", value = "11")`,
 		},

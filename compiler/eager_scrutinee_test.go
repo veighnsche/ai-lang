@@ -23,48 +23,48 @@ type M__Out rev 1 (
 fn m__f(n: int) -> M__Out rev 1
   emits []
   tests
-    z(0) => Ok(v = false)
-    t(1) => Ok(v = true)
-    f(2) => Ok(v = false)
+    z(0) => Ok(false)
+    t(1) => Ok(true)
+    f(2) => Ok(false)
   match n == 0, 10 % (n + 1) == 0
-    true, _ => Ok(v = false)
-    false, true => Ok(v = true)
-    false, false => Ok(v = false)
+    true, _ => Ok(false)
+    false, true => Ok(true)
+    false, false => Ok(false)
 
 fn m__g(a: bool, b: bool) -> M__Out rev 1
   emits []
   tests
-    tt(true, true) => Ok(v = true)
-    tf(true, false) => Ok(v = false)
-    ft(false, true) => Ok(v = false)
-    ff(false, false) => Ok(v = true)
+    tt(true, true) => Ok(true)
+    tf(true, false) => Ok(false)
+    ft(false, true) => Ok(false)
+    ff(false, false) => Ok(true)
   match a, b
-    true, true => Ok(v = true)
-    true, false => Ok(v = false)
-    false, true => Ok(v = false)
-    false, false => Ok(v = true)
+    true, true => Ok(true)
+    true, false => Ok(false)
+    false, true => Ok(false)
+    false, false => Ok(true)
 
 fn m__h(n: int) -> M__Out rev 1
   emits []
   tests
-    t(2) => Ok(v = true)
-    f(3) => Ok(v = false)
+    t(2) => Ok(true)
+    f(3) => Ok(false)
   match 10 % n == 0
-    true => Ok(v = true)
-    false => Ok(v = false)
+    true => Ok(true)
+    false => Ok(false)
 
 fn m__p(n: int, b: bool) -> M__Out rev 1
   emits []
   tests
-    et(2, true) => Ok(v = true)
-    ef(2, false) => Ok(v = false)
-    ot(3, true) => Ok(v = false)
-    of(3, false) => Ok(v = true)
+    et(2, true) => Ok(true)
+    ef(2, false) => Ok(false)
+    ot(3, true) => Ok(false)
+    of(3, false) => Ok(true)
   match n % 2 == 0, b
-    true, true => Ok(v = true)
-    true, false => Ok(v = false)
-    false, true => Ok(v = false)
-    false, false => Ok(v = true)
+    true, true => Ok(true)
+    true, false => Ok(false)
+    false, true => Ok(false)
+    false, false => Ok(true)
 `
 
 func eagerDiags(t *testing.T) []Diag {

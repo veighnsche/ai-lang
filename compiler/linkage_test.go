@@ -16,9 +16,9 @@ const linkLib = `mod lib
 
 fn lib__double(x: int) -> int rev 1
   tests
-    eight(4) => Ok(value = 8)
+    eight(4) => Ok(8)
   match x
-    _ => Ok(value = x * 2)
+    _ => Ok(x * 2)
 `
 
 const linkAppLie = `mod app
@@ -28,11 +28,11 @@ const linkAppLie = `mod app
 
 fn app__go(x: int) -> int rev 1
   tests
-    lie(4) => Ok(value = 999)
+    lie(4) => Ok(999)
   match call lib__double(x)
     given
-      lie => [exchange args (x = 4) outcome Ok(value = 999)]
-    on Ok v => Ok(value = v.value)
+      lie => [exchange args (x = 4) outcome Ok(999)]
+    on Ok v => Ok(v.value)
 `
 
 const linkAppTruth = `mod app
@@ -45,14 +45,14 @@ error app.boom()
 fn app__go(x: int) -> int rev 1
   emits [app.boom]
   tests
-    truth(4) => Ok(value = 8)
+    truth(4) => Ok(8)
     failure(4) => app.boom()
   match call lib__double(x)
     given
-      truth => [exchange args (x = 4) outcome Ok(value = 8)]
+      truth => [exchange args (x = 4) outcome Ok(8)]
       failure => [exchange args (x = 4) outcome lib.down()]
     on lib.down _ => app.boom()
-    on Ok v => Ok(value = v.value)
+    on Ok v => Ok(v.value)
 `
 
 func TestScriptContradictionFails(t *testing.T) {
@@ -83,13 +83,101 @@ error lib.down()
 fn lib__double(x: int) -> int rev 1
   emits [lib.down]
   tests
-    eight(4) => Ok(value = 8)
+    eight(4) => Ok(8)
   match x
-    _ => Ok(value = x * 2)
+    _ => Ok(x * 2)
 `
 	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": linkAppTruth})
 	if diags := diagnose(dir, "app.can", linkAppTruth); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+// a92: the honesty proof runs after types resolve positional
+// construction (mutation-before-eval), so a positional outcome
+// proves like a named one: lies fail, truths pass.
+const linkLibBox = `mod lib
+  provides [lib__double, Lib__Box]
+  uses []
+  emits []
+
+type Lib__Box rev 1 (
+  value: int
+)
+
+fn lib__double(x: int) -> Lib__Box rev 1
+  emits []
+  tests
+    eight(4) => Ok(8)
+  match x
+    _ => Ok(x * 2)
+`
+
+func TestScriptContradictionPositional(t *testing.T) {
+	lie := `mod app
+  provides [app__go]
+  uses [lib__double@1]
+  emits []
+
+fn app__go(x: int) -> int rev 1
+  tests
+    lie(4) => Ok(999)
+  match call lib__double(x)
+    given
+      lie => [exchange args (x = 4) outcome Ok(999)]
+    on Ok v => Ok(v.value)
+`
+	dir := writeLSPDir(t, map[string]string{"lib.can": linkLibBox, "app.can": lie})
+	diags := diagnose(dir, "app.can", lie)
+	found := false
+	for _, d := range diags {
+		if d.Sev == "error" && d.Code == CodeInconsistentScript {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected CAN3110 contradiction, got %v", diags)
+	}
+	truth := `mod app
+  provides [app__go]
+  uses [lib__double@1]
+  emits []
+
+fn app__go(x: int) -> int rev 1
+  tests
+    truth(4) => Ok(8)
+  match call lib__double(x)
+    given
+      truth => [exchange args (x = 4) outcome Ok(8)]
+    on Ok v => Ok(v.value)
+`
+	dir = writeLSPDir(t, map[string]string{"lib.can": linkLibBox, "app.can": truth})
+	if diags := diagnose(dir, "app.can", truth); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+// a92 keeps the exchange row all-named by grammar: an unnamed
+// expectation cannot say which parameter it pins, so positional
+// spellings stop at the parser while outcomes bind positionally.
+func TestScriptExchangeArgsStayNamed(t *testing.T) {
+	app := `mod app
+  provides [app__go]
+  uses [lib__double@1]
+  emits []
+
+fn app__go(x: int) -> int rev 1
+  tests
+    truth(4) => Ok(8)
+  match call lib__double(x)
+    given
+      truth => [exchange args (4) outcome Ok(8)]
+    on Ok v => Ok(v.value)
+`
+	dir := writeLSPDir(t, map[string]string{"lib.can": linkLib, "app.can": app})
+	diags := diagnose(dir, "app.can", app)
+	if !hasDiag(diags, "error", "exchange args must be named") {
+		t.Fatalf("expected named-exchange rejection, got %v", diags)
 	}
 }
 

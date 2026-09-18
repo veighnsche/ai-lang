@@ -18,19 +18,19 @@ const bytesHexBase = `mod m
 fn m__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(Bytes(Seq<int>[])) => Ok(value = "")
-    zero(Bytes(Seq<int>[0])) => Ok(value = "00")
-    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
-    lower(Bytes(Seq<int>[171])) => Ok(value = "ab")
-    leadzero(Bytes(Seq<int>[1])) => Ok(value = "01")
-    sixteen(Bytes(Seq<int>[16])) => Ok(value = "10")
-    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "deadbeef")
-    notext(Bytes(Seq<int>[65, 66])) => Ok(value = "4142")
-    nulbyte(Bytes(Seq<int>[0, 65])) => Ok(value = "0041")
-    high(Bytes(Seq<int>[128, 200])) => Ok(value = "80c8")
-    nibbles(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok(value = "000102030405060708090a0b0c0d0e0f")
+    empty(Bytes(Seq<int>[])) => Ok("")
+    zero(Bytes(Seq<int>[0])) => Ok("00")
+    ff(Bytes(Seq<int>[255])) => Ok("ff")
+    lower(Bytes(Seq<int>[171])) => Ok("ab")
+    leadzero(Bytes(Seq<int>[1])) => Ok("01")
+    sixteen(Bytes(Seq<int>[16])) => Ok("10")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok("deadbeef")
+    notext(Bytes(Seq<int>[65, 66])) => Ok("4142")
+    nulbyte(Bytes(Seq<int>[0, 65])) => Ok("0041")
+    high(Bytes(Seq<int>[128, 200])) => Ok("80c8")
+    nibbles(Bytes(Seq<int>[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])) => Ok("000102030405060708090a0b0c0d0e0f")
   match call bytes__hex__encode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 
 // H0: hex vectors, positional and named spellings. Lowercase by
@@ -49,8 +49,8 @@ func TestBytesH0HexVectors(t *testing.T) {
 // H1: the deterministic kernel takes no given table.
 func TestBytesH1NoGiven(t *testing.T) {
 	body := strings.Replace(bytesHexBase,
-		"  match call bytes__hex__encode(value)\n    on Ok r => Ok(value = r.value)",
-		"  match call bytes__hex__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
+		"  match call bytes__hex__encode(value)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__hex__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(\"\")]\n    on Ok r => Ok(r.value)", 1)
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
@@ -67,9 +67,9 @@ func TestBytesH2Admission(t *testing.T) {
 fn m__go(value: PARAM) -> Encoding__Text rev 1
   emits []
   tests
-    go(ARG) => Ok(value = "41")
+    go(ARG) => Ok("41")
   match call bytes__hex__encode(value)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
@@ -116,8 +116,8 @@ func TestBytesH4EmitPin(t *testing.T) {
 // H5: the empty contract is consulted: a stale error arm refuses.
 func TestBytesH5StaleArm(t *testing.T) {
 	body := strings.Replace(bytesHexBase,
-		"    on Ok r => Ok(value = r.value)",
-		"    on Ok r => Ok(value = r.value)\n    on m.boom e => Ok(value = \"\")", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on m.boom e => Ok(\"\")", 1)
 	body = strings.Replace(body, "fn m__go(value: Bytes)",
 		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": body})

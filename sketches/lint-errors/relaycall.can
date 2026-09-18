@@ -21,17 +21,17 @@ type Relaycall__Work rev 1 (
 fn relaycall__work(v: str) -> Relaycall__Work rev 1
   emits [relaycall.bad]
   tests
-    w("x") => Ok(value = "x")
-    u("b") => relaycall.bad(value = "b")
+    w("x") => Ok("x")
+    u("b") => relaycall.bad("b")
   match v == "b"
-    true => relaycall.bad(value = v)
-    false => Ok(value = v)
+    true => relaycall.bad(v)
+    false => Ok(v)
 
 fn relaycall__go(x: str) -> Relaycall__Out rev 1
   emits [relaycall.bad]
   tests
-    ok("a") => Ok(value = "a")
-    bad("b") => relaycall.bad(value = "b")
+    ok("a") => Ok("a")
+    bad("b") => relaycall.bad("b")
   match call relaycall__work(x)
     on Ok r => forward r
     on relaycall.bad e => forward e

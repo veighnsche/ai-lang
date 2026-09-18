@@ -124,7 +124,7 @@ fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
     go(1) => m.bad
-  Ok(value = value)
+  Ok(value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)
@@ -220,17 +220,17 @@ type M__Out rev 1 (
 fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(1) => Ok(value = 1)
+    go(1) => Ok(1)
   match call m__help(value)
     given
-      go => [exchange args (value = 1) outcome Ok(value = 1)]
-    on Ok r => Ok(value = r.value)
+      go => [exchange args (value = 1) outcome Ok(1)]
+    on Ok r => Ok(r.value)
 
 fn m__help(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)
@@ -269,17 +269,17 @@ type M__Out rev 1 (
 fn m__go(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(1) => Ok(value = 1)
+    go(1) => Ok(1)
   match call m__help(value)
     given
-      go => [exchange args (value = 1) outcome Ok(value = 1)]
-    on Ok r => Ok(value = r.value)
+      go => [exchange args (value = 1) outcome Ok(1)]
+    on Ok r => Ok(r.value)
 
 fn m__help(value: int) -> M__Out rev 1
   emits [m.bad]
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)

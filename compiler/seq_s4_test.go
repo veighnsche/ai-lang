@@ -24,8 +24,8 @@ type T__Pair rev 1 (
 fn t__app() -> T__Pair rev 1
   emits []
   tests
-    go() => Ok(before = ` + wantBefore + `, after = ` + wantAfter + `)
-  Ok(before = ` + before + `, after = ` + before + ` + ` + item + `)
+    go() => Ok(` + wantBefore + `, ` + wantAfter + `)
+  Ok(` + before + `, ` + before + ` + ` + item + `)
 `
 }
 
@@ -61,14 +61,14 @@ type T__Fork rev 1 (
 fn t__fork(base: Seq<str>) -> T__Fork rev 1
   emits []
   tests
-    go(Seq<str>["a"]) => Ok(base = Seq<str>["a"], first = Seq<str>["a", "b"], second = Seq<str>["a", "c"])
-  Ok(base = base, first = base + "b", second = base + "c")
+    go(Seq<str>["a"]) => Ok(Seq<str>["a"], Seq<str>["a", "b"], Seq<str>["a", "c"])
+  Ok(base, base + "b", base + "c")
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
 
 	// And the mutation it guards against really fails: swap one
 	// expectation and the run must disagree.
-	bad := strings.Replace(body, `second = Seq<str>["a", "c"]`, `second = Seq<str>["a", "b", "c"]`, 1)
+	bad := strings.Replace(body, `Seq<str>["a", "c"]`, `Seq<str>["a", "b", "c"]`, 1)
 	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTestFailed, "go")
 }
 
@@ -89,14 +89,14 @@ type T__BPair rev 1 (
 fn t__app() -> T__BPair rev 1
   emits []
   tests
-    go() => Ok(before = Seq<M__B>[seal M__B("A")], after = Seq<M__B>[seal M__B("A"), seal M__B("B")])
-  Ok(before = Seq<M__B>[seal M__B("A")], after = Seq<M__B>[seal M__B("A")] + seal M__B("B"))
+    go() => Ok(Seq<M__B>[seal M__B("A")], Seq<M__B>[seal M__B("A"), seal M__B("B")])
+  Ok(Seq<M__B>[seal M__B("A")], Seq<M__B>[seal M__B("A")] + seal M__B("B"))
 `
 	seqClean(t, map[string]string{"m.can": body}, "m.can")
 
 	bad := strings.Replace(body,
-		`after = Seq<M__B>[seal M__B("A")] + seal M__B("B")`,
-		`after = Seq<M__B>[seal M__B("A")] + "B"`, 1)
+		`Seq<M__B>[seal M__B("A")] + seal M__B("B")`,
+		`Seq<M__B>[seal M__B("A")] + "B"`, 1)
 	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTypeMismatch, "want M__B")
 }
 

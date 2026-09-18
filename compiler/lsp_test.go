@@ -22,10 +22,10 @@ type Db__U rev 1 (
 fn db__get(id: str) -> Db__U rev 1
   emits [db.down]
   tests
-    ok("u") => Ok(id = "u")
+    ok("u") => Ok("u")
     other("x") => db.down()
   match id
-    "u" => Ok(id = "u")
+    "u" => Ok("u")
     _ => db.down()
 `
 
@@ -43,14 +43,14 @@ type Auth__S rev 1 (
 fn auth__go(id: str) -> Auth__S rev 1
   emits [auth.bad]
   tests
-    ok("u") => Ok(id = "u")
+    ok("u") => Ok("u")
     down("u") => auth.bad()
   match call db__get(id)
     given
-      ok => [exchange args (id = "u") outcome Ok(id = "u")]
+      ok => [exchange args (id = "u") outcome Ok("u")]
       down => [exchange args (id = "u") outcome db.down()]
     on db.down _ => auth.bad()
-    on Ok u => Ok(id = u.id)
+    on Ok u => Ok(u.id)
 `
 
 func writeLSPDir(t *testing.T, files map[string]string) string {
@@ -81,7 +81,7 @@ func TestDiagnoseClean(t *testing.T) {
 }
 
 func TestDiagnoseMissingTests(t *testing.T) {
-	noTests := strings.Replace(lspAuth, "  tests\n    ok(\"u\") => Ok(id = \"u\")\n    down(\"u\") => auth.bad()\n", "", 1)
+	noTests := strings.Replace(lspAuth, "  tests\n    ok(\"u\") => Ok(\"u\")\n    down(\"u\") => auth.bad()\n", "", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": noTests})
 	diags := diagnose(dir, "auth.can", noTests)
 	if !hasDiag(diags, "error", "ships no tests") {
@@ -128,15 +128,15 @@ type M__S rev 1 (
 fn m__go(id: str) -> M__S rev 1
   emits [m.bad]
   tests
-    hit("u") => Ok(id = "u")
-    miss("x") => m.bad(id = "x")
+    hit("u") => Ok("u")
+    miss("x") => m.bad("x")
   match id
-    "u" => Ok(id = id)
-    _ => m.bad(id = id)
+    "u" => Ok(id)
+    _ => m.bad(id)
 `
 
 func TestExpectErrorPayloadMismatch(t *testing.T) {
-	bad := strings.Replace(expectErrFixture, `miss("x") => m.bad(id = "x")`, `miss("x") => m.bad(id = "y")`, 1)
+	bad := strings.Replace(expectErrFixture, `miss("x") => m.bad("x")`, `miss("x") => m.bad("y")`, 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "error payload mismatch") {
@@ -145,7 +145,7 @@ func TestExpectErrorPayloadMismatch(t *testing.T) {
 }
 
 func TestExpectBareErrorKindRefused(t *testing.T) {
-	bad := strings.Replace(expectErrFixture, `miss("x") => m.bad(id = "x")`, `miss("x") => m.bad`, 1)
+	bad := strings.Replace(expectErrFixture, `miss("x") => m.bad("x")`, `miss("x") => m.bad`, 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "expects bare error kind m.bad") {
@@ -163,7 +163,7 @@ func TestExpectBareErrorKindRefused(t *testing.T) {
 }
 
 func TestDiagnoseFailingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "down(\"u\") => auth.bad()", "down(\"u\") => Ok(id = \"u\")", 1)
+	bad := strings.Replace(lspAuth, "down(\"u\") => auth.bad()", "down(\"u\") => Ok(\"u\")", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "test down fails") {
@@ -199,7 +199,7 @@ func TestDiagnoseCallNotInUses(t *testing.T) {
 }
 
 func TestDiagnoseMissingGiven(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    given\n      ok => [exchange args (id = \"u\") outcome Ok(id = \"u\")]\n      down => [exchange args (id = \"u\") outcome db.down()]\n", "", 1)
+	bad := strings.Replace(lspAuth, "    given\n      ok => [exchange args (id = \"u\") outcome Ok(\"u\")]\n      down => [exchange args (id = \"u\") outcome db.down()]\n", "", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "has no given table") {
@@ -241,7 +241,7 @@ func TestDiagnoseBadStub(t *testing.T) {
 // (a12): a wrong request value, a wrong request name, or a row
 // without an exchange all fail loudly.
 func TestExchangeArgMismatch(t *testing.T) {
-	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok(id = "u")]`, `ok => [exchange args (id = "x") outcome db.down()]`, 1)
+	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok("u")]`, `ok => [exchange args (id = "x") outcome db.down()]`, 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "arg id mismatch") {
@@ -250,7 +250,7 @@ func TestExchangeArgMismatch(t *testing.T) {
 }
 
 func TestExchangeArgNameMissing(t *testing.T) {
-	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok(id = "u")]`, `ok => [exchange args (idd = "u") outcome Ok(id = "u")]`, 1)
+	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok("u")]`, `ok => [exchange args (idd = "u") outcome Ok("u")]`, 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "but the call supplies none") {
@@ -259,7 +259,7 @@ func TestExchangeArgNameMissing(t *testing.T) {
 }
 
 func TestExchangeRowRequired(t *testing.T) {
-	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok(id = "u")]`, `ok => [Ok(id = "u")]`, 1)
+	bad := strings.Replace(lspAuth, `ok => [exchange args (id = "u") outcome Ok("u")]`, `ok => [Ok("u")]`, 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "script row must be an exchange") {
@@ -331,8 +331,8 @@ func TestDiagnoseUnusedUses(t *testing.T) {
 fn db__ping() -> Db__U rev 1
   emits []
   tests
-    ok() => Ok(id = "u")
-  Ok(id = "u")
+    ok() => Ok("u")
+  Ok("u")
 `
 	auth := strings.Replace(lspAuth, "uses [db__get@1]", "uses [db__get@1, db__ping@1]", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": db, "auth.can": auth})
@@ -343,7 +343,7 @@ fn db__ping() -> Db__U rev 1
 }
 
 func TestDiagnoseDupTests(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    ok(\"u\") => Ok(id = \"u\")\n", 1)
+	bad := strings.Replace(lspAuth, "    down(\"u\") => auth.bad()\n", "    down(\"u\") => auth.bad()\n    ok(\"u\") => Ok(\"u\")\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "duplicate test ok") {
@@ -352,7 +352,7 @@ func TestDiagnoseDupTests(t *testing.T) {
 }
 
 func TestDiagnoseBadTestArgs(t *testing.T) {
-	bad := strings.Replace(lspAuth, "ok(\"u\") => Ok(id = \"u\")", "ok(bogus = \"u\") => Ok(id = \"u\")", 1)
+	bad := strings.Replace(lspAuth, "ok(\"u\") => Ok(\"u\")", "ok(bogus = \"u\") => Ok(\"u\")", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "unknown arg bogus") {
@@ -376,7 +376,7 @@ func TestDiagnoseMultiWorld(t *testing.T) {
 }
 
 func TestDiagnoseCallOutsideScrutinee(t *testing.T) {
-	bad := strings.Replace(lspAuth, "    on Ok u => Ok(id = u.id)\n", "    on Ok u => call db__get(id)\n", 1)
+	bad := strings.Replace(lspAuth, "    on Ok u => Ok(u.id)\n", "    on Ok u => call db__get(id)\n", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	if !hasDiag(diags, "error", "outside a match scrutinee") {
@@ -526,7 +526,7 @@ func TestSpanStaleArm(t *testing.T) {
 }
 
 func TestSpanFailingTest(t *testing.T) {
-	bad := strings.Replace(lspAuth, "down(\"u\") => auth.bad()", "down(\"u\") => Ok(id = \"u\")", 1)
+	bad := strings.Replace(lspAuth, "down(\"u\") => auth.bad()", "down(\"u\") => Ok(\"u\")", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
 	checkSpan(t, bad, diags, "test down fails", "down", expectLine(t, bad, "down(\"u\") => Ok"))
@@ -538,8 +538,8 @@ func TestSpanUnusedUses(t *testing.T) {
 fn db__ping() -> Db__U rev 1
   emits []
   tests
-    ok() => Ok(id = "u")
-  Ok(id = "u")
+    ok() => Ok("u")
+  Ok("u")
 `
 	auth := strings.Replace(lspAuth, "uses [db__get@1]", "uses [db__get@1, db__ping@1]", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": db, "auth.can": auth})
@@ -605,16 +605,16 @@ fn math__sum_to(n: int) -> Int__Value rev 1
   decreases n
   emits [math.negative_input]
   tests
-    neg(-3) => math.negative_input(value = -3)
-    zero(0) => Ok(value = 0)
-    pos(3) => Ok(value = 6)
+    neg(-3) => math.negative_input(-3)
+    zero(0) => Ok(0)
+    pos(3) => Ok(6)
   match n <= 0
     true => match n == 0
-      true => Ok(value = 0)
-      false => math.negative_input(value = n)
+      true => Ok(0)
+      false => math.negative_input(n)
     false => match call math__sum_to(n - 1)
-      on math.negative_input err => math.negative_input(value = err.value)
-      on Ok r => Ok(value = n + r.value)
+      on math.negative_input err => math.negative_input(err.value)
+      on Ok r => Ok(n + r.value)
 `
 
 func TestDiagnoseIdentityRelayCertified(t *testing.T) {
@@ -640,8 +640,8 @@ func TestDiagnoseIdentityRelayCertified(t *testing.T) {
 
 func TestDiagnoseInvalidRelayValue(t *testing.T) {
 	bad := strings.Replace(relayMath,
-		"on math.negative_input err => math.negative_input(value = err.value)",
-		"on math.negative_input err => math.negative_input(value = 0)", 1)
+		"on math.negative_input err => math.negative_input(err.value)",
+		"on math.negative_input err => math.negative_input(0)", 1)
 	dir := writeLSPDir(t, map[string]string{"math.can": bad})
 	diags := diagnose(dir, "math.can", bad)
 	if !hasCode(diags, "CAN4108") {
@@ -658,8 +658,8 @@ func TestDiagnoseInvalidRelayKind(t *testing.T) {
 	bad = strings.Replace(bad, "error math.negative_input(value: int)",
 		"error math.negative_input(value: int)\n\nerror math.other(value: int)", 1)
 	bad = strings.Replace(bad,
-		"on math.negative_input err => math.negative_input(value = err.value)",
-		"on math.negative_input err => math.other(value = err.value)", 1)
+		"on math.negative_input err => math.negative_input(err.value)",
+		"on math.negative_input err => math.other(err.value)", 1)
 	dir := writeLSPDir(t, map[string]string{"math.can": bad})
 	diags := diagnose(dir, "math.can", bad)
 	if !hasCode(diags, "CAN4108") {
@@ -685,22 +685,22 @@ fn math2__go(n: int) -> Int__Value rev 1
   decreases n
   emits [math2.fail]
   tests
-    fail(-1) => math2.fail(a = 1, b = 2)
-    zero(0) => Ok(value = 0)
-    pos(2) => Ok(value = 3)
+    fail(-1) => math2.fail(1, 2)
+    zero(0) => Ok(0)
+    pos(2) => Ok(3)
   match n <= 0
     true => match n == 0
-      true => Ok(value = 0)
-      false => math2.fail(a = 1, b = 2)
+      true => Ok(0)
+      false => math2.fail(1, 2)
     false => match call math2__go(n - 1)
-      on math2.fail e => math2.fail(a = e.a, b = e.b)
-      on Ok r => Ok(value = n + r.value)
+      on math2.fail e => math2.fail(e.a, e.b)
+      on Ok r => Ok(n + r.value)
 `
 
 func TestDiagnoseInvalidRelayDrops(t *testing.T) {
 	bad := strings.Replace(relayMathTwo,
-		"on math2.fail e => math2.fail(a = e.a, b = e.b)",
-		"on math2.fail e => math2.fail(a = e.a)", 1)
+		"on math2.fail e => math2.fail(e.a, e.b)",
+		"on math2.fail e => math2.fail(e.a)", 1)
 	dir := writeLSPDir(t, map[string]string{"math2.can": bad})
 	diags := diagnose(dir, "math2.can", bad)
 	if !hasCode(diags, "CAN4108") {
@@ -713,8 +713,8 @@ func TestDiagnoseInvalidRelayDrops(t *testing.T) {
 
 func TestDiagnoseInvalidRelayUnexpected(t *testing.T) {
 	bad := strings.Replace(relayMathTwo,
-		"on math2.fail e => math2.fail(a = e.a, b = e.b)",
-		"on math2.fail e => math2.fail(a = e.a, b = e.b, z = e.a)", 1)
+		"on math2.fail e => math2.fail(e.a, e.b)",
+		"on math2.fail e => math2.fail(e.a, e.b, z = e.a)", 1)
 	dir := writeLSPDir(t, map[string]string{"math2.can": bad})
 	diags := diagnose(dir, "math2.can", bad)
 	if !hasCode(diags, "CAN4108") {
@@ -772,17 +772,17 @@ type Dup__Out rev 1 (
 fn dup__help(x: int) -> Dup__Val rev 1
   emits [dup.bad]
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = x)
+    go(1) => Ok(1)
+  Ok(x)
 
 fn dup__go(x: int) -> Dup__Out rev 1
   emits [dup.bad]
   tests
-    go(1) => Ok(value = 1)
+    go(1) => Ok(1)
   match call dup__help(x)
-    on Ok r => Ok(value = r.value)
-    on dup.bad e => dup.bad(value = e.value)
-    on dup.bad e2 => dup.bad(value = e2.value)
+    on Ok r => Ok(r.value)
+    on dup.bad e => dup.bad(e.value)
+    on dup.bad e2 => dup.bad(e2.value)
 `
 
 func TestDiagnoseShadowedRelay(t *testing.T) {
@@ -816,8 +816,8 @@ type Lib__Out rev 1 (
 fn lib__get() -> Lib__Out rev 1
   emits [lib.bad]
   tests
-    go() => Ok(value = 1)
-  Ok(value = 1)
+    go() => Ok(1)
+  Ok(1)
 `
 
 const relayForeignApp = `mod app
@@ -832,12 +832,12 @@ type App__Out rev 1 (
 fn app__go() -> App__Out rev 1
   emits [lib.bad]
   tests
-    go() => Ok(value = 1)
+    go() => Ok(1)
   match call lib__get()
     given
-      go => [exchange args () outcome Ok(value = 1)]
-    on Ok r => Ok(value = r.value)
-    on lib.bad e => lib.bad(value = e.value)
+      go => [exchange args () outcome Ok(1)]
+    on Ok r => Ok(r.value)
+    on lib.bad e => lib.bad(e.value)
 `
 
 func TestDiagnoseForeignRelayUntaken(t *testing.T) {
@@ -875,16 +875,16 @@ type Cat__Out rev 1 (
 fn cat__help(x: int) -> Cat__Val rev 1
   emits [cat.used]
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = x)
+    go(1) => Ok(1)
+  Ok(x)
 
 fn cat__go(x: int) -> Cat__Out rev 1
   emits [cat.used, cat.free]
   tests
-    go(1) => Ok(value = 1)
+    go(1) => Ok(1)
   match call cat__help(x)
-    on Ok r => Ok(value = r.value)
-    on cat.used e => cat.used(value = e.value)
+    on Ok r => Ok(r.value)
+    on cat.used e => cat.used(e.value)
 `
 	dir := t.TempDir()
 	srcPath := filepath.Join(dir, "cat.can")
@@ -942,10 +942,10 @@ func TestCoverageGreenOnly(t *testing.T) {
 // Type discipline (v0.4): float ban, dec exactness, brands, seal, extern.
 
 func TestDiagnoseFloatLiteral(t *testing.T) {
-	bad := strings.Replace(lspAuth, "ok(\"u\") => Ok(id = \"u\")", "ok(id = \"u\") => Ok(id = 0.5)", 1)
+	bad := strings.Replace(lspAuth, "ok(\"u\") => Ok(\"u\")", "ok(id = \"u\") => Ok(0.5)", 1)
 	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": bad})
 	diags := diagnose(dir, "auth.can", bad)
-	checkSpan(t, bad, diags, "has no spelling", "0.5", expectLine(t, bad, "Ok(id = 0.5)"))
+	checkSpan(t, bad, diags, "has no spelling", "0.5", expectLine(t, bad, "Ok(0.5)"))
 }
 
 const typeShop = `mod shop
@@ -960,8 +960,8 @@ type Shop__Item rev 1 (
 fn shop__price() -> Shop__Item rev 1
   emits []
   tests
-    half() => Ok(price = d"1.5")
-  Ok(price = d"1.50")
+    half() => Ok(d"1.5")
+  Ok(d"1.50")
 `
 
 func TestDiagnoseDecExact(t *testing.T) {
@@ -985,14 +985,14 @@ type M__Out rev 1 (
 fn m__leak(pw: M__B) -> M__Out rev 1
   emits []
   tests
-    t(seal M__B("s")) => Ok(echo = "s")
-  Ok(echo = pw)
+    t(seal M__B("s")) => Ok("s")
+  Ok(pw)
 `
 
 func TestDiagnoseBrandSink(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"m.can": typeLeak})
 	diags := diagnose(dir, "m.can", typeLeak)
-	checkSpan(t, typeLeak, diags, "got M__B, want str", "echo", expectLine(t, typeLeak, "Ok(echo = pw)"))
+	checkSpan(t, typeLeak, diags, "got M__B, want str", "pw", expectLine(t, typeLeak, "Ok(pw)"))
 }
 
 const typeCmp = `mod m
@@ -1010,10 +1010,10 @@ type M__Out rev 1 (
 fn m__cmp(a: M__A, b: M__B) -> M__Out rev 1
   emits []
   tests
-    t(seal M__A("x"), seal M__B("y")) => Ok(echo = "n")
+    t(seal M__A("x"), seal M__B("y")) => Ok("n")
   match a == b
-    true => Ok(echo = "y")
-    false => Ok(echo = "n")
+    true => Ok("y")
+    false => Ok("n")
 `
 
 func TestDiagnoseCrossBrandCompare(t *testing.T) {
@@ -1034,10 +1034,10 @@ type M__Out rev 1 (
 fn m__cmp(a: int, b: dec) -> M__Out rev 1
   emits []
   tests
-    t(1, d"1.0") => Ok(echo = "n")
+    t(1, d"1.0") => Ok("n")
   match a > b
-    true => Ok(echo = "y")
-    false => Ok(echo = "n")
+    true => Ok("y")
+    false => Ok("n")
 `
 
 func TestDiagnoseStrictMixedCompare(t *testing.T) {
@@ -1062,32 +1062,32 @@ type M__Str rev 1 (
 fn m__len(v: int) -> M__Out rev 1
   emits []
   tests
-    t(1) => Ok(n = 0)
-  Ok(n = #v)
+    t(1) => Ok(0)
+  Ok(#v)
 
 fn m__at(v: int, i: int) -> M__Out rev 1
   emits []
   tests
-    t(1, 0) => Ok(n = 0)
-  Ok(n = v[i])
+    t(1, 0) => Ok(0)
+  Ok(v[i])
 
 fn m__at_str(v: str, i: str) -> M__Out rev 1
   emits []
   tests
-    t("ab", "x") => Ok(n = 0)
-  Ok(n = v[i])
+    t("ab", "x") => Ok(0)
+  Ok(v[i])
 
 fn m__slice(v: int, a: int, b: int) -> M__Str rev 1
   emits []
   tests
-    t(1, 0, 1) => Ok(s = "x")
-  Ok(s = v[a:b])
+    t(1, 0, 1) => Ok("x")
+  Ok(v[a:b])
 
 fn m__slice_str(v: str, a: str, b: int) -> M__Str rev 1
   emits []
   tests
-    t("ab", "x", 1) => Ok(s = "x")
-  Ok(s = v[a:b])
+    t("ab", "x", 1) => Ok("x")
+  Ok(v[a:b])
 `
 
 func TestDiagnoseTextOpsMismatch(t *testing.T) {
@@ -1120,8 +1120,8 @@ type M__Out rev 1 (
 fn m__seal(pw: str, n: int) -> M__Out rev 1
   emits []
   tests
-    t("s", 0) => Ok(echo = "s")
-  Ok(echo = seal M__B(pw))
+    t("s", 0) => Ok("s")
+  Ok(seal M__B(pw))
 `
 
 // a25 supersedes the literal-only seal rule: seals take string
@@ -1129,12 +1129,12 @@ fn m__seal(pw: str, n: int) -> M__Out rev 1
 // constructors can mint computed brands. What stays rejected is
 // anything not statically a string — int literals and int refs.
 func TestDiagnoseSealString(t *testing.T) {
-	badLit := strings.Replace(typeSeal, "Ok(echo = seal M__B(pw))", "Ok(echo = seal M__B(7))", 1)
+	badLit := strings.Replace(typeSeal, "Ok(seal M__B(pw))", "Ok(seal M__B(7))", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": badLit})
 	diags := diagnose(dir, "m.can", badLit)
 	checkSpan(t, badLit, diags, "seal M__B takes a string", "M__B", expectLine(t, badLit, "seal M__B(7)"))
 
-	badRef := strings.Replace(typeSeal, "Ok(echo = seal M__B(pw))", "Ok(echo = seal M__B(n))", 1)
+	badRef := strings.Replace(typeSeal, "Ok(seal M__B(pw))", "Ok(seal M__B(n))", 1)
 	dir2 := writeLSPDir(t, map[string]string{"m.can": badRef})
 	diags2 := diagnose(dir2, "m.can", badRef)
 	checkSpan(t, badRef, diags2, "seal M__B takes a string", "M__B", expectLine(t, badRef, "seal M__B(n)"))
@@ -1169,14 +1169,14 @@ extern m__use(pw: M__Pw) -> M__Verdict rev 1
 fn m__check(pw: M__Pw) -> M__Out rev 1
   emits [m.nope]
   tests
-    yes(seal M__Pw("s")) => Ok(ok = true)
+    yes(seal M__Pw("s")) => Ok(true)
     no(seal M__Pw("s")) => m.nope()
   match call m__use(pw)
     given
       yes => [exchange args (pw = seal M__Pw("s")) outcome Ok()]
       no => [exchange args (pw = seal M__Pw("s")) outcome m.nope()]
     on m.nope _ => m.nope()
-    on Ok v => Ok(ok = true)
+    on Ok v => Ok(true)
 `
 
 func TestDiagnoseExternClean(t *testing.T) {
@@ -1207,11 +1207,11 @@ type O__Out rev 1 (
 fn o__go(id: str) -> O__Out rev 1
   emits []
   tests
-    t("u") => Ok(id = "u")
+    t("u") => Ok("u")
   match call m__use(id)
     given
       t => [exchange args (pw = "u") outcome Ok()]
-    on Ok v => Ok(id = id)
+    on Ok v => Ok(id)
 `
 
 func TestDiagnoseForeignExtern(t *testing.T) {
@@ -1237,14 +1237,14 @@ type M__Out rev 1 (
 fn m__calc(a: int, b: int, c: int) -> M__Out rev 1
   emits []
   tests
-    t(10, 3, 2) => Ok(n = 5)
-  Ok(n = a - b - c)
+    t(10, 3, 2) => Ok(5)
+  Ok(a - b - c)
 
 fn m__prec(a: int, b: int, c: int) -> M__Out rev 1
   emits []
   tests
-    t(2, 3, 4) => Ok(n = 14)
-  Ok(n = a + b * c)
+    t(2, 3, 4) => Ok(14)
+  Ok(a + b * c)
 `
 
 func TestDiagnoseArithClean(t *testing.T) {
@@ -1266,11 +1266,11 @@ type M__Bit rev 1 (
 fn m__exact(a: dec, b: dec, c: dec) -> M__Bit rev 1
   emits []
   tests
-    third(d"0.1", d"0.2", d"0.3") => Ok(yes = true)
-    fourth(d"0.1", d"0.2", d"0.4") => Ok(yes = false)
+    third(d"0.1", d"0.2", d"0.3") => Ok(true)
+    fourth(d"0.1", d"0.2", d"0.4") => Ok(false)
   match a + b == c
-    true => Ok(yes = true)
-    false => Ok(yes = false)
+    true => Ok(true)
+    false => Ok(false)
 `
 
 func TestDiagnoseArithDecExact(t *testing.T) {
@@ -1281,21 +1281,21 @@ func TestDiagnoseArithDecExact(t *testing.T) {
 }
 
 func TestDiagnoseArithMixed(t *testing.T) {
-	bad := strings.Replace(typeArith, "Ok(n = a - b - c)", `Ok(n = a + d"1.5")`, 1)
+	bad := strings.Replace(typeArith, "Ok(a - b - c)", `Ok(a + d"1.5")`, 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
-	checkSpan(t, bad, diags, "cannot add int with dec", "+", expectLine(t, bad, `Ok(n = a + d"1.5")`))
+	checkSpan(t, bad, diags, "cannot add int with dec", "+", expectLine(t, bad, `Ok(a + d"1.5")`))
 }
 
 func TestDiagnoseArithStr(t *testing.T) {
 	// a16: + concatenates strings, so the refused string operation
 	// is now -. The contract under test is unchanged: strings do
 	// no arithmetic besides explicit construction.
-	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(10, 3, 2) => Ok(n = 5)\n  Ok(n = a - b - c)",
-		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(\"x\", \"y\", 2) => Ok(n = 5)\n  Ok(n = a - b)", 1)
+	bad := strings.Replace(typeArith, "(a: int, b: int, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(10, 3, 2) => Ok(5)\n  Ok(a - b - c)",
+		"(a: str, b: str, c: int) -> M__Out rev 1\n  emits []\n  tests\n    t(\"x\", \"y\", 2) => Ok(5)\n  Ok(a - b)", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
-	checkSpan(t, bad, diags, "cannot subtract str with str", "-", expectLine(t, bad, "Ok(n = a - b)"))
+	checkSpan(t, bad, diags, "cannot subtract str with str", "-", expectLine(t, bad, "Ok(a - b)"))
 }
 
 const typeConcat = `mod m
@@ -1310,9 +1310,9 @@ type M__Cat rev 1 (
 fn m__cat(left: str, right: str) -> M__Cat rev 1
   emits []
   tests
-    basic("x", "y") => Ok(s = "xy")
-    empty("", "y") => Ok(s = "y")
-  Ok(s = left + right)
+    basic("x", "y") => Ok("xy")
+    empty("", "y") => Ok("y")
+  Ok(left + right)
 `
 
 func TestDiagnoseStrConcatClean(t *testing.T) {
@@ -1335,8 +1335,8 @@ type M__Out rev 1 (
 fn m__div(a: int, b: int) -> M__Out rev 1
   emits []
   tests
-    t(7, 3) => Ok(q = 2)
-  Ok(q = a / b)
+    t(7, 3) => Ok(2)
+  Ok(a / b)
 `
 
 func TestDiagnoseDivisionDeferred(t *testing.T) {

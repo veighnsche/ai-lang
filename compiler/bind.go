@@ -51,3 +51,39 @@ func bindSlots(fname string, args []Arg, params [][2]string) ([]int, error) {
 	}
 	return slots, nil
 }
+
+// bindCtorArgs names a constructor's positional arguments from the
+// declaration's field order (a92): positional i binds fields[i],
+// named arguments keep their names. It reports only positional
+// faults — overflow and double supply against a named claim —
+// with the same wording as the static constructor check; named
+// verification (unknown or missing fields) stays with the caller,
+// exactly like the static split between binding and checking.
+// Untyped contexts (given tables, test expectations) evaluate raw,
+// so evaluation binds here what checking binds nowhere. Ok takes
+// the conventional single field [value]; completeness is never
+// required here (Ok() stays the empty ok dict, as before).
+func bindCtorArgs(ctor string, args []Arg, fields []string) ([]string, error) {
+	names := make([]string, len(args))
+	claimed := map[string]bool{}
+	for _, a := range args {
+		if a.HasName {
+			claimed[a.Name] = true
+		}
+	}
+	for i, a := range args {
+		if a.HasName {
+			names[i] = a.Name
+			continue
+		}
+		if i >= len(fields) {
+			return nil, fmt.Errorf("%s takes %d args for %d fields", ctor, len(args), len(fields))
+		}
+		if claimed[fields[i]] {
+			return nil, fmt.Errorf("%s supplies field %s twice", ctor, fields[i])
+		}
+		claimed[fields[i]] = true
+		names[i] = fields[i]
+	}
+	return names, nil
+}

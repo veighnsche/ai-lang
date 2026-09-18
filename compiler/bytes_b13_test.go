@@ -25,19 +25,19 @@ func TestBytesB13ForeignCaller(t *testing.T) {
 fn client__go(value: Bytes) -> Encoding__Text rev 1
   emits []
   tests
-    empty(Bytes(Seq<int>[])) => Ok(value = "")
-    one(Bytes(Seq<int>[65])) => Ok(value = "QQ==")
-    two(Bytes(Seq<int>[65, 66])) => Ok(value = "QUI=")
-    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2+7w==")
-    notext(Bytes(Seq<int>[0, 65])) => Ok(value = "AEE=")
+    empty(Bytes(Seq<int>[])) => Ok("")
+    one(Bytes(Seq<int>[65])) => Ok("QQ==")
+    two(Bytes(Seq<int>[65, 66])) => Ok("QUI=")
+    ordered(Bytes(Seq<int>[222, 173, 190, 239])) => Ok("3q2+7w==")
+    notext(Bytes(Seq<int>[0, 65])) => Ok("AEE=")
   match call std__base64__encode(value)
     given
-      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = "")]
-      one => [exchange args (value = Bytes(Seq<int>[65])) outcome Ok(value = "QQ==")]
-      two => [exchange args (value = Bytes(Seq<int>[65, 66])) outcome Ok(value = "QUI=")]
-      ordered => [exchange args (value = Bytes(Seq<int>[222, 173, 190, 239])) outcome Ok(value = "3q2+7w==")]
-      notext => [exchange args (value = Bytes(Seq<int>[0, 65])) outcome Ok(value = "AEE=")]
-    on Ok r => Ok(value = r.value)
+      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok("")]
+      one => [exchange args (value = Bytes(Seq<int>[65])) outcome Ok("QQ==")]
+      two => [exchange args (value = Bytes(Seq<int>[65, 66])) outcome Ok("QUI=")]
+      ordered => [exchange args (value = Bytes(Seq<int>[222, 173, 190, 239])) outcome Ok("3q2+7w==")]
+      notext => [exchange args (value = Bytes(Seq<int>[0, 65])) outcome Ok("AEE=")]
+    on Ok r => Ok(r.value)
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)

@@ -33,11 +33,11 @@ fn m__max(left: int, right: int) -> M__Out rev 1
         true => true
         false => result.value == right
   tests
-    ordered(1, 2) => Ok(value = 2)
-    reversed(2, 1) => Ok(value = 2)
+    ordered(1, 2) => Ok(2)
+    reversed(2, 1) => Ok(2)
   match left <= right
-    on true => Ok(value = right)
-    on false => Ok(value = left)
+    on true => Ok(right)
+    on false => Ok(left)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
@@ -72,11 +72,11 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
       err.value == value
   emits [m.bad_bounds, m.out_of_range]
   tests
-    ok(1, 0, 2) => Ok(value = 1)
-    low(-1, 0, 2) => m.out_of_range(value = -1, lower = 0, upper = 2)
+    ok(1, 0, 2) => Ok(1)
+    low(-1, 0, 2) => m.out_of_range(-1, 0, 2)
   match value >= lower
-    on true => Ok(value = value)
-    on false => m.out_of_range(value = value, lower = lower, upper = upper)
+    on true => Ok(value)
+    on false => m.out_of_range(value, lower, upper)
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
@@ -107,27 +107,27 @@ fn m__go(value: int) -> M__Out rev 1
     on m.nope err
       err.value == value
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `,
 		"empty requires": base + `  requires
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `,
 		"empty arm": base + `  ensures
     on Ok result
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `,
 		"duplicate requires": base + `  requires
     true
   requires
     true
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `,
 		"duplicate ensures": base + `  ensures
     on Ok result
@@ -136,8 +136,8 @@ fn m__go(value: int) -> M__Out rev 1
     on Ok result
       result.value == value
   tests
-    go(1) => Ok(value = 1)
-  Ok(value = value)
+    go(1) => Ok(1)
+  Ok(value)
 `,
 	}
 	for name, src := range cases {

@@ -28,14 +28,14 @@ func TestStaleArmNestingHint(t *testing.T) {
 fn client__go(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    rt("deadbeef") => Ok(value = "deadbeef")
+    rt("deadbeef") => Ok("deadbeef")
   match call std__hex__decode(value = value)
     given
-      rt => [exchange args (value = "deadbeef") outcome Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))]
+      rt => [exchange args (value = "deadbeef") outcome Ok(Bytes(Seq<int>[222, 173, 190, 239]))]
     on Ok b => match call std__hex__encode(value = b.value)
       given
-        rt => [exchange args (value = Bytes(Seq<int>[222, 173, 190, 239])) outcome Ok(value = "deadbeef")]
-      on Ok t => Ok(value = t.value)
+        rt => [exchange args (value = Bytes(Seq<int>[222, 173, 190, 239])) outcome Ok("deadbeef")]
+      on Ok t => Ok(t.value)
       on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}
@@ -73,20 +73,20 @@ func TestStaleArmNoHintAcrossMatches(t *testing.T) {
 fn client__missing(value: str) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    rt("deadbeef") => Ok(value = "deadbeef")
+    rt("deadbeef") => Ok("deadbeef")
   match call std__hex__decode(value = value)
     given
-      rt => [exchange args (value = "deadbeef") outcome Ok(value = Bytes(Seq<int>[222, 173, 190, 239]))]
-    on Ok b => Ok(value = "deadbeef")
+      rt => [exchange args (value = "deadbeef") outcome Ok(Bytes(Seq<int>[222, 173, 190, 239]))]
+    on Ok b => Ok("deadbeef")
 
 fn client__total(value: Bytes) -> Encoding__Text rev 1
   emits [encoding.invalid_hex]
   tests
-    ff(Bytes(Seq<int>[255])) => Ok(value = "ff")
+    ff(Bytes(Seq<int>[255])) => Ok("ff")
   match call std__hex__encode(value = value)
     given
-      ff => [exchange args (value = Bytes(Seq<int>[255])) outcome Ok(value = "ff")]
-    on Ok t => Ok(value = t.value)
+      ff => [exchange args (value = Bytes(Seq<int>[255])) outcome Ok("ff")]
+    on Ok t => Ok(t.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
 	files := map[string]string{"text.can": string(raw), "client.can": client}

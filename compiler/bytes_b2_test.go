@@ -76,19 +76,19 @@ exports_utf8 Pub__Doc via pub__export@1
 fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    empty(seal Pub__Doc("")) => Ok(value = Bytes(Seq<int>[]))
-    ascii(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
-    latin(seal Pub__Doc("é")) => Ok(value = Bytes(Seq<int>[195, 169]))
-    astral(seal Pub__Doc("😀")) => Ok(value = Bytes(Seq<int>[240, 159, 152, 128]))
+    empty(seal Pub__Doc("")) => Ok(Bytes(Seq<int>[]))
+    ascii(seal Pub__Doc("A")) => Ok(Bytes(Seq<int>[65]))
+    latin(seal Pub__Doc("é")) => Ok(Bytes(Seq<int>[195, 169]))
+    astral(seal Pub__Doc("😀")) => Ok(Bytes(Seq<int>[240, 159, 152, 128]))
 NULROW
 BOMROW
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 
 func bytesPubFull() string {
-	nulRow := "    nul(seal Pub__Doc(\"a\x00b\")) => Ok(value = Bytes(Seq<int>[97, 0, 98]))\n"
-	bomRow := "    bom(seal Pub__Doc(\"\uFEFFA\")) => Ok(value = Bytes(Seq<int>[239, 187, 191, 65]))\n"
+	nulRow := "    nul(seal Pub__Doc(\"a\x00b\")) => Ok(Bytes(Seq<int>[97, 0, 98]))\n"
+	bomRow := "    bom(seal Pub__Doc(\"\uFEFFA\")) => Ok(Bytes(Seq<int>[239, 187, 191, 65]))\n"
 	out := strings.Replace(bytesPub, "NULROW\n", nulRow, 1)
 	return strings.Replace(out, "BOMROW\n", bomRow, 1)
 }
@@ -107,11 +107,11 @@ const bytesClientGood = `mod client
 fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    good(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    good(seal Pub__Doc("A")) => Ok(Bytes(Seq<int>[65]))
   match call pub__export(document)
     given
-      good => [exchange args (document = seal Pub__Doc("A")) outcome Ok(value = Bytes(Seq<int>[65]))]
-    on Ok r => Ok(value = r.value)
+      good => [exchange args (document = seal Pub__Doc("A")) outcome Ok(Bytes(Seq<int>[65]))]
+    on Ok r => Ok(r.value)
 `
 
 // E1: a correct scripted consumer passes under both module orders.
@@ -136,11 +136,11 @@ const bytesClientLie = `mod client
 fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    wrong(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[66]))
+    wrong(seal Pub__Doc("A")) => Ok(Bytes(Seq<int>[66]))
   match call pub__export(document)
     given
-      wrong => [exchange args (document = seal Pub__Doc("A")) outcome Ok(value = Bytes(Seq<int>[66]))]
-    on Ok r => Ok(value = r.value)
+      wrong => [exchange args (document = seal Pub__Doc("A")) outcome Ok(Bytes(Seq<int>[66]))]
+    on Ok r => Ok(r.value)
 `
 
 // E2: an incorrect scripted export result contradicts (CAN3110) under
@@ -199,11 +199,11 @@ exports_utf8 Pub__Doc via pub__export@1
 fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal Pub__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal Pub__Doc("A")) => Ok(Bytes(Seq<int>[65]))
   match call pub__export(document)
     given
-      go => [exchange args (document = seal Pub__Doc("A")) outcome Ok(value = Bytes(Seq<int>[65]))]
-    on Ok r => Ok(value = r.value)
+      go => [exchange args (document = seal Pub__Doc("A")) outcome Ok(Bytes(Seq<int>[65]))]
+    on Ok r => Ok(r.value)
 `
 	diags := checkTwo(t, []string{"pub.can", "client.can"},
 		map[string]string{"pub.can": pub, "client.can": client})
@@ -236,9 +236,9 @@ exports_utf8 Dup__B via app__export@1
 fn app__export(document: Dup__B) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal Dup__B("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal Dup__B("A")) => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	diags := checkTwo(t, []string{"lib.can", "sib.can", "app.can"},
 		map[string]string{"lib.can": lib, "sib.can": sib, "app.can": app})
@@ -265,9 +265,9 @@ exports_utf8 Pub__Doc via pub__export@1
 fn pub__export(document: Pub__Doc, extra: int) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = seal Pub__Doc("A"), extra = 0) => Ok(value = Bytes(Seq<int>[65]))
+    go(document = seal Pub__Doc("A"), extra = 0) => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	seqCode(t, map[string]string{"pub.can": extraParam}, "pub.can",
 		CodeBytesExportShape, "exactly one parameter")
@@ -283,24 +283,24 @@ exports_utf8 Pub__Doc via pub__export@1
 fn pub__export(document: str) -> Bytes__Value rev 1
   emits []
   tests
-    go(document = "A") => Ok(value = Bytes(Seq<int>[65]))
+    go(document = "A") => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	seqCode(t, map[string]string{"pub.can": wrongParam}, "pub.can",
 		CodeBytesExportShape, "must have type Pub__Doc")
 	base := bytesPubFull()
 	fnLine := "fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1"
-	body := "  match call bytes__utf8__export(document)\n    on Ok r => Ok(value = r.value)"
+	body := "  match call bytes__utf8__export(document)\n    on Ok r => Ok(r.value)"
 	for _, c := range []struct{ name, old, new, sub string }{
 		{"wrong return", fnLine,
 			"fn pub__export(document: Pub__Doc) -> M__Out rev 1",
 			"must return Bytes__Value"},
 		{"body not match", body,
-			"  Ok(value = Bytes(Seq<int>[65]))",
+			"  Ok(Bytes(Seq<int>[65]))",
 			"single call match"},
-		{"rhs literal", "on Ok r => Ok(value = r.value)",
-			"on Ok r => Ok(value = Bytes(Seq<int>[65]))",
+		{"rhs literal", "on Ok r => Ok(r.value)",
+			"on Ok r => Ok(Bytes(Seq<int>[65]))",
 			"unchanged"},
 		{"named arg", "match call bytes__utf8__export(document)",
 			"match call bytes__utf8__export(document = document)",
@@ -327,15 +327,15 @@ fn pub__export(document: str) -> Bytes__Value rev 1
 // pinned by presence, not single-primary exactness.
 func TestBytesE6CompanionRules(t *testing.T) {
 	twoArms := strings.Replace(bytesPubFull(),
-		"    on Ok r => Ok(value = r.value)",
-		"    on Ok r => Ok(value = r.value)\n    on Ok r2 => Ok(value = r2.value)", 1)
+		"    on Ok r => Ok(r.value)",
+		"    on Ok r => Ok(r.value)\n    on Ok r2 => Ok(r2.value)", 1)
 	dir := writeLSPDir(t, map[string]string{"pub.can": twoArms})
 	if diags := diagnose(dir, "pub.can", twoArms); !hasErrCode(diags, CodeBytesExportShape) {
 		t.Fatalf("two arms: expected CAN6011, got %v", diags)
 	}
 	given := strings.Replace(bytesPubFull(),
-		"  match call bytes__utf8__export(document)\n    on Ok r => Ok(value = r.value)",
-		"  match call bytes__utf8__export(document)\n    given\n      empty => [exchange args (document = seal Pub__Doc(\"\")) outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(value = r.value)", 1)
+		"  match call bytes__utf8__export(document)\n    on Ok r => Ok(r.value)",
+		"  match call bytes__utf8__export(document)\n    given\n      empty => [exchange args (document = seal Pub__Doc(\"\")) outcome Ok(Bytes(Seq<int>[]))]\n    on Ok r => Ok(r.value)", 1)
 	dir = writeLSPDir(t, map[string]string{"pub.can": given})
 	diags := diagnose(dir, "pub.can", given)
 	if !hasErrCode(diags, CodeBytesExportShape) {
@@ -382,9 +382,9 @@ brand M__Doc is str rev 1
 fn m__go(document: M__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal M__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal M__Doc("A")) => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeBytesExportAuthority, "not authorized")
@@ -404,14 +404,14 @@ type M__Out rev 1 (
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(flag = true)
-  Ok(flag = true)
+    go() => Ok(true)
+  Ok(true)
 
 fn bytes__utf8__export(x: int) -> M__Out rev 1
   emits []
   tests
-    go(1) => Ok(flag = true)
-  Ok(flag = true)
+    go(1) => Ok(true)
+  Ok(true)
 `
 	seqCode(t, map[string]string{"m.can": shadowFn}, "m.can",
 		CodePrimitiveShadow, "shadows")
@@ -429,8 +429,8 @@ extern bytes__utf8__export(x: int) -> M__Out rev 1
 fn m__go() -> M__Out rev 1
   emits []
   tests
-    go() => Ok(flag = true)
-  Ok(flag = true)
+    go() => Ok(true)
+  Ok(true)
 `
 	seqCode(t, map[string]string{"m.can": shadowEx}, "m.can",
 		CodePrimitiveShadow, "shadows")
@@ -463,9 +463,9 @@ exports_utf8 A__Doc via a__export@1
 fn a__export(document: A__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal A__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal A__Doc("A")) => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	b := strings.Replace(strings.Replace(a, "mod a", "mod b", 1), "A__Doc", "B__Doc", -1)
 	b = strings.Replace(b, "a__export", "b__export", -1)
@@ -479,9 +479,9 @@ brand C__Doc is str rev 1
 fn c__try(document: C__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal C__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal C__Doc("A")) => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	files := map[string]string{"a.can": a, "b.can": b, "c.can": c}
 	for _, order := range [][]string{{"a.can", "b.can", "c.can"}, {"c.can", "b.can", "a.can"}} {
@@ -516,19 +516,19 @@ extern t__sink(b: Bytes) -> T__Text rev 1
 fn m__export(document: M__Doc) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal M__Doc("A")) => Ok(value = Bytes(Seq<int>[65]))
+    go(seal M__Doc("A")) => Ok(Bytes(Seq<int>[65]))
   match call bytes__utf8__export(document)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 
 fn m__route(document: M__Doc) -> T__Text rev 1
   emits []
   tests
-    go(seal M__Doc("A")) => Ok(value = "A")
+    go(seal M__Doc("A")) => Ok("A")
   match call m__export(document)
     on Ok e => match call t__sink(e.value)
       given
-        go => [exchange args (b = Bytes(Seq<int>[65])) outcome Ok(value = "A")]
-      on Ok s => Ok(value = s.value)
+        go => [exchange args (b = Bytes(Seq<int>[65])) outcome Ok("A")]
+      on Ok s => Ok(s.value)
 `
 	seqClean(t, map[string]string{"m.can": allowed}, "m.can")
 	denied := `mod m
@@ -545,9 +545,9 @@ type T__Text rev 1 (
 fn m__route(secret: M__Secret) -> T__Text rev 1
   emits []
   tests
-    go(secret = seal M__Secret("s")) => Ok(value = "s")
+    go(secret = seal M__Secret("s")) => Ok("s")
   match call bytes__utf8__export(secret)
-    on Ok e => Ok(value = "s")
+    on Ok e => Ok("s")
 `
 	seqCode(t, map[string]string{"m.can": denied}, "m.can",
 		CodeBytesExportAuthority, "not authorized")
@@ -593,9 +593,9 @@ exports_utf8 Vault__Secret via attacker__export@1
 fn attacker__export(secret: Vault__Secret) -> Bytes__Value rev 1
   emits []
   tests
-    go(seal Vault__Secret("s")) => Ok(value = Bytes(Seq<int>[115]))
+    go(seal Vault__Secret("s")) => Ok(Bytes(Seq<int>[115]))
   match call bytes__utf8__export(secret)
-    on Ok r => Ok(value = r.value)
+    on Ok r => Ok(r.value)
 `
 	files := map[string]string{"trusted/common.can": trusted, "attacker/common.can": attacker}
 	for _, order := range [][]string{

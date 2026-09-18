@@ -53,9 +53,9 @@ fn m__affine(n: int) -> M__Out rev 1
     on Ok result
       result.value == 2 * n + 1
   tests
-    z(0) => Ok(value = 1)
-    two(2) => Ok(value = 5)
-  Ok(value = 2 * n + 1)
+    z(0) => Ok(1)
+    two(2) => Ok(5)
+  Ok(2 * n + 1)
 
 fn m__apply(req: M__Req) -> M__Out rev 1
   emits []
@@ -69,15 +69,15 @@ fn m__apply(req: M__Req) -> M__Out rev 1
           false => result.value == req.policy.minimum
         false => result.value == req.policy.minimum
   tests
-    hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)
-    miss(M__Req(enabled = true, value = 1, policy = M__Pol(minimum = 2))) => Ok(value = 2)
-    off(M__Req(enabled = false, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 2)
+    hit(M__Req(enabled = true, value = 3, policy = M__Pol(2))) => Ok(7)
+    miss(M__Req(enabled = true, value = 1, policy = M__Pol(2))) => Ok(2)
+    off(M__Req(enabled = false, value = 3, policy = M__Pol(2))) => Ok(2)
   match req.enabled
     true => match req.value >= req.policy.minimum
       true => match call m__affine(req.value)
-        on Ok r => Ok(value = r.value)
-      false => Ok(value = req.policy.minimum)
-    false => Ok(value = req.policy.minimum)
+        on Ok r => Ok(r.value)
+      false => Ok(req.policy.minimum)
+    false => Ok(req.policy.minimum)
 `
 
 // TestVerifyComposition pins the third pilot: nested projections,
@@ -114,8 +114,8 @@ fn m__int(x: int) -> M__Out rev 1
         true => false
         false => true
   tests
-    z(0) => Ok(value = 0)
-  Ok(value = 0)
+    z(0) => Ok(0)
+  Ok(0)
 `
 	prog, texts := admitProg(t, src)
 	if diags := VerifyContracts(prog, texts); len(diags) != 0 {
@@ -143,8 +143,8 @@ fn m__pass(a: M__Out, b: M__Out) -> M__Out rev 1
     on Ok result
       result == a
   tests
-    same(M__Out(value = 1), M__Out(value = 1)) => Ok(value = 1)
-  Ok(value = a.value)
+    same(M__Out(1), M__Out(1)) => Ok(1)
+  Ok(a.value)
 `
 	prog, texts := admitProg(t, src)
 	if diags := VerifyContracts(prog, texts); len(diags) != 0 {
@@ -173,8 +173,8 @@ fn svc__get(x: int) -> Svc__Out rev 1
     on service.unavailable err
       false
   tests
-    go(2) => Ok(value = 2)
-  Ok(value = x)
+    go(2) => Ok(2)
+  Ok(x)
 `
 
 const verifyOutageApp = `mod app
@@ -196,14 +196,14 @@ fn app__use(x: int) -> Svc__Out rev 1
     on service.unavailable err
       false
   tests
-    normal(2) => Ok(value = 2)
-    outage(2) => app.down(code = 2)
+    normal(2) => Ok(2)
+    outage(2) => app.down(2)
   match call svc__get(x)
     given
-      normal => [exchange args (x = 2) outcome Ok(value = 2)]
-      outage => [exchange args (x = 2) outcome service.unavailable(code = 2)]
-    on Ok r => Ok(value = r.value)
-    on service.unavailable e => app.down(code = e.code)
+      normal => [exchange args (x = 2) outcome Ok(2)]
+      outage => [exchange args (x = 2) outcome service.unavailable(2)]
+    on Ok r => Ok(r.value)
+    on service.unavailable e => app.down(e.code)
 `
 
 // TestVerifyOutageSeparation pins verdict position 6: the provider
@@ -225,9 +225,9 @@ func TestVerifyMaxPlusOne(t *testing.T) {
 	// Rows follow the mutant body (execution stays green); the
 	// proof is what rejects the overlarge result.
 	bad := strings.Replace(admitMax,
-		"on true => Ok(value = right)", "on true => Ok(value = right + 1)", 1)
+		"on true => Ok(right)", "on true => Ok(right + 1)", 1)
 	bad = strings.Replace(bad,
-		"ordered(1, 2) => Ok(value = 2)", "ordered(1, 2) => Ok(value = 3)", 1)
+		"ordered(1, 2) => Ok(2)", "ordered(1, 2) => Ok(3)", 1)
 	prog, texts := admitProg(t, bad)
 	diags := VerifyContracts(prog, texts)
 	if !hasCode(diags, CodeContractUnproven) {
@@ -244,11 +244,11 @@ func TestVerifyMaxPlusOne(t *testing.T) {
 func TestVerifyHelperBody(t *testing.T) {
 	// Rows follow the mutant body; the helper postcondition is
 	// what fails.
-	bad := strings.Replace(verifyAffine, "Ok(value = 2 * n + 1)", "Ok(value = 2 * n + 2)", 1)
-	bad = strings.Replace(bad, "z(0) => Ok(value = 1)", "z(0) => Ok(value = 2)", 1)
-	bad = strings.Replace(bad, "two(2) => Ok(value = 5)", "two(2) => Ok(value = 6)", 1)
-	bad = strings.Replace(bad, "hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 7)",
-		"hit(M__Req(enabled = true, value = 3, policy = M__Pol(minimum = 2))) => Ok(value = 8)", 1)
+	bad := strings.Replace(verifyAffine, "Ok(2 * n + 1)", "Ok(2 * n + 2)", 1)
+	bad = strings.Replace(bad, "z(0) => Ok(1)", "z(0) => Ok(2)", 1)
+	bad = strings.Replace(bad, "two(2) => Ok(5)", "two(2) => Ok(6)", 1)
+	bad = strings.Replace(bad, "hit(M__Req(enabled = true, value = 3, policy = M__Pol(2))) => Ok(7)",
+		"hit(M__Req(enabled = true, value = 3, policy = M__Pol(2))) => Ok(8)", 1)
 	prog, texts := admitProg(t, bad)
 	diags := VerifyContracts(prog, texts)
 	if !hasCode(diags, CodeContractUnproven) {
@@ -298,8 +298,8 @@ fn m__step(n: int) -> M__Out rev 1
     on Ok result
       result.value == n + 1
   tests
-    z(0) => Ok(value = 1)
-  Ok(value = n + 1)
+    z(0) => Ok(1)
+  Ok(n + 1)
 
 fn m__call(x: int) -> M__Out rev 1
   emits []
@@ -309,13 +309,13 @@ fn m__call(x: int) -> M__Out rev 1
     on Ok result
       result.value >= 1
   tests
-    neg(-2) => Ok(value = 3)
-    pos(2) => Ok(value = 3)
+    neg(-2) => Ok(3)
+    pos(2) => Ok(3)
   match x <= 0
     true => match call m__step(ARG)
-      on Ok r => Ok(value = r.value)
+      on Ok r => Ok(r.value)
     false => match call m__step(x)
-      on Ok r => Ok(value = r.value)
+      on Ok r => Ok(r.value)
 `
 
 // TestVerifyStepCall pins path-sensitive admission both ways: the
@@ -330,7 +330,7 @@ func TestVerifyStepCall(t *testing.T) {
 	// The row follows the mutant body (x = -2 yields -1 through
 	// the bad call); the call precondition is what fails.
 	bad := strings.Replace(verifyStep, "m__step(ARG)", "m__step(x)", 1)
-	bad = strings.Replace(bad, "neg(-2) => Ok(value = 3)", "neg(-2) => Ok(value = -1)", 1)
+	bad = strings.Replace(bad, "neg(-2) => Ok(3)", "neg(-2) => Ok(-1)", 1)
 	prog, texts = admitProg(t, bad)
 	diags := VerifyContracts(prog, texts)
 	if !hasCode(diags, CodeContractUnproven) {
@@ -362,8 +362,8 @@ fn m__go(x: int) -> M__Out rev 1
     on Ok result
       result.value == x
   tests
-    neg(-1) => Ok(value = -1)
-  Ok(value = x)
+    neg(-1) => Ok(-1)
+  Ok(x)
 `
 	prog, texts := admitProg(t, src)
 	diags := VerifyContracts(prog, texts)
@@ -420,12 +420,12 @@ fn m__clamp(x: int) -> M__Out rev 1
       result.value >= 0
       result.value <= 10
   tests
-    lo(3) => Ok(value = 3)
-    hi(15) => Ok(value = 10)
-    edge(0) => Ok(value = 0)
+    lo(3) => Ok(3)
+    hi(15) => Ok(10)
+    edge(0) => Ok(0)
   match x
-    0..10 => Ok(value = x)
-    _ => Ok(value = 10)
+    0..10 => Ok(x)
+    _ => Ok(10)
 `
 
 // TestParseSMTResult pins response classification: only exact

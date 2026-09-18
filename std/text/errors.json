@@ -179,7 +179,7 @@
       },
       {
         "fn": "text.std__str__contains",
-        "arm": "on text.not_found _ =\u003e Ok(value = false)"
+        "arm": "on text.not_found _ =\u003e Ok(false)"
       },
       {
         "fn": "text.std__str__find",

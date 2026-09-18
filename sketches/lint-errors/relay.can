@@ -19,21 +19,21 @@ type Relay__Value rev 1 (
 fn relay__step(value: int) -> Relay__Value rev 1
   emits [relay.failed, relay.other]
   tests
-    ok(1) => Ok(value = 1)
-    bad(0) => relay.failed(value = 0)
-    neg(-1) => relay.other(value = -1, note = "neg")
+    ok(1) => Ok(1)
+    bad(0) => relay.failed(0)
+    neg(-1) => relay.other(-1, "neg")
   match value == 0, value < 0
-    true, _ => relay.failed(value = value)
-    false, true => relay.other(value = value, note = "neg")
-    false, false => Ok(value = value)
+    true, _ => relay.failed(value)
+    false, true => relay.other(value, "neg")
+    false, false => Ok(value)
 
 fn relay__go(value: int) -> Relay__Value rev 1
   emits [relay.failed, relay.other]
   tests
-    ok(1) => Ok(value = 1)
-    bad(0) => relay.failed(value = 0)
-    neg(-1) => relay.other(value = -1, note = "kept")
+    ok(1) => Ok(1)
+    bad(0) => relay.failed(0)
+    neg(-1) => relay.other(-1, "kept")
   match call relay__step(value)
-    on Ok a => Ok(value = a.value)
-    on relay.failed e => relay.failed(value = e.value)
-    on relay.other e => relay.other(value = e.value, note = "kept")
+    on Ok a => Ok(a.value)
+    on relay.failed e => relay.failed(e.value)
+    on relay.other e => relay.other(e.value, "kept")

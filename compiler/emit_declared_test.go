@@ -38,26 +38,26 @@ type Str__Value rev 1 (
 const declaredFns = `fn audit__int(value: int) -> Int__Value rev 1
   emits []
   tests
-    i(1) => Ok(value = value)
-  Ok(value = value)
+    i(1) => Ok(value)
+  Ok(value)
 
 fn audit__bool(flag: bool) -> Bool__Value rev 1
   emits []
   tests
-    b(true) => Ok(value = flag)
-  Ok(value = flag)
+    b(true) => Ok(flag)
+  Ok(flag)
 
 fn audit__dec(amount: dec) -> Dec__Value rev 1
   emits []
   tests
-    d(d"1.5") => Ok(value = amount)
-  Ok(value = amount)
+    d(d"1.5") => Ok(amount)
+  Ok(amount)
 
 fn audit__str(name: str) -> Str__Value rev 1
   emits []
   tests
-    s("x") => Ok(value = name)
-  Ok(value = name)
+    s("x") => Ok(name)
+  Ok(name)
 `
 
 func declaredSrc() string {
@@ -109,7 +109,7 @@ func TestEvidenceCannotRetype(t *testing.T) {
   emits []
   tests
     two(2) => EXPECTED
-  Ok(value = value)
+  Ok(value)
 `
 	head := `mod audit
   provides [audit__two, Int__Value]
@@ -140,8 +140,8 @@ type Int__Value rev 1 (
 	}
 	// Same signature, same body, different evidence: the literal-free
 	// variant has no witness at all, yet both compile ...
-	a := emit(t, "Ok(value = value)")
-	b := emit(t, "Ok(value = 2)")
+	a := emit(t, "Ok(value)")
+	b := emit(t, "Ok(2)")
 	// ... to the same production code and signature.
 	if prod(a) != prod(b) {
 		t.Errorf("evidence changed production code:\n--- without ---\n%s\n--- with ---\n%s", prod(a), prod(b))
