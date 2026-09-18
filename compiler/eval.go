@@ -916,6 +916,15 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 		// precision integers.
 		return v.Kind == "int" && v.N != nil && p.Num != nil && p.Hi != nil &&
 			v.N.Cmp(p.Num) >= 0 && v.N.Cmp(p.Hi) <= 0
+	case "or":
+		// Slice 4: first matching alternative wins the slot;
+		// alternatives are nonbinding, so one bind map serves.
+		for _, alt := range p.Alts {
+			if matchSlot(v, alt, bind) {
+				return true
+			}
+		}
+		return false
 	case "variant":
 		if p.Name == "Ok" && v.Kind == "ok" {
 			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
@@ -2094,37 +2103,12 @@ func valueCoverOf(n *Node, hasBool []bool, strLits [][]string, intSpans [][][2]*
 	for _, a := range n.Arms {
 		c := armCover{slots: make([][]int, nslot)}
 		for i, p := range a.Pats {
-			switch p.Kind {
-			case "wild":
-				for ai := range domains[i] {
-					c.slots[i] = append(c.slots[i], ai)
-				}
-			case "bool":
-				if p.B {
-					c.slots[i] = []int{atomIndex[i]["true"]}
-				} else {
-					c.slots[i] = []int{atomIndex[i]["false"]}
-				}
-			case "str":
-				c.slots[i] = []int{atomIndex[i][normStr(p.Str)]}
-			case "int":
-				if p.Num != nil {
-					for k, a := range domains[i] {
-						if a.lo != nil && a.lo.Cmp(p.Num) == 0 {
-							c.slots[i] = []int{k}
-							break
-						}
-					}
-				}
-			case "range":
-				if p.Num != nil && p.Hi != nil {
-					for k, a := range domains[i] {
-						if a.lo != nil && a.lo.Cmp(p.Num) >= 0 && a.lo.Cmp(p.Hi) <= 0 {
-							c.slots[i] = append(c.slots[i], k)
-						}
-					}
-				}
-			}
+			// Slice 4: one atom computation serves lone and
+			// alternative patterns; or-arms union over their
+			// alternatives. Missing keys contribute nothing
+			// (fail-closed); mixed tables return before
+			// covers are read, so passing tables are exact.
+			c.slots[i] = patCoverAtoms(p, i, domains, atomIndex)
 		}
 		covers = append(covers, c)
 	}
@@ -2218,6 +2202,43 @@ func verifyValueMatch(n *Node, owner string) []error {
 				if p.Num != nil && p.Hi != nil {
 					intSpans[i] = append(intSpans[i], [2]*big.Int{p.Num, p.Hi})
 				}
+			case "or":
+				// Slice 4: alternatives inventory like lone
+				// patterns. Written wildcards never reach
+				// here (elaboration owns AIL4112); a wild
+				// left by dec-constant fallthrough stays
+				// cover-silent beside its own AIL6016.
+				// Variant alternatives keep the historical
+				// refusal verbatim.
+				for _, alt := range p.Alts {
+					switch alt.Kind {
+					case "bool":
+						hasBool[i] = true
+					case "str":
+						if !seenLit[i][alt.Str] {
+							seenLit[i][alt.Str] = true
+							strLits[i] = append(strLits[i], alt.Str)
+						}
+					case "int":
+						hasIntAny = true
+						if alt.Num != nil {
+							intSpans[i] = append(intSpans[i], [2]*big.Int{alt.Num, alt.Num})
+						}
+					case "range":
+						hasIntAny = true
+						if alt.Num != nil && alt.Hi != nil {
+							intSpans[i] = append(intSpans[i], [2]*big.Int{alt.Num, alt.Hi})
+						}
+					case "wild":
+					default:
+						if nslot == 1 {
+							out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match", owner)))
+						} else {
+							out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match (slot %d)", owner, i+1)))
+						}
+						shapeOK = false
+					}
+				}
 			case "wild":
 			default:
 				// a75: case-shaped patterns belong to the
@@ -2256,10 +2277,15 @@ func verifyValueMatch(n *Node, owner string) []error {
 	if nslot == 1 {
 		return verifySinglePolicy(n, owner, out, hasBool, strLits)
 	}
-	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits, nil)
+	domains, covers, atomIndex, mixed := valueCoverOf(n, hasBool, strLits, nil)
 	if mixed > 0 {
 		out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
 		return out
+	}
+	if hasOrArm(n) {
+		// Slice 4: per-alternative usefulness beside the
+		// witness search, same order as the integer path.
+		out = append(out, checkOrAlternatives(n, owner, covers, domains, atomIndex)...)
 	}
 	// Collect up to three missing witnesses, feeding each back as a
 	// literal arm so the next search finds a new cell.
@@ -2312,6 +2338,18 @@ func verifySinglePolicy(n *Node, owner string, out []error, hasBool []bool, strL
 			hasStr = true
 		case "wild":
 			hasWild = true
+		case "or":
+			// Slice 4: or-alternatives join the bool-arm
+			// census, so `true | false` is the complete
+			// bool case with no `_` needed.
+			for _, alt := range a.Pats[0].Alts {
+				switch alt.Kind {
+				case "bool":
+					bools[alt.B] = true
+				case "str":
+					hasStr = true
+				}
+			}
 		}
 	}
 	if len(bools) > 0 && (len(bools) != 2 || hasStr || hasWild) {
@@ -2320,12 +2358,18 @@ func verifySinglePolicy(n *Node, owner string, out []error, hasBool []bool, strL
 	if hasStr && !hasWild {
 		return append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive", owner)))
 	}
-	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits, nil)
+	domains, covers, atomIndex, mixed := valueCoverOf(n, hasBool, strLits, nil)
 	if mixed > 0 {
 		// Unreachable through the legacy gates above (any bool
 		// presence with a string mix fails the first rule), kept for
 		// hand-built ASTs that bypass them.
 		return append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false", owner)))
+	}
+	if hasOrArm(n) {
+		// Slice 4: per-alternative usefulness on a path that
+		// otherwise proves without covers. The legacy gates
+		// above already passed, so domains are sound.
+		out = append(out, checkOrAlternatives(n, owner, covers, domains, atomIndex)...)
 	}
 	n.analysis = &valueMatchAnalysis{emitFinalElse: residualInLast(covers[:len(covers)-1], covers[len(covers)-1], 1, domains)}
 	return out

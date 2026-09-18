@@ -58,11 +58,16 @@ type Small struct {
 }
 
 type Pattern struct {
-	Kind string // wild,bool,str,int,range,const,variant,variantWild
+	Kind string // wild,bool,str,int,range,const,variant,variantWild,or
 	B    bool
 	Str  string
 	Name string
 	Var  string
+	// Alts holds `|` alternatives for Kind "or", in source
+	// order. Credit and coverage union over them; each
+	// alternative parses like a lone slot pattern, so ranges
+	// bind tighter than `|` and `|` tighter than the comma.
+	Alts []Pattern
 	// Num holds an int singleton value, or a range lower bound
 	// once resolved. Hi holds a range upper bound (nil for
 	// singletons). LoS/HiS carry unresolved range bound text
@@ -1687,6 +1692,30 @@ func isDigits(s string) bool {
 	return true
 }
 
+// parseValuePattern parses one value-match slot: top-level `|`
+// separates alternatives (quote- and bracket-aware, so string
+// pipes never split), each parsed like a lone slot pattern.
+// Call-match `on` branches keep parsePattern: `|` stays a parse
+// error there, since V1 alternatives are value patterns only.
+func parseValuePattern(s string) (Pattern, error) {
+	parts := splitTopInner(s, '|', true)
+	if len(parts) == 1 {
+		return parsePattern(s)
+	}
+	alts := make([]Pattern, 0, len(parts))
+	for _, part := range parts {
+		if strings.TrimSpace(part) == "" {
+			return Pattern{}, fmt.Errorf("empty alternative in match pattern: %s", s)
+		}
+		alt, err := parsePattern(part)
+		if err != nil {
+			return Pattern{}, err
+		}
+		alts = append(alts, alt)
+	}
+	return Pattern{Kind: "or", Alts: alts}, nil
+}
+
 func parsePattern(s string) (Pattern, error) {
 	s = strings.TrimSpace(s)
 	switch {
@@ -1850,7 +1879,13 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 		}
 		pats := make([]Pattern, 0, len(patParts))
 		for _, p := range patParts {
-			pat, err := parsePattern(p)
+			var pat Pattern
+			var err error
+			if kind == MatchCall {
+				pat, err = parsePattern(p)
+			} else {
+				pat, err = parseValuePattern(p)
+			}
 			if err != nil {
 				return nil, i, at(aline, err)
 			}

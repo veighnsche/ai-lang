@@ -605,6 +605,10 @@ func proofDiag(text string, err error) Diag {
 		code = CodeBoolArms
 	case strings.Contains(msg, "is fully covered by earlier arms"):
 		code = CodeUselessArm
+	case strings.Contains(msg, "contributes no remaining space"):
+		code = CodeUselessAlt
+	case strings.Contains(msg, "alternatives take scalar patterns only"):
+		code = CodeUselessAlt
 	}
 	kw := "match"
 	if lines := strings.Split(text, "\n"); line >= 1 && line <= len(lines) {

@@ -278,6 +278,7 @@
       "html.html__url__absolute",
       "html.html__url__admit",
       "html.html__url__authority",
+      "html.html__url__authority_finish",
       "html.html__url__check",
       "html.html__url__tail"
     ],
@@ -351,6 +352,7 @@
       "html.html__url__authority/auth_trailing_hyphen",
       "html.html__url__authority/auth_upper_bad",
       "html.html__url__authority/auth_userinfo",
+      "html.html__url__authority_finish/finish_hyphen",
       "html.html__url__check/check_bare",
       "html.html__url__check/check_bare_prefix",
       "html.html__url__check/check_del_first",

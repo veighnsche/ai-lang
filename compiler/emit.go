@@ -1464,7 +1464,7 @@ func (e *emitter) emitValueMatch(node *Node, out *[]string) error {
 			return fmt.Errorf("match arm has %d patterns; this match has %d scrutinees", len(arm.Pats), nslot)
 		}
 		for _, p := range arm.Pats {
-			if k := p.Kind; k != "bool" && k != "str" && k != "wild" && k != "int" && k != "range" {
+			if k := p.Kind; k != "bool" && k != "str" && k != "wild" && k != "int" && k != "range" && k != "or" {
 				return fmt.Errorf("variant pattern on a non-call match")
 			}
 		}
@@ -1602,6 +1602,36 @@ func allWild(arm Arm) bool {
 // slot for later arms), and whether the arm contradicts known facts (a
 // static duplicate: raw conditions still render, so the chain stays
 // total).
+// altCond renders one or-alternative as a boolean test over
+// ref: bool, string, and integer renderings match the lone-arm
+// shapes exactly, so `1 | 2` reads `(x === 1n || x === 2n)`.
+// Unresolvable bounds render false (fail-closed past a world
+// error, which already fails); the method takes no learning
+// state because alternatives never teach contradictions.
+func (e *emitter) altCond(alt Pattern, ref string) string {
+	switch alt.Kind {
+	case "bool":
+		if !alt.B {
+			return "!(" + ref + ")"
+		}
+		return ref
+	case "str":
+		return fmt.Sprintf("%s === %s", ref, normStr(alt.Str))
+	case "int":
+		if alt.Num == nil {
+			return "false"
+		}
+		return fmt.Sprintf("%s === %sn", ref, alt.Num.String())
+	case "range":
+		if alt.Num == nil || alt.Hi == nil {
+			return "false"
+		}
+		return fmt.Sprintf("(%s >= %sn && %s <= %sn)", ref, alt.Num.String(), ref, alt.Hi.String())
+	default:
+		return "false"
+	}
+}
+
 func (e *emitter) valueConds(arm Arm, refs []string, known []*bool) (conds []string, learn int, contradiction bool) {
 	learn = -1
 	for i, p := range arm.Pats {
@@ -1649,6 +1679,16 @@ func (e *emitter) valueConds(arm Arm, refs []string, known []*bool) (conds []str
 				break
 			}
 			conds = append(conds, fmt.Sprintf("(%s >= %sn && %s <= %sn)", refs[i], p.Num.String(), refs[i], p.Hi.String()))
+			learn = -1
+		case "or":
+			// Slice 4: one source arm, unioned conditions. No
+			// contradiction learning across alternatives: the
+			// proof owns alternative usefulness (AIL4112).
+			parts := make([]string, 0, len(p.Alts))
+			for _, alt := range p.Alts {
+				parts = append(parts, e.altCond(alt, refs[i]))
+			}
+			conds = append(conds, "("+strings.Join(parts, " || ")+")")
 			learn = -1
 		default:
 			// Variant slots never survive the proof; render nothing so

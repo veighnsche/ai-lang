@@ -346,6 +346,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `3..5 after 1..10, or a second 5 after a first 5.`,
 		fix:     "Delete the shadowed arm or narrow the earlier one. Partial overlaps stay legal under first-match semantics; only fully covered arms fail.",
 	},
+	CodeUselessAlt: {
+		rule:    "Every or-alternative must contribute remaining space: an alternative earlier arms and earlier alternatives fully cover adds nothing (AIL4112). Wildcards stay their own arm, never an alternative.",
+		violate: `1..10 | 5..8, a second 1 after a first 1, or _ | 1.`,
+		fix:     "Delete the empty alternative or narrow what precedes it. Credit is sequential: 7 cannot cover both 1..10 and 5..15, so the second range needs its own exclusive region.",
+	},
 	CodeTestFailed: {
 		rule:    "The compiler executes every test hermetically during the build; any failure fails the build (R7). Deliberately coarse — one code for every execution failure.",
 		violate: `a test whose actual value differs from expected, or that faults, starves a script, or leaves script rows over.`,

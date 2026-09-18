@@ -79,6 +79,7 @@ const (
 	CodeEagerScrutinee           = "AIL4109"
 	CodeBadRange                 = "AIL4110"
 	CodeUselessArm               = "AIL4111"
+	CodeUselessAlt               = "AIL4112"
 	CodeTestFailed               = "AIL4200"
 	CodeSiblingParse             = "AIL5001"
 	CodeBadCompare               = "AIL5005"
@@ -123,7 +124,7 @@ var allCodes = []string{
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeForeignRaise, CodeUnknownKind,
-	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm,
+	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm, CodeUselessAlt,
 	CodeContractMalformed, CodeContractUnsupported, CodeContractUnverifiedDep,
 	CodeContractUnproven, CodeContractInconclusive, CodeContractInadmissibleTest,
 	CodeTestFailed,

@@ -557,163 +557,159 @@ export function html__url__authority(orig: string, s: string, n: bigint, prev: s
       return { $ail_kind: "html.invalid_url", value: orig };
     }
     else {
-      if ((prev === "-")) {
-        return { $ail_kind: "html.invalid_url", value: orig };
+      const $ail_m1: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority_finish(orig, s, n, prev);
+      switch ($ail_m1.$ail_kind) {
+      case "ok": {
+        const r = $ail_m1;
+        return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
       }
-      else {
-        return { $ail_kind: "ok", value: orig, tail: s, n: n };
+      case "html.invalid_url": {
+        const e = $ail_m1;
+        return { $ail_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
   }
   else {
-    if (($ailStrAt(s, 0n) === 47n)) {
-      if ((prev === "-")) {
+    if (($ailStrAt(s, 0n) === 47n || $ailStrAt(s, 0n) === 63n || $ailStrAt(s, 0n) === 35n)) {
+      const $ail_m2: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority_finish(orig, s, n, prev);
+      switch ($ail_m2.$ail_kind) {
+      case "ok": {
+        const r = $ail_m2;
+        return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+      }
+      case "html.invalid_url": {
+        const e = $ail_m2;
+        return { $ail_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else if ($ailStrAt(s, 0n) === 0n) {
+      const $ail_m3: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), prev);
+      switch ($ail_m3.$ail_kind) {
+      case "ok": {
+        const r = $ail_m3;
+        return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+      }
+      case "html.invalid_url": {
+        const e = $ail_m3;
+        return { $ail_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else if ($ailStrAt(s, 0n) === 46n) {
+      if ((prev === "")) {
         return { $ail_kind: "html.invalid_url", value: orig };
       }
       else {
-        return { $ail_kind: "ok", value: orig, tail: s, n: n };
-      }
-    }
-    else {
-      if (($ailStrAt(s, 0n) === 63n)) {
-        if ((prev === "-")) {
+        if ((prev === ".")) {
           return { $ail_kind: "html.invalid_url", value: orig };
         }
         else {
-          return { $ail_kind: "ok", value: orig, tail: s, n: n };
-        }
-      }
-      else {
-        if (($ailStrAt(s, 0n) === 35n)) {
-          if ((prev === "-")) {
-            return { $ail_kind: "html.invalid_url", value: orig };
+          const $ail_m4: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), ".");
+          switch ($ail_m4.$ail_kind) {
+          case "ok": {
+            const r = $ail_m4;
+            return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
           }
-          else {
-            return { $ail_kind: "ok", value: orig, tail: s, n: n };
+          case "html.invalid_url": {
+            const e = $ail_m4;
+            return { $ail_kind: "html.invalid_url", value: e.value };
           }
-        }
-        else {
-          if (($ailStrAt(s, 0n) === 0n)) {
-            const $ail_m1: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), prev);
-            switch ($ail_m1.$ail_kind) {
-            case "ok": {
-              const r = $ail_m1;
-              return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-            }
-            case "html.invalid_url": {
-              const e = $ail_m1;
-              return { $ail_kind: "html.invalid_url", value: e.value };
-            }
-            default: {
-              throw new Error("unreachable");
-            }
-            }
+          default: {
+            throw new Error("unreachable");
           }
-          else {
-            if (($ailStrAt(s, 0n) === 46n)) {
-              if ((prev === "")) {
-                return { $ail_kind: "html.invalid_url", value: orig };
-              }
-              else {
-                if ((prev === ".")) {
-                  return { $ail_kind: "html.invalid_url", value: orig };
-                }
-                else {
-                  const $ail_m2: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), ".");
-                  switch ($ail_m2.$ail_kind) {
-                  case "ok": {
-                    const r = $ail_m2;
-                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                  }
-                  case "html.invalid_url": {
-                    const e = $ail_m2;
-                    return { $ail_kind: "html.invalid_url", value: e.value };
-                  }
-                  default: {
-                    throw new Error("unreachable");
-                  }
-                  }
-                }
-              }
-            }
-            else {
-              if (($ailStrAt(s, 0n) === 45n)) {
-                if ((prev === "")) {
-                  return { $ail_kind: "html.invalid_url", value: orig };
-                }
-                else {
-                  const $ail_m3: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), "-");
-                  switch ($ail_m3.$ail_kind) {
-                  case "ok": {
-                    const r = $ail_m3;
-                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                  }
-                  case "html.invalid_url": {
-                    const e = $ail_m3;
-                    return { $ail_kind: "html.invalid_url", value: e.value };
-                  }
-                  default: {
-                    throw new Error("unreachable");
-                  }
-                  }
-                }
-              }
-              else {
-                if (($ailStrAt(s, 0n) >= 48n && $ailStrAt(s, 0n) <= 57n)) {
-                  const $ail_m4: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
-                  switch ($ail_m4.$ail_kind) {
-                  case "ok": {
-                    const r = $ail_m4;
-                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                  }
-                  case "html.invalid_url": {
-                    const e = $ail_m4;
-                    return { $ail_kind: "html.invalid_url", value: e.value };
-                  }
-                  default: {
-                    throw new Error("unreachable");
-                  }
-                  }
-                }
-                else if (($ailStrAt(s, 0n) >= 65n && $ailStrAt(s, 0n) <= 90n)) {
-                  const $ail_m5: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
-                  switch ($ail_m5.$ail_kind) {
-                  case "ok": {
-                    const r = $ail_m5;
-                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                  }
-                  case "html.invalid_url": {
-                    const e = $ail_m5;
-                    return { $ail_kind: "html.invalid_url", value: e.value };
-                  }
-                  default: {
-                    throw new Error("unreachable");
-                  }
-                  }
-                }
-                else if (($ailStrAt(s, 0n) >= 97n && $ailStrAt(s, 0n) <= 122n)) {
-                  const $ail_m6: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
-                  switch ($ail_m6.$ail_kind) {
-                  case "ok": {
-                    const r = $ail_m6;
-                    return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-                  }
-                  case "html.invalid_url": {
-                    const e = $ail_m6;
-                    return { $ail_kind: "html.invalid_url", value: e.value };
-                  }
-                  default: {
-                    throw new Error("unreachable");
-                  }
-                  }
-                }
-                return { $ail_kind: "html.invalid_url", value: orig };
-              }
-            }
           }
         }
       }
     }
+    else if ($ailStrAt(s, 0n) === 45n) {
+      if ((prev === "")) {
+        return { $ail_kind: "html.invalid_url", value: orig };
+      }
+      else {
+        const $ail_m5: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), "-");
+        switch ($ail_m5.$ail_kind) {
+        case "ok": {
+          const r = $ail_m5;
+          return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+        }
+        case "html.invalid_url": {
+          const e = $ail_m5;
+          return { $ail_kind: "html.invalid_url", value: e.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else if (($ailStrAt(s, 0n) >= 48n && $ailStrAt(s, 0n) <= 57n)) {
+      const $ail_m6: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
+      switch ($ail_m6.$ail_kind) {
+      case "ok": {
+        const r = $ail_m6;
+        return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+      }
+      case "html.invalid_url": {
+        const e = $ail_m6;
+        return { $ail_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else if (($ailStrAt(s, 0n) >= 65n && $ailStrAt(s, 0n) <= 90n)) {
+      const $ail_m7: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
+      switch ($ail_m7.$ail_kind) {
+      case "ok": {
+        const r = $ail_m7;
+        return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+      }
+      case "html.invalid_url": {
+        const e = $ail_m7;
+        return { $ail_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else if (($ailStrAt(s, 0n) >= 97n && $ailStrAt(s, 0n) <= 122n)) {
+      const $ail_m8: { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailStrSlice(s, 0n, 1n));
+      switch ($ail_m8.$ail_kind) {
+      case "ok": {
+        const r = $ail_m8;
+        return { $ail_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+      }
+      case "html.invalid_url": {
+        const e = $ail_m8;
+        return { $ail_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    return { $ail_kind: "html.invalid_url", value: orig };
+  }
+}
+export function html__url__authority_finish(orig: string, s: string, n: bigint, prev: string): { $ail_kind: "ok"; n: bigint; tail: string; value: string } | { $ail_kind: "html.invalid_url"; value: string } {
+  if ((prev === "-")) {
+    return { $ail_kind: "html.invalid_url", value: orig };
+  }
+  else {
+    return { $ail_kind: "ok", value: orig, tail: s, n: n };
   }
 }
 export function html__url__tail(orig: string, s: string, n: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "html.invalid_url"; value: string } {

@@ -227,6 +227,15 @@ func canonPattern(p Pattern) string {
 			return "unknown-pattern(range)"
 		}
 		return "range:" + p.Num.String() + ".." + p.Hi.String()
+	case "or":
+		// Slice 4: alternatives canon in source order, each
+		// like a lone pattern; elaboration already resolved
+		// const and range bounds before identity runs.
+		parts := make([]string, 0, len(p.Alts))
+		for _, alt := range p.Alts {
+			parts = append(parts, canonPattern(alt))
+		}
+		return "or:(" + strings.Join(parts, "|") + ")"
 	case "variant", "variantWild":
 		if p.Var == "" {
 			return p.Kind + ":" + p.Name

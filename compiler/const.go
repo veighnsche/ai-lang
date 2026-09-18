@@ -272,35 +272,54 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 		}
 		for _, m := range matchNodes(fn.Body) {
 			for ai := range m.Arms {
-				for pi := range m.Arms[ai].Pats {
-					p := &m.Arms[ai].Pats[pi]
-					if p.Kind == "range" {
-						out = append(out, resolveRangePattern(open, prog, text, fn.Name, m.Arms[ai].Line, p)...)
-						continue
-					}
-					if p.Kind != "const" {
-						continue
+				line := m.Arms[ai].Line
+				var elab func(p *Pattern)
+				elab = func(p *Pattern) {
+					switch p.Kind {
+					case "or":
+						// Slice 4: alternatives elaborate like
+						// lone slot patterns. A written `_`
+						// is AIL4112 here (not in the proof),
+						// so dec-constant fallthrough below
+						// keeps its own AIL6016 without noise.
+						for oi := range p.Alts {
+							alt := &p.Alts[oi]
+							if alt.Kind == "wild" {
+								out = append(out, spanDiag(text, line, "error",
+									fmt.Sprintf("%s: or-pattern alternatives take scalar patterns only: write `_` as its own arm", fn.Name),
+									"_", CodeUselessAlt))
+								continue
+							}
+							elab(alt)
+						}
+						return
+					case "range":
+						out = append(out, resolveRangePattern(open, prog, text, fn.Name, line, p)...)
+						return
+					case "const":
+					default:
+						return
 					}
 					name := p.Name
 					c, ok := lookupConst(prog, name)
 					if !ok {
 						*p = Pattern{Kind: "variant", Name: name}
-						continue
+						return
 					}
 					// A pattern reference marks its pin used even
 					// though elaboration rewrites the pattern away
 					// before checkSem collects evidence: record it
 					// per module for checkUnusedUses.
 					markUsed(name)
-					pinCheck(fn, m.Arms[ai].Line, name)
+					pinCheck(fn, line, name)
 					if c.Value != nil {
 						if c.Value.Kind == "bool" {
 							*p = Pattern{Kind: "bool", B: c.Value.B}
-							continue
+							return
 						}
 						if c.Value.Kind == "str" {
 							*p = Pattern{Kind: "str", Str: c.Value.Str}
-							continue
+							return
 						}
 						if c.Value.Kind == "int" && c.Value.Num != nil {
 							// Slice 3: integer constants are
@@ -308,13 +327,16 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 							// out so the pattern owns its
 							// arbitrary-precision bound.
 							*p = Pattern{Kind: "int", Num: new(big.Int).Set(c.Value.Num)}
-							continue
+							return
 						}
 					}
 					*p = Pattern{Kind: "wild"}
-					out = append(out, spanDiag(text, m.Arms[ai].Line, "error",
+					out = append(out, spanDiag(text, line, "error",
 						fmt.Sprintf("const %s is %s: V1 patterns admit bool/str/int constants only", name, c.Type),
 						name, CodeConstNonliteral))
+				}
+				for pi := range m.Arms[ai].Pats {
+					elab(&m.Arms[ai].Pats[pi])
 				}
 			}
 		}

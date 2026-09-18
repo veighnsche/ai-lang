@@ -133,15 +133,14 @@ func rangeBoundDiag(open *Module, prog *Program, text, fnName string, line int, 
 
 // intSlotSpans collects the inclusive spans of one slot's
 // integer patterns: singletons as degenerate [v, v] spans.
+// Or-alternatives contribute each alternative's span.
 // Unresolved (nil-bound) patterns contribute nothing: they only
 // reach the proof past a world error, which already fails.
 func intSlotSpans(n *Node, slot int) [][2]*big.Int {
 	var out [][2]*big.Int
-	for _, a := range n.Arms {
-		if slot >= len(a.Pats) {
-			continue
-		}
-		switch p := a.Pats[slot]; p.Kind {
+	var spans func(p Pattern)
+	spans = func(p Pattern) {
+		switch p.Kind {
 		case "int":
 			if p.Num != nil {
 				out = append(out, [2]*big.Int{p.Num, p.Num})
@@ -150,7 +149,17 @@ func intSlotSpans(n *Node, slot int) [][2]*big.Int {
 			if p.Num != nil && p.Hi != nil {
 				out = append(out, [2]*big.Int{p.Num, p.Hi})
 			}
+		case "or":
+			for _, alt := range p.Alts {
+				spans(alt)
+			}
 		}
+	}
+	for _, a := range n.Arms {
+		if slot >= len(a.Pats) {
+			continue
+		}
+		spans(a.Pats[slot])
 	}
 	return out
 }
@@ -233,6 +242,12 @@ func patAtomRender(p Pattern) string {
 			return p.LoS + ".." + p.HiS
 		}
 		return "range"
+	case "or":
+		parts := make([]string, 0, len(p.Alts))
+		for _, alt := range p.Alts {
+			parts = append(parts, patAtomRender(alt))
+		}
+		return strings.Join(parts, " | ")
 	case "bool":
 		if p.B {
 			return "true"
@@ -250,11 +265,26 @@ func patAtomRender(p Pattern) string {
 }
 
 // armHasInt reports whether an arm carries an integer pattern in
-// any slot: only such arms face the static usefulness rule, so
-// legacy slots keep legacy behavior exactly.
+// any slot (inside or-alternatives counts): only such arms face
+// the static usefulness rule, so legacy slots keep legacy
+// behavior exactly.
 func armHasInt(a Arm) bool {
-	for _, p := range a.Pats {
+	var has func(p Pattern) bool
+	has = func(p Pattern) bool {
 		if p.Kind == "int" || p.Kind == "range" {
+			return true
+		}
+		if p.Kind == "or" {
+			for _, alt := range p.Alts {
+				if has(alt) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	for _, p := range a.Pats {
+		if has(p) {
 			return true
 		}
 	}
@@ -323,7 +353,7 @@ func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits 
 			return out
 		}
 	}
-	domains, covers, _, mixed := valueCoverOf(n, hasBool, strLits, intSpans)
+	domains, covers, atomIndex, mixed := valueCoverOf(n, hasBool, strLits, intSpans)
 	if mixed > 0 {
 		out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
 		return out
@@ -336,6 +366,8 @@ func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits 
 			out = append(out, at(n.Arms[i].Line, fmt.Errorf("%s: arm %s is fully covered by earlier arms", owner, patRender(n, i))))
 		}
 	}
+	// Slice 4: per-alternative usefulness over the same covers.
+	out = append(out, checkOrAlternatives(n, owner, covers, domains, atomIndex)...)
 	// Collect up to three missing witnesses, feeding each back as
 	// a literal arm so the next search finds a new cell: the
 	// legacy loop verbatim, over extended domains.

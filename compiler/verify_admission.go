@@ -730,8 +730,18 @@ func (a *admission) checkBody(m *Module, fn *FnDecl, name, text string, node *No
 		}
 		seen := map[bool]bool{}
 		for _, armNode := range node.Arms {
-			if isBool && len(armNode.Pats) == 1 && armNode.Pats[0].Kind == "bool" {
-				seen[armNode.Pats[0].B] = true
+			if isBool && len(armNode.Pats) == 1 {
+				// Slice 4: or-alternatives join the census,
+				// so `true | false` is the complete case.
+				if armNode.Pats[0].Kind == "bool" {
+					seen[armNode.Pats[0].B] = true
+				} else if armNode.Pats[0].Kind == "or" {
+					for _, alt := range armNode.Pats[0].Alts {
+						if alt.Kind == "bool" {
+							seen[alt.B] = true
+						}
+					}
+				}
 			}
 			a.checkBody(m, fn, name, text, armNode.Rhs, armNode.Line)
 		}
