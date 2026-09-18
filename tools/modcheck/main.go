@@ -17,6 +17,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/veighnsche/can-lang/internal/scan"
 )
 
 // Example programs, each folder named by its contents.
@@ -34,44 +36,6 @@ var (
 	givenKeyRe = regexp.MustCompile(`(?m)^\s*(\w+)\s*=>`)
 	demoRe     = regexp.MustCompile(`(?m)^\s*//\s*DEMO-EXPECTS:\s*(.+?)\s*$`)
 )
-
-// braceOutsideString mirrors canlc's R1 (a45) scan: braces inside
-// "..." literals are data, never delimiters; braces in code or
-// comments stay banned. String tracking matches the compiler:
-// " opens, \ skips the next byte, " closes, and // outside a
-// string starts a comment whose quotes never toggle string state.
-func braceOutsideString(line string) bool {
-	inStr := false
-	for i := 0; i < len(line); {
-		ch := line[i]
-		if inStr {
-			if ch == '\\' && i+1 < len(line) {
-				i++
-			} else if ch == '"' {
-				inStr = false
-			}
-		} else {
-			if ch == '"' {
-				inStr = true
-			} else if ch == '/' && i+1 < len(line) && line[i+1] == '/' {
-				return strings.ContainsAny(line[i:], "{}")
-			} else if ch == '{' || ch == '}' {
-				return true
-			}
-		}
-		i++
-	}
-	return false
-}
-
-func hasBraceOutsideString(body string) bool {
-	for _, line := range strings.Split(body, "\n") {
-		if braceOutsideString(line) {
-			return true
-		}
-	}
-	return false
-}
 
 func names(raw string) []string {
 	var out []string
@@ -266,7 +230,7 @@ func checkGroup(files []string, keyOf func(string) string, shared map[string][]s
 		if externsRe.MatchString(body) {
 			add(base, "externals section is gone, use call-site given")
 		}
-		if hasBraceOutsideString(body) {
+		if scan.HasBraceOutsideString(body) {
 			add(base, "curly braces are banned, use () records")
 		}
 		testNames := map[string]bool{}
@@ -346,26 +310,8 @@ func sortedKeys(m map[string]bool) []string {
 	return out
 }
 
-// repoRoot walks up from the working directory to the repo root (go.mod).
-func repoRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", fmt.Errorf("repo root (go.mod) not found")
-		}
-		dir = parent
-	}
-}
-
 func main() {
-	root, err := repoRoot()
+	root, err := scan.RepoRoot()
 	if err != nil {
 		fmt.Println("MODULE CHECK FAILED")
 		fmt.Println(" -", err)

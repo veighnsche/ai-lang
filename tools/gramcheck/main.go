@@ -18,6 +18,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/veighnsche/can-lang/internal/scan"
 )
 
 var jsonFiles = []string{
@@ -236,26 +238,8 @@ func check(dir string) []string {
 	return errs
 }
 
-// repoRoot walks up from the working directory to the repo root (go.mod).
-func repoRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", fmt.Errorf("repo root (go.mod) not found")
-		}
-		dir = parent
-	}
-}
-
 func main() {
-	root, err := repoRoot()
+	root, err := scan.RepoRoot()
 	if err != nil {
 		fmt.Println("GRAMMAR CHECK FAILED")
 		fmt.Println(" -", err)

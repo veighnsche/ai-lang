@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/veighnsche/can-lang/internal/scan"
 )
 
 // ---------------------------------------------------------------- AST ------
@@ -374,37 +376,9 @@ type Module struct {
 }
 
 // ---------------------------------------------------------- scanning -------
-// braceOutsideString reports whether line carries { or } outside a
-// string literal. Braces inside "..." are data (JSON, CSS, templates),
-// never delimiters; braces in code or comments stay banned (R1).
-// String tracking matches stripComment: " opens, \ escapes the next
-// byte, " closes, and // outside a string starts a comment whose
-// quotes never toggle string state.
-func braceOutsideString(line string) bool {
-	inStr := false
-	for i := 0; i < len(line); {
-		ch := line[i]
-		if inStr {
-			if ch == '\\' && i+1 < len(line) {
-				i++
-			} else if ch == '"' {
-				inStr = false
-			}
-		} else {
-			if ch == '"' {
-				inStr = true
-			} else if ch == '/' && i+1 < len(line) && line[i+1] == '/' {
-				rest := line[i:]
-				return strings.ContainsAny(rest, "{}")
-			} else if ch == '{' || ch == '}' {
-				return true
-			}
-		}
-		i++
-	}
-	return false
-}
-
+// The R1 brace scan lives in internal/scan (one implementation shared
+// with modcheck's repo gate); stripComment below tracks strings the
+// same way.
 func stripComment(line string) string {
 	var out strings.Builder
 	inStr := false
@@ -1599,7 +1573,7 @@ func parseModuleText(name, text string) (*Module, error) {
 	// string literals is not delimiters either, so the ban scans
 	// string-aware. Comments stay banned.
 	for n, raw := range strings.Split(text, "\n") {
-		if braceOutsideString(raw) {
+		if scan.BraceOutsideString(raw) {
 			return nil, at(n+1, fmt.Errorf("curly braces are banned outside string literals, use () records"))
 		}
 	}
