@@ -348,7 +348,7 @@ func TestRangeEmit(t *testing.T) {
 		t.Fatal(err)
 	}
 	ts := string(raw)
-	for _, want := range []string{"=== 5n", ">= 48n", "<= 57n"} {
+	for _, want := range []string{"===5n", ">=48n", "<=57n"} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emitted TS lacks %q:\n%s", want, ts)
 		}

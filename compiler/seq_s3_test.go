@@ -203,7 +203,7 @@ func TestSeqIndexEmit(t *testing.T) {
 	ts := compileEmit(t, seqGetMod)
 	for _, want := range []string{
 		"$canSeqAt",
-		"function $canSeqAt<T>(a: T[], i: bigint): T {",
+		"function $canSeqAt<T>(a:T[],i:bigint):T{",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)

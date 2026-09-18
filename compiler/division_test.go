@@ -119,7 +119,7 @@ func TestDivEmitHelper(t *testing.T) {
 	if !strings.Contains(string(raw), "function $canDivMod") {
 		t.Fatalf("emit missing $canDivMod helper:\n%s", raw)
 	}
-	if !strings.Contains(string(raw), "$canDivMod(a, 3n)[0]") {
+	if !strings.Contains(string(raw), "$canDivMod(a,3n)[0]") {
 		t.Fatalf("emit missing helper call:\n%s", raw)
 	}
 }

@@ -83,12 +83,12 @@ func TestPayloadLayoutEmit(t *testing.T) {
 	}
 	src := string(got)
 	for _, want := range []string{
-		`$can_kind: "ok"`,
-		`$can_kind: "audit.bad"`,
-		`kind: "request"`,
-		`{ $can_kind: "audit.bad"; kind: string; code: bigint }`,
-		`["__proto__"]: "kept"`,
-		`constructor: "mine"`,
+		`$can_kind:"ok"`,
+		`$can_kind:"audit.bad"`,
+		`kind:"request"`,
+		`{$can_kind:"audit.bad";kind:string;code:bigint}`,
+		`["__proto__"]:"kept"`,
+		`constructor:"mine"`,
 	} {
 		if !strings.Contains(src, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, src)
@@ -97,9 +97,9 @@ func TestPayloadLayoutEmit(t *testing.T) {
 	// The flat envelope is gone: no bare kind tag in values, types,
 	// or discriminants.
 	for _, banned := range []string{
-		`{ kind: "ok"`,
-		`{ kind: "audit.bad"`,
-		`.kind) {`,
+		`{kind:"ok"`,
+		`{kind:"audit.bad"`,
+		`.kind){`,
 	} {
 		if strings.Contains(src, banned) {
 			t.Errorf("emit contains flat envelope %q\n--- emit ---\n%s", banned, src)

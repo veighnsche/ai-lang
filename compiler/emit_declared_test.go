@@ -96,11 +96,11 @@ func TestDeclaredResultEmit(t *testing.T) {
 	// One file, four declared results: bool, int, and str-shaped (dec
 	// erases to string, sharing the identical member) each survive.
 	for _, want := range []string{
-		`{ $can_kind: "ok"; value: bigint }`,
-		`{ $can_kind: "ok"; value: boolean }`,
-		`{ $can_kind: "ok"; value: string }`,
-		"export function audit__int(value: bigint)",
-		"export function audit__bool(flag: boolean)",
+		`{$can_kind:"ok";value:bigint}`,
+		`{$can_kind:"ok";value:boolean}`,
+		`{$can_kind:"ok";value:string}`,
+		"export function audit__int(value:bigint)",
+		"export function audit__bool(flag:boolean)",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, ts)

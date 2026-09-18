@@ -226,7 +226,7 @@ func TestOrEmit(t *testing.T) {
 		t.Fatal(err)
 	}
 	ts := string(raw)
-	for _, want := range []string{"(x === 1n || (x >= 10n && x <= 15n))"} {
+	for _, want := range []string{"(x===1n||(x>=10n&&x<=15n))"} {
 		found := false
 		for i := 0; i+len(want) <= len(ts); i++ {
 			if ts[i:i+len(want)] == want {

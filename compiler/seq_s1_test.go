@@ -603,7 +603,7 @@ fn app__go(x: str) -> App__Out rev 1
 func TestSeqEmitArray(t *testing.T) {
 	ts := compileEmit(t, seqV2)
 	for _, want := range []string{
-		`["b", "", "a", "b"]`,
+		`["b","","a","b"]`,
 		`string[]`,
 	} {
 		if !strings.Contains(ts, want) {
@@ -615,7 +615,7 @@ func TestSeqEmitArray(t *testing.T) {
 func TestSeqEmitBrandErases(t *testing.T) {
 	ts := compileEmit(t, seqV3)
 	for _, want := range []string{
-		`["A", ""]`,
+		`["A",""]`,
 		`string[]`,
 	} {
 		if !strings.Contains(ts, want) {

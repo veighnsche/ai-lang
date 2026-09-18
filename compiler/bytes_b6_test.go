@@ -201,9 +201,9 @@ func TestBytesD5ContractsRegistered(t *testing.T) {
 func TestBytesD6EmitPins(t *testing.T) {
 	ts := compileEmit(t, bytesDecodeFull())
 	for _, want := range []string{
-		"fatal: true",
-		"ignoreBOM: true",
-		`{ $can_kind: "encoding.invalid_utf8"; value: Uint8Array }`,
+		"fatal:true",
+		"ignoreBOM:true",
+		`{$can_kind:"encoding.invalid_utf8";value:Uint8Array}`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)

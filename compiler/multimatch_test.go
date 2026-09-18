@@ -407,11 +407,11 @@ func TestMultiEmitChain(t *testing.T) {
 	// drops out of the second arm; the proved-total tail is a bare else.
 	ts := compileEmit(t, multiEmitText)
 	for _, want := range []string{
-		"const $can_m1 = s;",
-		"const $can_m2 = b;",
-		`if ($can_m1 === "admin") {`,
-		"else if ($can_m2) {",
-		"else {",
+		"const $can_m1=s;",
+		"const $can_m2=b;",
+		`if($can_m1==="admin"){`,
+		"else if($can_m2){",
+		"else{",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
@@ -427,10 +427,10 @@ func TestMultiEmitBoolTotal(t *testing.T) {
 	// still lowers to a bare else by the residual proof.
 	ts := compileEmit(t, multiEmitBoolText)
 	for _, want := range []string{
-		"const $can_m1 = a;",
-		"const $can_m2 = b;",
-		"if ($can_m1 && $can_m2) {",
-		"else {",
+		"const $can_m1=a;",
+		"const $can_m2=b;",
+		"if($can_m1&&$can_m2){",
+		"else{",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)

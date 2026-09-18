@@ -94,20 +94,22 @@ func TestEmitErrorBindersShape(t *testing.T) {
 	}
 	src := string(got)
 	for _, want := range []string{
-		`case "audit.failed": {`,
-		`case "audit.other": {`,
-		`case "ok": {`,
-		"const err = $can_m",
+		`case"audit.failed":{`,
+		`case"audit.other":{`,
+		`case"ok":{`,
+		"const err=$can_m",
 		"const $can_m",
-		"(_m1 + _m1)",
+		"(_m1+_m1)",
 	} {
 		if !strings.Contains(src, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, src)
 		}
 	}
-	for _, banned := range []string{"const _m", "case \"ok\":\n"} {
-		if strings.Contains(src, banned) {
-			t.Errorf("emit contains %q (unscoped arm or spellable temp)\n--- emit ---\n%s", banned, src)
-		}
+	if strings.Contains(src, "const _m") {
+		t.Errorf("emit contains spellable temp\n--- emit ---\n%s", src)
+	}
+	// Every ok arm stays scoped: each `case"ok":` opens a block.
+	if strings.Count(src, `case"ok":`) != strings.Count(src, `case"ok":{`) {
+		t.Errorf("emit contains unscoped arm\n--- emit ---\n%s", src)
 	}
 }

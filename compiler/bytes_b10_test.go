@@ -196,7 +196,7 @@ func TestBytesX6EmitPins(t *testing.T) {
 	ts := compileEmit(t, bytesHexDecodeFull())
 	for _, want := range []string{
 		"$canHexDecode(",
-		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string }`,
+		`{$can_kind:"ok";value:Uint8Array}|{$can_kind:"encoding.invalid_hex";value:string}`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
@@ -364,14 +364,14 @@ func TestBytesX11bMixedEmitPins(t *testing.T) {
 	for _, want := range []string{
 		"$canHexDecode(",
 		"$canUtf8Decode(",
-		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string }`,
-		`{ $can_kind: "ok"; value: string } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array }`,
+		`{$can_kind:"ok";value:Uint8Array}|{$can_kind:"encoding.invalid_hex";value:string}`,
+		`{$can_kind:"ok";value:string}|{$can_kind:"encoding.invalid_utf8";value:Uint8Array}`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("mixed emit missing %q:\n%s", want, ts)
 		}
 	}
-	if strings.Contains(ts, "value: string | Uint8Array") {
+	if strings.Contains(ts, "value:string|Uint8Array") {
 		t.Fatalf("mixed emit must not merge payload types:\n%s", ts)
 	}
 }

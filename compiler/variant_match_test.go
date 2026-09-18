@@ -357,10 +357,10 @@ fn cons__go(state: Login__State) -> Cons__Out rev 1
 		t.Fatalf("read cons.ts: %v", err)
 	}
 	ts := string(raw)
-	if !strings.Contains(ts, `type Login__State`) || !strings.Contains(ts, `from "./prov"`) {
+	if !strings.Contains(ts, `type Login__State`) || !strings.Contains(ts, `from"./prov"`) {
 		t.Fatalf("missing provider union import in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, `case "Login__Authenticated": {`) {
+	if !strings.Contains(ts, `case"Login__Authenticated":{`) {
 		t.Fatalf("missing case arm in emit:\n%s", ts)
 	}
 }
@@ -404,13 +404,13 @@ func TestVariantMatchEmitSwitch(t *testing.T) {
 		t.Fatalf("read m.ts: %v", err)
 	}
 	ts := string(raw)
-	if !strings.Contains(ts, `.$can_kind`) || !strings.Contains(ts, "switch (") {
+	if !strings.Contains(ts, `.$can_kind`) || !strings.Contains(ts, "switch(") {
 		t.Fatalf("missing tag switch in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, `case "Login__Authenticated": {`) {
+	if !strings.Contains(ts, `case"Login__Authenticated":{`) {
 		t.Fatalf("missing case arm in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, "const a = $can_m") {
+	if !strings.Contains(ts, "const a=$can_m") {
 		t.Fatalf("missing payload binder in emit:\n%s", ts)
 	}
 }

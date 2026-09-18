@@ -275,8 +275,10 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 		if err != nil {
 			return err
 		}
+		// Emit is always minified: one artifact per module,
+		// comments and unneeded whitespace stripped.
 		name := m.Stem + ".ts"
-		if err := os.WriteFile(out+"/"+name, []byte(text), 0o644); err != nil {
+		if err := os.WriteFile(out+"/"+name, []byte(minifyTS(text)), 0o644); err != nil {
 			return err
 		}
 		if !jsonOut {

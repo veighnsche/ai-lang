@@ -128,7 +128,7 @@ fn m__dec(x: dec) -> M__Dec rev 1
 		t.Fatal(err)
 	}
 	ts := string(raw)
-	for _, want := range []string{"((-a) * b)", `$canDecSub("0.0", x)`} {
+	for _, want := range []string{"((-a)*b)", `$canDecSub("0.0",x)`} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q", want)
 		}
@@ -188,7 +188,7 @@ fn m__dec() -> M__Dec rev 1
 			t.Fatalf("emit missing literal %q", want)
 		}
 	}
-	for _, want := range []string{"(-3n)", `$canDecSub("0.0", "0.5")`} {
+	for _, want := range []string{"(-3n)", `$canDecSub("0.0","0.5")`} {
 		if strings.Contains(ts, want) {
 			t.Fatalf("literal did not normalize: %q", want)
 		}

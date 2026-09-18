@@ -66,7 +66,7 @@ func TestRecordEqualityEmit(t *testing.T) {
 	}
 	src := string(got)
 	for _, want := range []string{
-		`$canEqRec(left, right, ["first", "second"])`,
+		`$canEqRec(left,right,["first","second"])`,
 		"function $canEqRec",
 		"function $canEqVal",
 	} {
@@ -76,7 +76,7 @@ func TestRecordEqualityEmit(t *testing.T) {
 	}
 	// Same-object identity would read (left === right): the lowering
 	// must not depend on allocation.
-	if strings.Contains(src, "(left === right)") {
+	if strings.Contains(src, "(left===right)") {
 		t.Errorf("emit compares records by identity:\n%s", src)
 	}
 }
