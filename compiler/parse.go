@@ -1525,7 +1525,7 @@ var (
 	reVariant     = regexp.MustCompile(`^variant\s+(\w+)\s+rev\s+(\d+)\s*\($`)
 	reVariantCase = regexp.MustCompile(`^case\s+(\w+)\((.*)\)$`)
 	reBrand       = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
-	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+)\s+rev\s+(\d+)\s*=\s*(.+)$`)
+	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+(?:<\w+>)?)\s+rev\s+(\d+)\s*=\s*(.+)$`)
 	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reFn          = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reExport      = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)

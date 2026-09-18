@@ -145,6 +145,29 @@ canonicalization on these terms.
 Acceptance: the ten magic bounds in `html__url__scheme_token`
 become greppable names with zero call/test overhead.
 
+### Closure: composite sorts (records, sequences, brands)
+
+The deferral above is lifted: `const` now admits record,
+non-nested `Seq`, and brand sorts per design3's closed-data
+rule, implemented in `checkCompositeConst` (`compiler/const.go`).
+Initializers stay ref-free (aliases-as-values included, so the
+`TestConstLiteralOnly` pin and cycle-unrepresentability hold
+verbatim); calls, arithmetic, matches, state, indexing, and
+slicing are excluded; Bytes and variant-valued constants stay
+inline. Validation reuses the shared tycker, so constructor
+fields get row-identical unknown/repeated/missing/mistyped
+rules (AIL6003), and eval/emit resolve through the existing
+lazy-substitution paths with no new mechanism.
+
+First consumer: `std/schema` decision tables migrate onto
+eleven fixture consts (requests, entries, sites, snapshots,
+policy seal). Row bytes 42,278 → 22,401 with zero outcome
+change (`ailc normalize` byte-identical over all 122 schema
+rows) and zero emit change (`schema.ts`, `errors.json`
+byte-identical). Single-use hostile shapes (quote, control,
+conflict, revoked, wrong-digest) stay inline where the bytes
+are the point.
+
 ## 2. Forward arms
 
 Exactly a61's spelling (no new error mechanism):

@@ -332,7 +332,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 			out = append(out, checkDeclFields(d.Name, d.Fields, d.Line, prog, text)...)
 		}
 	}
-	out = append(out, checkConstDecls(open, text)...)
+	out = append(out, checkConstDecls(open, prog, text)...)
 	for k := range prog.ConstUsed[open.ID] {
 		called[k] = true
 	}

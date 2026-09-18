@@ -581,3 +581,201 @@ fn m__poll(n: int) -> M__S rev 1
 		t.Fatalf("const-spelled step certified the recursion")
 	}
 }
+
+// Composite constants (design3 closed data): records, sequences,
+// and brand seals as named fixtures shared across test rows. A
+// row naming a fixture evaluates exactly its literal, so rows
+// stay short while outcomes stay identical.
+
+// TestCompositeConstRecord pins the fixture shape: a record
+// const referenced from test args checks clean, and the const
+// row and the inline-literal row pass with the same outcome.
+func TestCompositeConstRecord(t *testing.T) {
+	src := `mod m
+  provides [m__go, M__Point, M__Bool, m__ORIGIN]
+  uses []
+  emits []
+
+type M__Point rev 1 (
+  x: int,
+  y: int
+)
+
+type M__Bool rev 1 (
+  value: bool
+)
+
+const m__ORIGIN: M__Point rev 1 = M__Point(x = 0, y = 0)
+
+fn m__go(p: M__Point) -> M__Bool rev 1
+  emits []
+  tests
+    via_const(p = m__ORIGIN) => Ok(value = true)
+    via_inline(p = M__Point(x = 0, y = 0)) => Ok(value = true)
+    elsewhere(p = M__Point(x = 1, y = 2)) => Ok(value = false)
+=
+  match p.x == 0, p.y == 0
+    true, true => Ok(value = true)
+    _, _ => Ok(value = false)
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("record fixture reported errors: %v", diags)
+	}
+}
+
+// TestCompositeConstNested pins fixtures nesting Seq literals
+// and brand seals: the snapshot-shaped const (entries plus an
+// empty revoked list plus a sealed mark) checks clean and its
+// row selects through projection exactly like inline data.
+func TestCompositeConstNested(t *testing.T) {
+	src := `mod m
+  provides [m__go, M__Entry, M__Snap, M__Tag, M__Bool, m__SNAP, m__REVL0]
+  uses []
+  emits []
+
+type M__Entry rev 1 (
+  id: str,
+  n: int
+)
+
+type M__Snap rev 1 (
+  entries: Seq<M__Entry>,
+  revoked: Seq<M__Entry>,
+  mark: M__Tag
+)
+
+brand M__Tag is str rev 1
+
+type M__Bool rev 1 (
+  value: bool
+)
+
+const m__SNAP: M__Snap rev 1 = M__Snap(entries = Seq<M__Entry>[M__Entry(id = "a", n = 1)], revoked = Seq<M__Entry>[], mark = seal M__Tag("ok"))
+
+const m__REVL0: Seq<M__Entry> rev 1 = Seq<M__Entry>[]
+
+fn m__go(s: M__Snap, r: Seq<M__Entry>) -> M__Bool rev 1
+  emits []
+  tests
+    nested(s = m__SNAP, r = m__REVL0) => Ok(value = true)
+    renamed(s = M__Snap(entries = Seq<M__Entry>[], revoked = Seq<M__Entry>[], mark = seal M__Tag("no")), r = m__REVL0) => Ok(value = false)
+=
+  match s.mark == seal M__Tag("ok"), #s.entries == 1, #r == 0
+    true, true, true => Ok(value = true)
+    _, _, _ => Ok(value = false)
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("nested fixture reported errors: %v", diags)
+	}
+}
+
+// TestCompositeConstShapes pins AIL6016 on every non-data
+// initializer and every excluded sort: calls, arithmetic,
+// aliases, cross-shape heads, unknown sorts, Bytes, variants.
+func TestCompositeConstShapes(t *testing.T) {
+	for name, decl := range map[string]string{
+		"call":    `const m__B: M__Point rev 1 = m__go(p = m__ORIGIN)`,
+		"arith":   `const m__B: M__Point rev 1 = M__Point(x = 1 + 2, y = 0)`,
+		"alias":   `const m__B: M__Point rev 1 = m__ORIGIN`,
+		"seqhead": `const m__B: M__Point rev 1 = Seq<M__Point>[]`,
+		"sealhead": `const m__B: M__Tag rev 1 = M__Point(x = 0, y = 0)`,
+		"ctorhead": `const m__B: Seq<M__Point> rev 1 = M__Point(x = 0, y = 0)`,
+		"unknown": `const m__B: Nope rev 1 = 1`,
+		"bytes":   `const m__B: Bytes rev 1 = Bytes(Seq<int>[65])`,
+	} {
+		src := `mod m
+  provides [m__go, M__Point, M__Bool, M__Tag, m__ORIGIN, m__B]
+  uses []
+  emits []
+
+type M__Point rev 1 (
+  x: int,
+  y: int
+)
+
+type M__Bool rev 1 (
+  value: bool
+)
+
+brand M__Tag is str rev 1
+
+const m__ORIGIN: M__Point rev 1 = M__Point(x = 0, y = 0)
+
+` + decl + `
+
+fn m__go(p: M__Point) -> M__Bool rev 1
+  emits []
+  tests
+    origin(p = m__ORIGIN) => Ok(value = true)
+=
+  Ok(value = p.x == 0)
+`
+		dir := writeLSPDir(t, map[string]string{"m.ail": src})
+		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6016") {
+			t.Fatalf("%s initializer reported no AIL6016: %v", name, diags)
+		}
+	}
+}
+
+// TestCompositeConstVariant pins the design3 exclusion: a
+// variant-typed constant stays inline with AIL6016.
+func TestCompositeConstVariant(t *testing.T) {
+	src := `mod m
+  provides [m__go, M__State, m__B]
+  uses []
+  emits []
+
+variant M__State rev 1 (
+  case Ready()
+  case Waiting()
+)
+
+const m__B: M__State rev 1 = M__State.Ready()
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6016") {
+		t.Fatalf("variant initializer reported no AIL6016: %v", diags)
+	}
+}
+
+// TestCompositeConstFields pins shared field checking: unknown,
+// repeated, missing, and mistyped constructor fields fail inside
+// const values exactly as in handwritten rows (AIL6003).
+func TestCompositeConstFields(t *testing.T) {
+	for name, init := range map[string]string{
+		"unknown":  `M__Point(x = 0, z = 0)`,
+		"repeated": `M__Point(x = 0, x = 1, y = 0)`,
+		"missing":  `M__Point(x = 0)`,
+		"mistyped": `M__Point(x = "s", y = 0)`,
+	} {
+		src := `mod m
+  provides [m__go, M__Point, M__Bool, m__B]
+  uses []
+  emits []
+
+type M__Point rev 1 (
+  x: int,
+  y: int
+)
+
+type M__Bool rev 1 (
+  value: bool
+)
+
+const m__B: M__Point rev 1 = ` + init + `
+
+fn m__go(p: M__Point) -> M__Bool rev 1
+  emits []
+  tests
+    origin(p = m__B) => Ok(value = true)
+=
+  Ok(value = p.x == 0)
+`
+		dir := writeLSPDir(t, map[string]string{"m.ail": src})
+		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6003") {
+			t.Fatalf("%s field reported no AIL6003: %v", name, diags)
+		}
+	}
+}

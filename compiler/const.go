@@ -13,7 +13,9 @@ import (
 	"math/big"
 )
 
-// constSorts are the V1 admitted constant sorts.
+// constSorts are the admitted scalar constant sorts. Composite
+// sorts (records, sequences, brands) validate through the type
+// checker in checkConstDecls, which owns the program tables.
 func constSortOf(t string) bool {
 	return t == "int" || t == "str" || t == "dec" || t == "bool"
 }
@@ -39,28 +41,109 @@ func constLiteral(sort string, s *Small) bool {
 
 // checkConstDecls validates constant declarations in one module:
 // admitted sort plus a matching literal initializer (AIL6016).
-// Cycles are unrepresentable (aliases rejected), duplicates are
-// reported at world build (AIL2205).
-func checkConstDecls(m *Module, text string) []Diag {
+// Scalars keep the V1 shape rule; composite sorts (records,
+// non-nested sequences, brands per design3) check the literal
+// tree against the declared sort with the shared type checker,
+// so constructor fields get the same unknown/missing-field
+// rules as handwritten rows. Duplicates are reported at world
+// build (AIL2205).
+func checkConstDecls(m *Module, prog *Program, text string) []Diag {
 	var out []Diag
 	for _, d := range m.Decls {
 		c, ok := d.(*ConstDecl)
 		if !ok {
 			continue
 		}
-		if !constSortOf(c.Type) {
-			out = append(out, spanDiag(text, c.Line, "error",
-				fmt.Sprintf("const %s declares unsupported sort %s: V1 admits int, str, dec, bool", c.Name, c.Type),
-				c.Name, CodeConstNonliteral))
+		if constSortOf(c.Type) {
+			if !constLiteral(c.Type, c.Value) {
+				out = append(out, spanDiag(text, c.Line, "error",
+					fmt.Sprintf("const %s initializer is not a %s literal: V1 initializers are literals, never computed or aliased", c.Name, c.Type),
+					c.Name, CodeConstNonliteral))
+			}
 			continue
 		}
-		if !constLiteral(c.Type, c.Value) {
-			out = append(out, spanDiag(text, c.Line, "error",
-				fmt.Sprintf("const %s initializer is not a %s literal: V1 initializers are literals, never computed or aliased", c.Name, c.Type),
-				c.Name, CodeConstNonliteral))
+		if diags, ok := checkCompositeConst(prog, text, c); !ok {
+			out = append(out, diags...)
 		}
 	}
 	return out
+}
+
+// checkCompositeConst validates one record, sequence, or brand
+// constant: known non-excluded sort, closed literal tree, head
+// shape matching the sort, then full field checking. ok=false
+// carries the diagnostics.
+func checkCompositeConst(prog *Program, text string, c *ConstDecl) ([]Diag, bool) {
+	fail := func(format string, args ...any) ([]Diag, bool) {
+		return []Diag{spanDiag(text, c.Line, "error",
+			fmt.Sprintf(format, args...), c.Name, CodeConstNonliteral)}, false
+	}
+	ck := newTycker(prog, text, "const "+c.Name)
+	if !ck.knownType(c.Type) {
+		return fail("const %s declares unsupported sort %s: admit int, str, dec, bool, record, Seq, and brand sorts", c.Name, c.Type)
+	}
+	// design3 excludes Bytes and variant-valued constants.
+	if c.Type == "Bytes" || ck.variants[c.Type] {
+		return fail("const %s declares excluded sort %s: Bytes and variant-valued constants stay inline", c.Name, c.Type)
+	}
+	if elem, isSeq := seqElemName(c.Type); isSeq && (elem == "Bytes" || ck.variants[elem]) {
+		return fail("const %s declares excluded sort %s: Bytes and variant-valued constants stay inline", c.Name, c.Type)
+	}
+	if !constData(c.Value) {
+		return fail("const %s initializer is not closed data: write literals, record/Seq construction, and seals of string literals, never refs, calls, or arithmetic", c.Name)
+	}
+	// The head shape names the sort, so an error constructor
+	// cannot smuggle past field checking under a record sort.
+	switch {
+	case ck.recs[c.Type] != nil:
+		if c.Value.Kind != "ctor" || c.Value.Ctor != c.Type {
+			return fail("const %s must construct %s: write %s(field = ...)", c.Name, c.Type, c.Type)
+		}
+	case ck.brands[c.Type]:
+		if c.Value.Kind != "seal" || c.Value.Seal != c.Type {
+			return fail("const %s must seal %s: write seal %s(\"...\")", c.Name, c.Type, c.Type)
+		}
+	default:
+		elem, _ := seqElemName(c.Type)
+		if c.Value.Kind != "seqlit" || c.Value.Elem != elem {
+			return fail("const %s must be a %s literal: write %s[...]", c.Name, c.Type, c.Type)
+		}
+	}
+	ck.value(c.Value, c.Type, c.Line, map[string]string{}, "const "+c.Name)
+	return ck.out, len(ck.out) == 0
+}
+
+// constData reports whether s is closed constant data: scalars,
+// record construction, Seq literals, and seals of string
+// literals. Refs stay rejected everywhere (aliases-as-values
+// included), so cycles are unrepresentable exactly as in V1;
+// calls, arithmetic, and matches never reach eval or emit.
+func constData(s *Small) bool {
+	if s == nil {
+		return false
+	}
+	switch s.Kind {
+	case "int", "str", "dec", "bool":
+		return true
+	case "seal":
+		return len(s.Args) == 1 && !s.Args[0].HasName &&
+			s.Args[0].V != nil && s.Args[0].V.Kind == "str"
+	case "seqlit":
+		for _, it := range s.Items {
+			if !constData(it) {
+				return false
+			}
+		}
+		return true
+	case "ctor":
+		for _, a := range s.Args {
+			if a.V == nil || !constData(a.V) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // lookupConst resolves a qualified constant name in the built
