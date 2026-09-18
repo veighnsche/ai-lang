@@ -121,6 +121,39 @@ func TestSharedRootUses(t *testing.T) {
 	}
 }
 
+// TestExampleUsesStd pins the S2 direction: an example program under a
+// non-std root resolves uses into std, while std itself still sees
+// only std and unknown names still resolve nowhere.
+func TestExampleUsesStd(t *testing.T) {
+	lib := "mod lib\n  provides [lib__K]\n  uses []\n  emits []\n\nconst lib__K: int rev 1 = 7\n"
+	app := "mod app\n  provides [app__go]\n  uses [lib__K@1]\n  emits []\n"
+	dir := writeFixtures(t, map[string]string{"std/lib.can": lib, "prog/app/app.can": app})
+	_, _, _, errs := check([]string{filepath.Join(dir, "std"), filepath.Join(dir, "prog")})
+	if len(errs) != 0 {
+		t.Fatalf("expected example-into-std resolve, got %v", errs)
+	}
+}
+
+func TestStdBlindToExamples(t *testing.T) {
+	app := "mod app\n  provides [app__go]\n  uses []\n  emits []\n"
+	lib := "mod lib\n  provides [lib__K]\n  uses [app__go@1]\n  emits []\n\nconst lib__K: int rev 1 = 7\n"
+	dir := writeFixtures(t, map[string]string{"std/lib.can": lib, "prog/app/app.can": app})
+	_, _, _, errs := check([]string{filepath.Join(dir, "std"), filepath.Join(dir, "prog")})
+	if !contains(errs, "resolves nowhere") {
+		t.Fatalf("expected std-into-example resolve error, got %v", errs)
+	}
+}
+
+func TestExampleGhostNowhere(t *testing.T) {
+	lib := "mod lib\n  provides [lib__K]\n  uses []\n  emits []\n\nconst lib__K: int rev 1 = 7\n"
+	app := "mod app\n  provides [app__go]\n  uses [ghost@9]\n  emits []\n"
+	dir := writeFixtures(t, map[string]string{"std/lib.can": lib, "prog/app/app.can": app})
+	_, _, _, errs := check([]string{filepath.Join(dir, "std"), filepath.Join(dir, "prog")})
+	if !contains(errs, "resolves nowhere") {
+		t.Fatalf("expected ghost resolve error, got %v", errs)
+	}
+}
+
 func TestExternRedeclare(t *testing.T) {
 	bad := "extern fn db__get(id: str) -> Db__U\n" + goodAuth
 	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})

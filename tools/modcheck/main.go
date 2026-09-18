@@ -72,8 +72,11 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 	// Each directory is its own program: names resolve within it.
 	// Slice 1: stdlib shares providers across its directories
 	// (ascii consts), so a uses entry also resolves to a
-	// provider elsewhere under the same root. Self-provides
-	// still resolve nowhere, exactly like the compiler.
+	// provider elsewhere under the same root. Example programs
+	// (any non-std root) additionally resolve into std, the
+	// direction real consumers import; std itself still sees
+	// only std. Self-provides still resolve nowhere, exactly
+	// like the compiler.
 	groups := map[string][]string{}
 	rootOf := map[string]string{}
 	for _, root := range roots {
@@ -110,9 +113,19 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 		}
 		groups[dir] = append(groups[dir], path)
 	}
+	stdIdx := map[string][]string{}
+	for _, r := range roots {
+		if filepath.Base(r) == "std" {
+			stdIdx = rootProvides[r]
+		}
+	}
 	for _, dir := range order {
 		scanned = append(scanned, filepath.Base(dir))
-		c, s, es := checkGroup(groups[dir], keyOf, rootProvides[rootOf[groups[dir][0]]])
+		shared := rootProvides[rootOf[groups[dir][0]]]
+		if filepath.Base(rootOf[groups[dir][0]]) != "std" {
+			shared = mergeProvides(shared, stdIdx)
+		}
+		c, s, es := checkGroup(groups[dir], keyOf, shared)
 		current += c
 		skipped += s
 		errs = append(errs, es...)
@@ -121,10 +134,24 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 	return current, skipped, scanned, errs
 }
 
+// mergeProvides unions two provider indexes into a fresh map; inputs
+// are shared across groups and must never be mutated.
+func mergeProvides(a, b map[string][]string) map[string][]string {
+	out := map[string][]string{}
+	for name, files := range a {
+		out[name] = append(out[name], files...)
+	}
+	for name, files := range b {
+		out[name] = append(out[name], files...)
+	}
+	return out
+}
+
 // checkGroup enforces the module rules within one program directory.
-// shared is the root-wide provider index (slice 1): a uses entry
-// resolves to another file in its directory or anywhere else under
-// the same root, but never to its own file.
+// shared is the root-wide provider index (slice 1, plus the std
+// index for non-std groups): a uses entry resolves to another file
+// in its directory or anywhere visible under its roots, but never
+// to its own file.
 func checkGroup(files []string, keyOf func(string) string, shared map[string][]string) (current, skipped int, errs []string) {
 	provides := map[string][]owner{}
 	uses := map[string][][2]string{}
