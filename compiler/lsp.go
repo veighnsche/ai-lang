@@ -652,7 +652,7 @@ func publishDiagnostics(w *bufio.Writer, uri, text string, diags []Diag) error {
 				start, end = 0, width
 			}
 		}
-		items = append(items, map[string]any{
+		item := map[string]any{
 			"range": map[string]any{
 				"start": map[string]any{"line": line, "character": start},
 				"end":   map[string]any{"line": line, "character": end},
@@ -660,7 +660,27 @@ func publishDiagnostics(w *bufio.Writer, uri, text string, diags []Diag) error {
 			"severity": sevCode(d.Sev),
 			"source":   "ailc",
 			"message":  d.Msg,
-		})
+		}
+		// Slice 0: the stable code and the a71 payloads ride
+		// the wire (code string, data object); empty fields
+		// stay omitted so payload-free lines are byte-identical.
+		if d.Code != "" {
+			item["code"] = d.Code
+		}
+		data := map[string]any{}
+		if d.Expected != "" {
+			data["expected"] = d.Expected
+		}
+		if d.Found != "" {
+			data["found"] = d.Found
+		}
+		if d.Hint != "" {
+			data["hint"] = d.Hint
+		}
+		if len(data) > 0 {
+			item["data"] = data
+		}
+		items = append(items, item)
 	}
 	if items == nil {
 		items = []any{}
