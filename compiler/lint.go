@@ -30,8 +30,14 @@ package main
 // given tables are out of scope. Read-only: sources are never
 // written, so NUL/control bytes are preserved trivially.
 // Report lines carry file and line only — the AST has no
-// columns, and fabricated columns would rot (deviation from
-// a88's file:line:col noted here instead of hidden).
+// columns (deviation from a88's file:line:col noted here
+// instead of hidden). Editor squiggles still land in 2D: each
+// finding carries a [start, end) UTF-16 span located by
+// searching the verbatim source line for the exact offending
+// token the check already names — never synthesized from the
+// AST. A span that cannot be located stays whole-line (end <=
+// start), so the editor falls back honestly instead of
+// underlining the wrong columns.
 
 import (
 	"fmt"
@@ -43,14 +49,19 @@ import (
 	"strings"
 )
 
-// lintFinding is one report line. No columns: see the header.
-// code carries the CAN3410-3416 rule identity for editor
-// diagnostics; the CLI prints file:line: message only.
+// lintFinding is one report line. code carries the
+// CAN3410-3416 rule identity for editor diagnostics; the CLI
+// prints file:line: message only. start/end is the 0-based
+// UTF-16 [start, end) span of the offending token on line,
+// located verbatim in source by the reporting check; end <=
+// start means unlocated and the editor falls back to the
+// whole line.
 type lintFinding struct {
-	file string
-	line int
-	msg  string
-	code string
+	file       string
+	line       int
+	msg        string
+	code       string
+	start, end int
 }
 
 func (f lintFinding) String() string {
@@ -198,11 +209,29 @@ func lintSigParams(mods []lintModule, cur, fname string) ([][2]string, bool) {
 // rows against their own params, calls against the resolved
 // callee signature.
 func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
+	lines := strings.Split(lm.text, "\n")
 	var out []lintFinding
-	report := func(line, idx int, name, owner string) {
-		out = append(out, lintFinding{lm.name, line, fmt.Sprintf(
+	report := func(line int, args []Arg, i int, owner string) {
+		name := args[i].Name
+		f := lintFinding{file: lm.name, line: line, msg: fmt.Sprintf(
 			"redundant argument name %q (param %d of %s is %q); write positionally",
-			name, idx+1, owner, name), CodeLintRedundant})
+			name, i+1, owner, name), code: CodeLintRedundant}
+		// Underline the name through its equals sign. same
+		// counts earlier same-named args, so duplicates and
+		// right-hand sides repeating the name never win.
+		same := 0
+		for _, b := range args[:i] {
+			if b.HasName && b.Name == name {
+				same++
+			}
+		}
+		if line >= 1 && line <= len(lines) {
+			code := lintCodePart(lines[line-1])
+			if ns, ne, ok := lintFindNameEq(code, name, same); ok {
+				f.start, f.end = u16col(code, ns), u16col(code, ne)
+			}
+		}
+		out = append(out, f)
 	}
 	for _, d := range lm.mod.Decls {
 		fn, ok := d.(*FnDecl)
@@ -215,7 +244,7 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 					continue
 				}
 				if i < len(fn.Params) && fn.Params[i][0] == a.Name {
-					report(t.Line, i, a.Name, fn.Name)
+					report(t.Line, t.Args, i, fn.Name)
 				}
 			}
 		}
@@ -229,7 +258,7 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 					continue
 				}
 				if i < len(params) && params[i][0] == a.Name {
-					report(line, i, a.Name, s.Fname)
+					report(line, s.Args, i, s.Fname)
 				}
 			}
 		}
@@ -336,9 +365,11 @@ func patEqual(a, b Pattern) bool {
 // Discrete-distinct atoms are pairwise disjoint, so the union
 // is exact, first-match order is preserved by outcome, and
 // every alternative adds space (CAN4112-clean on clean code).
-func lintMergeableGroup(arms []lintArm, g []int) bool {
+// The differing slot comes back for the squiggle: the fold
+// starts at that atom on the first arm's row.
+func lintMergeableGroup(arms []lintArm, g []int) (bool, int) {
 	if len(g) < 2 {
-		return false
+		return false, -1
 	}
 	nslot := len(arms[g[0]].pats)
 	differ := -1
@@ -352,29 +383,29 @@ func lintMergeableGroup(arms []lintArm, g []int) bool {
 		}
 		if !same {
 			if differ != -1 {
-				return false
+				return false, -1
 			}
 			differ = s
 		}
 	}
 	if differ == -1 {
-		return false
+		return false, -1
 	}
 	kind := arms[g[0]].pats[differ].Kind
 	for _, gi := range g {
 		p := arms[gi].pats[differ]
 		if p.Kind != kind || !lintAtomKind(p) {
-			return false
+			return false, -1
 		}
 	}
 	for x := 0; x < len(g); x++ {
 		for y := x + 1; y < len(g); y++ {
 			if patEqual(arms[g[x]].pats[differ], arms[g[y]].pats[differ]) {
-				return false
+				return false, -1
 			}
 		}
 	}
-	return true
+	return true, differ
 }
 
 // lintArm is a groupable match arm: line, slot patterns, and
@@ -450,6 +481,332 @@ func lintCodePart(line string) string {
 		i++
 	}
 	return line
+}
+
+// lintIsWord reports whether b can sit inside an identifier-ish
+// token: letters, digits, underscore, and the dot of dotted
+// names (so `failed` never matches inside `relay.failed`).
+func lintIsWord(b byte) bool {
+	if b == '_' || b == '.' {
+		return true
+	}
+	if b >= '0' && b <= '9' {
+		return true
+	}
+	if b >= 'a' && b <= 'z' {
+		return true
+	}
+	if b >= 'A' && b <= 'Z' {
+		return true
+	}
+	return false
+}
+
+// lintFindBounded locates needle in hay with identifier
+// boundaries on both sides: `1` never matches inside `15`,
+// `match` never inside `rematch`. Returns the byte offset or
+// -1. hay must already be comment-stripped; strings are NOT
+// skipped (string literals are legitimate targets).
+func lintFindBounded(hay, needle string) int {
+	if needle == "" {
+		return -1
+	}
+	for off := 0; off+len(needle) <= len(hay); {
+		i := strings.Index(hay[off:], needle)
+		if i < 0 {
+			return -1
+		}
+		i += off
+		if i > 0 && lintIsWord(hay[i-1]) {
+			off = i + 1
+			continue
+		}
+		if j := i + len(needle); j < len(hay) && lintIsWord(hay[j]) {
+			off = i + 1
+			continue
+		}
+		return i
+	}
+	return -1
+}
+
+// lintFindBare locates word outside string literals with
+// identifier boundaries: the `match` keyword search must not
+// hit a "match" string in the scrutinee. from limits the
+// search to code[from:]. Returns the byte offset or -1.
+func lintFindBare(code, word string, from int) int {
+	if word == "" || from < 0 {
+		return -1
+	}
+	if from > len(code) {
+		return -1
+	}
+	inStr := false
+	for i := from; i < len(code); {
+		ch := code[i]
+		if inStr {
+			if ch == '\\' && i+1 < len(code) {
+				i += 2
+				continue
+			}
+			if ch == '"' {
+				inStr = false
+			}
+			i++
+			continue
+		}
+		if ch == '"' {
+			inStr = true
+			i++
+			continue
+		}
+		if strings.HasPrefix(code[i:], word) &&
+			(i == 0 || !lintIsWord(code[i-1])) {
+			if j := i + len(word); j >= len(code) || !lintIsWord(code[j]) {
+				return i
+			}
+		}
+		i++
+	}
+	return -1
+}
+
+// lintFindNameEq locates the (skip+1)-th `name =` on comment-
+// stripped code, outside string literals: the redundant
+// argument name through its equals sign. The `=` must not open
+// `=>` or `==`, and name must stand alone. skip counts
+// earlier same-named args, so `f(value = 1) => Ok(value = 1)`
+// underlines the argument, never the right-hand side.
+// Returns byte offsets [ns, ne).
+func lintFindNameEq(code, name string, skip int) (ns, ne int, ok bool) {
+	if name == "" || skip < 0 {
+		return 0, 0, false
+	}
+	inStr := false
+	for i := 0; i < len(code); {
+		ch := code[i]
+		if inStr {
+			if ch == '\\' && i+1 < len(code) {
+				i += 2
+				continue
+			}
+			if ch == '"' {
+				inStr = false
+			}
+			i++
+			continue
+		}
+		if ch == '"' {
+			inStr = true
+			i++
+			continue
+		}
+		if strings.HasPrefix(code[i:], name) &&
+			(i == 0 || !lintIsWord(code[i-1])) {
+			j := i + len(name)
+			for j < len(code) && (code[j] == ' ' || code[j] == '\t') {
+				j++
+			}
+			if j < len(code) && code[j] == '=' &&
+				(j+1 >= len(code) || (code[j+1] != '=' && code[j+1] != '>')) {
+				if skip == 0 {
+					return i, j + 1, true
+				}
+				skip--
+				i = j + 1
+				continue
+			}
+		}
+		i++
+	}
+	return 0, 0, false
+}
+
+// lintMatchParen returns the byte offset just past the paren
+// closing the `(` at open, skipping string literals. -1 when
+// the line never closes it.
+func lintMatchParen(code string, open int) int {
+	depth := 0
+	inStr := false
+	for i := open; i < len(code); i++ {
+		ch := code[i]
+		if inStr {
+			if ch == '\\' && i+1 < len(code) {
+				i++
+				continue
+			}
+			if ch == '"' {
+				inStr = false
+			}
+			continue
+		}
+		switch ch {
+		case '"':
+			inStr = true
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i + 1
+			}
+		}
+	}
+	return -1
+}
+
+// lintFindCall locates the applied form `fname(` outside
+// strings and returns the byte span through its matching
+// close paren: the full call text. from limits the search to
+// code[from:] (relay searches past `=>` so the pattern side,
+// which names the same constructor, never wins).
+func lintFindCall(code, fname string, from int) (ns, ne int, ok bool) {
+	if fname == "" || from < 0 {
+		return 0, 0, false
+	}
+	if from > len(code) {
+		return 0, 0, false
+	}
+	inStr := false
+	for i := from; i < len(code); {
+		ch := code[i]
+		if inStr {
+			if ch == '\\' && i+1 < len(code) {
+				i += 2
+				continue
+			}
+			if ch == '"' {
+				inStr = false
+			}
+			i++
+			continue
+		}
+		if ch == '"' {
+			inStr = true
+			i++
+			continue
+		}
+		if strings.HasPrefix(code[i:], fname) &&
+			(i == 0 || !lintIsWord(code[i-1])) {
+			if j := i + len(fname); j < len(code) && code[j] == '(' {
+				if end := lintMatchParen(code, j); end > 0 {
+					return i, end, true
+				}
+				return 0, 0, false
+			}
+		}
+		i++
+	}
+	return 0, 0, false
+}
+
+// lintArrowOff returns the byte offset where an arm row's `=>`
+// separator starts, or -1 when the row has none outside
+// strings and comments.
+func lintArrowOff(line string) int {
+	rhs, ok := splitArmRHS(line)
+	if !ok {
+		return -1
+	}
+	return len(line) - len(rhs) - len("=>")
+}
+
+// lintPatSideSpan returns the UTF-16 span to underline on one
+// arm row: the verbatim atom text when it sits on the pattern
+// side (before `=>`, so right-hand sides repeating the
+// literal never win), else the whole trimmed pattern side.
+// ok=false keeps the whole-line fallback.
+func lintPatSideSpan(raw, atom string) (s, e int, ok bool) {
+	code := lintCodePart(raw)
+	arrow := lintArrowOff(raw)
+	if arrow < 0 || arrow > len(code) {
+		return 0, 0, false
+	}
+	lhs := code[:arrow]
+	if atom != "" {
+		if i := lintFindBounded(lhs, atom); i >= 0 {
+			return u16col(code, i), u16col(code, i+len(atom)), true
+		}
+	}
+	s0 := 0
+	for s0 < len(lhs) && (lhs[s0] == ' ' || lhs[s0] == '\t') {
+		s0++
+	}
+	e0 := len(lhs)
+	for e0 > s0 && (lhs[e0-1] == ' ' || lhs[e0-1] == '\t') {
+		e0--
+	}
+	if e0 <= s0 {
+		return 0, 0, false
+	}
+	return u16col(code, s0), u16col(code, e0), true
+}
+
+// lintHeadSpan underlines a match head on its own row: the
+// `match` keyword through the end of code. String-aware, so a
+// "match" string in the scrutinee never wins. ok=false keeps
+// the whole-line fallback.
+func lintHeadSpan(lines []string, ln int) (s, e int, ok bool) {
+	if ln < 1 || ln > len(lines) {
+		return 0, 0, false
+	}
+	code := lintCodePart(lines[ln-1])
+	i := lintFindBare(code, "match", 0)
+	if i < 0 {
+		return 0, 0, false
+	}
+	e0 := len(code)
+	for e0 > i && (code[e0-1] == ' ' || code[e0-1] == '\t') {
+		e0--
+	}
+	if e0 <= i {
+		return 0, 0, false
+	}
+	return u16col(code, i), u16col(code, e0), true
+}
+
+// lintPatText renders a discrete atom exactly as it reads in
+// source, for verbatim span location: quoted spelling for
+// strings (Raw), numerals for ints, the word for bools, the
+// name for consts. ok=false asks the caller to underline the
+// whole pattern side instead of pretending.
+func lintPatText(p Pattern) (string, bool) {
+	switch p.Kind {
+	case "str":
+		if p.Raw == "" {
+			return "", false
+		}
+		return p.Raw, true
+	case "int":
+		if p.Num == nil {
+			return "", false
+		}
+		return p.Num.String(), true
+	case "bool":
+		if p.B {
+			return "true", true
+		}
+		return "false", true
+	case "const":
+		if p.Name == "" {
+			return "", false
+		}
+		return p.Name, true
+	}
+	return "", false
+}
+
+// lintCallFname names the call a match-call rung scrutinizes:
+// exactly one scrutinee, and it is applied.
+func lintCallFname(n *Node) (string, bool) {
+	if n == nil || len(n.Scruts) != 1 {
+		return "", false
+	}
+	s := n.Scruts[0]
+	if s == nil || s.Kind != "call" || s.Fname == "" {
+		return "", false
+	}
+	return s.Fname, true
 }
 
 // lintInnerKey renders a nested match's scrutinee list for
@@ -539,16 +896,27 @@ func lintMergeableArms(lm lintModule) []lintFinding {
 				for i := range g {
 					g[i] = start + i
 				}
-				if !lintMergeableGroup(arms, g) {
+				merge, differ := lintMergeableGroup(arms, g)
+				if !merge {
 					return
 				}
 				ls := make([]int, len(g))
 				for i, gi := range g {
 					ls[i] = arms[gi].line
 				}
-				out = append(out, lintFinding{lm.name, ls[0], fmt.Sprintf(
+				f := lintFinding{file: lm.name, line: ls[0], msg: fmt.Sprintf(
 					"mergeable match arms %v (identical outcomes); fold into one or-pattern arm, saves %d lines",
-					ls, len(g)-1), CodeLintOrFold})
+					ls, len(g)-1), code: CodeLintOrFold}
+				// Underline the differing atom on the first
+				// arm's row (the fold starts there), else its
+				// whole pattern side.
+				atom, _ := lintPatText(arms[g[0]].pats[differ])
+				if ls[0] >= 1 && ls[0] <= len(lines) {
+					if s, e, ok := lintPatSideSpan(lines[ls[0]-1], atom); ok {
+						f.start, f.end = s, e
+					}
+				}
+				out = append(out, f)
 			}
 			for i := 1; i <= len(arms); i++ {
 				if i < len(arms) && arms[i].key == arms[start].key &&
@@ -641,9 +1009,23 @@ func lintChainable(lm lintModule) []lintFinding {
 		if sub {
 			continue
 		}
-		out = append(out, lintFinding{lm.name, r[0].Line, fmt.Sprintf(
+		f := lintFinding{file: lm.name, line: r[0].Line, msg: fmt.Sprintf(
 			"chainable ladder: %d sequential calls sharing one failure outcome; rewrite as match chain",
-			len(r)), CodeLintChain})
+			len(r)), code: CodeLintChain}
+		// Underline the first rung's full call text (the
+		// ladder's anchor), else the callee name, else the
+		// whole line.
+		if fname, ok := lintCallFname(r[0]); ok {
+			if ln := r[0].Line; ln >= 1 && ln <= len(lines) {
+				code := lintCodePart(lines[ln-1])
+				if ns, ne, ok := lintFindCall(code, fname, 0); ok {
+					f.start, f.end = u16col(code, ns), u16col(code, ne)
+				} else if s, e, ok := tokenSpan(lm.text, ln, fname); ok {
+					f.start, f.end = s, e
+				}
+			}
+		}
+		out = append(out, f)
 	}
 	return out
 }
@@ -891,8 +1273,14 @@ func lintTableable(lm lintModule) []lintFinding {
 			if !foldable || key == "" {
 				continue
 			}
-			out = append(out, lintFinding{lm.name, m.Line,
-				"nested matches share one scrutinee; fold into a multi-scrutinee table", CodeLintTable})
+			f := lintFinding{file: lm.name, line: m.Line, msg:
+				"nested matches share one scrutinee; fold into a multi-scrutinee table", code: CodeLintTable}
+			// Underline the outer match head: the decision
+			// point the table replaces.
+			if s, e, ok := lintHeadSpan(lines, m.Line); ok {
+				f.start, f.end = s, e
+			}
+			out = append(out, f)
 		}
 	}
 	return out
@@ -950,8 +1338,13 @@ func lintSameOutcome(lm lintModule) []lintFinding {
 			if len(rhs) > 72 {
 				rhs = rhs[:69] + "..."
 			}
-			out = append(out, lintFinding{lm.name, m.Line, fmt.Sprintf(
-				"match always yields %s; drop the match", rhs), CodeLintSameOutcome})
+			f := lintFinding{file: lm.name, line: m.Line, msg: fmt.Sprintf(
+				"match always yields %s; drop the match", rhs), code: CodeLintSameOutcome}
+			// Underline the match head: the text to delete.
+			if s, e, ok := lintHeadSpan(lines, m.Line); ok {
+				f.start, f.end = s, e
+			}
+			out = append(out, f)
 		}
 	}
 	return out
@@ -979,6 +1372,7 @@ func lintForwardable(lm lintModule, mods []lintModule) []lintFinding {
 	for k, v := range lintKernelErrors {
 		fields[k] = v
 	}
+	lines := strings.Split(lm.text, "\n")
 	var out []lintFinding
 	for _, d := range lm.mod.Decls {
 		fn, ok := d.(*FnDecl)
@@ -1041,8 +1435,30 @@ func lintForwardable(lm lintModule, mods []lintModule) []lintFinding {
 					}
 				}
 				if relay {
-					out = append(out, lintFinding{lm.name, a.Line, fmt.Sprintf(
-						"handwritten relay of %s; write forward %s", pat.Name, pat.Var), CodeLintRelay})
+					f := lintFinding{file: lm.name, line: a.Line, msg: fmt.Sprintf(
+						"handwritten relay of %s; write forward %s", pat.Name, pat.Var), code: CodeLintRelay}
+					// Underline the handwritten right-hand
+					// side: the ctor text `forward` replaces.
+					// Past `=>`, so the pattern side naming
+					// the same constructor never wins.
+					if ln := a.Line; ln >= 1 && ln <= len(lines) {
+						raw := lines[ln-1]
+						code := lintCodePart(raw)
+						arrow := lintArrowOff(raw)
+						if arrow >= 0 && arrow <= len(code) {
+							if i := lintFindBare(code, s.Ctor, arrow+len("=>")); i >= 0 {
+								j := i + len(s.Ctor)
+								if j < len(code) && code[j] == '(' {
+									if end := lintMatchParen(code, j); end > 0 {
+										f.start, f.end = u16col(code, i), u16col(code, end)
+									}
+								} else {
+									f.start, f.end = u16col(code, i), u16col(code, j)
+								}
+							}
+						}
+					}
+					out = append(out, f)
 				}
 			}
 		}
@@ -1102,10 +1518,19 @@ func lintRangeMerge(lm lintModule) []lintFinding {
 				for i, c := range chain {
 					parts[i] = c.lo.String() + ".." + c.hi.String()
 				}
-				out = append(out, lintFinding{lm.name, chain[0].line, fmt.Sprintf(
+				f := lintFinding{file: lm.name, line: chain[0].line, msg: fmt.Sprintf(
 					"mergeable ranges %s; join into %s..%s",
 					strings.Join(parts, ", "),
-					chain[0].lo.String(), chain[len(chain)-1].hi.String()), CodeLintRange})
+					chain[0].lo.String(), chain[len(chain)-1].hi.String()), code: CodeLintRange}
+				// Underline the first range literal (the join
+				// starts there), else its whole pattern side.
+				want := chain[0].lo.String() + ".." + chain[0].hi.String()
+				if ln := chain[0].line; ln >= 1 && ln <= len(lines) {
+					if s, e, ok := lintPatSideSpan(lines[ln-1], want); ok {
+						f.start, f.end = s, e
+					}
+				}
+				out = append(out, f)
 			}
 			var chain []cand
 			maxHi := new(big.Int)
@@ -1143,7 +1568,8 @@ func lintDiagsFor(name string, texts map[string]string) []Diag {
 		if f.file != name {
 			continue
 		}
-		out = append(out, Diag{File: name, Line: f.line, Sev: "error", Msg: f.msg, Code: f.code})
+		out = append(out, Diag{File: name, Line: f.line, Sev: "error", Msg: f.msg, Code: f.code,
+			Start: f.start, End: f.end})
 	}
 	return out
 }

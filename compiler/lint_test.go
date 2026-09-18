@@ -798,6 +798,117 @@ func TestLintErrorFixtures(t *testing.T) {
 	}
 }
 
+// TestLintSpanPositions pins the 2D editor contract: every
+// lint-errors fixture finding publishes a [start, end) UTF-16
+// span covering exactly the offending token — never the whole
+// line. Columns are hand-checked against the fixture sources;
+// the covered text is asserted too, so a locator that drifts
+// onto the wrong token fails here, not in Cursor.
+func TestLintSpanPositions(t *testing.T) {
+	entries, err := os.ReadDir("../sketches/lint-errors")
+	if err != nil {
+		t.Fatalf("read fixture dir: %v", err)
+	}
+	texts := map[string]string{}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".can") {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join("../sketches/lint-errors", e.Name()))
+		if err != nil {
+			t.Fatalf("read %s: %v", e.Name(), err)
+		}
+		texts[e.Name()] = string(raw)
+	}
+	type want struct {
+		line, start, end int
+		code, cover      string
+	}
+	wants := map[string][]want{
+		"chain.can": {
+			{36, 13, 31, CodeLintChain, "chain__step(value)"},
+		},
+		"merge.can": {
+			{24, 4, 7, CodeLintOrFold, `"a"`},
+		},
+		"outcome.can": {
+			{21, 2, 17, CodeLintSameOutcome, "match value < 0"},
+		},
+		"ranges.can": {
+			{23, 4, 8, CodeLintRange, "1..3"},
+		},
+		"redundant.can": {
+			{17, 12, 18, CodeLintRedundant, "left ="},
+			{17, 22, 29, CodeLintRedundant, "right ="},
+			{18, 13, 20, CodeLintRedundant, "right ="},
+			{21, 27, 34, CodeLintRedundant, "value ="},
+			{27, 8, 15, CodeLintRedundant, "value ="},
+		},
+		"relay.can": {
+			{41, 25, 54, CodeLintRelay, "relay.failed(value = e.value)"},
+		},
+		"table.can": {
+			{23, 2, 13, CodeLintTable, "match a < 0"},
+		},
+	}
+	for name, ws := range wants {
+		lines := strings.Split(texts[name], "\n")
+		got := lintDiagsFor(name, texts)
+		if len(got) != len(ws) {
+			t.Fatalf("%s diags = %d, want %d", name, len(got), len(ws))
+		}
+		for i, w := range ws {
+			d := got[i]
+			if d.Line != w.line || d.Start != w.start || d.End != w.end || d.Code != w.code {
+				t.Fatalf("%s diag %d = line %d [%d,%d) %s, want line %d [%d,%d) %s",
+					name, i, d.Line, d.Start, d.End, d.Code, w.line, w.start, w.end, w.code)
+			}
+			if cover := lines[d.Line-1][d.Start:d.End]; cover != w.cover {
+				t.Fatalf("%s diag %d covers %q, want %q", name, i, cover, w.cover)
+			}
+		}
+	}
+	// No finding in the folder may fall back to whole-line:
+	// every lint squiggle must be column-precise.
+	for name := range texts {
+		for _, d := range lintDiagsFor(name, texts) {
+			if d.End <= d.Start {
+				t.Fatalf("%s:%d %s has no span (whole-line fallback)", name, d.Line, d.Code)
+			}
+		}
+	}
+}
+
+// TestLintFindNameEq pins the redundant-name locator: the
+// (skip+1)-th `name =` outside strings, with `=>`/`==` and
+// dotted-prefix guards.
+func TestLintFindNameEq(t *testing.T) {
+	cases := []struct {
+		code, name string
+		skip       int
+		ns, ne     int
+		ok         bool
+	}{
+		{"ordered(left = 5, right = 8) => Ok(value = -3)", "left", 0, 8, 14, true},
+		{"ordered(left = 5, right = 8) => Ok(value = -3)", "right", 0, 18, 25, true},
+		{"one(value = 1) => Ok(value = 1)", "value", 0, 4, 11, true},
+		{"one(value = 1) => Ok(value = 1)", "value", 1, 21, 28, true},
+		{"relay.failed(value = e.value)", "value", 0, 13, 20, true},
+		{"f(x == 1)", "x", 0, 0, 0, false},
+		{"m(true => 1)", "true", 0, 0, 0, false},
+		{`"left = 5"`, "left", 0, 0, 0, false},
+		{"on relay.failed e => x", "failed", 0, 0, 0, false},
+		{"f(note = \"a = b\")", "a", 0, 0, 0, false},
+	}
+	for _, c := range cases {
+		ns, ne, ok := lintFindNameEq(c.code, c.name, c.skip)
+		if ok != c.ok || ns != c.ns || ne != c.ne {
+			t.Fatalf("lintFindNameEq(%q, %q, %d) = [%d,%d) %v, want [%d,%d) %v",
+				c.code, c.name, c.skip, ns, ne, ok, c.ns, c.ne, c.ok)
+		}
+	}
+}
+
 // TestLintDiagnoseErrors pins the editor contract: lint findings
 // publish through diagnose as error-severity diagnostics with
 // registered CAN3410-3416 codes — this is what Cursor draws.
