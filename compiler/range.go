@@ -205,6 +205,17 @@ func intAtoms(cuts []*big.Int) []valueAtom {
 	return atoms
 }
 
+// presentArms renders the arms a match covers, joined for the
+// missing-arm Found payload: what the match saw beside the
+// missing outcome it wants.
+func presentArms(n *Node) string {
+	parts := make([]string, 0, len(n.Arms))
+	for i := range n.Arms {
+		parts = append(parts, patRender(n, i))
+	}
+	return strings.Join(parts, "; ")
+}
+
 // patRender describes one arm for the useless-arm diagnostic:
 // single slots render the pattern, tuples render parenthesized.
 func patRender(n *Node, ai int) string {
@@ -395,6 +406,6 @@ func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits 
 		out = append(out, at(n.Line, proofErrf(CodeValueNoWild, "%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
 		return out
 	}
-	out = append(out, at(n.Line, proofErrf(CodeMissingArm, "%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
+	out = append(out, at(n.Line, proofErrFoundf(CodeMissingArm, presentArms(n), "%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
 	return out
 }

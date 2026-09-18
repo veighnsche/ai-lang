@@ -223,3 +223,51 @@ fn m__help(value: int) -> M__Out rev 1
 		t.Fatalf("Hint must show the arm shape, got %+v", found)
 	}
 }
+
+// TestMissingArmFound pins the uniform payload triple: like its
+// ForeignRaise/BareKind/Dangling siblings, CAN4101 names what the
+// match covers (Found) beside what it wants (Expected).
+func TestMissingArmFound(t *testing.T) {
+	src := `mod m
+  provides [m__go, M__Out]
+  uses []
+  emits [m.bad]
+
+error m.bad()
+
+type M__Out rev 1 (
+  value: int
+)
+
+fn m__go(value: int) -> M__Out rev 1
+  emits [m.bad]
+  tests
+    go(value = 1) => Ok(value = 1)
+=
+  match call m__help(value)
+    given
+      go => [exchange args (value = 1) outcome Ok(value = 1)]
+    on Ok r => Ok(value = r.value)
+
+fn m__help(value: int) -> M__Out rev 1
+  emits [m.bad]
+  tests
+    go(value = 1) => Ok(value = 1)
+=
+  Ok(value = value)
+`
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
+	var found *Diag
+	for i, d := range diags {
+		if d.Code == CodeMissingArm {
+			found = &diags[i]
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected CAN4101, got %v", diags)
+	}
+	if found.Found != "Ok" {
+		t.Fatalf("Found must name the arms present, got %+v", found)
+	}
+}

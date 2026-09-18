@@ -1962,12 +1962,21 @@ func checkNaming(m *Module, text string) []Diag {
 type proofError struct {
 	code string
 	msg  string
+	// found carries the Found payload: what the match covers beside
+	// what it wants. Empty means the failure names no coverage.
+	found string
 }
 
 func (e *proofError) Error() string { return e.msg }
 
 func proofErrf(code, format string, args ...any) error {
 	return &proofError{code: code, msg: fmt.Sprintf(format, args...)}
+}
+
+// proofErrFoundf assigns a code plus the Found payload: the arms the
+// match covers, rendered by presentArms, beside the missing outcome.
+func proofErrFoundf(code, found, format string, args ...any) error {
+	return &proofError{code: code, msg: fmt.Sprintf(format, args...), found: found}
 }
 
 // proofCode recovers the producer-assigned code, or false when the
@@ -1977,6 +1986,16 @@ func proofCode(err error) (string, bool) {
 	var pe *proofError
 	if errors.As(err, &pe) {
 		return pe.code, true
+	}
+	return "", false
+}
+
+// proofFound recovers the producer-assigned Found payload: the arms
+// the failing match covers. False means no coverage was named.
+func proofFound(err error) (string, bool) {
+	var pe *proofError
+	if errors.As(err, &pe) && pe.found != "" {
+		return pe.found, true
 	}
 	return "", false
 }
@@ -2070,7 +2089,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			}
 			for _, k := range sortedKeys(want) {
 				if missing[k] {
-					out = append(out, at(n.Line, proofErrf(CodeMissingArm, "%s: non-exhaustive match, missing %s", owner, k)))
+					out = append(out, at(n.Line, proofErrFoundf(CodeMissingArm, presentArms(n), "%s: non-exhaustive match, missing %s", owner, k)))
 				}
 			}
 			for _, k := range sortedKeys(got) {
@@ -2436,7 +2455,7 @@ func verifyValueMatch(n *Node, owner string) []error {
 		out = append(out, at(n.Line, proofErrf(CodeValueNoWild, "%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
 		return out
 	}
-	out = append(out, at(n.Line, proofErrf(CodeMissingArm, "%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
+	out = append(out, at(n.Line, proofErrFoundf(CodeMissingArm, presentArms(n), "%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
 	return out
 }
 

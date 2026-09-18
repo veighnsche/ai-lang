@@ -619,6 +619,9 @@ func proofDiag(text string, err error) Diag {
 	d := spanDiag(text, line, "error", msg, kw, code)
 	d.Expected = want
 	d.Hint = hint
+	if found, ok := proofFound(err); ok {
+		d.Found = found
+	}
 	return d
 }
 

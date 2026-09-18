@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,6 +71,22 @@ const jsonGolden = `{"code":"CAN3401","sev":"warning","file":"auth.can","line":3
 {"code":"CAN3105","sev":"error","file":"auth.can","line":17,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 19)","expected":"extra =\u003e [exchange args (...) outcome ...]","found":"extra","hint":"add a script row for this test under the given table at line 19"}
 {"code":"CAN3104","sev":"warning","file":"auth.can","line":23,"start":6,"end":9,"msg":"script zzz never runs: no test named zzz in auth__go"}
 `
+
+// TestAllCodesSequenced pins the registry order: allCodes runs in
+// numeric sequence so gaps and collisions surface at a glance.
+func TestAllCodesSequenced(t *testing.T) {
+	prev := -1
+	for _, c := range allCodes {
+		var n int
+		if _, err := fmt.Sscanf(c, "CAN%d", &n); err != nil {
+			t.Fatalf("code %q breaks the CANnnnn shape", c)
+		}
+		if n < prev {
+			t.Fatalf("registry out of sequence at %q (after CAN%04d)", c, prev)
+		}
+		prev = n
+	}
+}
 
 func TestCodesUnique(t *testing.T) {
 	seen := map[string]bool{}

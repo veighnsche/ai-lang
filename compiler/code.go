@@ -110,27 +110,29 @@ const (
 	CodeContractInadmissibleTest = "CAN4306"
 )
 
-// allCodes mirrors every constant above; the test fails on duplicates,
-// which is the only way a reused code can slip in unnoticed.
+// allCodes registers every constant above in numeric sequence;
+// TestCodesUnique fails on duplicates (the only way a reused code
+// slips in unnoticed) and TestAllCodesSequenced fails on disorder,
+// so gaps and collisions surface at a glance.
 var allCodes = []string{
 	CodeParse,
 	CodeFnNaming, CodeTypeNaming, CodeConstNaming,
 	CodeUsesPin, CodeUsesResolve, CodeUsesRev, CodeUnknownConst, CodeConstNotInUses,
-	CodeModuleCollision,
 	CodeDupFn, CodeDupSibling, CodeDupVariant, CodeCaseCollision, CodeDupConst,
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
 	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab,
-	CodeUndeclaredEffect, CodeStaleEffect,
-	CodeNoGiven, CodeGivenOnLocal, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeNoExchange, CodeInconsistentScript,
+	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeGivenOnLocal,
+	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm, CodeUselessAlt,
+	CodeTestFailed,
 	CodeContractMalformed, CodeContractUnsupported, CodeContractUnverifiedDep,
 	CodeContractUnproven, CodeContractInconclusive, CodeContractInadmissibleTest,
-	CodeTestFailed,
-	CodeSiblingParse, CodeBadCompare,
+	CodeSiblingParse, CodeBadCompare, CodeModuleCollision,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
-	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePrimitiveShadow, CodeRevisionIdentity, CodePinnedWeakened,
+	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodePrimitiveShadow, CodeRevisionIdentity,
+	CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePinnedWeakened,
 }
