@@ -969,14 +969,27 @@ var strRuntimeOps = []struct {
 	}},
 }
 
-// eqHelpers renders the structural equality runtime: $canEqRec
-// compares exactly the declared fields (ignoring the outcome
-// envelope, requiring own presence on both sides, matching vEq),
-// delegating per-field to $canEqVal, which recurses into nested
-// objects and compares scalars exactly (bigint by value, canonical
-// dec strings and strings by content, booleans natively).
-var eqHelpers = []string{
+// Structural equality runtime, composed from shared chunks so
+// each rule lives once: $canEqRec compares exactly the declared
+// fields (ignoring the outcome envelope, requiring own presence
+// on both sides, matching vEq), delegating per-field to
+// $canEqVal, which recurses into nested objects and compares
+// scalars exactly (bigint by value, canonical dec strings and
+// strings by content, booleans natively). Shapes that can
+// contain Bytes (a45 S1) prepend the typed-array branch and add
+// the $canEqBytes comparison; a typed array never compares equal
+// to an ordinary array merely because enumerable keys match.
+var eqValHead = []string{
 	"function $canEqVal(x: any, y: any): boolean {",
+}
+
+var eqValBytesBranch = []string{
+	"  if (x instanceof Uint8Array || y instanceof Uint8Array) {",
+	"    return $canEqBytes(x, y);",
+	"  }",
+}
+
+var eqValObjectCore = []string{
 	"  if (typeof x === \"object\" && x !== null && typeof y === \"object\" && y !== null) {",
 	"    const kx = Object.keys(x);",
 	"    if (kx.length !== Object.keys(y).length) {",
@@ -994,6 +1007,26 @@ var eqHelpers = []string{
 	"  }",
 	"  return x === y;",
 	"}",
+}
+
+var eqBytesHelper = []string{
+	"function $canEqBytes(x: any, y: any): boolean {",
+	"  if (!(x instanceof Uint8Array) || !(y instanceof Uint8Array)) {",
+	"    return false;",
+	"  }",
+	"  if (x.length !== y.length) {",
+	"    return false;",
+	"  }",
+	"  for (let i = 0; i < x.length; i++) {",
+	"    if (x[i] !== y[i]) {",
+	"      return false;",
+	"    }",
+	"  }",
+	"  return true;",
+	"}",
+}
+
+var eqRecHelper = []string{
 	"function $canEqRec(a: any, b: any, fields: string[]): boolean {",
 	"  for (const f of fields) {",
 	"    if (!Object.prototype.hasOwnProperty.call(a, f)) {",
@@ -1010,63 +1043,22 @@ var eqHelpers = []string{
 	"}",
 }
 
-// bytesEqHelpers renders the structural equality runtime for shapes
-// that can contain Bytes (a45 S1): the same $canEqRec shape, a
-// $canEqVal with a typed-array branch before generic object-key
-// traversal, and the $canEqBytes byte comparison. A typed array never
-// compares equal to an ordinary array merely because enumerable keys
-// match; exactly one side being bytes is false.
-var bytesEqHelpers = []string{
-	"function $canEqVal(x: any, y: any): boolean {",
-	"  if (x instanceof Uint8Array || y instanceof Uint8Array) {",
-	"    return $canEqBytes(x, y);",
-	"  }",
-	"  if (typeof x === \"object\" && x !== null && typeof y === \"object\" && y !== null) {",
-	"    const kx = Object.keys(x);",
-	"    if (kx.length !== Object.keys(y).length) {",
-	"      return false;",
-	"    }",
-	"    for (const k of kx) {",
-	"      if (!Object.prototype.hasOwnProperty.call(y, k)) {",
-	"        return false;",
-	"      }",
-	"      if (!$canEqVal((x as any)[k], (y as any)[k])) {",
-	"        return false;",
-	"      }",
-	"    }",
-	"    return true;",
-	"  }",
-	"  return x === y;",
-	"}",
-	"function $canEqBytes(x: any, y: any): boolean {",
-	"  if (!(x instanceof Uint8Array) || !(y instanceof Uint8Array)) {",
-	"    return false;",
-	"  }",
-	"  if (x.length !== y.length) {",
-	"    return false;",
-	"  }",
-	"  for (let i = 0; i < x.length; i++) {",
-	"    if (x[i] !== y[i]) {",
-	"      return false;",
-	"    }",
-	"  }",
-	"  return true;",
-	"}",
-	"function $canEqRec(a: any, b: any, fields: string[]): boolean {",
-	"  for (const f of fields) {",
-	"    if (!Object.prototype.hasOwnProperty.call(a, f)) {",
-	"      return false;",
-	"    }",
-	"    if (!Object.prototype.hasOwnProperty.call(b, f)) {",
-	"      return false;",
-	"    }",
-	"    if (!$canEqVal((a as any)[f], (b as any)[f])) {",
-	"      return false;",
-	"    }",
-	"  }",
-	"  return true;",
-	"}",
+func concatLines(chunks ...[]string) []string {
+	var out []string
+	for _, c := range chunks {
+		out = append(out, c...)
+	}
+	return out
 }
+
+// eqHelpers renders the plain structural equality runtime;
+// bytesEqHelpers renders the Bytes-capable variant. The two
+// bundles are mutually exclusive at emission (recEq with or
+// without bytesEq), and both compose the chunks above, so the
+// emitted bytes are unchanged while each rule has one source.
+var eqHelpers = concatLines(eqValHead, eqValObjectCore, eqRecHelper)
+
+var bytesEqHelpers = concatLines(eqValHead, eqValBytesBranch, eqValObjectCore, eqBytesHelper, eqRecHelper)
 
 // strHelpers renders the byte-order string runtime for exactly the used
 // comparisons, shared plumbing first, then ops in fixed order.
