@@ -73,9 +73,37 @@ merged-arm line attribution should point at the surviving arm
 or the whole group for coverage; interaction with the editor
 (LSP code action vs CLI-only).
 
+## Golden test capability
+
+The reporter output is golden-testable, following the
+`jsonGolden` / `normalize` precedent (byte-compared committed
+goldens, not self-asserting probes):
+
+1. **Canonical report rendering.** One line per mergeable group,
+   field-ordered and sorted by file, line, then column
+   (`file:line:col: surviving-arm <= folded-arms (saved N lines)`),
+   so formatting churn never shifts goldens. The sort is by
+   source position, never map iteration.
+2. **Committed report goldens.** Each fixture is a small `.can`
+   input plus its expected report golden, covering: a 2-arm
+   merge (the `role` shape), a 5-arm merge (the `ws` shape),
+   binder refusal, guard/call/`given` refusal, wildcard
+   separation, and the empty report on already-minimal input
+   (idempotence golden).
+3. **`--fix` before/after goldens.** Fixed sources are committed
+   as goldens alongside their inputs; equivalence is shown by
+   `canlc normalize` byte-identical over each pair, plus the
+   full gates (`go test ./...`, modcheck, gramcheck, tsc).
+   NUL preservation is pinned by a byte-count assertion on the
+   fixed golden, not by inspection.
+4. **No registry change.** Report lines are not diagnostics, so
+   the "no new diagnostic codes" rule stands; goldens pin the
+   report text instead of codes.
+
 ## Toward approval
 
 Accepting this note means: implement the check-mode reporter
-with probes in the a78 style (merge cases, binder/guard/call
-refusals, wildcard separation, NUL preservation, idempotence),
-run it across the repo, and only then propose `--fix`.
+with committed golden tests per above (merge cases,
+binder/guard/call refusals, wildcard separation, NUL
+preservation, idempotence), run it across the repo, and only
+then propose `--fix`.
