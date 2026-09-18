@@ -177,6 +177,52 @@ func builtinErrorLookup(name string, mods []*Module) *ErrorDecl {
 	return ed
 }
 
+// resultUnion renders one TS Result union: an ok member carrying
+// the given record fields plus one member per emitted error
+// kind, in emits order. externUnion, fnResultUnion, and
+// decodeResultUnion differ only in where the ok shape and the
+// error declarations come from; the rendering — and the
+// unknown-error failure — lives here once, so the three unions
+// cannot drift apart. (Per-function unions vs the module-wide
+// union stay distinct by design: a14 emit narrowing, not
+// suppressions.)
+func okMember(fs string) string {
+	return fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
+}
+
+// okFieldsMember renders the ok member from raw record fields,
+// mapping each field type once. (declaredOkShape instead returns
+// already-mapped types for the module-union dedup keys, so the
+// per-function union assembles its member from that map without
+// a second mapping pass.)
+func okFieldsMember(fields [][2]string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
+	fs := ""
+	for _, f := range fields {
+		t, err := tsTypeB(f[1], brands, recs, variants)
+		if err != nil {
+			return "", err
+		}
+		fs += "; " + f[0] + ": " + t
+	}
+	return okMember(fs), nil
+}
+
+func resultUnion(ok string, emits []string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, lookupMods []*Module, emitsErr func(e string) error) (string, error) {
+	union := ok
+	for _, e := range emits {
+		ed := builtinErrorLookup(e, lookupMods)
+		if ed == nil {
+			return "", emitsErr(e)
+		}
+		mem, err := tsErrMember(ed, brands, recs, variants)
+		if err != nil {
+			return "", err
+		}
+		union += " | " + mem
+	}
+	return union, nil
+}
+
 // externUnion is the TS Result type of a foreign call: ok carrying the
 // Ret record plus one member per declared emits kind. The host owns the
 // implementation; this is the contract canlc proves against.
@@ -197,29 +243,14 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	if td == nil {
 		return "", fmt.Errorf("extern %s returns unknown type %s", ex.Name, ex.Ret)
 	}
-	fs := ""
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
-	for _, f := range td.Fields {
-		t, err := tsTypeB(f[1], prog.Brands, recs, variants)
-		if err != nil {
-			return "", err
-		}
-		fs += "; " + f[0] + ": " + t
+	ok, err := okFieldsMember(td.Fields, prog.Brands, recs, variants)
+	if err != nil {
+		return "", err
 	}
-	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
-	for _, e := range ex.Emits {
-		ed := builtinErrorLookup(e, prog.Modules)
-		if ed == nil {
-			return "", fmt.Errorf("extern %s emits unknown error %s", ex.Name, e)
-		}
-		mem, err := tsErrMember(ed, prog.Brands, recs, variants)
-		if err != nil {
-			return "", err
-		}
-		union += " | " + mem
-	}
-	return union, nil
+	return resultUnion(ok, ex.Emits, prog.Brands, recs, variants, prog.Modules,
+		func(e string) error { return fmt.Errorf("extern %s emits unknown error %s", ex.Name, e) })
 }
 
 // fnResultUnion is the TS Result type of one local function: ok
@@ -244,21 +275,10 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 	for _, n := range names {
 		fs += "; " + n + ": " + shape[n]
 	}
-	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
-	for _, e := range fn.Emits {
-		ed := builtinErrorLookup(e, prog.Modules)
-		if ed == nil {
-			return "", fmt.Errorf("%s emits unknown error %s", fn.Name, e)
-		}
-		mem, err := tsErrMember(ed, prog.Brands, recs, variants)
-		if err != nil {
-			return "", err
-		}
-		union += " | " + mem
-	}
-	return union, nil
+	return resultUnion(okMember(fs), fn.Emits, prog.Brands, recs, variants, prog.Modules,
+		func(e string) error { return fmt.Errorf("%s emits unknown error %s", fn.Name, e) })
 }
 
 // declaredOkShape builds a function's Ok payload shape from its declared
@@ -1943,27 +1963,12 @@ func decodeResultUnion(kernel string, brands map[string]string, recs map[string]
 	if td == nil {
 		return "", fmt.Errorf("decode kernel %s returns unknown type %s", kernel, k.ret)
 	}
-	fs := ""
-	for _, f := range td.Fields {
-		t, err := tsTypeB(f[1], brands, recs, variants)
-		if err != nil {
-			return "", err
-		}
-		fs += "; " + f[0] + ": " + t
+	okm, err := okFieldsMember(td.Fields, brands, recs, variants)
+	if err != nil {
+		return "", err
 	}
-	union := fmt.Sprintf("{ %s: \"ok\"%s }", tsTag, fs)
-	for _, e := range k.emits {
-		ed := builtinErrorLookup(e, nil)
-		if ed == nil {
-			return "", fmt.Errorf("decode kernel %s emits unknown error %s", kernel, e)
-		}
-		mem, err := tsErrMember(ed, brands, recs, variants)
-		if err != nil {
-			return "", err
-		}
-		union += " | " + mem
-	}
-	return union, nil
+	return resultUnion(okm, k.emits, brands, recs, variants, nil,
+		func(e string) error { return fmt.Errorf("decode kernel %s emits unknown error %s", kernel, e) })
 }
 
 // stmtBytesDecode lowers the fallible kernels (a50 B6, a55 B10):
