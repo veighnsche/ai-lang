@@ -24,7 +24,7 @@ green.
    error kind + payload signature; (b) HTML escaping — unchanged, quote the
    boundary; (c) Render on a NUL-bearing `Html__Safe` — accept, reject, or
    escape, with rows. `Html__Safe` does not mean NUL-free
-   (`std/html/html.ail:97–107`, `encoder-nul-policy.md:38–43`).
+   (`std/html/html.can:97–107`, `encoder-nul-policy.md:38–43`).
 3. Literal admission contract. Decide all five cases and their failure
    contracts: `Bytes(Seq<int>[-1])`, `[256]`, arbitrarily large integers,
    runtime `i`, runtime `xs: Seq<int>`. Separate the statically validated
@@ -82,7 +82,7 @@ execute as B1…Bn.
 - `docs/bytes-workstream.md` (requirements, acceptance)
 - `docs/a36-seq-typed-construction.md`, `docs/a37-seq-length.md` (template)
 - `docs/encoder-nul-policy.md`, `docs/fault-contracts.md` (boundaries)
-- `std/text/text.ail`, `std/html/html.ail` (consumers)
+- `std/text/text.can`, `std/html/html.can` (consumers)
 - `compiler/emit.go`, `compiler/check.go`, `compiler/eval.go`,
   `compiler/parse.go`, `compiler/types.go`, `compiler/lsp.go` (follow the
   plan's line references from these files outward)

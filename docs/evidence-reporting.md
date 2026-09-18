@@ -37,7 +37,7 @@ Duplicate relay-shaped arms compiled clean: the second copy is
 dead, but the certificate silenced it (`/tmp` probe, now a
 committed test). `relayStatus` no longer certifies an arm
 shadowed by an earlier same-kind pattern; the duplicate fails
-with the same `AIL4107` family as non-relay duplicates
+with the same `CAN4107` family as non-relay duplicates
 (`TestDiagnoseShadowedArm` untouched — zero existing-test
 changes, zero new codes). Per the stopping condition, D2 closes
 here: no other defect demonstrated, no new machinery invented.

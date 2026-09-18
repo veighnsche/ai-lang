@@ -13,11 +13,11 @@ import (
 
 func multiModule(t *testing.T, text string) (*Module, *Program) {
 	t.Helper()
-	m, err := parseModuleText("m.ail", text)
+	m, err := parseModuleText("m.can", text)
 	if err != nil {
 		t.Fatalf("parse: %v", err)
 	}
-	prog, _ := buildWorld(m, []*Module{m}, map[string]string{"m.ail": text})
+	prog, _ := buildWorld(m, []*Module{m}, map[string]string{"m.can": text})
 	return m, prog
 }
 
@@ -203,7 +203,7 @@ func TestMultiEmptySlotParse(t *testing.T) {
     true,, true => true
     false, _ => false
 `
-	if _, err := parseModuleText("m.ail", text); err == nil {
+	if _, err := parseModuleText("m.can", text); err == nil {
 		t.Fatal("expected parse error for empty pattern slot")
 	} else if !strings.Contains(err.Error(), "empty slot in match list") {
 		t.Fatalf("wrong parse error: %v", err)
@@ -215,7 +215,7 @@ func TestMultiTrailingCommaParse(t *testing.T) {
     true => true
     false => false
 `
-	if _, err := parseModuleText("m.ail", text); err == nil {
+	if _, err := parseModuleText("m.can", text); err == nil {
 		t.Fatal("expected parse error for trailing comma in match list")
 	} else if !strings.Contains(err.Error(), "empty slot in match list") {
 		t.Fatalf("wrong parse error: %v", err)
@@ -334,8 +334,8 @@ func TestMultiNestedEquivalence(t *testing.T) {
 func TestMultiDiagnoseClean(t *testing.T) {
 	// The full editor pipeline (checks, proof, test runs, test-per-arm
 	// coverage) reports nothing on exhaustive, fully-hit tables.
-	dir := writeLSPDir(t, map[string]string{"m.ail": multiEvalText})
-	for _, d := range diagnose(dir, "m.ail", multiEvalText) {
+	dir := writeLSPDir(t, map[string]string{"m.can": multiEvalText})
+	for _, d := range diagnose(dir, "m.can", multiEvalText) {
 		if d.Sev == "error" {
 			t.Fatalf("unexpected diagnostic: %v", d)
 		}
@@ -390,9 +390,9 @@ fn m__q(a: bool, b: bool) -> M__Out rev 1
 
 func compileEmit(t *testing.T, text string) string {
 	t.Helper()
-	dir := writeLSPDir(t, map[string]string{"m.ail": text})
+	dir := writeLSPDir(t, map[string]string{"m.can": text})
 	out := t.TempDir()
-	if err := compile(out, []string{dir + "/m.ail"}); err != nil {
+	if err := compile(out, []string{dir + "/m.can"}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -407,17 +407,17 @@ func TestMultiEmitChain(t *testing.T) {
 	// drops out of the second arm; the proved-total tail is a bare else.
 	ts := compileEmit(t, multiEmitText)
 	for _, want := range []string{
-		"const $ail_m1 = s;",
-		"const $ail_m2 = b;",
-		`if ($ail_m1 === "admin") {`,
-		"else if ($ail_m2) {",
+		"const $can_m1 = s;",
+		"const $can_m2 = b;",
+		`if ($can_m1 === "admin") {`,
+		"else if ($can_m2) {",
 		"else {",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
 		}
 	}
-	if strings.Contains(ts, "!($ail_m1)") {
+	if strings.Contains(ts, "!($can_m1)") {
 		t.Fatalf("emit retests the implied scrutinee:\n%s", ts)
 	}
 }
@@ -427,9 +427,9 @@ func TestMultiEmitBoolTotal(t *testing.T) {
 	// still lowers to a bare else by the residual proof.
 	ts := compileEmit(t, multiEmitBoolText)
 	for _, want := range []string{
-		"const $ail_m1 = a;",
-		"const $ail_m2 = b;",
-		"if ($ail_m1 && $ail_m2) {",
+		"const $can_m1 = a;",
+		"const $can_m2 = b;",
+		"if ($can_m1 && $can_m2) {",
 		"else {",
 	} {
 		if !strings.Contains(ts, want) {

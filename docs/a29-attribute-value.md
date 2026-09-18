@@ -9,7 +9,7 @@ dropped, for the corrected reason below.
 ## Rule
 
 - Canonical serialization is `name='value'` (single-quoted).
-  Double quotes are inexpressible in ail string literals: a source
+  Double quotes are inexpressible in can string literals: a source
   `"...\"..."` denotes backslash followed by quote (verified by
   probe against both the evaluator and the TS emit), and no
   alternate quoting exists. So `name="value"` cannot be assembled
@@ -103,7 +103,7 @@ compiler-forced.
 
 - A second admitted name reopens the reconstruction design: a
   comparison chain may need same-brand equality, whose
-  existence is unverified (cross-brand `==` is AIL6003; same
+  existence is unverified (cross-brand `==` is CAN6003; same
   brand untested). Recorded open question, not assumed
   machinery. The round-trip rows are the tripwire meanwhile.
 - `invalid_attribute_value` is gone from this constructor's

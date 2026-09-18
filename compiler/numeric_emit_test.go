@@ -90,7 +90,7 @@ func compileFixture(t *testing.T, name, src string) string {
 }
 
 func TestEmitNumerics(t *testing.T) {
-	got := compileFixture(t, "num.ail", numericFixture)
+	got := compileFixture(t, "num.can", numericFixture)
 	// compile() already ran every decision table, so the expectations
 	// above passed under exact proof semantics.
 	for _, want := range []string{
@@ -98,38 +98,38 @@ func TestEmitNumerics(t *testing.T) {
 		"count: bigint",
 		"a: string",
 		"n: bigint",
-		"$ailDecAdd(a, b)",
-		"$ailDecGe(a, b)",
-		"$ailDecGt(a,",
-		"$ailDecLt(a,",
-		"$ailStrLt(s,",
+		"$canDecAdd(a, b)",
+		"$canDecGe(a, b)",
+		"$canDecGt(a,",
+		"$canDecLt(a,",
+		"$canStrLt(s,",
 		"(n < 5n)",
-		"function $ailDecGt",
-		"function $ailDecLt",
-		"function $ailStrLt",
+		"function $canDecGt",
+		"function $canDecLt",
+		"function $canStrLt",
 		`"3.14"`,
 		"(n + 1n)",
-		"function $ailDecSplit",
-		"function $ailDecAdd",
-		"function $ailDecGe",
+		"function $canDecSplit",
+		"function $canDecAdd",
+		"function $canDecGe",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, got)
 		}
 	}
-	for _, banned := range []string{"$ailDecSub", "$ailDecMul", "$ailDecLe"} {
+	for _, banned := range []string{"$canDecSub", "$canDecMul", "$canDecLe"} {
 		if strings.Contains(got, banned) {
 			t.Errorf("emit contains unused helper %q\n--- emit ---\n%s", banned, got)
 		}
 	}
 	// The only number-typed values in exact emit are the helpers'
 	// own plumbing (dec scale handling, the 3-way str comparator);
-	// every ail value is bigint or string.
+	// every can value is bigint or string.
 	for _, line := range strings.Split(got, "\n") {
 		if strings.Contains(line, ": number") &&
 			!strings.Contains(line, "scale: number") &&
-			!strings.Contains(line, "function $ailStrCmp(") {
-			t.Errorf("emit maps an ail value to lossy number: %q", line)
+			!strings.Contains(line, "function $canStrCmp(") {
+			t.Errorf("emit maps an can value to lossy number: %q", line)
 		}
 	}
 }

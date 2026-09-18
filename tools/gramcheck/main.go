@@ -1,4 +1,4 @@
-// Command gramcheck verifies the ai-lang TextMate grammar: every syntactic
+// Command gramcheck verifies the can-lang TextMate grammar: every syntactic
 // class needs its own scope, and each scope's regex must fire on a
 // representative sample. Smoke test only — most rule precedence
 // (first-match-wins in TextMate) is still kept by hand, except the
@@ -23,7 +23,7 @@ import (
 var jsonFiles = []string{
 	"package.json",
 	"language-configuration.json",
-	"syntaxes/ail.tmGrammar.json",
+	"syntaxes/can.tmGrammar.json",
 }
 
 type sampleCase struct {
@@ -32,19 +32,19 @@ type sampleCase struct {
 }
 
 var cases = []sampleCase{
-	{"keyword.control.ail", []string{"on", "rev", "match", "given", "brand", "const", "forward", "extern", "seal", "seals_from", "decreases", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge", "and", "or", "not"}},
-	{"storage.type.primitive.ail", []string{"str", "int", "dec"}},
-	{"constant.numeric.integer.ail", []string{"42"}},
-	{"constant.numeric.decimal.ail", []string{`d"1.5"`}},
-	{"constant.language.ail", []string{"true", "Ok", "_"}},
-	{"keyword.operator.ail", []string{"=>", "->", "==", "+", "-", "*", "/", "%"}},
-	{"entity.name.function.ail", []string{"db__get_user", "auth__login"}},
-	{"entity.name.type.ail", []string{"Db__User", "Auth__Session"}},
-	{"entity.name.tag.ail", []string{"user_id:", "happy:"}},
-	{"constant.numeric.version.ail", []string{"@3"}},
-	{"variable.other.readwrite.ail", []string{"id", "pw", "user"}},
-	{"string.quoted.double.ail", []string{`"secret"`, `e"a\nb"`}},
-	{"comment.line.double-slash.ail", []string{"// note"}},
+	{"keyword.control.can", []string{"on", "rev", "match", "given", "brand", "const", "forward", "extern", "seal", "seals_from", "decreases", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge", "and", "or", "not"}},
+	{"storage.type.primitive.can", []string{"str", "int", "dec"}},
+	{"constant.numeric.integer.can", []string{"42"}},
+	{"constant.numeric.decimal.can", []string{`d"1.5"`}},
+	{"constant.language.can", []string{"true", "Ok", "_"}},
+	{"keyword.operator.can", []string{"=>", "->", "==", "+", "-", "*", "/", "%"}},
+	{"entity.name.function.can", []string{"db__get_user", "auth__login"}},
+	{"entity.name.type.can", []string{"Db__User", "Auth__Session"}},
+	{"entity.name.tag.can", []string{"user_id:", "happy:"}},
+	{"constant.numeric.version.can", []string{"@3"}},
+	{"variable.other.readwrite.can", []string{"id", "pw", "user"}},
+	{"string.quoted.double.can", []string{`"secret"`, `e"a\nb"`}},
+	{"comment.line.double-slash.can", []string{"// note"}},
 }
 
 func loadJSON(dir, name string) (map[string]any, error) {
@@ -84,7 +84,7 @@ func check(dir string) []string {
 			errs = append(errs, fmt.Sprintf("%v", err))
 		}
 	}
-	grammar, err := loadJSON(dir, "syntaxes/ail.tmGrammar.json")
+	grammar, err := loadJSON(dir, "syntaxes/can.tmGrammar.json")
 	if err != nil {
 		return errs
 	}
@@ -92,7 +92,7 @@ func check(dir string) []string {
 
 	var errorRules []map[string]any
 	for _, p := range patterns {
-		if strOf(p["name"]) == "keyword.declaration.error.ail" {
+		if strOf(p["name"]) == "keyword.declaration.error.can" {
 			errorRules = append(errorRules, p)
 		}
 	}
@@ -102,7 +102,7 @@ func check(dir string) []string {
 		errs = append(errs, "error rule must match the error keyword")
 	}
 	for _, p := range patterns {
-		if strOf(p["name"]) == "keyword.control.ail" &&
+		if strOf(p["name"]) == "keyword.control.can" &&
 			strings.Contains(strOf(p["match"]), "error") {
 			errs = append(errs, "generic keyword rule must not also match error")
 		}
@@ -111,9 +111,9 @@ func check(dir string) []string {
 	var pinRules []map[string]any
 	for _, p := range patterns {
 		switch strOf(p["name"]) {
-		case "keyword.control.ail":
+		case "keyword.control.can":
 			keywordMatches = append(keywordMatches, strOf(p["match"]))
-		case "constant.numeric.version.ail":
+		case "constant.numeric.version.can":
 			pinRules = append(pinRules, p)
 		}
 	}
@@ -133,7 +133,7 @@ func check(dir string) []string {
 	}
 	eIdx, plainIdx := -1, -1
 	for i, p := range patterns {
-		if strOf(p["name"]) != "string.quoted.double.ail" {
+		if strOf(p["name"]) != "string.quoted.double.can" {
 			continue
 		}
 		if strings.Contains(strOf(p["begin"]), "e\"") {
@@ -225,10 +225,10 @@ func check(dir string) []string {
 			}
 			return false
 		}
-		if !has("entity.name.tag.ail") {
+		if !has("entity.name.tag.can") {
 			errs = append(errs, "given-block must scope test-case keys")
 		}
-		if !has("constant.language.unreachable.ail") {
+		if !has("constant.language.unreachable.can") {
 			errs = append(errs, "given-block must scope the - marker")
 		}
 	}

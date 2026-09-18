@@ -13,7 +13,7 @@ remainder of the NOW-dagger family waits on fuel patterns.
 divisor is loud (`int division by zero` in proofs; an explicit
 `math.zero_divisor` outcome in blessed functions), never a value.
 
-Decimal `/` and `%` are refused with AIL6005: 1/3 does not
+Decimal `/` and `%` are refused with CAN6005: 1/3 does not
 terminate, so no rounding rule is smuggled in. Mixed operands
 stay refused under the no-conversion rule. `-` and `*` are
 untouched.
@@ -24,7 +24,7 @@ untouched.
   checked against the identity plus bounds on every sign
   combination — not on unit-step scans. The NOW-dagger label
   retires for the five blessed functions below.
-- Emit rides `$ailDivMod` (BigInt truncates toward zero, so a
+- Emit rides `$canDivMod` (BigInt truncates toward zero, so a
   negative truncated remainder adjusts into range), emitted
   inline only when used. The helper text is pinned by
   `TestDivEmitHelper` and the Go-side contract by
@@ -34,7 +34,7 @@ untouched.
 
 ## What ships
 
-`std/division/division.ail` blesses `std__int__divmod`,
+`std/division/division.can` blesses `std__int__divmod`,
 `std__int__mod`, `std__int__is_multiple`, `std__int__is_even`,
 and `std__int__is_odd`, each with all-sign decision tables plus
 zero cases. The tables pin exact quotients and remainders, so

@@ -70,22 +70,22 @@ fn audit__wrap(flag: str) -> Audit__Value rev 1
 `
 
 func TestEmitErrorBinders(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"audit.ail": binderFixture})
+	dir := writeLSPDir(t, map[string]string{"audit.can": binderFixture})
 	// diagnose runs every decision table: code = 7 read through the
 	// error binder, the shared binder name in two arms, the nested
 	// call, and the _m1 source parameter all evaluate here.
-	if diags := diagnose(dir, "audit.ail", binderFixture); len(diags) != 0 {
+	if diags := diagnose(dir, "audit.can", binderFixture); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestEmitErrorBindersShape(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(binderFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(binderFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "audit.ts"))
@@ -97,8 +97,8 @@ func TestEmitErrorBindersShape(t *testing.T) {
 		`case "audit.failed": {`,
 		`case "audit.other": {`,
 		`case "ok": {`,
-		"const err = $ail_m",
-		"const $ail_m",
+		"const err = $can_m",
+		"const $can_m",
 		"(_m1 + _m1)",
 	} {
 		if !strings.Contains(src, want) {

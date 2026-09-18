@@ -50,7 +50,7 @@ Contract tables win for unit-level testing and stay the kernel:
   Unchecked prose in a contract-first language is a liability.
 
 What Gherkin adds decomposes into sequencing (real expressive
-power) and prose labels (cosmetic; the reader of `.ail` is an
+power) and prose labels (cosmetic; the reader of `.can` is an
 engineer checking contracts, not a stakeholder reading
 features). Take the power without the prose:
 

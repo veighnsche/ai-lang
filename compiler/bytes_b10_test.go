@@ -13,7 +13,7 @@ import (
 // encoding.invalid_hex (original string, unchanged) on malformed
 // input. X-rows are the acceptance rows (verdict v2: str payload,
 // single kind, generalized lowering, parity-masking controls,
-// AIL3110 prefix-attack linkage, mixed probe module).
+// CAN3110 prefix-attack linkage, mixed probe module).
 
 const bytesHexDecodeBase = `mod m
   provides [m__go]
@@ -73,26 +73,26 @@ func bytesHexDecodeFull() string {
 // Parity-masking controls (even-UTF-16 non-ASCII, neighbor
 // nibbles) and the fidelity row pin the exact rejection set.
 func TestBytesX0HexDecodeVectors(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesHexDecodeFull()}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesHexDecodeFull()}, "m.can")
 	named := strings.Replace(bytesHexDecodeFull(),
 		"match call bytes__hex__decode(value)",
 		"match call bytes__hex__decode(value = value)", 1)
-	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+	seqClean(t, map[string]string{"m.can": named}, "m.can")
 }
 
 // X1: both arms are mandatory.
 func TestBytesX1MissingArms(t *testing.T) {
 	noErr := strings.Replace(bytesHexDecodeFull(),
 		"\n    on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)", "", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": noErr})
-	diags := diagnose(dir, "m.ail", noErr)
+	dir := writeLSPDir(t, map[string]string{"m.can": noErr})
+	diags := diagnose(dir, "m.can", noErr)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
 		t.Fatalf("expected missing-arm rejection without error arm, got %v", diags)
 	}
 	noOk := strings.Replace(bytesHexDecodeFull(),
 		"    on Ok r => Ok(value = r.value)\n", "", 1)
-	dir = writeLSPDir(t, map[string]string{"m.ail": noOk})
-	diags = diagnose(dir, "m.ail", noOk)
+	dir = writeLSPDir(t, map[string]string{"m.can": noOk})
+	diags = diagnose(dir, "m.can", noOk)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
 		t.Fatalf("expected missing-arm rejection without Ok arm, got %v", diags)
 	}
@@ -105,8 +105,8 @@ func TestBytesX2StaleArm(t *testing.T) {
 		"    on Ok r => Ok(value = r.value)\n    on m.boom e2 => Ok(value = Bytes(Seq<int>[]))", 1)
 	body = strings.Replace(body, "fn m__go(value: str)",
 		"error m.boom(value: str)\n\nfn m__go(value: str)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.boom") {
 		t.Fatalf("expected stale-arm rejection, got %v", diags)
 	}
@@ -117,7 +117,7 @@ func TestBytesX3NoGiven(t *testing.T) {
 	body := strings.Replace(bytesHexDecodeFull(),
 		"  match call bytes__hex__decode(value)\n    on Ok r => Ok(value = r.value)",
 		"  match call bytes__hex__decode(value)\n    given\n      empty => [exchange args (value = \"\") outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(value = r.value)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
 
@@ -143,9 +143,9 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
 	}
-	seqCode(t, map[string]string{"m.ail": mk("Bytes", "Bytes(Seq<int>[65])")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("Bytes", "Bytes(Seq<int>[65])")}, "m.can",
 		CodeTypeMismatch, "want str")
-	seqCode(t, map[string]string{"m.ail": mk("int", "3")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("int", "3")}, "m.can",
 		CodeTypeMismatch, "want str")
 	// Brands erase at runtime, so brand rows PASS execution (unlike
 	// str/int, which fail and skip coverage): each brand fixture
@@ -156,7 +156,7 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 	goodBrand = strings.Replace(goodBrand,
 		`    go(value = seal M__Secret("41")) => Ok(value = Bytes(Seq<int>[65]))`,
 		"    go(value = seal M__Secret(\"41\")) => Ok(value = Bytes(Seq<int>[65]))\n    bad(value = seal M__Secret(\"zz\")) => encoding.invalid_hex(value = \"zz\")", 1)
-	seqCode(t, map[string]string{"m.ail": goodBrand}, "m.ail",
+	seqCode(t, map[string]string{"m.can": goodBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 	badBrand := strings.Replace(mk("M__Secret", `seal M__Secret("zz")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
@@ -164,15 +164,15 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 	badBrand = strings.Replace(badBrand,
 		`    go(value = seal M__Secret("zz")) => Ok(value = Bytes(Seq<int>[65]))`,
 		"    go(value = seal M__Secret(\"zz\")) => Ok(value = Bytes(Seq<int>[65]))\n    bad(value = seal M__Secret(\"41zz42\")) => encoding.invalid_hex(value = \"41zz42\")", 1)
-	seqCode(t, map[string]string{"m.ail": badBrand}, "m.ail",
+	seqCode(t, map[string]string{"m.can": badBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 }
 
 // X5: the decode contract exists explicitly: EmitsOf entry plus
 // the compiler-owned error registration (fields ["value"]).
 func TestBytesX5ContractsRegistered(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": bytesHexDecodeFull()})
-	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	dir := writeLSPDir(t, map[string]string{"m.can": bytesHexDecodeFull()})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.can"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,14 +195,14 @@ func TestBytesX5ContractsRegistered(t *testing.T) {
 func TestBytesX6EmitPins(t *testing.T) {
 	ts := compileEmit(t, bytesHexDecodeFull())
 	for _, want := range []string{
-		"$ailHexDecode(",
-		`{ $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string }`,
+		"$canHexDecode(",
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
 		}
 	}
-	for _, banned := range []string{"TextEncoder", "TextDecoder", "$ailUtf8Decode("} {
+	for _, banned := range []string{"TextEncoder", "TextDecoder", "$canUtf8Decode("} {
 		if strings.Contains(ts, banned) {
 			t.Fatalf("hex-only emit must not contain %q:\n%s", banned, ts)
 		}
@@ -214,7 +214,7 @@ func TestBytesX6EmitPins(t *testing.T) {
 func TestBytesX7ShadowRejection(t *testing.T) {
 	body := strings.Replace(bytesHexDecodeFull(), "fn m__go(value: str)",
 		"error encoding.invalid_hex(value: str)\n\nfn m__go(value: str)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodePrimitiveShadow, "shadows a compiler-owned error")
 }
 
@@ -224,12 +224,12 @@ func TestBytesX8ErrorPathTyped(t *testing.T) {
 	wrongCtor := strings.Replace(bytesHexDecodeFull(),
 		"on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)",
 		`on encoding.invalid_hex e => encoding.invalid_hex(value = Bytes(Seq<int>[65]))`, 1)
-	seqCode(t, map[string]string{"m.ail": wrongCtor}, "m.ail",
+	seqCode(t, map[string]string{"m.can": wrongCtor}, "m.can",
 		CodeTypeMismatch, "want str")
 	wrongPay := strings.Replace(bytesHexDecodeFull(),
 		`fidelity(value = "aFzz") => encoding.invalid_hex(value = "aFzz")`,
 		`fidelity(value = "aFzz") => encoding.invalid_hex(value = "aFZZ")`, 1)
-	seqCode(t, map[string]string{"m.ail": wrongPay}, "m.ail",
+	seqCode(t, map[string]string{"m.can": wrongPay}, "m.can",
 		CodeTestFailed, "fidelity")
 }
 
@@ -270,13 +270,13 @@ fn client__use(value: str) -> Bytes__Value rev 1
 
 // X9: partial results never escape as success: the prefix-attack
 // lie ("41zz42" scripted as Ok([65])) and the suffix lie ("ffzz"
-// as Ok([255])) both contradict (AIL3110) under both orders.
+// as Ok([255])) both contradict (CAN3110) under both orders.
 func TestBytesX9ContradictionBothOrders(t *testing.T) {
-	files := map[string]string{"prov.ail": bytesHexDecodeProv, "client.ail": bytesHexDecodeLie}
-	for _, order := range [][]string{{"prov.ail", "client.ail"}, {"client.ail", "prov.ail"}} {
+	files := map[string]string{"prov.can": bytesHexDecodeProv, "client.can": bytesHexDecodeLie}
+	for _, order := range [][]string{{"prov.can", "client.can"}, {"client.can", "prov.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasErrCode(diags, CodeInconsistentScript) {
-			t.Fatalf("order %v: expected AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected CAN3110, got %v", order, diags)
 		}
 		if !hasDiag(diags, "error", "contradicts prov__go") {
 			t.Fatalf("order %v: expected contradiction message, got %v", order, diags)
@@ -288,7 +288,7 @@ func TestBytesX9ContradictionBothOrders(t *testing.T) {
 // to the compiler kernel, with the owned field list.
 func TestBytesX10CatalogAttribution(t *testing.T) {
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "m.ail")
+	srcPath := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(srcPath, []byte(bytesHexDecodeProv), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +353,7 @@ fn probe__decode_text(value: str) -> Encoding__Text rev 1
 // X11a: the mixed probe is clean: every arm witnessed, both
 // kernels' contracts live.
 func TestBytesX11aMixedProbeClean(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesHexMixedProbe}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesHexMixedProbe}, "m.can")
 }
 
 // X11b: per-call unions and helpers are exact in a both-decoders
@@ -362,10 +362,10 @@ func TestBytesX11aMixedProbeClean(t *testing.T) {
 func TestBytesX11bMixedEmitPins(t *testing.T) {
 	ts := compileEmit(t, bytesHexMixedProbe)
 	for _, want := range []string{
-		"$ailHexDecode(",
-		"$ailUtf8Decode(",
-		`{ $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string }`,
-		`{ $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array }`,
+		"$canHexDecode(",
+		"$canUtf8Decode(",
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string }`,
+		`{ $can_kind: "ok"; value: string } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("mixed emit missing %q:\n%s", want, ts)
@@ -394,14 +394,14 @@ fn client__use() -> Encoding__Text rev 1
     on encoding.invalid_utf8 e2 => encoding.invalid_utf8(value = e2.value)
 `
 
-// X11c: the mixed probe's false script contradicts (AIL3110)
+// X11c: the mixed probe's false script contradicts (CAN3110)
 // under both module orders.
 func TestBytesX11cMixedContradiction(t *testing.T) {
-	files := map[string]string{"probe.ail": bytesHexMixedProbe, "client.ail": bytesHexMixedLie}
-	for _, order := range [][]string{{"probe.ail", "client.ail"}, {"client.ail", "probe.ail"}} {
+	files := map[string]string{"probe.can": bytesHexMixedProbe, "client.can": bytesHexMixedLie}
+	for _, order := range [][]string{{"probe.can", "client.can"}, {"client.can", "probe.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasErrCode(diags, CodeInconsistentScript) {
-			t.Fatalf("order %v: expected AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected CAN3110, got %v", order, diags)
 		}
 		if !hasDiag(diags, "error", "contradicts probe__decode_text") {
 			t.Fatalf("order %v: expected contradiction message, got %v", order, diags)

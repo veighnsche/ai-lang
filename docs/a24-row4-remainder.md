@@ -76,6 +76,6 @@ directional rounding (`truncate`, `floor`, `ceil`,
 `round_half_even`, `divide_round_half_even`), exact division,
 exact int conversion, decimal rendering, and exact roots are all
 blessed with decision tables and frozen goldens. The invoice /
-ledger gate from the program doc is now writable in pure `.ail`.
+ledger gate from the program doc is now writable in pure `.can`.
 `ratio__to_dec_exact` and certified-bound transcendental
 operations remain future work with their blockers named.

@@ -16,9 +16,9 @@ import (
 // outer failable call's error arm misattached to the inner
 // total call.
 func TestStaleArmNestingHint(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__go]
@@ -39,9 +39,9 @@ fn client__go(value: str) -> Encoding__Text rev 1
       on Ok t => Ok(value = t.value)
       on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	diags := diagnose(dir, "client.ail", client)
+	diags := diagnose(dir, "client.can", client)
 	var stale *Diag
 	for i, d := range diags {
 		if d.Code == CodeStaleArm {
@@ -49,22 +49,22 @@ fn client__go(value: str) -> Encoding__Text rev 1
 		}
 	}
 	if stale == nil {
-		t.Fatalf("expected AIL4102, got %v", diags)
+		t.Fatalf("expected CAN4102, got %v", diags)
 	}
 	if !strings.Contains(stale.Msg, "enclosing match at line") {
 		t.Fatalf("stale arm must hint at the enclosing match, got %q", stale.Msg)
 	}
 	if !hasErrCode(diags, CodeMissingArm) {
-		t.Fatalf("expected companion AIL4101, got %v", diags)
+		t.Fatalf("expected companion CAN4101, got %v", diags)
 	}
 }
 
 // TestStaleArmNoHintAcrossMatches pins precision: a genuinely
 // stale arm with no enclosing failable match gets no hint.
 func TestStaleArmNoHintAcrossMatches(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__missing, client__total]
@@ -92,9 +92,9 @@ fn client__total(value: Bytes) -> Encoding__Text rev 1
     on Ok t => Ok(value = t.value)
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	diags := diagnose(dir, "client.ail", client)
+	diags := diagnose(dir, "client.can", client)
 	var stale *Diag
 	for i, d := range diags {
 		if d.Code == CodeStaleArm {
@@ -102,7 +102,7 @@ fn client__total(value: Bytes) -> Encoding__Text rev 1
 		}
 	}
 	if stale == nil {
-		t.Fatalf("expected AIL4102, got %v", diags)
+		t.Fatalf("expected CAN4102, got %v", diags)
 	}
 	if strings.Contains(stale.Msg, "enclosing match at line") {
 		t.Fatalf("independent stale arm must not hint, got %q", stale.Msg)

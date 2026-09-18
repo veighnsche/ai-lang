@@ -13,8 +13,8 @@ import (
 func TestGoldenAuthLogin(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../sketches/auth-login/db.ail",
-		"../sketches/auth-login/auth.ail",
+		"../sketches/auth-login/db.can",
+		"../sketches/auth-login/auth.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -29,7 +29,7 @@ func TestGoldenAuthLogin(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
@@ -40,7 +40,7 @@ func TestGoldenAuthLogin(t *testing.T) {
 func TestGoldenRetryLoop(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../sketches/retry-loop/retry.ail",
+		"../sketches/retry-loop/retry.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -55,7 +55,7 @@ func TestGoldenRetryLoop(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
@@ -66,7 +66,7 @@ func TestGoldenRetryLoop(t *testing.T) {
 func TestGoldenCounter(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../sketches/counter/counter.ail",
+		"../sketches/counter/counter.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -81,7 +81,7 @@ func TestGoldenCounter(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
@@ -93,7 +93,7 @@ func TestGoldenCounter(t *testing.T) {
 func TestGoldenQuotaCounter(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../std/quota/quota.ail",
+		"../std/quota/quota.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -108,7 +108,7 @@ func TestGoldenQuotaCounter(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
@@ -119,7 +119,7 @@ func TestGoldenQuotaCounter(t *testing.T) {
 func TestGoldenStdText(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../std/text/text.ail",
+		"../std/text/text.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -134,18 +134,18 @@ func TestGoldenStdText(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
 
 // TestGoldenStdDivision freezes the division cut: the Euclidean
 // module must transpile byte-identical, so its decision tables and
-// the $ailDivMod helper emit can never silently rot.
+// the $canDivMod helper emit can never silently rot.
 func TestGoldenStdDivision(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../std/division/division.ail",
+		"../std/division/division.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -160,7 +160,7 @@ func TestGoldenStdDivision(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
@@ -171,7 +171,7 @@ func TestGoldenStdDivision(t *testing.T) {
 func TestGoldenStdScalars(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../std/scalars/scalars.ail",
+		"../std/scalars/scalars.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -186,7 +186,7 @@ func TestGoldenStdScalars(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }
@@ -198,9 +198,9 @@ func TestGoldenStdScalars(t *testing.T) {
 func TestGoldenStdHtml(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../std/html/html.ail",
-		"../std/ascii/ascii.ail",
-		"../std/scalars/scalars.ail",
+		"../std/html/html.can",
+		"../std/ascii/ascii.can",
+		"../std/scalars/scalars.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -215,7 +215,7 @@ func TestGoldenStdHtml(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }

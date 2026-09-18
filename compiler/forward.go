@@ -3,8 +3,8 @@ package main
 // Slice 2: forward arms. `on KIND v => forward v` elaborates at
 // check time into the ordinary complete constructor
 // (`KIND(f = v.f, ...)`), so admission, the prover, emit, and
-// AIL4107 see exactly the handwritten shape. Only an exact
-// arm-binder operand elaborates; every other shape is AIL3011,
+// CAN4107 see exactly the handwritten shape. Only an exact
+// arm-binder operand elaborates; every other shape is CAN3011,
 // through the ordinary check-diagnostic mechanism (no new one).
 
 import (

@@ -1,4 +1,4 @@
-# docs — ai-lang design records (reviewer index)
+# docs — can-lang design records (reviewer index)
 
 Start here. This folder is the language's memory: plans, per-feature
 specs, and the rules each feature had to satisfy before it landed.
@@ -20,12 +20,12 @@ specs, and the rules each feature had to satisfy before it landed.
 | `a11-recursion.md` | Shipped | Program-wide recursion ban, guarded unit steps, returned-outcome theorem |
 | `a12-contracts.md` | Shipped | Producer-owned emits, complete error expectations, exchange script rows |
 | `a13-stdlib.md` | Landed (part) | Stdlib rows 0–2: linkage decision, quota-counter validation, scalar catalog |
-| `a14-tsc.md` | Landed (decision) | R11 tsc clause suspended until a real gate ships; ailc is the sole verifier |
-| `a15-brands.md` | Shipped | Bodies seal only their own module's brands (AIL6004); tests/scripts name any brand |
+| `a14-tsc.md` | Landed (decision) | R11 tsc clause suspended until a real gate ships; canlc is the sole verifier |
+| `a15-brands.md` | Shipped | Bodies seal only their own module's brands (CAN6004); tests/scripts name any brand |
 | `a16-text.md` | Landed (part) | `+` concatenates strings; Unicode-scalar indexing decided; scalar-access surface open |
-| `a17-division.md` | Landed (part) | Exact Euclidean `/` and `%` on ints; dec refused (AIL6005); gcd family waits on fuel |
+| `a17-division.md` | Landed (part) | Exact Euclidean `/` and `%` on ints; dec refused (CAN6005); gcd family waits on fuel |
 | `a35-typed-fragments.md` | Sketch (pre-decision) | HTMX-shaped fragment endpoints after unions, HTTP, components; revisit trigger, no rule yet |
-| `a36-seq-typed-construction.md` | Shipped (S1) | Typed `Seq<T>` literals, element checking, AIL6007; length/access/append are later slices |
+| `a36-seq-typed-construction.md` | Shipped (S1) | Typed `Seq<T>` literals, element checking, CAN6007; length/access/append are later slices |
 | `a37-seq-length.md` | Shipped (S2) | `#` counts sequence elements; `std__seq__length` realized by `#`, no second spelling |
 | `a38-seq-access.md` | Shipped (S3) | `xs[i]` over `Seq<T>` yields `T`; bounded traversal under existing `decreases`; `std/seq` deferred |
 | `a39-seq-append.md` | Shipped (S4) | `Seq<T> + T` copy-on-append; concat refused; compiler complete, customers next |
@@ -52,7 +52,7 @@ specs, and the rules each feature had to satisfy before it landed.
   their version (`(a07)`), never by rewriting a ratified rule.
 - Every expressive power names its proof cost; a feature whose proof
   is "future work" is a bug with a roadmap.
-- One rule, one `AILnnnn` code (`compiler/code.go` is the registry).
+- One rule, one `CANnnnn` code (`compiler/code.go` is the registry).
 - Verify claims mechanically: `go test ./...`,
   `go run ./tools/modcheck`, `go run ./tools/gramcheck`.
   Goldens live beside their sketches; `broken-login/` titles are

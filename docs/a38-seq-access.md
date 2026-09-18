@@ -2,10 +2,10 @@
 
 Status: shipped. P0 approved under standing approval; P1–P4
 implemented and green: `[]` extended to `Seq<T>` bases
-(element-typed `typeOf`, member fetch, generic `$ailSeqAt`),
+(element-typed `typeOf`, member fetch, generic `$canSeqAt`),
 checked-get and traversal workers with decision tables in
 `compiler/seq_s3_test.go`. One correction from review: the
-early-stop `short` row takes `B` too, so the AIL4107 probe drops
+early-stop `short` row takes `B` too, so the CAN4107 probe drops
 zero/negative-budget AND short rows — full traversals still end
 in `E`, never `B`.
 
@@ -30,10 +30,10 @@ traversal proof the customers need (`str__join` walks forward;
 ## Context And Current Facts
 
 - `s[i]` over `str` is raw guarded-at-use-site access: the
-  compiler checks shapes, `.ail` guards ensure bounds, and
-  `std__str__scalar_at` (`std/text/text.ail:89-104`) maps the
+  compiler checks shapes, `.can` guards ensure bounds, and
+  `std__str__scalar_at` (`std/text/text.can:89-104`) maps the
   guard failures to `text.index_out_of_range`. There is no
-  catch mechanism for index failures, in `.ail` or the compiler:
+  catch mechanism for index failures, in `.can` or the compiler:
   an unguarded out-of-range index is a loud evaluation error,
   never a value. S3 follows this shape exactly.
 - S1 gives `Seq<T>` types and values; S2 gives `#` bounds. Raw
@@ -91,9 +91,9 @@ traversal proof the customers need (`str__join` walks forward;
 4. Test-local error kind `t.out_of_range(index: int, length:
    int)` for the wrapper rows. Schema matches the future
    canonical `sequence.index_out_of_range`; namespace only.
-5. TS lowering for `a[i]` is a generic `$ailSeqAt<T>(a: T[], i:
+5. TS lowering for `a[i]` is a generic `$canSeqAt<T>(a: T[], i:
    bigint): T` helper that throws `seq index out of range`
-   outside bounds — symmetric with `$ailStrAt`, types precise,
+   outside bounds — symmetric with `$canStrAt`, types precise,
    no `any`. Agreement with the evaluator holds on valid
    (guarded) programs; invalid programs already fail the build
    in Go before TS matters.
@@ -106,7 +106,7 @@ traversal proof the customers need (`str__join` walks forward;
    bases keep the pinned diagnostic verbatim.
 3. P2 — Eval: `seq` base fetches `Arr[i]`; out-of-range (incl.
    non-int64) is `seq index out of range`, never a clamp.
-4. P3 — Emit: `Seq<T>` base lowers to `$ailSeqAt`; helper
+4. P3 — Emit: `Seq<T>` base lowers to `$canSeqAt`; helper
    emitted only when used.
 5. P4 — Rows below in `compiler/seq_s3_test.go`; README index
    row; three gates; commit.
@@ -144,10 +144,10 @@ Negative rows:
 
 | Mutation / input | Expected |
 | --- | --- |
-| Drop `decreases fuel` | `AIL3005` (proof travels with the worker) |
-| Worker without zero/negative-budget/short rows | `AIL4107` (`B` really untaken by full traversals, which end in `E`) |
+| Drop `decreases fuel` | `CAN3005` (proof travels with the worker) |
+| Worker without zero/negative-budget/short rows | `CAN4107` (`B` really untaken by full traversals, which end in `E`) |
 | Unguarded `xs[5]` on length 2 | test fails `seq index out of range` (no clamp) |
-| `xs["a"]` (non-int index over Seq) | existing `cannot index with` AIL6003 |
+| `xs["a"]` (non-int index over Seq) | existing `cannot index with` CAN6003 |
 | `5[0]`-family | existing base rule, byte-identical |
 
 Remaining `decreases` mutations (`fuel-2`, recursion outside

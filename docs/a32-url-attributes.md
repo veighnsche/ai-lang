@@ -69,7 +69,7 @@ admission must never be read as script-source approval.
   LF/CR (classifier-style integer rows elsewhere cover the
   codes; runtime probe executes them), braces (DEL rows cover
   the above-122 arm), backslash (single literal backslash —
-  backslashes are literal in ail source).
+  backslashes are literal in can source).
 - Decision-table rows cover every match arm including each
   recursion's Ok and error unwinds; 180/180 green with the
   pre-existing 95.

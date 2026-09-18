@@ -1,6 +1,6 @@
 # schema — construction-time asset approval (S1: pure core)
 
-- `schema.ail` — `mod schema`: the asset-approval value model and lookup.
+- `schema.can` — `mod schema`: the asset-approval value model and lookup.
   `Schema__AssetRequest` is untrusted identifying data (plain record, no
   authority). `Schema__ApprovedAsset` is the opaque witness, sealed only in
   this file's bodies and only on the exact-match path of
@@ -25,7 +25,7 @@
 - NUL is rejected, never stripped; the `tail_nul` row carries a literal
   NUL byte (invisible — verify with `tr -d -c '\000' | wc -c`).
 - `schema.ts` + `errors.json` — committed golden TS prod emit. Regenerate:
-  `go run ./compiler --out std/schema std/schema/schema.ail`; verify:
+  `go run ./compiler --out std/schema std/schema/schema.can`; verify:
   `go test ./...`.
 - Separator safety (S2): the witness joins its eight fields with `|`
   for the projection kernel, so `schema__tokens__check` refuses `|`

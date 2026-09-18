@@ -7,9 +7,9 @@ with its reason written down.
 ## Rule
 
 `+`, `-`, `*` over `int` and `dec`. Same-type operands only: `int`
-with `int`, `dec` with `dec`. Mixed `int`/`dec` is `AIL6003`, like
+with `int`, `dec` with `dec`. Mixed `int`/`dec` is `CAN6003`, like
 every other conversion that does not exist. `str` and `bool` operands
-are `AIL6003`. There is no unary minus on expressions: negation is
+are `CAN6003`. There is no unary minus on expressions: negation is
 literal-only (`-3` parses as ever; `-(a+b)` does not). There is no
 division (see below).
 
@@ -41,7 +41,7 @@ they fail closed.
 
 The evaluator's dynamic rule stays dumb and unchanged in shape:
 same-kind operands or `bad %s operands`. Static checking (`checkTypes`
-binop rule, extended) fires first with `AIL6003` naming both types;
+binop rule, extended) fires first with `CAN6003` naming both types;
 the dynamic error is unreachable past the gate, as before.
 
 ## Type rule (extends the a04 binop rule)
@@ -56,7 +56,7 @@ mistakes under comparison.
 ## TS emit (inside the documented boundary)
 
 `+`, `-`, `*` emit as themselves; `dec` operands already emit as
-`number`. The a04 boundary now covers both worlds explicitly: ailc
+`number`. The a04 boundary now covers both worlds explicitly: canlc
 proofs are exact-or-loud (arbitrary-precision decimals, overflow
 errors past `int64`); the TS mapping is exact for `|int| < 2^53` and
 `dec` within 15 significant digits. A decimal/int64 runtime arrives
@@ -64,7 +64,7 @@ with its own proposal, not smuggled inside this one.
 
 > Amendment (a10): superseded — see `a10-numerics.md`. `int` emits
 > as `bigint` and `dec` as canonical-digit strings through exact
-> `$ailDec` helpers; the `number` mapping and both precision
+> `$canDec` helpers; the `number` mapping and both precision
 > boundaries above are gone (the 15-digit `dec` claim was false even
 > inside its stated domain: `0.1 + 0.2`). Remaining platform
 > boundary: BigInt (ES2020+) and host `bigint` handling.

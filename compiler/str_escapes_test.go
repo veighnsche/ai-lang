@@ -43,8 +43,8 @@ fn probe__b64(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
-	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
-	if diags := diagnose(dir, "probe.ail", probe); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
+	if diags := diagnose(dir, "probe.can", probe); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -72,8 +72,8 @@ fn probe__pat(value: str) -> Str__Value rev 1
     on e"a\nb" => Ok(value = "nl")
     on _ => Ok(value = "other")
 `
-	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
-	if diags := diagnose(dir, "probe.ail", probe); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
+	if diags := diagnose(dir, "probe.can", probe); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -100,10 +100,10 @@ fn probe__pat(value: str) -> Str__Value rev 1
     on e"a\nb" => Ok(value = "nl")
     on _ => Ok(value = "other")
 `
-	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
-	diags := diagnose(dir, "probe.ail", probe)
+	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
+	diags := diagnose(dir, "probe.can", probe)
 	if !hasErrCode(diags, CodeArmUntaken) {
-		t.Fatalf("expected AIL4107 for the untaken e-arm, got %v", diags)
+		t.Fatalf("expected CAN4107 for the untaken e-arm, got %v", diags)
 	}
 	for _, d := range diags {
 		if d.Code != CodeArmUntaken {
@@ -119,7 +119,7 @@ fn probe__pat(value: str) -> Str__Value rev 1
 }
 
 // TestEscapedLiteralRejectsHostEscape pins the closed set:
-// a host-style \x escape inside e"..." is AIL1000, so it can
+// a host-style \x escape inside e"..." is CAN1000, so it can
 // never silently rewrite a codec vector into valid base64.
 func TestEscapedLiteralRejectsHostEscape(t *testing.T) {
 	probe := `mod probe
@@ -136,9 +136,9 @@ fn probe__go(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
-	dir := writeLSPDir(t, map[string]string{"probe.ail": probe})
-	diags := diagnose(dir, "probe.ail", probe)
+	dir := writeLSPDir(t, map[string]string{"probe.can": probe})
+	diags := diagnose(dir, "probe.can", probe)
 	if !hasErrCode(diags, CodeParse) {
-		t.Fatalf("expected AIL1000 for unknown escape, got %v", diags)
+		t.Fatalf("expected CAN1000 for unknown escape, got %v", diags)
 	}
 }

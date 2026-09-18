@@ -2,14 +2,14 @@
 
 When an `on <kind>` arm is indented under the wrong
 (nested) match, the prover correctly reports the parsed
-tree but the pair reads contradictory: AIL4101
+tree but the pair reads contradictory: CAN4101
 "non-exhaustive match, missing K" on the outer match plus
-AIL4102 "stale match arm K" on the inner. The observed
+CAN4102 "stale match arm K" on the inner. The observed
 B15 case attached an outer error arm to an inner total
 call. Both diags stay; the stale one gains a pointer to
 the likely cause.
 
-Scope (compiler only, no .ail changes):
+Scope (compiler only, no .can changes):
 
 1. `verifyExhaustiveAll` (eval.go): thread the ancestor
    match stack through the walk. Each ancestor records
@@ -39,9 +39,9 @@ delete `compiler/diag_hint_test.go`.
 
 - Probe first (red): temp client over KNOWN foreign
   wrappers (`std__hex__decode` failable outer,
-  `std__hex__encode` total inner, real text.ail,
+  `std__hex__encode` total inner, real text.can,
   scripted givens) with the error arm misattached to
-  the inner match: assert the AIL4102 message contains
+  the inner match: assert the CAN4102 message contains
   the enclosing-match hint. Control: same two calls as
   sibling (non-nested) matches, outer missing the arm
   and inner carrying a genuinely stale one: assert NO

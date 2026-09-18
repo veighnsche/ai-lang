@@ -14,7 +14,7 @@ import (
 // input. Both contracts are compiler-owned; fixtures must compile
 // without declaring their own copies. D-rows are the acceptance
 // rows (verdict v2: ignoreBOM-corrected TS, builtin error path,
-// AIL3110 linkage).
+// CAN3110 linkage).
 
 const bytesDecodeBase = `mod m
   provides [m__go]
@@ -92,11 +92,11 @@ func bytesDecodeFull() string {
 // length alone and after valid text. No fixture-local contract
 // copies: this compiles on compiler-owned declarations alone.
 func TestBytesD0DecodeVectors(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesDecodeFull()}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesDecodeFull()}, "m.can")
 	named := strings.Replace(bytesDecodeFull(),
 		"match call bytes__utf8__decode(value)",
 		"match call bytes__utf8__decode(value = value)", 1)
-	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+	seqClean(t, map[string]string{"m.can": named}, "m.can")
 }
 
 // D1: both arms are mandatory: a missing error arm and a missing
@@ -104,15 +104,15 @@ func TestBytesD0DecodeVectors(t *testing.T) {
 func TestBytesD1MissingArms(t *testing.T) {
 	noErr := strings.Replace(bytesDecodeFull(),
 		"\n    on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)", "", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": noErr})
-	diags := diagnose(dir, "m.ail", noErr)
+	dir := writeLSPDir(t, map[string]string{"m.can": noErr})
+	diags := diagnose(dir, "m.can", noErr)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
 		t.Fatalf("expected missing-arm rejection without error arm, got %v", diags)
 	}
 	noOk := strings.Replace(bytesDecodeFull(),
 		"    on Ok r => Ok(value = r.value)\n", "", 1)
-	dir = writeLSPDir(t, map[string]string{"m.ail": noOk})
-	diags = diagnose(dir, "m.ail", noOk)
+	dir = writeLSPDir(t, map[string]string{"m.can": noOk})
+	diags = diagnose(dir, "m.can", noOk)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
 		t.Fatalf("expected missing-arm rejection without Ok arm, got %v", diags)
 	}
@@ -125,8 +125,8 @@ func TestBytesD2StaleArm(t *testing.T) {
 		"    on Ok r => Ok(value = r.value)\n    on m.boom e2 => Ok(value = \"\")", 1)
 	body = strings.Replace(body, "fn m__go(value: Bytes)",
 		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.boom") {
 		t.Fatalf("expected stale-arm rejection, got %v", diags)
 	}
@@ -137,7 +137,7 @@ func TestBytesD3NoGiven(t *testing.T) {
 	body := strings.Replace(bytesDecodeFull(),
 		"  match call bytes__utf8__decode(value)\n    on Ok r => Ok(value = r.value)",
 		"  match call bytes__utf8__decode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
 
@@ -163,22 +163,22 @@ fn m__go(value: PARAM) -> Encoding__Text rev 1
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
 	}
-	seqCode(t, map[string]string{"m.ail": mk("str", `"A"`)}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("str", `"A"`)}, "m.can",
 		CodeTypeMismatch, "want Bytes")
-	seqCode(t, map[string]string{"m.ail": mk("int", "3")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("int", "3")}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 	branded := strings.Replace(mk("M__Secret", `seal M__Secret("s")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	branded = strings.Replace(branded, "provides [m__go]", "provides [M__Secret, m__go]", 1)
-	seqCode(t, map[string]string{"m.ail": branded}, "m.ail",
+	seqCode(t, map[string]string{"m.can": branded}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 }
 
 // D5: the decode contract exists explicitly: EmitsOf entry plus
 // the compiler-owned error registration (fields ["value"]).
 func TestBytesD5ContractsRegistered(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": bytesDecodeFull()})
-	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	dir := writeLSPDir(t, map[string]string{"m.can": bytesDecodeFull()})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.can"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestBytesD6EmitPins(t *testing.T) {
 	for _, want := range []string{
 		"fatal: true",
 		"ignoreBOM: true",
-		`{ $ail_kind: "encoding.invalid_utf8"; value: Uint8Array }`,
+		`{ $can_kind: "encoding.invalid_utf8"; value: Uint8Array }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
@@ -217,16 +217,16 @@ func TestBytesD7ShadowRejections(t *testing.T) {
 	trec := strings.Replace(bytesDecodeFull(), "fn m__go(value: Bytes)",
 		"type Encoding__Text rev 1 (\n  value: str\n)\n\nfn m__go(value: Bytes)", 1)
 	trec = strings.Replace(trec, "provides [m__go]", "provides [m__go, Encoding__Text]", 1)
-	seqCode(t, map[string]string{"m.ail": trec}, "m.ail",
+	seqCode(t, map[string]string{"m.can": trec}, "m.can",
 		CodePrimitiveShadow, "shadows a compiler-owned record")
 	terr := strings.Replace(bytesDecodeFull(), "fn m__go(value: Bytes)",
 		"error encoding.invalid_utf8(value: Bytes)\n\nfn m__go(value: Bytes)", 1)
-	seqCode(t, map[string]string{"m.ail": terr}, "m.ail",
+	seqCode(t, map[string]string{"m.can": terr}, "m.can",
 		CodePrimitiveShadow, "shadows a compiler-owned error")
 	tbrand := strings.Replace(bytesDecodeFull(), "fn m__go(value: Bytes)",
 		"brand Encoding__Text is str rev 1\n\nfn m__go(value: Bytes)", 1)
 	tbrand = strings.Replace(tbrand, "provides [m__go]", "provides [m__go, Encoding__Text]", 1)
-	seqCode(t, map[string]string{"m.ail": tbrand}, "m.ail",
+	seqCode(t, map[string]string{"m.can": tbrand}, "m.can",
 		CodePrimitiveShadow, "shadows a compiler-owned record")
 }
 
@@ -236,12 +236,12 @@ func TestBytesD8ErrorPathTyped(t *testing.T) {
 	wrongCtor := strings.Replace(bytesDecodeFull(),
 		"on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)",
 		`on encoding.invalid_utf8 e => encoding.invalid_utf8(value = "nope")`, 1)
-	seqCode(t, map[string]string{"m.ail": wrongCtor}, "m.ail",
+	seqCode(t, map[string]string{"m.can": wrongCtor}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 	wrongPay := strings.Replace(bytesDecodeFull(),
 		"mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255, 66]))",
 		"mid_bad(value = Bytes(Seq<int>[65, 255, 66])) => encoding.invalid_utf8(value = Bytes(Seq<int>[65, 255]))", 1)
-	seqCode(t, map[string]string{"m.ail": wrongPay}, "m.ail",
+	seqCode(t, map[string]string{"m.can": wrongPay}, "m.can",
 		CodeTestFailed, "mid_bad")
 }
 
@@ -279,15 +279,15 @@ fn client__use() -> Encoding__Text rev 1
 `
 
 // D9: invalid UTF-8 is a computed comparable result, not a
-// modeling gap: a false scripted success contradicts (AIL3110)
+// modeling gap: a false scripted success contradicts (CAN3110)
 // under both module orders. A Go-error implementation would let
 // this lie pass as "not contradicted".
 func TestBytesD9ContradictionBothOrders(t *testing.T) {
-	files := map[string]string{"prov.ail": bytesDecodeProv, "client.ail": bytesDecodeLie}
-	for _, order := range [][]string{{"prov.ail", "client.ail"}, {"client.ail", "prov.ail"}} {
+	files := map[string]string{"prov.can": bytesDecodeProv, "client.can": bytesDecodeLie}
+	for _, order := range [][]string{{"prov.can", "client.can"}, {"client.can", "prov.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasErrCode(diags, CodeInconsistentScript) {
-			t.Fatalf("order %v: expected AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected CAN3110, got %v", order, diags)
 		}
 		if !hasDiag(diags, "error", "contradicts prov__go") {
 			t.Fatalf("order %v: expected contradiction message, got %v", order, diags)
@@ -299,7 +299,7 @@ func TestBytesD9ContradictionBothOrders(t *testing.T) {
 // to the compiler kernel, with the owned field list.
 func TestBytesD10CatalogAttribution(t *testing.T) {
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "m.ail")
+	srcPath := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(srcPath, []byte(bytesDecodeProv), 0o644); err != nil {
 		t.Fatal(err)
 	}

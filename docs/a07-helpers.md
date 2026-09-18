@@ -11,7 +11,7 @@ kind is resolved, not spelled.
 
 Two kinds of callee, distinguished by locality:
 
-- Foreign: a `uses`-pinned ail function from another file, or a
+- Foreign: a `uses`-pinned can function from another file, or a
   module-local `extern`. Scripted at the call site through `given`,
   exactly as today. Never executed; the stub is the outcome.
 - Local: a function defined in the same file. Executed, never
@@ -37,7 +37,7 @@ no new enforcement — attempting a pin fails loudly.
 
 Totality of argument passing is arity plus types, already checked
 through the callee contract (`callee()` resolves local functions
-today): wrong count or wrong type is `AIL6003` at the call site.
+today): wrong count or wrong type is `CAN6003` at the call site.
 
 ## Termination: no recursion
 
@@ -49,7 +49,7 @@ only) must be acyclic; a cycle is a static error at the call site.
 > Amendment (a11): the ban is program-wide — see
 > `a11-recursion.md`. Same-file cycles stay with this local check;
 > cycles touching two or more files are refused by the global check
-> (`AIL3005`, reported at the closing call site). Only proven
+> (`CAN3005`, reported at the closing call site). Only proven
 > direct self-recursion is admitted anywhere.
 A runtime depth cap backs the static rule (unreachable past the
 gate, as with arithmetic overflow). Termination in general still

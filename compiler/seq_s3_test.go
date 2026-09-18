@@ -7,7 +7,7 @@ import (
 
 // a38 S3: checked access and traversal. Raw xs[i] is guarded-at-use
 // access (the s[i] precedent): the compiler checks shapes and types,
-// .ail guards ensure bounds, and wrappers map guard failures to
+// .can guards ensure bounds, and wrappers map guard failures to
 // error constructors. There is no catch surface for index failure;
 // unguarded access fails loud, never clamped.
 
@@ -62,7 +62,7 @@ fn t__get_b(xs: Seq<M__B>, index: int) -> T__BItem rev 1
 `
 
 func TestSeqGetWrapper(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": seqGetMod}, "m.ail")
+	seqClean(t, map[string]string{"m.can": seqGetMod}, "m.can")
 }
 
 // The brand row proves the static type, not just the runtime
@@ -73,7 +73,7 @@ func TestSeqGetBrandTyped(t *testing.T) {
 	bad := strings.Replace(seqGetMod,
 		`one(xs = Seq<M__B>[seal M__B("A")], index = 0) => Ok(item = seal M__B("A"))`,
 		`one(xs = Seq<M__B>[seal M__B("A")], index = 0) => Ok(item = "A")`, 1)
-	seqCode(t, map[string]string{"m.ail": bad}, "m.ail", CodeTypeMismatch, "want M__B")
+	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTypeMismatch, "want M__B")
 }
 
 // Traversal module: bounded worker plus the fuel=#xs+1 entry. The
@@ -120,7 +120,7 @@ fn t__walk(xs: Seq<str>) -> T__Trace rev 1
 `
 
 func TestSeqTraversal(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": seqWalkMod}, "m.ail")
+	seqClean(t, map[string]string{"m.can": seqWalkMod}, "m.can")
 }
 
 // B is a real arm, not an aspiration: drop every row that can take
@@ -137,14 +137,14 @@ func TestSeqTraversalBudgetArmReal(t *testing.T) {
 		keep = append(keep, l)
 	}
 	bare := strings.Join(keep, "\n")
-	seqCode(t, map[string]string{"m.ail": bare}, "m.ail", CodeArmUntaken, "t__walk_from")
+	seqCode(t, map[string]string{"m.can": bare}, "m.can", CodeArmUntaken, "t__walk_from")
 }
 
 // The proof travels with the worker: no decreases, no build.
 func TestSeqTraversalNeedsDecreases(t *testing.T) {
 	bare := strings.Replace(seqWalkMod, "  decreases fuel\n", "", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bare})
-	diags := diagnose(dir, "m.ail", bare)
+	dir := writeLSPDir(t, map[string]string{"m.can": bare})
+	diags := diagnose(dir, "m.can", bare)
 	found := false
 	for _, d := range diags {
 		if d.Sev == "error" && (d.Code == CodeBadDecreases || d.Code == CodeLocalCycle) {
@@ -174,7 +174,7 @@ fn t__raw(xs: Seq<str>) -> T__Item rev 1
 =
   Ok(item = xs[5])
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail", CodeTestFailed, "seq index out of range")
+	seqCode(t, map[string]string{"m.can": body}, "m.can", CodeTestFailed, "seq index out of range")
 }
 
 // A non-int index over a sequence keeps the pinned diagnostic.
@@ -195,15 +195,15 @@ fn t__raw(xs: Seq<str>) -> T__Item rev 1
 =
   Ok(item = xs["a"])
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail", CodeTypeMismatch, "cannot index with")
+	seqCode(t, map[string]string{"m.can": body}, "m.can", CodeTypeMismatch, "cannot index with")
 }
 
 // Emit lowers sequence indexing through the generic seq helper.
 func TestSeqIndexEmit(t *testing.T) {
 	ts := compileEmit(t, seqGetMod)
 	for _, want := range []string{
-		"$ailSeqAt",
-		"function $ailSeqAt<T>(a: T[], i: bigint): T {",
+		"$canSeqAt",
+		"function $canSeqAt<T>(a: T[], i: bigint): T {",
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)

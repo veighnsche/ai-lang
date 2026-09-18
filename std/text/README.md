@@ -1,6 +1,6 @@
 # text — explicit text construction and scalar access
 
-- `text.ail` — `mod text`: `std__str__concat`, `is_empty`,
+- `text.can` — `mod text`: `std__str__concat`, `is_empty`,
   `is_whitespace` (int-denoted scalars: literals are raw, so
   tab/LF/CR never appear in a table), `length_scalars`,
   `scalar_at`, `slice_scalars`, `find_from`/`find`, `contains`,
@@ -21,7 +21,7 @@
   `hex` via `std__hex__encode`/`std__hex__decode`).
 - `text.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
-  std/text std/text/text.ail`; verify: `go test ./...`.
+  std/text std/text/text.can`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/a16-text.md`,
 surface: `docs/a20-text-operators.md` (`#`, `s[i]`, `s[a:b]`).

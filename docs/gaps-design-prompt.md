@@ -10,10 +10,10 @@ plus a phased plan, one per item.
 Context to attach: `REQUIREMENTS.md` (R1–R11 + open
 questions), `docs/a28-multi-scrutinee-match.md` (the
 deferral item 3 reopens), `docs/a61-error-design.md` item 2
-(item 2 refines it, do not redesign it), `std/html/html.ail`
+(item 2 refines it, do not redesign it), `std/html/html.can`
 (`html__url__scheme_token`, `html__url__authority`,
 `html__attribute__value_from` — the exhibits),
-`std/scalars/scalars.ail` (`std__dec__round_half_even` —
+`std/scalars/scalars.can` (`std__dec__round_half_even` —
 the `let` exhibit, out of scope, see below),
 `compiler/parse.go` (`parsePattern`, operator tables),
 `docs/ASTRA_FSHARP_BORROW.md` (only to confirm `let` and
@@ -98,7 +98,7 @@ surface like comments (see a78).
    Migration: both ASCII ladders collapse; state the
    resulting arm/test counts.
 4. Or-patterns. Same-RHS multi-pattern: separator
-   (`|` is free in ail surface and sits orphaned in
+   (`|` is free in can surface and sits orphaned in
    the grammar — justify taking or refusing it)?
    Which pattern kinds combine (ranges? strings?
    variants? mixed — a28 forbids mixed slots, does

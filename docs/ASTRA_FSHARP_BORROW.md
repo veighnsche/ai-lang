@@ -4,7 +4,7 @@
 
 Your design should be cruel about **unmade decisions, unhandled cases, and unsupported claims**. Making an agent repeat the same arithmetic or flatten every record into arguments is not useful cruelty; it creates more opportunities for inconsistency.
 
-Using the uploaded a13 rules as the baseline, these are my priorities. **All new `.ail` syntax below is proposed; sketches are fragments, not programs the current compiler accepts.**
+Using the uploaded a13 rules as the baseline, these are my priorities. **All new `.can` syntax below is proposed; sketches are fragments, not programs the current compiler accepts.**
 
 ## Ranked shortlist
 
@@ -26,9 +26,9 @@ The ordering is my design recommendation, not a measured implementation estimate
 
 F#’s `let` expressions associate a name with a value and give that name a lexical scope. Borrow that mechanism while rejecting optional annotations, destructuring shortcuts, and inferred generic parameters. ([Microsoft Learn][1])
 
-For ai-lang, make a binding **one expression with an explicitly nested continuation**, preserving the single-expression-body rule:
+For can-lang, make a binding **one expression with an explicitly nested continuation**, preserving the single-expression-body rule:
 
-```ail
+```can
 let total: int = left + right
   match total <= limit
     true => Ok(value = total)
@@ -40,7 +40,7 @@ This would mean: evaluate `left + right` once, bind the resulting `int` to `tota
 
 The current rules require expression bodies, but that does not logically require banning local binding expressions. The earlier reviewer guide explicitly says there is no `let`; this is a genuine addition rather than a formatting change.  
 
-**The ai-lang restrictions should be strict:** mandatory type, no reassignment, no shadowing, no recursive bindings, and initially only pure value expressions as initializers. Effectful calls would still use `match call`; `let` must not become a way to hide effects or unwrap `Ok`.
+**The can-lang restrictions should be strict:** mandatory type, no reassignment, no shadowing, no recursive bindings, and initially only pure value expressions as initializers. Effectful calls would still use `match call`; `let` must not become a way to hide effects or unwrap `Ok`.
 
 **Proof cost:** lexical binding and scope checks, exact initializer typing, evaluate-once semantics, and preservation of binder identity through termination checking and TypeScript lowering. A name matching the spelling of a ranking parameter must not be mistaken for that parameter.
 
@@ -66,7 +66,7 @@ Your a13 system has executable decision tables, exhaustive outcomes, and branch 
 
 For a maximum function:
 
-```ail
+```can
 ensures
   on Ok result
     result.value >= left
@@ -80,7 +80,7 @@ Each clause is a required predicate. Together, these say that the result is at l
 
 For a validator:
 
-```ail
+```can
 ensures
   on Ok result
     result.value == value
@@ -98,7 +98,7 @@ A complete declaration would include every declared error outcome. This excerpt 
 
 A private arithmetic kernel might require:
 
-```ail
+```can
 requires
   exponent >= 0
 ```
@@ -127,7 +127,7 @@ F# discriminated unions describe a value as exactly one named case, each with it
 
 Borrow the first, small part: **finite, monomorphic, closed unions**.
 
-```ail
+```can
 variant Login__State rev 1
   case Login__Anonymous()
   case Login__Authenticated(
@@ -141,7 +141,7 @@ variant Login__State rev 1
 
 Matching remains explicit:
 
-```ail
+```can
 match state
   on Login__Anonymous _ =>
     Ok(message = "Sign in")
@@ -171,9 +171,9 @@ This is preferable to a record containing `authenticated: bool`, `locked: bool`,
 
 F* refinement types describe values satisfying predicates, such as non-negative integers. F* also uses refinement subtyping to introduce and eliminate these refinements. **Borrow the predicates, not the implicit conversions.** ([FStar][4])
 
-For ai-lang:
+For can-lang:
 
-```ail
+```can
 refine Retry__Attempts is int rev 1
   invariant
     value >= 0
@@ -204,11 +204,11 @@ Your existing brand mechanism is nominal and string-backed; constructor control 
 
 Dafny has frame specifications and two-state expressions such as `old(...)` for reasoning about entry and exit state. ([Dafny][5])
 
-ai-lang already declares state authority through `effects`. **Keep that mechanism. Do not add a second competing `modifies` manifest.** What is missing from that declaration is the relationship between the old state, new state, and returned outcome. 
+can-lang already declares state authority through `effects`. **Keep that mechanism. Do not add a second competing `modifies` manifest.** What is missing from that declaration is the relationship between the old state, new state, and returned outcome. 
 
 For the quota counter:
 
-```ail
+```can
 ensures
   on Ok result
     Quota__used == old(Quota__used) + amount
@@ -244,9 +244,9 @@ That matters because the state specification explicitly says production historie
 
 Dafny lemmas are proof-only declarations that cannot change state and are erased from executable code. F* similarly distinguishes ghost computations and prevents them from influencing retained computation. ([Dafny][6])
 
-A small ai-lang adaptation could look like:
+A small can-lang adaptation could look like:
 
-```ail
+```can
 lemma range__width(lower: int, upper: int) rev 1
   requires
     upper >= lower
@@ -276,9 +276,9 @@ This also provides a disciplined answer to your fallible-recursion coverage prob
 
 F# associates numeric values with units and checks that arithmetic has consistent dimensions. Its units are compile-time information rather than runtime wrappers. ([Microsoft Learn][7])
 
-An explicit ai-lang version might use:
+An explicit can-lang version might use:
 
-```ail
+```can
 unit Time__Second rev 1
 unit Time__Millisecond rev 1
 unit Data__Byte rev 1
@@ -310,7 +310,7 @@ A function expecting milliseconds must reject seconds until an explicitly named 
 
 ### Opaque interfaces, not merely “restricted seal”
 
-F# signatures can hide record fields and union constructors from consumers. Borrow that abstraction boundary, but keep ai-lang’s authoritative contract in the `.ail` source rather than creating a second manually synchronized signature file. ([Microsoft Learn][8])
+F# signatures can hide record fields and union constructors from consumers. Borrow that abstraction boundary, but keep can-lang’s authoritative contract in the `.can` source rather than creating a second manually synchronized signature file. ([Microsoft Learn][8])
 
 For HTML, the desired guarantee is not just “the consumer cannot write `seal Html__Safe(...)`.” It is:
 
@@ -324,7 +324,7 @@ Dafny supports lexicographic measures and measures based on finite structures. B
 
 For example:
 
-```ail
+```can
 decreases
   lexicographic
     remaining_pages
@@ -339,7 +339,7 @@ This could replace your current hard-coded unit-decrement shape with a more gene
 
 ## What not to steal
 
-| Avoid                                                  | Better ai-lang choice                                                            |
+| Avoid                                                  | Better can-lang choice                                                            |
 | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | Optional annotations and inferred public contracts     | Require every public type, error set, capability set, and refinement explicitly. |
 | Implicit refinement introduction/elimination           | Explicit checked construction and explicit projection.                           |
@@ -352,7 +352,7 @@ The risk is not only an incorrect implementation. An agent can also produce a **
 
 Keep the decision tables, therefore. Use **examples to anchor intended behavior, universal contracts to constrain all admitted behavior, and an independent check that TypeScript preserves those semantics**. None substitutes for the other two.
 
-**My next three feature specs would be: typed immutable bindings; outcome-specific contracts together with their verifier; then closed tagged unions.** Those provide the strongest immediate foundation for the standard library without turning ai-lang into a full dependent-type language.
+**My next three feature specs would be: typed immutable bindings; outcome-specific contracts together with their verifier; then closed tagged unions.** Those provide the strongest immediate foundation for the standard library without turning can-lang into a full dependent-type language.
 
 [1]: https://learn.microsoft.com/en-us/dotnet/fsharp/language-reference/functions/let-bindings "let Bindings - F# | Microsoft Learn"
 [2]: https://dafny.org/latest/OnlineTutorial/guide "Getting Started with Dafny: A Guide | Dafny Documentation"

@@ -33,13 +33,13 @@ passthrough shape living next to a real elimination.
 - Linked execution through the settled runner: `shell__greet`
   over `Empty` and `Submitted` runs the real provider, no
   scripts. Contradiction control: a wrong expectation fails
-  with a payload mismatch (the AIL3110 shape); a wrong-tag
+  with a payload mismatch (the CAN3110 shape); a wrong-tag
   echo fails on tag identity in linkage.
 - Catalog absence: `errors.json` carries no `Form` entries.
 - Generated artifacts: committed `form.ts`/`shell.ts`
   goldens, byte-compared by the suite, strict-tsc green via
   the existing sketches gate. No grammar change, so no
-  editor/ailc refresh beyond the normal build.
+  editor/canlc refresh beyond the normal build.
 
 ## Out of scope
 

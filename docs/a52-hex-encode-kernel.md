@@ -13,8 +13,8 @@ shape as B3; no errors, no catalog churn, no authorization.
    mismatch names `want Bytes`.
 3. `compiler/emit.go`: `stmtBytesHexEncode` (Ok-only arms,
    own lowering — no sharing with the TextEncoder path) +
-   dispatch branch + `$ailHexEncode` nibble-table helper,
-   emitted only when called (same gating as `$ailUtf8Decode`).
+   dispatch branch + `$canHexEncode` nibble-table helper,
+   emitted only when called (same gating as `$canUtf8Decode`).
 4. `compiler/bytes_b8_test.go`: H-rows (below). Fixture
    relays the kernel into `Encoding__Text` directly.
 
@@ -40,7 +40,7 @@ change ships in this slice.
   (`deadbeef`), no-text-interpretation (`[65,66]->"4142"`),
   full low-nibble sweep; named binding; no-`given`;
   str/int/brand admission; explicit empty contract;
-  stale arm; emit pin on `$ailHexEncode`.
+  stale arm; emit pin on `$canHexEncode`.
 - `go test -count=1 ./...`; assert `git status` shows no
   golden/std churn (no regen run at all).
 - Node vectors: exhaustive 1-byte (256) + multi-byte incl.

@@ -1,13 +1,13 @@
-// ailc lsp: minimal Language Server over stdio.
+// canlc lsp: minimal Language Server over stdio.
 //
 // Speaks just enough JSON-RPC to drive editor squiggles: initialize,
 // textDocument/didOpen, textDocument/didChange, shutdown/exit. Every
 // keystroke re-runs the full diagnosis (parse, naming, uses resolution,
 // exhaustiveness proof, signature tests) and publishes diagnostics.
 //
-// Run: ailc lsp [--baseline BASE.json]   (editors connect stdout/stdin
+// Run: canlc lsp [--baseline BASE.json]   (editors connect stdout/stdin
 // with Content-Length framing). With --baseline, every diagnosis also
-// runs revision-identity enforcement (a79): the same AIL6013 findings
+// runs revision-identity enforcement (a79): the same CAN6013 findings
 // the CLI reports, as editor squiggles.
 package main
 
@@ -144,7 +144,7 @@ func locateLineFrom(text, sub string, fromLine, fallback int) int {
 	return locateLine(text, sub, fallback)
 }
 
-// diagnose runs every check on the open file (sibling .ail files in dir
+// diagnose runs every check on the open file (sibling .can files in dir
 // provide the uses/provides world) and returns sorted diagnostics.
 // Without a baseline no identity findings report: the editor stays
 // quiet exactly as before.
@@ -154,7 +154,7 @@ func diagnose(dir, name, text string) []Diag {
 
 // diagnoseWith threads an accepted revision baseline through the
 // same pipeline: when the world otherwise checks clean, identity
-// drift against the baseline appends AIL6013 findings, mirroring
+// drift against the baseline appends CAN6013 findings, mirroring
 // the CLI's firstError gate so broken programs never gain drift
 // noise on top of their real errors.
 func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
@@ -163,7 +163,7 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	entries, _ := os.ReadDir(dir)
 	files := []string{}
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".ail") && e.Name() != name {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".can") && e.Name() != name {
 			files = append(files, e.Name())
 		}
 	}
@@ -392,7 +392,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 					if errors.As(err, &uce) && calleeUnknown(prog, uce.Fname) {
 						// a62: the row can only fail on the
 						// unknown call checkCalls already
-						// reported; suppress the AIL4200 but
+						// reported; suppress the CAN4200 but
 						// mark the fn failed so coverage
 						// stays silent too.
 						failed[fn.Name] = true
@@ -683,7 +683,7 @@ func publishDiagnostics(w *bufio.Writer, uri, text string, diags []Diag) error {
 				"end":   map[string]any{"line": line, "character": end},
 			},
 			"severity": sevCode(d.Sev),
-			"source":   "ailc",
+			"source":   "canlc",
 			"message":  d.Msg,
 		}
 		// Slice 0: the stable code and the a71 payloads ride
@@ -726,7 +726,7 @@ func parseLSPArgs(argv []string) (string, error) {
 			baseline = argv[i+1]
 			i += 2
 		} else {
-			return "", fmt.Errorf("usage: ailc lsp [--baseline BASE.json]")
+			return "", fmt.Errorf("usage: canlc lsp [--baseline BASE.json]")
 		}
 	}
 	return baseline, nil
@@ -748,7 +748,7 @@ func runLSP(argv []string) int {
 	if baselinePath != "" {
 		base, err = LoadBaseline(baselinePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ailc lsp: cannot load baseline, revision enforcement off: %v\n", err)
+			fmt.Fprintf(os.Stderr, "canlc lsp: cannot load baseline, revision enforcement off: %v\n", err)
 			base = nil
 		}
 	}

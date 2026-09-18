@@ -82,21 +82,21 @@ fn audit__go() -> Audit__Value rev 1
 `
 
 func TestBindReorderedCallEvaluates(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"audit.ail": bindReorder})
+	dir := writeLSPDir(t, map[string]string{"audit.can": bindReorder})
 	// diagnose runs every decision table: g() => 7 passes only if the
 	// evaluator binds right = 2, left = 9 (-7 would fail the table).
-	if diags := diagnose(dir, "audit.ail", bindReorder); len(diags) != 0 {
+	if diags := diagnose(dir, "audit.can", bindReorder); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestBindReorderedCallEmitsInParamOrder(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(bindReorder), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(bindReorder), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "audit.ts"))
@@ -111,29 +111,29 @@ func TestBindReorderedCallEmitsInParamOrder(t *testing.T) {
 	}
 }
 
-func TestBindBadVectorIsAIL3010(t *testing.T) {
+func TestBindBadVectorIsCAN3010(t *testing.T) {
 	dup := strings.Replace(bindReorder,
 		"match call audit__subtract(right = 2, left = 9)",
 		"match call audit__subtract(left = 9, left = 9)", 1)
-	dir := writeLSPDir(t, map[string]string{"audit.ail": dup})
-	diags := diagnose(dir, "audit.ail", dup)
+	dir := writeLSPDir(t, map[string]string{"audit.can": dup})
+	diags := diagnose(dir, "audit.can", dup)
 	if !hasDiag(diags, "error", "supplies arg left twice") {
 		t.Fatalf("expected duplicate-binding error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL3010") {
-		t.Fatalf("expected AIL3010, got %v", diags)
+	if !hasCode(diags, "CAN3010") {
+		t.Fatalf("expected CAN3010, got %v", diags)
 	}
 
 	missing := strings.Replace(bindReorder,
 		"match call audit__subtract(right = 2, left = 9)",
 		"match call audit__subtract(right = 2)", 1)
-	dir = writeLSPDir(t, map[string]string{"audit.ail": missing})
-	diags = diagnose(dir, "audit.ail", missing)
+	dir = writeLSPDir(t, map[string]string{"audit.can": missing})
+	diags = diagnose(dir, "audit.can", missing)
 	if !hasDiag(diags, "error", "is missing arg left") {
 		t.Fatalf("expected missing-binding error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL3010") {
-		t.Fatalf("expected AIL3010, got %v", diags)
+	if !hasCode(diags, "CAN3010") {
+		t.Fatalf("expected CAN3010, got %v", diags)
 	}
 }
 

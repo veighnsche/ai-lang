@@ -68,7 +68,7 @@ fn shell__greet(state: Form__State) -> Shell__Out rev 1
 `
 
 func pilotFiles() map[string]string {
-	return map[string]string{"form.ail": pilotFormSrc, "shell.ail": pilotShellSrc}
+	return map[string]string{"form.can": pilotFormSrc, "shell.can": pilotShellSrc}
 }
 
 // TestPilotDiagnoseClean pins the composition: provider and
@@ -76,10 +76,10 @@ func pilotFiles() map[string]string {
 // exchange args and a passthrough union field.
 func TestPilotDiagnoseClean(t *testing.T) {
 	dir := writeLSPDir(t, pilotFiles())
-	if diags := diagnose(dir, "form.ail", pilotFormSrc); len(diags) != 0 {
+	if diags := diagnose(dir, "form.can", pilotFormSrc); len(diags) != 0 {
 		t.Fatalf("form: expected no diagnostics, got %v", diags)
 	}
-	if diags := diagnose(dir, "shell.ail", pilotShellSrc); len(diags) != 0 {
+	if diags := diagnose(dir, "shell.can", pilotShellSrc); len(diags) != 0 {
 		t.Fatalf("shell: expected no diagnostics, got %v", diags)
 	}
 }
@@ -88,14 +88,14 @@ func TestPilotDiagnoseClean(t *testing.T) {
 // provider over a nullary and a payload case, no scripts.
 func TestPilotLinked(t *testing.T) {
 	if err := runLinkedPure(t, pilotFiles(),
-		[]string{"form.ail", "shell.ail"},
+		[]string{"form.can", "shell.can"},
 		"shell__greet", 1,
 		map[string]string{"state": `Form__Empty()`},
 		`Ok(message = "Start typing", echo = Form__Empty())`); err != nil {
 		t.Fatalf("linked empty: %v", err)
 	}
 	if err := runLinkedPure(t, pilotFiles(),
-		[]string{"form.ail", "shell.ail"},
+		[]string{"form.can", "shell.can"},
 		"shell__greet", 1,
 		map[string]string{"state": `Form__Submitted(name = "Bo")`},
 		`Ok(message = "Hello, Bo", echo = Form__Submitted(name = "Bo"))`); err != nil {
@@ -103,11 +103,11 @@ func TestPilotLinked(t *testing.T) {
 	}
 }
 
-// TestPilotLinkedContradiction pins the AIL3110 shape in linkage: a
+// TestPilotLinkedContradiction pins the CAN3110 shape in linkage: a
 // wrong message fails, and a wrong-tag echo fails on tag identity.
 func TestPilotLinkedContradiction(t *testing.T) {
 	err := runLinkedPure(t, pilotFiles(),
-		[]string{"form.ail", "shell.ail"},
+		[]string{"form.can", "shell.can"},
 		"shell__greet", 1,
 		map[string]string{"state": `Form__Empty()`},
 		`Ok(message = "WRONG", echo = Form__Empty())`)
@@ -115,7 +115,7 @@ func TestPilotLinkedContradiction(t *testing.T) {
 		t.Fatalf("expected payload mismatch, got %v", err)
 	}
 	err = runLinkedPure(t, pilotFiles(),
-		[]string{"form.ail", "shell.ail"},
+		[]string{"form.can", "shell.can"},
 		"shell__greet", 1,
 		map[string]string{"state": `Form__Empty()`},
 		`Ok(message = "Start typing", echo = Form__Submitted(name = "Bo"))`)
@@ -155,8 +155,8 @@ func TestPilotCatalogAbsent(t *testing.T) {
 func TestGoldenFormState(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
-		"../sketches/form-state/form.ail",
-		"../sketches/form-state/shell.ail",
+		"../sketches/form-state/form.can",
+		"../sketches/form-state/shell.can",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)
@@ -171,7 +171,7 @@ func TestGoldenFormState(t *testing.T) {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
 		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run ailc and inspect the diff)", f)
+			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
 		}
 	}
 }

@@ -32,7 +32,7 @@ The package names one unresolved **evidence** item: **U1**, the missing round-2 
 
 The canonical form is:
 
-```ail
+```can
 const Html__AsciiColon: int rev 1 = 58
 ```
 
@@ -60,7 +60,7 @@ For `Ok`, the source payload must have exactly the destination success field set
 
 This mapping remains manual:
 
-```ail
+```can
 on html.nul_byte e => html.nul_byte(value = value)
 ```
 
@@ -80,7 +80,7 @@ The selected rules are:
 * Exhaustiveness requires the entire typed product to be covered—not merely the presence of an underscore somewhere.
 * The existing typed value wildcard remains available; no error or variant catch-all is introduced.
 
-**AIL4107 stays one obligation per source arm.** A range endpoint is not an arm, and an alternative sharing the same RHS is not a second arm. Boundary and per-alternative examples are mandatory for the named migrations, but are not silently promoted into a new language-wide coverage law. The current checker already distinguishes execution evidence from authorized structural certificates.
+**CAN4107 stays one obligation per source arm.** A range endpoint is not an arm, and an alternative sharing the same RHS is not a second arm. Boundary and per-alternative examples are mandatory for the named migrations, but are not silently promoted into a new language-wide coverage law. The current checker already distinguishes execution evidence from authorized structural certificates.
 
 The proof implementation must not confuse a witness-reporting or optimization budget with successful exhaustiveness. The current final-`else` optimization already consumes a proof result rather than inventing one in emit; the new domains retain that separation.
 
@@ -88,7 +88,7 @@ The proof implementation must not confuse a witness-reporting or optimization bu
 
 The correctly typed fault probes are:
 
-```ail
+```can
 false and ((1 / 0) == 0)
 true or ((1 / 0) == 0)
 ```
@@ -100,11 +100,11 @@ This follows the repository’s distinction between returned typed errors and lo
 The chosen lowering is:
 
 ```ts
-function $ailBoolAnd(left: boolean, right: boolean): boolean {
+function $canBoolAnd(left: boolean, right: boolean): boolean {
   return left && right;
 }
 
-$ailBoolAnd(lhs, rhs);
+$canBoolAnd(lhs, rhs);
 ```
 
 Both argument expressions evaluate before the helper combines their values. ECMAScript evaluates preceding arguments before subsequent argument expressions. Direct `(lhs && rhs)` is rejected because parentheses do not make it strict. ([TC39][1])
@@ -118,7 +118,7 @@ Consequently, `(n > 0) and (s[0] == 65)` is **not an indexing guard**. Domain-de
 + Ok(value = -value)
 ```
 
-For integers, emit `(-value)`. For decimals, emit `$ailDecSub("0.0", value)`. Preserve `-3` and `d"-0.5"` literal behavior, reject unary plus, and keep `n + -1` outside the canonical recursion-step rule. The named migration is `std__int__negate`, retaining its three existing rows.
+For integers, emit `(-value)`. For decimals, emit `$canDecSub("0.0", value)`. Preserve `-3` and `d"-0.5"` literal behavior, reject unary plus, and keep `n + -1` outside the canonical recursion-step rule. The named migration is `std__int__negate`, retaining its three existing rows.
 
 ## Migration results and the authority trap
 
@@ -136,7 +136,7 @@ These are source-arm derivations from the inspected and proposed bodies, countin
 
 The selected migration adds one local, tested finish helper:
 
-```ail
+```can
 match n <= 0, prev
   true, "" => html.invalid_url(value = orig)
   _, "-" => html.invalid_url(value = orig)
@@ -151,12 +151,12 @@ Six new diagnostic allocations are specified against the pinned registry. Each h
 
 | Code        | Rule                                                     |
 | ----------- | -------------------------------------------------------- |
-| **AIL2205** | Constant declaration collision                           |
-| **AIL6014** | Constant initializer is not a scalar literal             |
-| **AIL3011** | Forward operand is not the current arm’s payload binder  |
-| **AIL4110** | Invalid integer range bounds                             |
-| **AIL4111** | Earlier arms completely cover this arm                   |
-| **AIL4112** | An or-alternative contributes no remaining pattern space |
+| **CAN2205** | Constant declaration collision                           |
+| **CAN6014** | Constant initializer is not a scalar literal             |
+| **CAN3011** | Forward operand is not the current arm’s payload binder  |
+| **CAN4110** | Invalid integer range bounds                             |
+| **CAN4111** | Earlier arms completely cover this arm                   |
+| **CAN4112** | An or-alternative contributes no remaining pattern space |
 
 Existing type, call-position, pin, termination, coverage, and identity rules keep their existing codes. The new codes are **specified in the package, not registered in the repository**.
 
@@ -184,7 +184,7 @@ The supplied standalone models were executed successfully:
 
 One useful counterexample emerged: extending digit-last from 57 to 58 is masked in the scheme worker by its earlier colon arm. The combined authority corpus detects it through colon rejection. The mutation gate therefore runs both consumers rather than demanding that every mutation alter the scheme result.
 
-These are **transcribed models, not compiled AIL equivalence proofs**. Their receipts and limitations are included in the package.
+These are **transcribed models, not compiled CAN equivalence proofs**. Their receipts and limitations are included in the package.
 
 Each build has its own phase-by-phase work, gates, and rollback unit. Required implementation gates include:
 
@@ -203,6 +203,6 @@ go test -count=1 ./compiler -run '^TestA78.*Runtime$'
 
 The runtime suites must actually contain fixtures and fail—not skip—when required tooling is missing. The plan also retains explicit negative probes for ranking shortcuts, hidden calls, unsupported canonical nodes, false coverage certificates, and fault-order changes.
 
-**No compiler gates were run:** no Go build/test, AIL compilation, modcheck, gramcheck, tsc, emitted-AIL runtime suite, or accepted-baseline comparison. No green compiler build is claimed.
+**No compiler gates were run:** no Go build/test, CAN compilation, modcheck, gramcheck, tsc, emitted-CAN runtime suite, or accepted-baseline comparison. No green compiler build is claimed.
 
 [1]: https://tc39.es/ecma262/multipage/ecmascript-language-expressions.html "https://tc39.es/ecma262/multipage/ecmascript-language-expressions.html"

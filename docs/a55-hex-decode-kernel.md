@@ -19,8 +19,8 @@ of duplicating it.
 3. `compiler/emit.go`: generalize `decodeResultUnion` +
    `stmtBytesDecode` by kernel name (descriptor-resolved
    record/emits; helper+flag selection per kernel; reject
-   unknown); add `$ailHexDecode` (validate-then-decode,
-   explicit -1 sentinel, fresh buffer) + `$ailHexVal`
+   unknown); add `$canHexDecode` (validate-then-decode,
+   explicit -1 sentinel, fresh buffer) + `$canHexVal`
    + `hexdec` flag with call-only emission. B6 D6 pins
    stay unchanged.
 4. `compiler/bytes_b10_test.go`: X-rows (below).
@@ -48,11 +48,11 @@ Out of scope: B11 wrapper, base64 (B12–B15).
   admission incl. brands through BOTH arms; X5 contracts;
   X6 emit pins (hex helper + union, TextEncoder/
   TextDecoder absent in hex-only fixture); X7 shadow;
-  X8 wrong field type + wrong-payload AIL4200; X9 AIL3110
+  X8 wrong field type + wrong-payload CAN4200; X9 CAN3110
   both orders (`"zz"` and `"41zz42"` lies); X10 catalog
   attribution; X11 mixed probe module (seqClean +
   per-call union/helper assertions + emitted execution +
-  foreign false-script AIL3110).
+  foreign false-script CAN3110).
 - `go test -count=1 ./...`; regen; structural delta
   check on all 8 catalogs; `cmp` all `.ts` files.
 - Node vectors: emitted X0 fixture + emitted mixed

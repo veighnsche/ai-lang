@@ -1,4 +1,4 @@
-// Command modcheck is the ai-lang module check: every `uses` must resolve
+// Command modcheck is the can-lang module check: every `uses` must resolve
 // to another file's `provides` (with a pinned rev), and the retired shapes
 // (inline `extern`, `externals` sections, curly braces, partial `given`
 // tables) must not reappear. Files marked SUPERSEDED-BY are skipped.
@@ -35,7 +35,7 @@ var (
 	demoRe     = regexp.MustCompile(`(?m)^\s*//\s*DEMO-EXPECTS:\s*(.+?)\s*$`)
 )
 
-// braceOutsideString mirrors ailc's R1 (a45) scan: braces inside
+// braceOutsideString mirrors canlc's R1 (a45) scan: braces inside
 // "..." literals are data, never delimiters; braces in code or
 // comments stay banned. String tracking matches the compiler:
 // " opens, \ skips the next byte, " closes, and // outside a
@@ -87,14 +87,14 @@ type owner struct {
 	mod, file string
 }
 
-// check scans roots (repo layout: roots hold *.ail plus one level of
+// check scans roots (repo layout: roots hold *.can plus one level of
 // example dirs) and returns current/skipped counts, scanned dir names,
 // and every violation. Pure filesystem in, strings out — see main_test.go.
 func check(roots []string) (current, skipped int, scanned []string, errs []string) {
 	var files []string
 	for _, root := range roots {
-		top, _ := filepath.Glob(filepath.Join(root, "*.ail"))
-		sub, _ := filepath.Glob(filepath.Join(root, "*", "*.ail"))
+		top, _ := filepath.Glob(filepath.Join(root, "*.can"))
+		sub, _ := filepath.Glob(filepath.Join(root, "*", "*.can"))
 		files = append(files, append(top, sub...)...)
 	}
 	sort.Strings(files)
@@ -113,8 +113,8 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 	groups := map[string][]string{}
 	rootOf := map[string]string{}
 	for _, root := range roots {
-		top, _ := filepath.Glob(filepath.Join(root, "*.ail"))
-		sub, _ := filepath.Glob(filepath.Join(root, "*", "*.ail"))
+		top, _ := filepath.Glob(filepath.Join(root, "*.can"))
+		sub, _ := filepath.Glob(filepath.Join(root, "*", "*.can"))
 		for _, p := range append(top, sub...) {
 			rootOf[p] = root
 		}
@@ -248,7 +248,7 @@ func checkGroup(files []string, keyOf func(string) string, shared map[string][]s
 			for _, deps := range uses {
 				for _, dep := range deps {
 					if dep[1] == decl {
-						add(file, "extern fn %s re-declares an ail-provided name", decl)
+						add(file, "extern fn %s re-declares an can-provided name", decl)
 					}
 				}
 			}

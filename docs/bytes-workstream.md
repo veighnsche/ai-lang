@@ -4,7 +4,7 @@
 
 Add a `Bytes` primitive type to the language, closing issue #42 and
 unblocking two waiting consumers: `html__render__utf8` (Render bundle)
-and the text conversions in `std/text/text.ail` (hex/base64/utf8).
+and the text conversions in `std/text/text.can` (hex/base64/utf8).
 
 ## Why a workstream, not a slice
 
@@ -19,7 +19,7 @@ don't collide.
 - `utf8` encode: `str → Bytes` (this alone unblocks Render).
 - `utf8` decode: `Bytes → str` with a failure for invalid sequences
   (new error kind; errors carry the offending value, per convention).
-- `hex` encode/decode, `base64` encode/decode (unblocks text.ail).
+- `hex` encode/decode, `base64` encode/decode (unblocks text.can).
 - Empty bytes value; equality on bytes (needed for tests).
 - Literal syntax: OPEN QUESTION, yours to decide. Candidates: hex
   literals, constructor from `Seq<int>`, or both. `Seq` literal
@@ -48,6 +48,6 @@ don't collide.
 - `(document: Html__Safe) → Bytes` is implementable as
   `html__render__utf8` with no new wall (no brand smuggling, no
   unseal).
-- The `text.ail` conversions land on the new type.
-- Full compiler suite green; no existing `.ail` module changes
+- The `text.can` conversions land on the new type.
+- Full compiler suite green; no existing `.can` module changes
   required (consumers adapt to Bytes, not vice versa).

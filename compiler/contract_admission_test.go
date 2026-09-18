@@ -73,7 +73,7 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
 
 func admitProg(t *testing.T, src string) (*Program, map[string]string) {
 	t.Helper()
-	return revisionProg(t, map[string]string{"m.ail": src}, []string{"m.ail"})
+	return revisionProg(t, map[string]string{"m.can": src}, []string{"m.can"})
 }
 
 // TestAdmitPilots pins the open gate: both public pilots lie inside

@@ -1,6 +1,6 @@
 # std-scalars — monomorphic scalar standard library
 
-- `scalars.ail` — `mod scalars`: boolean logic, three-way
+- `scalars.can` — `mod scalars`: boolean logic, three-way
   comparisons (`-1`/`0`/`1`, false before true), selection of
   already-computed values, int/dec predicates, int/dec
   fundamentals (abs, negate, sign, min, max, clamp, distance,
@@ -21,7 +21,7 @@
   unreachable. String order is byte order, documented in the file.
 - `scalars.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
-  std/scalars std/scalars/scalars.ail`;
+  std/scalars std/scalars/scalars.can`;
   verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/a13-stdlib.md` (row 2).

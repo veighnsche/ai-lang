@@ -8,7 +8,7 @@ import (
 )
 
 // Outcome metadata and logical payload fields are disjoint: the tag
-// lives under the unspellable $ail_kind key, and every declared field
+// lives under the unspellable $can_kind key, and every declared field
 // — including kind, __proto__, and constructor — becomes an own data
 // property with its source name unchanged.
 
@@ -59,22 +59,22 @@ fn audit__ctor() -> Audit__Ctor rev 1
 `
 
 func TestPayloadLayoutEvaluates(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"audit.ail": layoutFixture})
+	dir := writeLSPDir(t, map[string]string{"audit.can": layoutFixture})
 	// The evaluator keeps tag and payload disjoint by construction;
 	// these tables pin the data side: kind as a value, the error tag
 	// beside its kind field, and the exact code.
-	if diags := diagnose(dir, "audit.ail", layoutFixture); len(diags) != 0 {
+	if diags := diagnose(dir, "audit.can", layoutFixture); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestPayloadLayoutEmit(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(layoutFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(layoutFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "audit.ts"))
@@ -83,10 +83,10 @@ func TestPayloadLayoutEmit(t *testing.T) {
 	}
 	src := string(got)
 	for _, want := range []string{
-		`$ail_kind: "ok"`,
-		`$ail_kind: "audit.bad"`,
+		`$can_kind: "ok"`,
+		`$can_kind: "audit.bad"`,
 		`kind: "request"`,
-		`{ $ail_kind: "audit.bad"; kind: string; code: bigint }`,
+		`{ $can_kind: "audit.bad"; kind: string; code: bigint }`,
 		`["__proto__"]: "kept"`,
 		`constructor: "mine"`,
 	} {

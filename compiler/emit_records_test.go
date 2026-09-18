@@ -78,21 +78,21 @@ fn audit__eq(flag: str) -> Audit__Out rev 1
 `
 
 func TestRecordProductsEvaluate(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"audit.ail": recordFixture})
+	dir := writeLSPDir(t, map[string]string{"audit.can": recordFixture})
 	// Construction, passing, nested reads, boxed returns, and outcome
 	// comparison agree in the evaluator.
-	if diags := diagnose(dir, "audit.ail", recordFixture); len(diags) != 0 {
+	if diags := diagnose(dir, "audit.can", recordFixture); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestRecordProductsEmit(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(recordFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(recordFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "audit.ts"))
@@ -105,8 +105,8 @@ func TestRecordProductsEmit(t *testing.T) {
 		`export type Audit__Page = { attrs: Audit__Attrs; title: string };`,
 		`export function audit__use(attrs: Audit__Attrs)`,
 		`{ id: "main" }`,
-		`$ailEqRec(left, right, ["attrs"])`,
-		`{ $ail_kind: "ok"; attrs: Audit__Attrs }`,
+		`$canEqRec(left, right, ["attrs"])`,
+		`{ $can_kind: "ok"; attrs: Audit__Attrs }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, ts)
@@ -121,11 +121,11 @@ func TestRecordConstructionRefusals(t *testing.T) {
 		want string
 		code string
 	}{
-		{"wrong constructor", "Ok(value = Audit__Nope(id = \"x\"))", "unknown record Audit__Nope", "AIL6002"},
-		{"missing field", "Audit__Attrs()", "is missing field id", "AIL6003"},
-		{"duplicate field", "Audit__Attrs(id = \"a\", id = \"b\")", "repeats field id", "AIL6003"},
-		{"wrong field type", "Audit__Attrs(id = 1)", "got int, want str", "AIL6003"},
-		{"unknown field", "Audit__Attrs(id = \"a\", bogus = 1)", "has no field bogus", "AIL6003"},
+		{"wrong constructor", "Ok(value = Audit__Nope(id = \"x\"))", "unknown record Audit__Nope", "CAN6002"},
+		{"missing field", "Audit__Attrs()", "is missing field id", "CAN6003"},
+		{"duplicate field", "Audit__Attrs(id = \"a\", id = \"b\")", "repeats field id", "CAN6003"},
+		{"wrong field type", "Audit__Attrs(id = 1)", "got int, want str", "CAN6003"},
+		{"unknown field", "Audit__Attrs(id = \"a\", bogus = 1)", "has no field bogus", "CAN6003"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -153,8 +153,8 @@ fn audit__probe() -> Audit__Attrs rev 1
   USE
 `
 			mod = strings.Replace(mod, "USE", use, 1)
-			dir := writeLSPDir(t, map[string]string{"audit.ail": mod})
-			diags := diagnose(dir, "audit.ail", mod)
+			dir := writeLSPDir(t, map[string]string{"audit.can": mod})
+			diags := diagnose(dir, "audit.can", mod)
 			if !hasDiag(diags, "error", tc.want) {
 				t.Fatalf("expected %q, got %v", tc.want, diags)
 			}
@@ -185,14 +185,14 @@ fn audit__probe() -> Audit__Session rev 1
 =
   Audit__Session(token = seal Audit__Other("x"))
 `
-	dir := writeLSPDir(t, map[string]string{"audit.ail": mod})
-	diags := diagnose(dir, "audit.ail", mod)
+	dir := writeLSPDir(t, map[string]string{"audit.can": mod})
+	diags := diagnose(dir, "audit.can", mod)
 	if !hasDiag(diags, "error", "got Audit__Other, want Audit__Token") {
 		t.Fatalf("expected brand mismatch, got %v", diags)
 	}
 }
 
-func TestRecordCycleIsAIL6006(t *testing.T) {
+func TestRecordCycleIsCAN6006(t *testing.T) {
 	cases := []struct {
 		name string
 		decl string
@@ -204,16 +204,16 @@ func TestRecordCycleIsAIL6006(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			mod := "mod audit\n  provides [Audit__A, Audit__B]\n  uses []\n  emits []\n\n" + tc.decl + "\n"
-			dir := writeLSPDir(t, map[string]string{"audit.ail": mod})
-			diags := diagnose(dir, "audit.ail", mod)
+			dir := writeLSPDir(t, map[string]string{"audit.can": mod})
+			diags := diagnose(dir, "audit.can", mod)
 			if !hasDiag(diags, "error", "record type cycle") {
 				t.Fatalf("expected cycle error, got %v", diags)
 			}
 			if !hasDiag(diags, "error", tc.want) {
 				t.Fatalf("expected %q, got %v", tc.want, diags)
 			}
-			if !hasCode(diags, "AIL6006") {
-				t.Fatalf("expected AIL6006, got %v", diags)
+			if !hasCode(diags, "CAN6006") {
+				t.Fatalf("expected CAN6006, got %v", diags)
 			}
 		})
 	}

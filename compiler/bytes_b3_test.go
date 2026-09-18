@@ -40,19 +40,19 @@ func bytesEncodeFull() string {
 	return strings.Replace(out, "BOMROW\n", bomRow, 1)
 }
 
-// N0: encode vectors, positional and named spellings. Total over AIL
+// N0: encode vectors, positional and named spellings. Total over CAN
 // scalars; NUL and BOM preserved; no normalization.
 func TestBytesN0EncodeVectors(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesEncodeFull()}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesEncodeFull()}, "m.can")
 	named := strings.Replace(bytesEncodeFull(),
 		"match call bytes__utf8__encode(text)",
 		"match call bytes__utf8__encode(value = text)", 1)
-	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+	seqClean(t, map[string]string{"m.can": named}, "m.can")
 }
 
 // N1: brands are not strings at the encoder edge. The nominal
 // boundary is static by design (brands erase at runtime): this row
-// pins the AIL6003, and the runtime passing is not the evidence.
+// pins the CAN6003, and the runtime passing is not the evidence.
 func TestBytesN1BrandRejected(t *testing.T) {
 	body := `mod m
   provides [M__Secret, m__go, M__Out]
@@ -73,7 +73,7 @@ fn m__go(secret: M__Secret) -> M__Out rev 1
   match call bytes__utf8__encode(secret)
     on Ok r => Ok(vals = r.value)
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want str")
 }
 
@@ -96,7 +96,7 @@ fn m__go(x: int) -> M__Out rev 1
   match call bytes__utf8__encode(x)
     on Ok r => Ok(vals = r.value)
 `
-	seqCode(t, map[string]string{"m.ail": clean}, "m.ail",
+	seqCode(t, map[string]string{"m.can": clean}, "m.can",
 		CodeTypeMismatch, "want str")
 }
 
@@ -105,12 +105,12 @@ func TestBytesN3Arity(t *testing.T) {
 	none := strings.Replace(bytesEncodeFull(),
 		"match call bytes__utf8__encode(text)",
 		"match call bytes__utf8__encode()", 1)
-	seqCode(t, map[string]string{"m.ail": none}, "m.ail",
+	seqCode(t, map[string]string{"m.can": none}, "m.can",
 		CodeBadBinding, "missing arg value")
 	two := strings.Replace(bytesEncodeFull(),
 		"match call bytes__utf8__encode(text)",
 		"match call bytes__utf8__encode(text, text)", 1)
-	seqCode(t, map[string]string{"m.ail": two}, "m.ail",
+	seqCode(t, map[string]string{"m.can": two}, "m.can",
 		CodeBadBinding, "takes 2 args for 1 params")
 }
 
@@ -119,14 +119,14 @@ func TestBytesN4NoGiven(t *testing.T) {
 	body := strings.Replace(bytesEncodeFull(),
 		"  match call bytes__utf8__encode(text)\n    on Ok r => Ok(vals = r.value)",
 		"  match call bytes__utf8__encode(text)\n    given\n      empty => [exchange args (text = \"\") outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(vals = r.value)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
 
 // N5: both kernel contracts exist explicitly (never absent entries).
 func TestBytesN5ContractsRegistered(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": bytesEncodeFull()})
-	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	dir := writeLSPDir(t, map[string]string{"m.can": bytesEncodeFull()})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.can"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,8 +159,8 @@ func TestBytesN7StaleArm(t *testing.T) {
 		"error m.boom(value: str)\n\ntype M__Out rev 1 (", 1)
 	// A stale arm is untaken by definition, so coverage co-fires;
 	// pin the stale-arm rule by presence.
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	if !hasDiag(diags, "error", "stale match arm m.boom") {
 		t.Fatalf("expected stale-arm rejection, got %v", diags)
 	}

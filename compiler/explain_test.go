@@ -6,7 +6,7 @@ import (
 )
 
 // a71: machine-actionable payloads on four codes plus
-// `ailc explain`. Probes first: Diag has no payload
+// `canlc explain`. Probes first: Diag has no payload
 // fields and explainCode does not exist.
 
 // TestExplainKnown pins per-code docs for the four
@@ -22,7 +22,7 @@ func TestExplainKnown(t *testing.T) {
 		}
 	}
 	if text, _ := explainCode(CodeMissingArm); !strings.Contains(text, "on ") {
-		t.Fatalf("AIL4101 explain must show the arm shape, got %q", text)
+		t.Fatalf("CAN4101 explain must show the arm shape, got %q", text)
 	}
 }
 
@@ -31,16 +31,16 @@ func TestExplainKnown(t *testing.T) {
 // an unregistered code fails. Uses a temp-registered code so
 // the mechanism stays tested at full coverage.
 func TestExplainFallback(t *testing.T) {
-	allCodes = append(allCodes, "AIL9998")
+	allCodes = append(allCodes, "CAN9998")
 	defer func() { allCodes = allCodes[:len(allCodes)-1] }()
-	text, ok := explainCode("AIL9998")
+	text, ok := explainCode("CAN9998")
 	if !ok {
-		t.Fatal("expected family fallback for temp-registered AIL9998")
+		t.Fatal("expected family fallback for temp-registered CAN9998")
 	}
 	if !strings.Contains(text, "No per-code doc yet") {
 		t.Fatalf("fallback must admit its cut, got %q", text)
 	}
-	if _, ok := explainCode("AIL9999"); ok {
+	if _, ok := explainCode("CAN9999"); ok {
 		t.Fatal("unregistered code must fail")
 	}
 }
@@ -65,7 +65,7 @@ func TestExplainComplete(t *testing.T) {
 	}
 }
 
-// TestPayloadForeignRaise pins AIL4001 fields.
+// TestPayloadForeignRaise pins CAN4001 fields.
 func TestPayloadForeignRaise(t *testing.T) {
 	src := `mod m
   provides [m__go, M__Out]
@@ -86,8 +86,8 @@ fn m__go(value: int) -> M__Out rev 1
 =
   m.stray()
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	var found *Diag
 	for i, d := range diags {
 		if d.Code == CodeForeignRaise {
@@ -95,7 +95,7 @@ fn m__go(value: int) -> M__Out rev 1
 		}
 	}
 	if found == nil {
-		t.Fatalf("expected AIL4001, got %v", diags)
+		t.Fatalf("expected CAN4001, got %v", diags)
 	}
 	if found.Found != "m.stray" {
 		t.Fatalf("Found must name the raised kind, got %+v", found)
@@ -108,7 +108,7 @@ fn m__go(value: int) -> M__Out rev 1
 	}
 }
 
-// TestPayloadBareKind pins AIL3204 fields.
+// TestPayloadBareKind pins CAN3204 fields.
 func TestPayloadBareKind(t *testing.T) {
 	src := `mod m
   provides [m__go, M__Out]
@@ -128,8 +128,8 @@ fn m__go(value: int) -> M__Out rev 1
 =
   Ok(value = value)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	var found *Diag
 	for i, d := range diags {
 		if d.Code == CodeBareErrorKind {
@@ -137,7 +137,7 @@ fn m__go(value: int) -> M__Out rev 1
 		}
 	}
 	if found == nil {
-		t.Fatalf("expected AIL3204, got %v", diags)
+		t.Fatalf("expected CAN3204, got %v", diags)
 	}
 	if found.Found != "m.bad" {
 		t.Fatalf("Found must name the bare kind, got %+v", found)
@@ -147,14 +147,14 @@ fn m__go(value: int) -> M__Out rev 1
 	}
 }
 
-// TestPayloadDangling pins AIL3105 fields, reusing the lsp
+// TestPayloadDangling pins CAN3105 fields, reusing the lsp
 // fixtures with one scriptless test added.
 func TestPayloadDangling(t *testing.T) {
 	auth := strings.Replace(lspAuth,
 		"    down(id = \"u\") => auth.bad()\n",
 		"    down(id = \"u\") => auth.bad()\n    extra(id = \"u\") => auth.bad()\n", 1)
-	dir := writeLSPDir(t, map[string]string{"db.ail": lspDB, "auth.ail": auth})
-	diags := diagnose(dir, "auth.ail", auth)
+	dir := writeLSPDir(t, map[string]string{"db.can": lspDB, "auth.can": auth})
+	diags := diagnose(dir, "auth.can", auth)
 	var found *Diag
 	for i, d := range diags {
 		if d.Code == CodeDanglingTest {
@@ -162,7 +162,7 @@ func TestPayloadDangling(t *testing.T) {
 		}
 	}
 	if found == nil {
-		t.Fatalf("expected AIL3105, got %v", diags)
+		t.Fatalf("expected CAN3105, got %v", diags)
 	}
 	if found.Found != "extra" {
 		t.Fatalf("Found must name the scriptless test, got %+v", found)
@@ -175,7 +175,7 @@ func TestPayloadDangling(t *testing.T) {
 	}
 }
 
-// TestPayloadMissingArm pins AIL4101 fields.
+// TestPayloadMissingArm pins CAN4101 fields.
 func TestPayloadMissingArm(t *testing.T) {
 	src := `mod m
   provides [m__go, M__Out]
@@ -205,8 +205,8 @@ fn m__help(value: int) -> M__Out rev 1
 =
   Ok(value = value)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	var found *Diag
 	for i, d := range diags {
 		if d.Code == CodeMissingArm {
@@ -214,7 +214,7 @@ fn m__help(value: int) -> M__Out rev 1
 		}
 	}
 	if found == nil {
-		t.Fatalf("expected AIL4101, got %v", diags)
+		t.Fatalf("expected CAN4101, got %v", diags)
 	}
 	if found.Expected != "m.bad" {
 		t.Fatalf("Expected must name the missing kind, got %+v", found)

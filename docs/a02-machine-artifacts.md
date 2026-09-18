@@ -8,7 +8,7 @@ a gap between written spec and reality instead of adding surface.
 ## Goal
 
 Every compiler output an agent consumes must be parseable without
-squinting. Today the compiler speaks only prose (`ailc FAILED: ...`) while
+squinting. Today the compiler speaks only prose (`canlc FAILED: ...`) while
 REQUIREMENTS promises machine-checkable artifacts (R4 rev→hash lock, R7
 prod strip, error catalogs). This bundle delivers three of them. Prose
 messages stay byte-identical; JSON is added beside them, never instead.
@@ -18,25 +18,25 @@ message, changing emit output, new language syntax.
 
 ## Artifact 1 — JSON diagnostics (`--format=json`)
 
-`ailc --out DIR --format=json file.ail [...]` behaves exactly like the
+`canlc --out DIR --format=json file.can [...]` behaves exactly like the
 default build, except compile failure prints one JSON object per line on
 stdout (not stderr) and still exits 1:
 
 ```json
-{"code":"AIL3201","sev":"error","file":"auth.ail","line":20,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 22)"}
+{"code":"CAN3201","sev":"error","file":"auth.can","line":20,"start":4,"end":9,"msg":"test extra has no script at the call to db__get (line 22)"}
 ```
 
 - `file/line/start/end/sev/msg` mirror the `Diag` struct the LSP already
   serves (`compiler/lsp.go`); `start/end` are UTF-16 columns, `end <= start`
   means whole-line, same contract as `publishDiagnostics`.
 - `code` is stable forever. Families:
-  - `AIL1xxx` parse (grammar, braces ban, rev presence)
-  - `AIL2xxx` declarations (naming R3, rev pins R4, provides/uses R2,
+  - `CAN1xxx` parse (grammar, braces ban, rev presence)
+  - `CAN2xxx` declarations (naming R3, rev pins R4, provides/uses R2,
     double definitions)
-  - `AIL3xxx` calls and decision tables (call resolution, given/test
+  - `CAN3xxx` calls and decision tables (call resolution, given/test
     cross-checks R8, test shapes, missing tests)
-  - `AIL4xxx` errors and proof (emits R5, exhaustiveness, test runs)
-  - `AIL5xxx` world/tooling (siblings, unused uses/params)
+  - `CAN4xxx` errors and proof (emits R5, exhaustiveness, test runs)
+  - `CAN5xxx` world/tooling (siblings, unused uses/params)
 - Implementation: add `Code string` to `Diag`; each check site sets it
   (new file `compiler/code.go` owns the registry + a uniqueness test).
   `run()` gains `--format` parsing; a `reportDiags` helper renders the
@@ -47,9 +47,9 @@ stdout (not stderr) and still exits 1:
 - Golden test: `TestGoldenJSONDiags` runs the compiler over
   `sketches/broken-login/` and byte-compares normalized JSON per file.
 
-## Artifact 2 — Canonical values (`ailc normalize`)
+## Artifact 2 — Canonical values (`canlc normalize`)
 
-`ailc normalize file.ail [...]` runs every decision table and prints one
+`canlc normalize file.can [...]` runs every decision table and prints one
 line per test, sorted, in canonical form:
 
 ```
@@ -67,14 +67,14 @@ Canonical grammar over `compiler/eval.go`'s `Value`:
   output ends with newline. Byte-identical reruns or it is a bug.
 
 Implementation: `normalizeValue(v *Value) string` beside `describe()`
-in `compiler/eval.go`; `ailc normalize` reuses the `parse →
+in `compiler/eval.go`; `canlc normalize` reuses the `parse →
 buildProgram → runTest` path and prints `mod.fn/test => value` (test
 expectations are not printed, outcomes are). Golden test over
 `sketches/auth-login/`.
 
 ## Artifact 3 — Error catalog (`errors.json` per build)
 
-Every successful `ailc --out DIR ...` also writes `DIR/errors.json`:
+Every successful `canlc --out DIR ...` also writes `DIR/errors.json`:
 
 ```json
 {"kind":"db.down","fields":[],"raised_by":["db.db__get_user"],

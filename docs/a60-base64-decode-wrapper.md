@@ -4,10 +4,10 @@ Scope: the public stdlib face of the B14 kernel, plus the
 workstream's closing consumer proof. No compiler change.
 Last slice of issue #42's Bytes rollout (B1–B15).
 
-1. `std/text/text.ail`: `provides += std__base64__decode`.
+1. `std/text/text.can`: `provides += std__base64__decode`.
    (`uses []` stays. Mod-level `emits` untouched per the
    `empty_separator` precedent.)
-2. `std/text/text.ail`: `fn std__base64__decode(value: str)
+2. `std/text/text.can`: `fn std__base64__decode(value: str)
    -> Bytes__Value rev 1` after `std__base64__encode`,
    `emits [encoding.invalid_base64]`, relay body (`on Ok`
    + `on encoding.invalid_base64`, payload `e.value`
@@ -18,7 +18,7 @@ Last slice of issue #42's Bytes rollout (B1–B15).
    `"0x00"` is VALID; failures are `0x`-MISPLACED like
    `"=QUI"`, whitespace, `-_`, nonzero pad bits
    `"AE=="`/`"QUJ="`, strict lie, fidelity pair).
-   No committed raw NUL/BOM: text.ail stays a text file.
+   No committed raw NUL/BOM: text.can stays a text file.
 3. Header comment + `std/text/README.md`: base64 now has
    both wrappers; the #42 codec list is complete.
 4. Regen: `text.ts` gains member + helper + fn.
@@ -40,18 +40,18 @@ deferred per the B14 row).
 
 ## Rollback
 
-`git checkout -- std/text/text.ail std/text/text.ts
+`git checkout -- std/text/text.can std/text/text.ts
 std/text/errors.json std/text/README.md` plus delete
 `compiler/bytes_b15_test.go` and `docs/a60-*`.
 
 ## Test plan
 
-- Foreign-caller probe first (red): temp `client.ail`
+- Foreign-caller probe first (red): temp `client.can`
   with `uses [std__base64__decode@1]`, one `client__go`
-  covering both arms (the arm-taken rule AIL4107 forbids
+  covering both arms (the arm-taken rule CAN4107 forbids
   single-arm fns), true outcomes scripted (success,
   identical-payload failure, NUL + non-ASCII malformed).
-  AIL2102 before, clean after.
+  CAN2102 before, clean after.
 - Round-trip acceptance (red with the same gate):
   temp-copy probe fns asserting `decode(encode(x)) = x`
   per codec plus the cross check, all executed.

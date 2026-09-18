@@ -2,7 +2,7 @@
 
 Status: shipped. P0 approved under standing approval; P1–P3
 implemented and green: `std__str__join_from` + `std__str__join`
-in `std/text/text.ail` with the committed rows, goldens
+in `std/text/text.can` with the committed rows, goldens
 regenerated (`text.ts` extended; `errors.json` byte-identical —
 no new kinds, as predicted). No deviations.
 
@@ -10,11 +10,11 @@ no new kinds, as predicted). No deviations.
 
 Join a string sequence with a separator, preserving order:
 `std__str__join(values: Seq<str>, separator: str) -> str`. First
-`.ail` customer of the Seq core (S1–S4); no new compiler surface.
+`.can` customer of the Seq core (S1–S4); no new compiler surface.
 
 ## Success Criteria
 
-- Decision rows below all green in `std/text/text.ail`
+- Decision rows below all green in `std/text/text.can`
   (producer-owned outcomes, no normalization).
 - First-element detection is positional (`position == 0`), never
   `acc == ""` (which misfires when the first field is empty).
@@ -29,7 +29,7 @@ Join a string sequence with a separator, preserving order:
 - S1–S4 give literals, `#`, `[]`, and `+` over `Seq<str>` —
   everything join needs. Same-file helper recursion with
   `decreases` is the house worker shape (`_from`/`find_from`
-  precedent in `std/text/text.ail`).
+  precedent in `std/text/text.can`).
 - Catalogue: `std__str__join` preserves sequence order, Text +
   Collections (`docs/ASTRA_STDLIB.md:227`).
 - Round-trip law (ratified): `join(split(s, sep), sep) = s` for
@@ -58,12 +58,12 @@ Join a string sequence with a separator, preserving order:
 
 1. P0 — Proposal (this file). No code.
 2. P1 — Append `std__str__join_from` + `std__str__join` with
-   rows to `std/text/text.ail`; extend `provides`.
+   rows to `std/text/text.can`; extend `provides`.
 3. P2 — Regen: `go run ./compiler --out std/text
-   std/text/text.ail`; confirm `errors.json` unchanged in
+   std/text/text.can`; confirm `errors.json` unchanged in
    meaning (no new kinds); update `std/text/README.md`.
 4. P3 — Gates (`go test -count=1 ./...`, `modcheck`,
-   `gramcheck` — the golden test recompiles text.ail);
+   `gramcheck` — the golden test recompiles text.can);
    commit with generated files.
 
 ## Validation Plan

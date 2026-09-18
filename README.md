@@ -1,6 +1,6 @@
-# ai-lang
+# can-lang
 
-A small contract-first language (`.ail`) that transpiles to TypeScript.
+A small contract-first language (`.can`) that transpiles to TypeScript.
 You write specs with named errors, exchange scripts, and proofs
 (termination, effects, exact numerics); the compiler checks them and
 emits typed TS plus machine-readable artifacts.
@@ -9,7 +9,7 @@ emits typed TS plus machine-readable artifacts.
 
 - [`REQUIREMENTS.md`](REQUIREMENTS.md) — the language contract, versioned by amendment
 - [`docs/`](docs/README.md) — version history (`a02`–`a12`), the audit trail, and reviewer notes
-- [`compiler/`](compiler/README.md) — `ailc`, the Go transpiler (stdlib only)
+- [`compiler/`](compiler/README.md) — `canlc`, the Go transpiler (stdlib only)
 - [`sketches/`](sketches/README.md) — example programs (auth-login, retry-loop, counter, broken-login)
 - [`std/`](std/README.md) — the blessed standard library (quota, scalars)
 - [`editors/vscode/`](editors/vscode/README.md) — syntax highlighting + LSP client
@@ -20,8 +20,8 @@ emits typed TS plus machine-readable artifacts.
 Requires Go 1.21+. Easiest, no clone needed:
 
 ```
-go install github.com/veighnsche/ai-lang/compiler@latest
-mv "$(go env GOPATH)/bin/compiler" ~/.local/bin/ailc
+go install github.com/veighnsche/can-lang/compiler@latest
+mv "$(go env GOPATH)/bin/compiler" ~/.local/bin/canlc
 ```
 
 (`go install` names the binary after the package directory; the `mv`
@@ -30,7 +30,7 @@ gives it its real name. Make sure `~/.local/bin` is on your `PATH`.)
 Or from a clone:
 
 ```
-make install   # builds ./bin/ailc and copies it to ~/.local/bin/ailc
+make install   # builds ./bin/canlc and copies it to ~/.local/bin/canlc
 ```
 
 ## Upgrade
@@ -38,25 +38,25 @@ make install   # builds ./bin/ailc and copies it to ~/.local/bin/ailc
 Re-run whichever install you used — both resolve to the newest commit:
 
 ```
-go install github.com/veighnsche/ai-lang/compiler@latest   # then re-mv to ailc
+go install github.com/veighnsche/can-lang/compiler@latest   # then re-mv to canlc
 ```
 
 ```
 git pull && make install
 ```
 
-`ailc --version` prints the build stamp (`make install` stamps the git
+`canlc --version` prints the build stamp (`make install` stamps the git
 revision; plain `go install` reports `dev`). No tags or releases yet,
 so "latest" means latest `main` — check the
-[commits](https://github.com/veighnsche/ai-lang/commits/main) to see
+[commits](https://github.com/veighnsche/can-lang/commits/main) to see
 what changed. Note: right after a push, `@latest` can lag the Go module
 proxy by a few minutes; to upgrade immediately, pin the commit instead:
-`go install github.com/veighnsche/ai-lang/compiler@<sha>`.
+`go install github.com/veighnsche/can-lang/compiler@<sha>`.
 
 ## Quickstart
 
 ```
-ailc --out /tmp/ail-out sketches/auth-login/db.ail sketches/auth-login/auth.ail
+canlc --out /tmp/can-out sketches/auth-login/db.can sketches/auth-login/auth.can
 ```
 
 From the repo root, `go test ./...` runs the golden gates

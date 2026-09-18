@@ -10,15 +10,15 @@ import (
 // ordinary wrappers are normal functions: a separate client module
 // calls the wrapper through uses [std__utf8__encode@1], which the
 // wrapper's own decision-table rows cannot show. It also pins NUL
-// relay (text.ail itself stays a text file — no committed raw NUL).
+// relay (text.can itself stays a text file — no committed raw NUL).
 
 // TestBytesB5ForeignCaller pins cross-module callability against the
-// REAL text.ail: nul feeds a<NUL>b (REAL NUL, spliced — the only
-// .ail spelling), computed feeds Aé.
+// REAL text.can: nul feeds a<NUL>b (REAL NUL, spliced — the only
+// .can spelling), computed feeds Aé.
 func TestBytesB5ForeignCaller(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__nul, client__computed]
@@ -45,9 +45,9 @@ fn client__computed() -> Bytes__Value rev 1
       computed => [exchange args (value = "Aé") outcome Ok(value = Bytes(Seq<int>[65, 195, 169]))]
     on Ok r => Ok(value = r.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	if diags := diagnose(dir, "client.ail", client); len(diags) != 0 {
+	if diags := diagnose(dir, "client.can", client); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }

@@ -11,7 +11,7 @@ import (
 // positional dec operand in, Ok(coefficient, scale) out, total. These
 // tests pin the kernel contract directly, its static misuse shapes,
 // and its TS helper wiring. Decision-table coverage of the blessed
-// std__dec__parts wrapper lives in std/scalars/scalars.ail and runs
+// std__dec__parts wrapper lives in std/scalars/scalars.can and runs
 // at every compile.
 
 func decPartsScrut(t *testing.T, arg string) *Small {
@@ -137,8 +137,8 @@ fn m__given(v: dec) -> M__Out rev 1
 `
 
 func TestDiagnoseDecPartsMisuse(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": typeDecPartsMisuse})
-	diags := diagnose(dir, "m.ail", typeDecPartsMisuse)
+	dir := writeLSPDir(t, map[string]string{"m.can": typeDecPartsMisuse})
+	diags := diagnose(dir, "m.can", typeDecPartsMisuse)
 	for _, want := range []string{
 		"call dec__parts value: got str, want dec",
 		"call dec__parts takes positional args",
@@ -183,8 +183,8 @@ fn m__missing(v: dec) -> M__Out rev 1
 func TestDiagnoseDecPartsTotal(t *testing.T) {
 	// The kernel emits nothing, so want = {ok}: an error arm is
 	// stale, and an error-only match misses ok. Totality at the gate.
-	dir := writeLSPDir(t, map[string]string{"m.ail": typeDecPartsTotal})
-	diags := diagnose(dir, "m.ail", typeDecPartsTotal)
+	dir := writeLSPDir(t, map[string]string{"m.can": typeDecPartsTotal})
+	diags := diagnose(dir, "m.can", typeDecPartsTotal)
 	for _, want := range []string{
 		"stale match arm m.nope",
 		"non-exhaustive match, missing ok",
@@ -196,7 +196,7 @@ func TestDiagnoseDecPartsTotal(t *testing.T) {
 }
 
 func TestDecPartsEmitHelper(t *testing.T) {
-	// The $ailDecParts helper emits only when the kernel is used.
+	// The $canDecParts helper emits only when the kernel is used.
 	used := `mod m
   provides [m__parts, M__Out]
   uses []
@@ -215,19 +215,19 @@ fn m__parts(v: dec) -> M__Out rev 1
   match call dec__parts(v)
     on Ok p => Ok(coefficient = p.coefficient, scale = p.scale)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": used})
+	dir := writeLSPDir(t, map[string]string{"m.can": used})
 	out := t.TempDir()
-	if err := compile(out, []string{dir + "/m.ail"}); err != nil {
+	if err := compile(out, []string{dir + "/m.can"}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), "function $ailDecParts") {
-		t.Fatalf("emit missing $ailDecParts helper:\n%s", raw)
+	if !strings.Contains(string(raw), "function $canDecParts") {
+		t.Fatalf("emit missing $canDecParts helper:\n%s", raw)
 	}
-	if !strings.Contains(string(raw), "$ailDecParts(v)") {
+	if !strings.Contains(string(raw), "$canDecParts(v)") {
 		t.Fatalf("emit missing helper call:\n%s", raw)
 	}
 
@@ -236,16 +236,16 @@ fn m__parts(v: dec) -> M__Out rev 1
 		"Ok(coefficient = 1, scale = 0)", 1)
 	plain = strings.Replace(plain, "t(v = d\"1.0\") => Ok(coefficient = 10, scale = 1)",
 		"t(v = d\"1.0\") => Ok(coefficient = 1, scale = 0)", 1)
-	dir2 := writeLSPDir(t, map[string]string{"m.ail": plain})
+	dir2 := writeLSPDir(t, map[string]string{"m.can": plain})
 	out2 := t.TempDir()
-	if err := compile(out2, []string{dir2 + "/m.ail"}); err != nil {
+	if err := compile(out2, []string{dir2 + "/m.can"}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw2, err := os.ReadFile(filepath.Join(out2, "m.ts"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(raw2), "$ailDecParts") {
-		t.Fatalf("emit leaks $ailDecParts when unused:\n%s", raw2)
+	if strings.Contains(string(raw2), "$canDecParts") {
+		t.Fatalf("emit leaks $canDecParts when unused:\n%s", raw2)
 	}
 }

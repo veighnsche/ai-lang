@@ -12,7 +12,7 @@ import (
 // fallible kernel: str in, Bytes__Value on success,
 // encoding.invalid_base64 (original string, unchanged) on malformed
 // input. F-rows are the acceptance rows (verdict v2: corrected
-// 4-bit/2-bit masks, per-lie AIL3110, mixed probe module).
+// 4-bit/2-bit masks, per-lie CAN3110, mixed probe module).
 
 const bytesB64DecodeBase = `mod m
   provides [m__go]
@@ -77,26 +77,26 @@ func bytesB64DecodeFull() string {
 // Mask matrix (AE/QUI vs QUJ, AAAB ////), fidelity pair, even
 // shapes throughout so length never masks alphabet checks.
 func TestBytesF0B64DecodeVectors(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesB64DecodeFull()}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesB64DecodeFull()}, "m.can")
 	named := strings.Replace(bytesB64DecodeFull(),
 		"match call bytes__base64__decode(value)",
 		"match call bytes__base64__decode(value = value)", 1)
-	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+	seqClean(t, map[string]string{"m.can": named}, "m.can")
 }
 
 // F1: both arms are mandatory.
 func TestBytesF1MissingArms(t *testing.T) {
 	noErr := strings.Replace(bytesB64DecodeFull(),
 		"\n    on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)", "", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": noErr})
-	diags := diagnose(dir, "m.ail", noErr)
+	dir := writeLSPDir(t, map[string]string{"m.can": noErr})
+	diags := diagnose(dir, "m.can", noErr)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
 		t.Fatalf("expected missing-arm rejection without error arm, got %v", diags)
 	}
 	noOk := strings.Replace(bytesB64DecodeFull(),
 		"    on Ok r => Ok(value = r.value)\n", "", 1)
-	dir = writeLSPDir(t, map[string]string{"m.ail": noOk})
-	diags = diagnose(dir, "m.ail", noOk)
+	dir = writeLSPDir(t, map[string]string{"m.can": noOk})
+	diags = diagnose(dir, "m.can", noOk)
 	if !hasErrCode(diags, CodeMissingArm) || !hasDiag(diags, "error", "non-exhaustive match, missing") {
 		t.Fatalf("expected missing-arm rejection without Ok arm, got %v", diags)
 	}
@@ -109,8 +109,8 @@ func TestBytesF2StaleArm(t *testing.T) {
 		"    on Ok r => Ok(value = r.value)\n    on m.boom e2 => Ok(value = Bytes(Seq<int>[]))", 1)
 	body = strings.Replace(body, "fn m__go(value: str)",
 		"error m.boom(value: str)\n\nfn m__go(value: str)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.boom") {
 		t.Fatalf("expected stale-arm rejection, got %v", diags)
 	}
@@ -121,7 +121,7 @@ func TestBytesF3NoGiven(t *testing.T) {
 	body := strings.Replace(bytesB64DecodeFull(),
 		"  match call bytes__base64__decode(value)\n    on Ok r => Ok(value = r.value)",
 		"  match call bytes__base64__decode(value)\n    given\n      empty => [exchange args (value = \"\") outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(value = r.value)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
 
@@ -146,9 +146,9 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
 	}
-	seqCode(t, map[string]string{"m.ail": mk("Bytes", "Bytes(Seq<int>[65])")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("Bytes", "Bytes(Seq<int>[65])")}, "m.can",
 		CodeTypeMismatch, "want str")
-	seqCode(t, map[string]string{"m.ail": mk("int", "3")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("int", "3")}, "m.can",
 		CodeTypeMismatch, "want str")
 	goodBrand := strings.Replace(mk("M__Secret", `seal M__Secret("QUJD")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
@@ -156,7 +156,7 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 	goodBrand = strings.Replace(goodBrand,
 		`    go(value = seal M__Secret("QUJD")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))`,
 		"    go(value = seal M__Secret(\"QUJD\")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))\n    bad(value = seal M__Secret(\"!!!\")) => encoding.invalid_base64(value = \"!!!\")", 1)
-	seqCode(t, map[string]string{"m.ail": goodBrand}, "m.ail",
+	seqCode(t, map[string]string{"m.can": goodBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 	badBrand := strings.Replace(mk("M__Secret", `seal M__Secret("!!!")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
@@ -164,15 +164,15 @@ fn m__go(value: PARAM) -> Bytes__Value rev 1
 	badBrand = strings.Replace(badBrand,
 		`    go(value = seal M__Secret("!!!")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))`,
 		"    go(value = seal M__Secret(\"!!!\")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))\n    bad(value = seal M__Secret(\"QUJD\")) => Ok(value = Bytes(Seq<int>[65, 66, 67]))", 1)
-	seqCode(t, map[string]string{"m.ail": badBrand}, "m.ail",
+	seqCode(t, map[string]string{"m.can": badBrand}, "m.can",
 		CodeTypeMismatch, "want str")
 }
 
 // F5: the decode contract exists explicitly: EmitsOf entry plus
 // the compiler-owned error registration (fields ["value"]).
 func TestBytesF5ContractsRegistered(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": bytesB64DecodeFull()})
-	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	dir := writeLSPDir(t, map[string]string{"m.can": bytesB64DecodeFull()})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.can"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,14 +195,14 @@ func TestBytesF5ContractsRegistered(t *testing.T) {
 func TestBytesF6EmitPins(t *testing.T) {
 	ts := compileEmit(t, bytesB64DecodeFull())
 	for _, want := range []string{
-		"$ailB64Decode(",
-		`{ $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string }`,
+		"$canB64Decode(",
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q:\n%s", want, ts)
 		}
 	}
-	for _, banned := range []string{"TextEncoder", "TextDecoder", "$ailUtf8Decode(", "$ailHexDecode(", "atob(", "btoa("} {
+	for _, banned := range []string{"TextEncoder", "TextDecoder", "$canUtf8Decode(", "$canHexDecode(", "atob(", "btoa("} {
 		if strings.Contains(ts, banned) {
 			t.Fatalf("base64-only emit must not contain %q:\n%s", banned, ts)
 		}
@@ -214,7 +214,7 @@ func TestBytesF6EmitPins(t *testing.T) {
 func TestBytesF7ShadowRejection(t *testing.T) {
 	body := strings.Replace(bytesB64DecodeFull(), "fn m__go(value: str)",
 		"error encoding.invalid_base64(value: str)\n\nfn m__go(value: str)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodePrimitiveShadow, "shadows a compiler-owned error")
 }
 
@@ -224,12 +224,12 @@ func TestBytesF8ErrorPathTyped(t *testing.T) {
 	wrongCtor := strings.Replace(bytesB64DecodeFull(),
 		"on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)",
 		`on encoding.invalid_base64 e => encoding.invalid_base64(value = Bytes(Seq<int>[65]))`, 1)
-	seqCode(t, map[string]string{"m.ail": wrongCtor}, "m.ail",
+	seqCode(t, map[string]string{"m.can": wrongCtor}, "m.can",
 		CodeTypeMismatch, "want str")
 	wrongPay := strings.Replace(bytesB64DecodeFull(),
 		`fidelity(value = "QUJD!!!") => encoding.invalid_base64(value = "QUJD!!!")`,
 		`fidelity(value = "QUJD!!!") => encoding.invalid_base64(value = "QUJD!!!!")`, 1)
-	seqCode(t, map[string]string{"m.ail": wrongPay}, "m.ail",
+	seqCode(t, map[string]string{"m.can": wrongPay}, "m.can",
 		CodeTestFailed, "fidelity")
 }
 
@@ -269,17 +269,17 @@ fn client__use(value: str) -> Bytes__Value rev 1
 `
 
 // F9: partial results never escape as success, and unchecked pad
-// bits never pass: EACH lie asserts its OWN AIL3110 in both
+// bits never pass: EACH lie asserts its OWN CAN3110 in both
 // module orders (no aggregate check).
 func TestBytesF9ContradictionBothOrders(t *testing.T) {
-	files := map[string]string{"prov.ail": bytesB64DecodeProv, "client.ail": bytesB64DecodeLie}
-	for _, order := range [][]string{{"prov.ail", "client.ail"}, {"client.ail", "prov.ail"}} {
+	files := map[string]string{"prov.can": bytesB64DecodeProv, "client.can": bytesB64DecodeLie}
+	for _, order := range [][]string{{"prov.can", "client.can"}, {"client.can", "prov.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasDiag(diags, "error", "script prefixlie contradicts prov__go") {
-			t.Fatalf("order %v: expected prefixlie AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected prefixlie CAN3110, got %v", order, diags)
 		}
 		if !hasDiag(diags, "error", "script padlie contradicts prov__go") {
-			t.Fatalf("order %v: expected padlie AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected padlie CAN3110, got %v", order, diags)
 		}
 	}
 }
@@ -288,7 +288,7 @@ func TestBytesF9ContradictionBothOrders(t *testing.T) {
 // to the compiler kernel, with the owned field list.
 func TestBytesF10CatalogAttribution(t *testing.T) {
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "m.ail")
+	srcPath := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(srcPath, []byte(bytesB64DecodeProv), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -372,8 +372,8 @@ fn chain__text(value: str) -> Encoding__Text rev 1
 
 // F11a: both probe modules are clean: every arm witnessed.
 func TestBytesF11aMixedProbesClean(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesB64MixedProbe}, "m.ail")
-	seqClean(t, map[string]string{"m.ail": bytesB64ChainProbe}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesB64MixedProbe}, "m.can")
+	seqClean(t, map[string]string{"m.can": bytesB64ChainProbe}, "m.can")
 }
 
 // F11b: per-call unions and helpers are exact where base64 and
@@ -407,13 +407,13 @@ fn m__b64(value: str) -> Bytes__Value rev 1
 `
 
 func TestBytesF11bCoexistEmitPins(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesB64HexCoexist}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesB64HexCoexist}, "m.can")
 	ts := compileEmit(t, bytesB64HexCoexist)
 	for _, want := range []string{
-		"$ailHexDecode(",
-		"$ailB64Decode(",
-		`{ $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string }`,
-		`{ $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string }`,
+		"$canHexDecode(",
+		"$canB64Decode(",
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string }`,
+		`{ $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("coexist emit missing %q:\n%s", want, ts)
@@ -444,11 +444,11 @@ fn client__use(value: str) -> Bytes__Value rev 1
 // F11c: the strict lie (plausible bytes, rejected string)
 // contradicts under both module orders.
 func TestBytesF11cMixedContradiction(t *testing.T) {
-	files := map[string]string{"probe.ail": bytesB64MixedProbe, "client.ail": bytesB64MixedLie}
-	for _, order := range [][]string{{"probe.ail", "client.ail"}, {"client.ail", "probe.ail"}} {
+	files := map[string]string{"probe.can": bytesB64MixedProbe, "client.can": bytesB64MixedLie}
+	for _, order := range [][]string{{"probe.can", "client.can"}, {"client.can", "probe.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasDiag(diags, "error", "script strictlie contradicts probe__base64") {
-			t.Fatalf("order %v: expected strictlie AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected strictlie CAN3110, got %v", order, diags)
 		}
 	}
 }

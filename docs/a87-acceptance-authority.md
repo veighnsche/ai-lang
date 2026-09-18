@@ -3,7 +3,7 @@
 Status: shipped (ratified). Answers the open decision from
 `a85-agent-language-research.md` §4.1 at A-light strength: provenance
 labels plus loud weakening reports. Rejection (A-strong) remains
-deferred. Slices landed: parser marker, baseline recording, AIL6017
+deferred. Slices landed: parser marker, baseline recording, CAN6017
 warning, committed tests, REQUIREMENTS amendment.
 
 ## Problem
@@ -66,7 +66,7 @@ borrow the strong row's status.
 
 ## Diagnostics (ratified)
 
-- New code AIL6017, registered in `compiler/code.go` with an
+- New code CAN6017, registered in `compiler/code.go` with an
   `explain.go` entry: weakened / removed / demoted rows, carrying test
   name, baseline rendering, and current rendering (Expected/Found/Hint
   payload shape, a71).
@@ -87,7 +87,7 @@ attribution. Pinner identity belongs to A-strong.
 - Pinned rows still execute as tests; coverage (a03), exhaustiveness,
   and the contracts verifier treat pinned and proposed rows identically.
   Authority is about weakening, not about execution.
-- Revision identity (AIL6013) is untouched: same-revision drift still
+- Revision identity (CAN6013) is untouched: same-revision drift still
   rejects; pinned-row drift warns, including across revisions.
 - Contracts, error declarations, and `given` scripts are out of scope:
   rows only. Pinning a contract is a later slice with its own draft.

@@ -4,7 +4,7 @@
 
 ## Verdict
 
-**Keep ai-lang’s emphasis on checkable semantics. Do not treat maximal verbosity, universal explicitness, or banning inference and sugar as established requirements.**
+**Keep can-lang’s emphasis on checkable semantics. Do not treat maximal verbosity, universal explicitness, or banning inference and sugar as established requirements.**
 
 The strongest evidence supports something narrower:
 
@@ -12,7 +12,7 @@ The strongest evidence supports something narrower:
 
 Type-aware generation, compiler-informed context, executable feedback, and well-designed editing interfaces have measured benefits. The evidence for particular surface-language doctrines is weaker, mixed, or actively contrary to the “more explicit tokens must be better” hypothesis. There are controlled results showing benefits from compact representations—and results showing that unfamiliar compact representations substantially hurt models that have not learned them. ([arXiv][1])
 
-**My recommendation is to optimize ai-lang for independently validated task completion per unit of cost—not for compilation rate, annotation density, branch coverage, or proof completion individually.**
+**My recommendation is to optimize can-lang for independently validated task completion per unit of cost—not for compilation rate, annotation density, branch coverage, or proof completion individually.**
 
 The literature reviewed here does **not** establish a universally best language. A June 2026 study produced 34 chess-engine artifacts across 17 primary languages and found substantial differences in cost, features, and performance. However, its authors explicitly identify confounding factors that prevent a causal language ranking. “Agents can use this language” and “this language is a good choice for agents” are different claims. ([arXiv][2])
 
@@ -67,7 +67,7 @@ There is no defensible universal pie chart of “agent errors.” Studies use di
 
 A 2025 empirical study examined **333 bugs** and identified failures including misunderstood requirements, missing corner cases, incorrect input assumptions, hallucinated objects, wrong attributes, syntax mistakes, and incomplete generation. It is a taxonomy of sampled failures, not a prevalence estimate for current agents. ([Springer][22])
 
-For ai-lang, the useful distinction is:
+For can-lang, the useful distinction is:
 
 | Failure layer                 | Typical failure                                                             | What helps most directly                                                 |
 | ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -116,7 +116,7 @@ These three studies have overlapping authorship. They are a useful research line
 
 **Recommended sweet spot:** minimize *unnecessary* tokens, not meaningful information. Measure the onboarding cost of novelty. Consider separate representations for stored source, semantic queries, and model-facing generation.
 
-A canonical expanded representation could remain the authoritative artifact while the compiler accepts a compact, mechanically elaborated form. Whether that is worthwhile for ai-lang is an experiment—not an automatic endorsement of sugar.
+A canonical expanded representation could remain the authoritative artifact while the compiler accepts a compact, mechanically elaborated form. Whether that is worthwhile for can-lang is an experiment—not an automatic endorsement of sugar.
 
 ### 2.4 Strictness versus solvability
 
@@ -124,7 +124,7 @@ Constrained generation prevents classes of invalid output. It does not establish
 
 The type-constrained generation implementation explicitly uses an **incomplete search** that can exclude some valid well-typed expressions. Thus, a system can be sound about what it permits while being unnecessarily restrictive about what the agent can discover. Synchromesh provides independent, related evidence for semantic constraints, but on DSL-oriented tasks rather than unrestricted application development. ([arXiv][23])
 
-For ai-lang, measure both:
+For can-lang, measure both:
 
 $$
 \text{invalid candidates prevented}
@@ -176,7 +176,7 @@ The **vericoding benchmark** makes the issue concrete: manual inspection identif
 
 **Resource use is separate again.** In AxDafny’s June 2026 evaluation, among 75 verified easy solutions, 32 passed execution constraints, 39 timed out, and four exceeded memory limits. Among 52 verified medium solutions, six passed, 44 timed out, and two exceeded memory limits. These were resource failures, not necessarily violations of the proved functional specification. ([arxiv.org][14])
 
-For ai-lang, I recommend maintaining distinct claims:
+For can-lang, I recommend maintaining distinct claims:
 
 > **Parses → typechecks → satisfies supplied examples → satisfies stated contracts → composes correctly → preserves target semantics → meets operational requirements.**
 
@@ -219,10 +219,10 @@ There are two different research questions: **a language for implementing applic
 | **DSPy — ICLR 2024**                              | Declarative signatures and optimization of composed language-model pipelines.                                                            | That signatures constitute formal behavioral verification, or that ordinary source code should resemble DSPy. ([arXiv][31])                                 |
 | **Turn — March 2026 prototype**                   | Agent-oriented computation with typed structured inference and capability-oriented execution.                                            | A controlled win over established languages for general code maintenance. ([arXiv][32])                                                                     |
 | **Vera — launched February 2026**                 | Mandatory contracts, explicit effects, canonical formatting, and machine-oriented binding design; an author-maintained benchmark exists. | Independent evidence isolating the benefit of its individual design choices. ([Vera][13])                                                                   |
-| **Sunholo AILANG — living project documentation** | Explicit effects/capabilities, structured traces, and replay-oriented agent integration.                                                 | That the complete bundle causally outperforms an equivalently equipped conventional language. This is a different project from your ai-lang. ([AILANG][33]) |
+| **Sunholo AILANG — living project documentation** | Explicit effects/capabilities, structured traces, and replay-oriented agent integration.                                                 | That the complete bundle causally outperforms an equivalently equipped conventional language. This is a different project from your can-lang. ([AILANG][33]) |
 | **SimPy / Token Sugar**                           | Direct experiments on alternative code representations for models.                                                                       | That unfamiliar syntax transfers without adaptation, or that compactness alone improves correctness. ([arXiv][16])                                          |
 
-The closest prior art already overlaps substantially with your thesis. The potentially valuable contribution of ai-lang is therefore not simply “contracts and explicitness for AI.” It could be **demonstrating which constraints improve reliable agent work, under a reproducible comparison**.
+The closest prior art already overlaps substantially with your thesis. The potentially valuable contribution of can-lang is therefore not simply “contracts and explicitness for AI.” It could be **demonstrating which constraints improve reliable agent work, under a reproducible comparison**.
 
 ---
 
@@ -247,13 +247,13 @@ For every experiment below, measure **independently accepted task completion**, 
 
 ### Experimental design needed to make these results credible
 
-My proposed evaluation should compare **the same semantic capabilities and acceptance criteria**, not bare TypeScript against ai-lang equipped with contracts, tests, and a custom harness.
+My proposed evaluation should compare **the same semantic capabilities and acceptance criteria**, not bare TypeScript against can-lang equipped with contracts, tests, and a custom harness.
 
 Use at least three conditions:
 
 **A.** A conventional-language baseline with ordinary tools.
-**B.** The same language with ai-lang-equivalent checking and agent interfaces.
-**C.** ai-lang with those same capabilities.
+**B.** The same language with can-lang-equivalent checking and agent interfaces.
+**C.** can-lang with those same capabilities.
 
 **B versus C is the important language-design comparison.** A versus C mostly measures the combined value of a language and its surrounding system.
 
@@ -297,7 +297,7 @@ The unsupported leap is:
 > therefore
 > “Every additional spelling necessarily makes agents less reliable.”
 
-AST-preserving representation research supplies counterexamples to that inference, although it does not settle which alternatives ai-lang should support. ([arXiv][16])
+AST-preserving representation research supplies counterexamples to that inference, although it does not settle which alternatives can-lang should support. ([arXiv][16])
 
 ### 4.4 Decision tables are a specification technique, not a universal oracle
 
@@ -319,7 +319,7 @@ My recommendation is not “exact arithmetic everywhere.” It is:
 
 > **Every numeric representation, conversion, overflow behavior, rounding operation, and serialization boundary must have an explicit contract.**
 
-For ai-lang’s TypeScript backend, test that contract in the emitted program. Exact source-level arithmetic is not sufficient when an interface subsequently converts or serializes values differently.
+For can-lang’s TypeScript backend, test that contract in the emitted program. Exact source-level arithmetic is not sufficient when an interface subsequently converts or serializes values differently.
 
 This is a proposed requirement motivated by real migration failures involving implicit semantics, not a measured claim that one numeric tower is best for agents. ([github.blog][15])
 
@@ -339,7 +339,7 @@ The existing benchmark concerns justify measuring acceptance and modification be
 
 ### Proposed revised thesis
 
-> **ai-lang is a language and verification interface for producing reliable changes under bounded agent effort. It exposes precise semantics, supports incremental construction and repair, preserves independently owned acceptance criteria, and makes the evidence and limitations of every accepted artifact inspectable. Canonicalization, explicitness, and compactness are mechanisms to evaluate—not goals in themselves.**
+> **can-lang is a language and verification interface for producing reliable changes under bounded agent effort. It exposes precise semantics, supports incremental construction and repair, preserves independently owned acceptance criteria, and makes the evidence and limitations of every accepted artifact inspectable. Canonicalization, explicitness, and compactness are mechanisms to evaluate—not goals in themselves.**
 
 ---
 
@@ -427,7 +427,7 @@ Sources are grouped by role and ordered by **first public date**, newest first. 
 
 **The uncomfortable conclusion is that the most defensible “AI-first” investment may be a better semantic interface and acceptance system—not a more restrictive surface language.**
 
-For ai-lang, I would retain the checkable semantic core, make acceptance authority and runtime conformance explicit, and defer hardening the unsupported syntax doctrines until the matched-baseline experiments show that they earn their cost.
+For can-lang, I would retain the checkable semantic core, make acceptance authority and runtime conformance explicit, and defer hardening the unsupported syntax doctrines until the matched-baseline experiments show that they earn their cost.
 
 [1]: https://arxiv.org/abs/2504.09246?utm_source=chatgpt.com "Type-Constrained Code Generation with Language Models"
 [2]: https://arxiv.org/html/2606.13763v1 "https://arxiv.org/html/2606.13763v1"

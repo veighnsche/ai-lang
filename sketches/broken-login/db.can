@@ -1,4 +1,4 @@
-// broken-login/db.ail — shared provider for the squiggle demos.
+// broken-login/db.can — shared provider for the squiggle demos.
 // Clean file: opening it shows zero diagnostics.
 
 mod db

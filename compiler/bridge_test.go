@@ -2,7 +2,7 @@ package main
 
 // Asset bridge falsifier (S2 slice plan): the grant, the certificate,
 // and the kernel each fail loud on exactly their own violation. The
-// .ail rows in std/html prove the builder behavior; these tests prove
+// .can rows in std/html prove the builder behavior; these tests prove
 // the compiler machinery around it.
 
 import (
@@ -87,7 +87,7 @@ func wantBridgeClean(t *testing.T, collected []Diag) {
 // TestAssetBridgeStandalone pins the golden path: a granted sink
 // compiles alone on the grant's claim (schema need not load).
 func TestAssetBridgeStandalone(t *testing.T) {
-	_, collected := bridgeProgram(t, map[string]string{"sink.ail": bridgeSink})
+	_, collected := bridgeProgram(t, map[string]string{"sink.can": bridgeSink})
 	wantBridgeClean(t, collected)
 }
 
@@ -113,7 +113,7 @@ fn lone__css(asset: str) -> Lone__Res rev 1
   match call schema__asset__fields(asset, asset)
     on Ok f => Ok(safe = seal Html__Safe("x"))
 `
-	_, collected := bridgeProgram(t, map[string]string{"lone.ail": src})
+	_, collected := bridgeProgram(t, map[string]string{"lone.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeAuthority, "not authorized by a valid asset_bridge grant")
 }
 
@@ -145,7 +145,7 @@ fn wide__css(asset: str, policy: str) -> Wide__Res rev 1
       "stylesheet" => Ok(safe = seal Html__Safe("x"))
       _ => wide.rejected(asset = asset)
 `
-	_, collected := bridgeProgram(t, map[string]string{"wide.ail": src})
+	_, collected := bridgeProgram(t, map[string]string{"wide.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeShape, "must have type Schema__ApprovedAsset")
 }
 
@@ -175,7 +175,7 @@ fn norole__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Nor
   match call schema__asset__fields(asset, policy)
     on Ok f => norole.rejected(asset = asset)
 `
-	_, collected := bridgeProgram(t, map[string]string{"norole.ail": src})
+	_, collected := bridgeProgram(t, map[string]string{"norole.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeShape, "must gate the projected role")
 }
 
@@ -209,7 +209,7 @@ fn self__css(asset: Schema__ApprovedAsset, policy: Schema__AssetPolicy) -> Self_
       "stylesheet" => Ok(safe = seal Html__Safe("x"))
       _ => self.rejected(asset = asset)
 `
-	_, collected := bridgeProgram(t, map[string]string{"self.ail": src})
+	_, collected := bridgeProgram(t, map[string]string{"self.can": src})
 	wantBridgeDiag(t, collected, CodeAssetBridgeAuthority, "not two-owner")
 }
 
@@ -228,8 +228,8 @@ brand Schema__AssetPolicy is str rev 1
 	// grant stays clean; point the grant elsewhere to fail.
 	bad := strings.Replace(bridgeSink, "from schema via", "from impostor via", 1)
 	_, collected := bridgeProgram(t, map[string]string{
-		"schema.ail": owner,
-		"sink.ail":   bad,
+		"schema.can": owner,
+		"sink.can":   bad,
 	})
 	wantBridgeDiag(t, collected, CodeAssetBridgeAuthority, "outside owner module impostor")
 }
@@ -238,7 +238,7 @@ brand Schema__AssetPolicy is str rev 1
 // grant naming a function that resolves nowhere fails authority.
 func TestAssetBridgeUnknownSink(t *testing.T) {
 	bad := strings.Replace(bridgeSink, "via sink__css@1", "via sink__ghost@1", 1)
-	_, collected := bridgeProgram(t, map[string]string{"sink.ail": bad})
+	_, collected := bridgeProgram(t, map[string]string{"sink.can": bad})
 	wantBridgeDiag(t, collected, CodeAssetBridgeAuthority, "unknown function sink__ghost")
 }
 
@@ -255,8 +255,8 @@ func TestAssetBridgeMalformedWitness(t *testing.T) {
 brand Schema__ApprovedAsset is str rev 1
 brand Schema__AssetPolicy is str rev 1
 `
-	files := map[string]string{"schema.ail": owner, "sink.ail": bridgeSink}
-	err := runLinkedPure(t, files, []string{"schema.ail", "sink.ail"}, "sink__css", 1,
+	files := map[string]string{"schema.can": owner, "sink.can": bridgeSink}
+	err := runLinkedPure(t, files, []string{"schema.can", "sink.can"}, "sink__css", 1,
 		map[string]string{
 			"asset":  `seal Schema__ApprovedAsset("only|three|parts")`,
 			"policy": `seal Schema__AssetPolicy("p|q")`,
@@ -280,8 +280,8 @@ func TestAssetBridgeMalformedPolicy(t *testing.T) {
 brand Schema__ApprovedAsset is str rev 1
 brand Schema__AssetPolicy is str rev 1
 `
-	files := map[string]string{"schema.ail": owner, "sink.ail": bridgeSink}
-	err := runLinkedPure(t, files, []string{"schema.ail", "sink.ail"}, "sink__css", 1,
+	files := map[string]string{"schema.can": owner, "sink.can": bridgeSink}
+	err := runLinkedPure(t, files, []string{"schema.can", "sink.can"}, "sink__css", 1,
 		map[string]string{
 			"asset":  `seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f")`,
 			"policy": `seal Schema__AssetPolicy("bare")`,
@@ -298,32 +298,32 @@ brand Schema__AssetPolicy is str rev 1
 // and the shipped modules: the real stylesheet sink projects across
 // the real owner module in both file orders.
 func TestAssetBridgeRealModules(t *testing.T) {
-	htmlSrc, err := os.ReadFile("../std/html/html.ail")
+	htmlSrc, err := os.ReadFile("../std/html/html.can")
 	if err != nil {
 		t.Fatal(err)
 	}
-	schemaSrc, err := os.ReadFile("../std/schema/schema.ail")
+	schemaSrc, err := os.ReadFile("../std/schema/schema.can")
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Slice 1: html.ail pins ascii consts; the provider loads
+	// Slice 1: html.can pins ascii consts; the provider loads
 	// beside the real modules. Slice 5: ascii pins
 	// Bool__Value, so scalars loads too.
-	asciiSrc, err := os.ReadFile("../std/ascii/ascii.ail")
+	asciiSrc, err := os.ReadFile("../std/ascii/ascii.can")
 	if err != nil {
 		t.Fatal(err)
 	}
-	scalarsSrc, err := os.ReadFile("../std/scalars/scalars.ail")
+	scalarsSrc, err := os.ReadFile("../std/scalars/scalars.can")
 	if err != nil {
 		t.Fatal(err)
 	}
 	digest := "sha384-" + strings.Repeat("A", 64)
 	witness := "app-css|1.0.0|https://cdn.example/app.css|" + digest + "|stylesheet|shop|pages|home"
 	element := "<link rel='stylesheet' href='https://cdn.example/app.css' integrity='" + digest + "' crossorigin='anonymous'>"
-	files := map[string]string{"html.ail": string(htmlSrc), "schema.ail": string(schemaSrc), "ascii.ail": string(asciiSrc), "scalars.ail": string(scalarsSrc)}
+	files := map[string]string{"html.can": string(htmlSrc), "schema.can": string(schemaSrc), "ascii.can": string(asciiSrc), "scalars.can": string(scalarsSrc)}
 	for _, order := range [][]string{
-		{"schema.ail", "html.ail", "ascii.ail", "scalars.ail"},
-		{"html.ail", "schema.ail", "ascii.ail", "scalars.ail"},
+		{"schema.can", "html.can", "ascii.can", "scalars.can"},
+		{"html.can", "schema.can", "ascii.can", "scalars.can"},
 	} {
 		err := runLinkedPure(t, files, order, "html__asset__stylesheet", 1,
 			map[string]string{
@@ -350,10 +350,10 @@ brand Schema__AssetPolicy is str rev 1
 	// The bridgeSink program doubles as the linked root: run it
 	// against the loaded owner module in both file orders.
 	for _, order := range [][]string{
-		{"schema.ail", "sink.ail"},
-		{"sink.ail", "schema.ail"},
+		{"schema.can", "sink.can"},
+		{"sink.can", "schema.can"},
 	} {
-		files := map[string]string{"schema.ail": owner, "sink.ail": bridgeSink}
+		files := map[string]string{"schema.can": owner, "sink.can": bridgeSink}
 		err := runLinkedPure(t, files, order, "sink__css", 1,
 			map[string]string{
 				"asset":  `seal Schema__ApprovedAsset("a|b|https://h/x|d|stylesheet|p|m|f")`,

@@ -4,7 +4,7 @@ Status: proposal (pre-decision, revised per chatbot
 verdicts 2026-09-18). No rule, no code.
 Parent: `docs/ASTRA_FSHARP_BORROW.md` §3 (finite,
 monomorphic, closed unions). This doc adapts that
-sketch to AIL specifics. Verdicts: keep closed
+sketch to CAN specifics. Verdicts: keep closed
 unions; semantic boundaries and slice order revised
 as below. Slices need greenlight.
 
@@ -14,14 +14,14 @@ Make invalid state combinations unrepresentable for
 the stdlib rows waiting on this (HTTP methods, form
 states, validation results), reusing the existing
 outcome machinery (ctors, variant patterns,
-`$ail_kind` discrimination) instead of inventing a
+`$can_kind` discrimination) instead of inventing a
 parallel case system.
 
 ## Syntax (proposed, not parsed)
 
 Declaration mirrors `type`, with `case` rows:
 
-```ail
+```can
 variant Login__State rev 1 (
   case Anonymous()
   case Authenticated(session: Auth__Session)
@@ -37,14 +37,14 @@ qualified name. R3 naming already admits the shape.
 
 Construction reuses kwargs ctors:
 
-```ail
+```can
 Login__Authenticated(session = s)
 Login__Anonymous()
 ```
 
 Patterns reuse variant arms on value matches:
 
-```ail
+```can
 match state
   on Login__Anonymous _ => Ok(message = "Sign in")
   on Login__Authenticated a => Ok(message = a.session.user_id)
@@ -101,7 +101,7 @@ match state
    unions rides along. Constructor checking
    validates exact named fields, duplicates,
    omissions, unknown fields, and field types.
-3. **TS mapping reuses `$ail_kind` (CONFIRMED,
+3. **TS mapping reuses `$can_kind` (CONFIRMED,
    with obligations).** Each case emits as a union
    member tagged with its qualified name; nullary
    cases emit as tag-only members. Three
@@ -110,7 +110,7 @@ match state
    temporary's tag, and payload binding narrows
    the same temporary (never re-evaluate for
    fields). Functions returning unions keep the
-   outer outcome envelope (`{ $ail_kind: "ok";
+   outer outcome envelope (`{ $can_kind: "ok";
    state: Login__State }` — bare variant returns
    would need their own decision). A defensive
    emitted default follows existing target policy
@@ -210,7 +210,7 @@ match state
 - **Unqualified case names with import resolution:**
   a second name-resolution mechanism for zero
   gain; qualification is already the R3 shape.
-- **Separate tag field (not `$ail_kind`):** forks
+- **Separate tag field (not `$can_kind`):** forks
   emit, match lowering, and the tsc gate's
   discriminated-union reading for no semantic gain.
 - **Merging errors into variants (UPHELD for
@@ -243,7 +243,7 @@ match state
    case-specific binders, exhaustiveness,
    duplicate/wrong-case rejection, `_` and
    multi-slot refusal, runtime dispatch,
-   evaluate-once TS switch, AIL4107 behavior
+   evaluate-once TS switch, CAN4107 behavior
    (every accepted arm executes; error-relay
    semantics unchanged).
 4. a76 — one pilot consumer: one operation in a
@@ -269,7 +269,7 @@ match state
 - Nullary identity: `Choice__First()` vs
   `Choice__Second()` distinguished in
   expectations, nested records, linkage; plus
-  the AIL3110 fixture (provider `Ok(choice =
+  the CAN3110 fixture (provider `Ok(choice =
   Choice__First())` vs scripted `Ok(choice =
   Choice__Second())` must contradict; bare
   `Choice__Second()` rejected as an outcome;

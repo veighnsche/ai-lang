@@ -2,14 +2,14 @@
 
 One root cause, one diagnostic. Today a `match call` on a
 function that resolves nowhere emits the whole ladder:
-AIL3001 (unknown, the cause) + AIL3101 (no given) or
-AIL3112 stub-not-in-emits (given present) + AIL4102
-stale-arm (the prover treats unknown as Ok-only) + AIL4200
-per row (rows cannot run) + AIL4107 coverage fallout.
+CAN3001 (unknown, the cause) + CAN3101 (no given) or
+CAN3112 stub-not-in-emits (given present) + CAN4102
+stale-arm (the prover treats unknown as Ok-only) + CAN4200
+per row (rows cannot run) + CAN4107 coverage fallout.
 Every rung vanishes when the 3001 is fixed, so all but the
 3001 are noise.
 
-Scope (compiler only, no .ail changes):
+Scope (compiler only, no .can changes):
 
 1. `calleeUnknown(prog, fname)` helper in check.go:
    not in `prog.Fns`, not in `prog.Externs`, not a
@@ -19,13 +19,13 @@ Scope (compiler only, no .ail changes):
    given/proof, since the declared emits make those
    meaningful.)
 2. `checkGiven`: skip match-calls with unknown callee.
-   `checkCalls` owns the AIL3001.
+   `checkCalls` owns the CAN3001.
 3. `verifyExhaustiveAll` (eval.go): skip the want/got
    comparison for unknown callees, still walk arm RHS
    (nested matches keep their own proofs).
 4. Typed `UnknownCallError` from eval's foreign-call path
    when the callee is unknown (before the uses check).
-   `checkSem`'s test loop suppresses the AIL4200 for it
+   `checkSem`'s test loop suppresses the CAN4200 for it
    but marks the fn failed, so `checkCoverage` stays
    silent too. CLI shares `checkSem`, so both surfaces
    agree.
@@ -33,8 +33,8 @@ Scope (compiler only, no .ail changes):
    callees; `checkEmits`/`checkTypes` emit nothing for
    them. No change there.
 
-Out of scope: the AIL4101+AIL4102 nesting hint (a63);
-relaxing AIL4107 or `given` (chatbot items B/C).
+Out of scope: the CAN4101+CAN4102 nesting hint (a63);
+relaxing CAN4107 or `given` (chatbot items B/C).
 
 ## Rollback
 
@@ -45,9 +45,9 @@ compiler/lsp.go` plus delete
 ## Test plan
 
 - Probe first (red): temp module calling a truly-unknown
-  fn, with and without given, both arms: assert AIL3001
-  present and codes AIL3101/AIL3112/AIL4101/AIL4102/
-  AIL4200/AIL4107 all absent (new
+  fn, with and without given, both arms: assert CAN3001
+  present and codes CAN3101/CAN3112/CAN4101/CAN4102/
+  CAN4200/CAN4107 all absent (new
   `compiler/diag_unknown_test.go`).
 - Existing presence tests (`TestDiagnoseUnknownCallee`,
   `TestDiagnoseMissingGiven`, `TestDiagnoseCallNotInUses`,

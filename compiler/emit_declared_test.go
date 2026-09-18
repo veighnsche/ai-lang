@@ -71,21 +71,21 @@ func declaredSrc() string {
 
 func TestDeclaredResultTypes(t *testing.T) {
 	src := declaredSrc()
-	dir := writeLSPDir(t, map[string]string{"audit.ail": src})
+	dir := writeLSPDir(t, map[string]string{"audit.can": src})
 	// No Ok literal anywhere: every payload is a reference, yet every
 	// function carries its declared result through checking and eval.
-	if diags := diagnose(dir, "audit.ail", src); len(diags) != 0 {
+	if diags := diagnose(dir, "audit.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestDeclaredResultEmit(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(declaredSrc()), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(declaredSrc()), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "audit.ts"))
@@ -96,9 +96,9 @@ func TestDeclaredResultEmit(t *testing.T) {
 	// One file, four declared results: bool, int, and str-shaped (dec
 	// erases to string, sharing the identical member) each survive.
 	for _, want := range []string{
-		`{ $ail_kind: "ok"; value: bigint }`,
-		`{ $ail_kind: "ok"; value: boolean }`,
-		`{ $ail_kind: "ok"; value: string }`,
+		`{ $can_kind: "ok"; value: bigint }`,
+		`{ $can_kind: "ok"; value: boolean }`,
+		`{ $can_kind: "ok"; value: string }`,
 		"export function audit__int(value: bigint)",
 		"export function audit__bool(flag: boolean)",
 	} {
@@ -130,11 +130,11 @@ type Int__Value rev 1 (
 		t.Helper()
 		src := head + strings.Replace(body, "EXPECTED", expected, 1)
 		dir := t.TempDir()
-		if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(src), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		out := t.TempDir()
-		if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+		if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 			t.Fatalf("compile: %v", err)
 		}
 		got, err := os.ReadFile(filepath.Join(out, "audit.ts"))

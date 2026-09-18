@@ -1,6 +1,6 @@
-// broken-login/foreign-seal.ail — DEMO: red squiggle, executable code
-// mints a foreign brand. Db__Hash is declared in db.ail, so sealing it
-// in this body is forgery (AIL6004): bodies seal only their own
+// broken-login/foreign-seal.can — DEMO: red squiggle, executable code
+// mints a foreign brand. Db__Hash is declared in db.can, so sealing it
+// in this body is forgery (CAN6004): bodies seal only their own
 // module's brands. The same seal in the test row below is checked
 // data, not code, and stays clean.
 

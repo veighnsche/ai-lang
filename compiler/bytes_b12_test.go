@@ -36,11 +36,11 @@ fn m__go(value: Bytes) -> Encoding__Text rev 1
 // G0: base64 vectors, positional and named spellings. Padding
 // per length mod 3, order kept, bytes never read as text.
 func TestBytesG0B64Vectors(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesB64Base}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesB64Base}, "m.can")
 	named := strings.Replace(bytesB64Base,
 		"match call bytes__base64__encode(value)",
 		"match call bytes__base64__encode(value = value)", 1)
-	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+	seqClean(t, map[string]string{"m.can": named}, "m.can")
 }
 
 // G1: the deterministic kernel takes no given table.
@@ -48,7 +48,7 @@ func TestBytesG1NoGiven(t *testing.T) {
 	body := strings.Replace(bytesB64Base,
 		"  match call bytes__base64__encode(value)\n    on Ok r => Ok(value = r.value)",
 		"  match call bytes__base64__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
 
@@ -72,21 +72,21 @@ fn m__go(value: PARAM) -> Encoding__Text rev 1
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
 	}
-	seqCode(t, map[string]string{"m.ail": mk("str", `"A"`)}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("str", `"A"`)}, "m.can",
 		CodeTypeMismatch, "want Bytes")
-	seqCode(t, map[string]string{"m.ail": mk("int", "3")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("int", "3")}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 	branded := strings.Replace(mk("M__Secret", `seal M__Secret("s")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	branded = strings.Replace(branded, "provides [m__go]", "provides [M__Secret, m__go]", 1)
-	seqCode(t, map[string]string{"m.ail": branded}, "m.ail",
+	seqCode(t, map[string]string{"m.can": branded}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 }
 
 // G3: the kernel contract exists explicitly (never absent).
 func TestBytesG3ContractsRegistered(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": bytesB64Base})
-	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	dir := writeLSPDir(t, map[string]string{"m.can": bytesB64Base})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.can"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestBytesG3ContractsRegistered(t *testing.T) {
 // G4: the encoder lowers through the base64 helper, not TextEncoder.
 func TestBytesG4EmitPin(t *testing.T) {
 	ts := compileEmit(t, bytesB64Base)
-	if !strings.Contains(ts, "$ailB64Encode(value)") {
+	if !strings.Contains(ts, "$canB64Encode(value)") {
 		t.Fatalf("emit missing base64 helper lowering:\n%s", ts)
 	}
 	if strings.Contains(ts, "TextEncoder") {
@@ -118,8 +118,8 @@ func TestBytesG5StaleArm(t *testing.T) {
 		"    on Ok r => Ok(value = r.value)\n    on m.boom e => Ok(value = \"\")", 1)
 	body = strings.Replace(body, "fn m__go(value: Bytes)",
 		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.boom") {
 		t.Fatalf("expected stale-arm rejection, got %v", diags)
 	}

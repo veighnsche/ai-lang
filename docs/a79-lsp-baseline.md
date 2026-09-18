@@ -1,18 +1,18 @@
-# a79: LSP revision enforcement (`ailc lsp --baseline`)
+# a79: LSP revision enforcement (`canlc lsp --baseline`)
 
 Status: shipped. The a77 deferred item "LSP `--baseline` wiring"
-is closed: the editor surfaces the same AIL6013 findings as the
+is closed: the editor surfaces the same CAN6013 findings as the
 CLI, per keystroke, with no change to unenforced behavior.
 
 ## Behavior
 
-- `ailc lsp --baseline BASE.json` loads the baseline once at
+- `canlc lsp --baseline BASE.json` loads the baseline once at
   startup and runs `CheckRevisionIdentity` on every diagnosis
   (open + change), after all existing checks.
 - Enforcement mirrors the CLI's `firstError` gate: identity
   findings append only when the world otherwise checks clean,
   so broken programs never gain drift noise atop real errors.
-- Bare `ailc lsp` is byte-identical to before: `diagnose`
+- Bare `canlc lsp` is byte-identical to before: `diagnose`
   delegates to `diagnoseWith(..., nil)`, and all existing
   call sites are untouched.
 - Unknown flags are a usage error (exit 2). A missing or
@@ -34,7 +34,7 @@ CLI, per keystroke, with no change to unenforced behavior.
 ## Verification
 
 - Probes first: `compiler/lsp_baseline_test.go` pins clean
-  quiet, sibling drift → AIL6013 error, nil quiet,
+  quiet, sibling drift → CAN6013 error, nil quiet,
   unaccepted squiggle, and flag parsing.
 - Gates: `go test -count=1 ./...`, `go run ./tools/modcheck`,
   `go run ./tools/gramcheck`, `tsc -p tscheck/tsconfig.json`.

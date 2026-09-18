@@ -1,4 +1,4 @@
-// std/quota/quota.ail — row 1 of the standard-library program.
+// std/quota/quota.can — row 1 of the standard-library program.
 // Monomorphic scalar validation plus a quota counter that reuses it.
 // Every helper here is a same-file local, so every call below executes
 // its body. Cross-file reuse stays scripted until the Order 0 linkage

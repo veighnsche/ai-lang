@@ -40,7 +40,7 @@ func TestSeqAppendRows(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			body := appendPair(c.before, c.item, c.wantBefore, c.wantAfter)
-			seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+			seqClean(t, map[string]string{"m.can": body}, "m.can")
 		})
 	}
 }
@@ -66,12 +66,12 @@ fn t__fork(base: Seq<str>) -> T__Fork rev 1
 =
   Ok(base = base, first = base + "b", second = base + "c")
 `
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 
 	// And the mutation it guards against really fails: swap one
 	// expectation and the run must disagree.
 	bad := strings.Replace(body, `second = Seq<str>["a", "c"]`, `second = Seq<str>["a", "b", "c"]`, 1)
-	seqCode(t, map[string]string{"m.ail": bad}, "m.ail", CodeTestFailed, "go")
+	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTestFailed, "go")
 }
 
 // Branded appends keep the brand; a raw string member does not admit.
@@ -95,12 +95,12 @@ fn t__app() -> T__BPair rev 1
 =
   Ok(before = Seq<M__B>[seal M__B("A")], after = Seq<M__B>[seal M__B("A")] + seal M__B("B"))
 `
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 
 	bad := strings.Replace(body,
 		`after = Seq<M__B>[seal M__B("A")] + seal M__B("B")`,
 		`after = Seq<M__B>[seal M__B("A")] + "B"`, 1)
-	seqCode(t, map[string]string{"m.ail": bad}, "m.ail", CodeTypeMismatch, "want M__B")
+	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTypeMismatch, "want M__B")
 }
 
 func TestSeqAppendRejects(t *testing.T) {
@@ -131,7 +131,7 @@ fn t__app() -> T__Pair rev 1
 =
   Ok(before = Seq<str>[], after = ` + c.expr + `)
 `
-			seqCode(t, map[string]string{"m.ail": solo}, "m.ail", c.code, c.sub)
+			seqCode(t, map[string]string{"m.can": solo}, "m.can", c.code, c.sub)
 		})
 	}
 }

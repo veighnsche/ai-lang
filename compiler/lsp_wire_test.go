@@ -16,7 +16,7 @@ func publishFrame(t *testing.T, text string, diags []Diag) []map[string]any {
 	t.Helper()
 	var buf bytes.Buffer
 	w := bufio.NewWriter(&buf)
-	if err := publishDiagnostics(w, "file:///m.ail", text, diags); err != nil {
+	if err := publishDiagnostics(w, "file:///m.can", text, diags); err != nil {
 		t.Fatalf("publish: %v", err)
 	}
 	raw := buf.String()
@@ -40,8 +40,8 @@ func publishFrame(t *testing.T, text string, diags []Diag) []map[string]any {
 
 // TestPublishCarriesCode pins the stable code on the wire.
 func TestPublishCarriesCode(t *testing.T) {
-	got := publishFrame(t, "ok", []Diag{{Line: 1, Sev: "error", Msg: "bad arm", Code: "AIL4107"}})
-	if len(got) != 1 || got[0]["code"] != "AIL4107" {
+	got := publishFrame(t, "ok", []Diag{{Line: 1, Sev: "error", Msg: "bad arm", Code: "CAN4107"}})
+	if len(got) != 1 || got[0]["code"] != "CAN4107" {
 		t.Fatalf("wire diagnostic carries no code: %v", got)
 	}
 }
@@ -49,7 +49,7 @@ func TestPublishCarriesCode(t *testing.T) {
 // TestPublishCarriesPayloads pins Expected/Found/Hint in data.
 func TestPublishCarriesPayloads(t *testing.T) {
 	got := publishFrame(t, "ok", []Diag{{
-		Line: 1, Sev: "error", Msg: "bad arm", Code: "AIL4107",
+		Line: 1, Sev: "error", Msg: "bad arm", Code: "CAN4107",
 		Expected: "one arm per outcome", Found: "two on Ok", Hint: "merge",
 	}})
 	data, ok := got[0]["data"].(map[string]any)

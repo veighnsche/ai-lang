@@ -56,8 +56,8 @@ const variantMatchTests = `    anon(state = Login__Anonymous()) => Ok(message = 
 // payload projection through binders, one test per arm.
 func TestVariantMatchClean(t *testing.T) {
 	src := variantMatchMod(variantMatchTests, variantMatchBody)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -69,13 +69,13 @@ func TestVariantMatchMissingCase(t *testing.T) {
     on Login__Anonymous _ => Ok(message = "Sign in")
     on Login__Authenticated a => Ok(message = a.session.user_id)`
 	src := variantMatchMod(variantMatchTests, body)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "missing Login__Locked") {
 		t.Fatalf("expected missing-case error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4101") {
-		t.Fatalf("expected AIL4101, got %v", diags)
+	if !hasCode(diags, "CAN4101") {
+		t.Fatalf("expected CAN4101, got %v", diags)
 	}
 }
 
@@ -102,13 +102,13 @@ func TestVariantMatchWrongUnion(t *testing.T) {
 =
   ` + body + `
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "stale match arm Pick__A") {
 		t.Fatalf("expected stale-arm error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4102") {
-		t.Fatalf("expected AIL4102, got %v", diags)
+	if !hasCode(diags, "CAN4102") {
+		t.Fatalf("expected CAN4102, got %v", diags)
 	}
 }
 
@@ -120,13 +120,13 @@ func TestVariantMatchDuplicate(t *testing.T) {
     on Login__Authenticated a => Ok(message = a.session.user_id)
     on Login__Locked l => Ok(message = "locked: " + l.user_id)`
 	src := variantMatchMod(variantMatchTests, body)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "duplicate match arm Login__Anonymous") {
 		t.Fatalf("expected duplicate-arm error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4105") {
-		t.Fatalf("expected AIL4105, got %v", diags)
+	if !hasCode(diags, "CAN4105") {
+		t.Fatalf("expected CAN4105, got %v", diags)
 	}
 }
 
@@ -138,13 +138,13 @@ func TestVariantMatchWildRejected(t *testing.T) {
     on Login__Authenticated a => Ok(message = a.session.user_id)
     _ => Ok(message = "rest")`
 	src := variantMatchMod(variantMatchTests, body)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "takes case arms only") {
 		t.Fatalf("expected case-arms-only error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4105") {
-		t.Fatalf("expected AIL4105, got %v", diags)
+	if !hasCode(diags, "CAN4105") {
+		t.Fatalf("expected CAN4105, got %v", diags)
 	}
 }
 
@@ -164,13 +164,13 @@ func TestVariantMatchMultiSlot(t *testing.T) {
   match state, flag
     on Login__Anonymous _, _ => Ok(message = "Sign in")
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "exactly one scrutinee") {
 		t.Fatalf("expected single-scrutinee error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4105") {
-		t.Fatalf("expected AIL4105, got %v", diags)
+	if !hasCode(diags, "CAN4105") {
+		t.Fatalf("expected CAN4105, got %v", diags)
 	}
 }
 
@@ -182,26 +182,26 @@ func TestVariantMatchBinderScope(t *testing.T) {
     on Login__Authenticated a => Ok(message = a.session.user_id)
     on Login__Locked l => Ok(message = l.session)`
 	src := variantMatchMod(variantMatchTests, body)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "no field session") {
 		t.Fatalf("expected binder-scope error, got %v", diags)
 	}
 }
 
-// TestVariantMatchUntaken pins AIL4107 per arm: with no test taking
+// TestVariantMatchUntaken pins CAN4107 per arm: with no test taking
 // the Locked arm, coverage names it.
 func TestVariantMatchUntaken(t *testing.T) {
 	tests := `    anon(state = Login__Anonymous()) => Ok(message = "Sign in")
     auth(state = Login__Authenticated(session = Auth__Session(user_id = "u"))) => Ok(message = "u")`
 	src := variantMatchMod(tests, variantMatchBody)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "no test takes on Login__Locked l") {
 		t.Fatalf("expected untaken-arm error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4107") {
-		t.Fatalf("expected AIL4107, got %v", diags)
+	if !hasCode(diags, "CAN4107") {
+		t.Fatalf("expected CAN4107, got %v", diags)
 	}
 }
 
@@ -221,13 +221,13 @@ func TestVariantMatchCaseOnBool(t *testing.T) {
   match flag
     on Login__Anonymous _ => Ok(message = "Sign in")
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "variant pattern on a non-variant match") {
 		t.Fatalf("expected non-variant-scrutinee error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4106") {
-		t.Fatalf("expected AIL4106, got %v", diags)
+	if !hasCode(diags, "CAN4106") {
+		t.Fatalf("expected CAN4106, got %v", diags)
 	}
 }
 
@@ -243,13 +243,13 @@ func TestVariantMatchCaseScrutinee(t *testing.T) {
       on Login__Locked _ => Ok(message = "no")
     on Login__Locked l => Ok(message = "locked: " + l.user_id)`
 	src := variantMatchMod(variantMatchTests, body)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "eliminates unions, not cases") {
 		t.Fatalf("expected case-scrutinee error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL4105") {
-		t.Fatalf("expected AIL4105, got %v", diags)
+	if !hasCode(diags, "CAN4105") {
+		t.Fatalf("expected CAN4105, got %v", diags)
 	}
 }
 
@@ -281,8 +281,8 @@ fn m__pick(state: Login__State, pick: Pick__State) -> M__Out rev 1
     on Login__Authenticated a => Ok(message = a.session.user_id)
     on Login__Locked l => Ok(message = "locked")
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -339,17 +339,17 @@ fn cons__go(state: Login__State) -> Cons__Out rev 1
     on Login__Authenticated a => Ok(message = a.session.user_id)
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "prov.ail"), []byte(prov), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "prov.can"), []byte(prov), 0o644); err != nil {
 		t.Fatalf("write prov: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "cons.ail"), []byte(cons), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "cons.can"), []byte(cons), 0o644); err != nil {
 		t.Fatalf("write cons: %v", err)
 	}
-	if diags := diagnose(dir, "cons.ail", cons); len(diags) != 0 {
+	if diags := diagnose(dir, "cons.can", cons); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "prov.ail"), filepath.Join(dir, "cons.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "prov.can"), filepath.Join(dir, "cons.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "cons.ts"))
@@ -370,11 +370,11 @@ fn cons__go(state: Login__State) -> Cons__Out rev 1
 func TestVariantMatchNoCatalog(t *testing.T) {
 	src := variantMatchMod(variantMatchTests, variantMatchBody)
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "errors.json"))
@@ -392,11 +392,11 @@ func TestVariantMatchNoCatalog(t *testing.T) {
 func TestVariantMatchEmitSwitch(t *testing.T) {
 	src := variantMatchMod(variantMatchTests, variantMatchBody)
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -404,13 +404,13 @@ func TestVariantMatchEmitSwitch(t *testing.T) {
 		t.Fatalf("read m.ts: %v", err)
 	}
 	ts := string(raw)
-	if !strings.Contains(ts, `.$ail_kind`) || !strings.Contains(ts, "switch (") {
+	if !strings.Contains(ts, `.$can_kind`) || !strings.Contains(ts, "switch (") {
 		t.Fatalf("missing tag switch in emit:\n%s", ts)
 	}
 	if !strings.Contains(ts, `case "Login__Authenticated": {`) {
 		t.Fatalf("missing case arm in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, "const a = $ail_m") {
+	if !strings.Contains(ts, "const a = $can_m") {
 		t.Fatalf("missing payload binder in emit:\n%s", ts)
 	}
 }

@@ -25,7 +25,7 @@ At the pinned source, `html__url__scheme_token` contains **eight** identity succ
 
 **12 authority + 10 value_from + 6 attributes__make_from + 8 scheme_token = 36.**
 
-Sources: `std/html/html.ail:175–214,484–543,551–636,923–950`.
+Sources: `std/html/html.can:175–214,484–543,551–636,923–950`.
 
 Forwarding alone removes **no arms, calls, or test rows**. Its benefit is eliminating field-by-field retranscription.
 
@@ -33,7 +33,7 @@ Forwarding alone removes **no arms, calls, or test rows**. Its benefit is elimin
 
 The chosen form is:
 
-```ail
+```can
 const html__ASCII_COLON: int rev 1 = 58
 ```
 
@@ -49,7 +49,7 @@ The current exception to execution evidence is narrower than “identity forward
 
 Thus:
 
-```ail
+```can
 on Ok r => forward r
 ```
 
@@ -57,11 +57,11 @@ still requires an actual passing test to take the arm.
 
 The mapping in `html__attribute__id` stays manual:
 
-```ail
+```can
 on html.nul_byte e => html.nul_byte(value = value)
 ```
 
-It selects the outer parameter `value`, not `e.value`. The forwarding rule deliberately does not use relational reasoning or coincidentally equal test values to classify that as identity. Source: `std/html/html.ail:425–443`.
+It selects the outer parameter `value`, not `e.value`. The forwarding rule deliberately does not use relational reasoning or coincidentally equal test values to classify that as identity. Source: `std/html/html.can:425–443`.
 
 ### 4. Range and alternative proofs remain structural
 
@@ -89,15 +89,15 @@ The value-pattern `_` covers a proved scalar remainder. It never becomes a catch
 
 EOF is behind the fuel guard; `/`, `?`, and `#` inspect a character. Combining them this way would evaluate `s[0]` on empty input:
 
-```ail
+```can
 match n <= 0, s[0]
 ```
 
-The source keeps those computations on different control-flow paths. Source: `std/html/html.ail:582–599`.
+The source keeps those computations on different control-flow paths. Source: `std/html/html.can:582–599`.
 
 The proposed migration retains `match n <= 0`, groups the three character delimiters, and uses one ordinary local finishing helper:
 
-```ail
+```can
 html__ASCII_SLASH | html__ASCII_QUESTION | html__ASCII_HASH => match call html__url__authority_finish(orig, s, n, prev)
   on Ok r => forward r
   on html.invalid_url e => forward e
@@ -105,7 +105,7 @@ html__ASCII_SLASH | html__ASCII_QUESTION | html__ASCII_HASH => match call html__
 
 Its body contains the single shared predecessor check:
 
-```ail
+```can
 match prev == "-"
   true => html.invalid_url(value = orig)
   false => Ok(value = orig, tail = s, n = n)
@@ -119,13 +119,13 @@ The cost is explicit: two helper call sites, four outcome arms, and three helper
 
 Under the proposed operand types:
 
-```ail
+```can
 false and (1 / 0)
 ```
 
 is a type error—the right operand is an integer. The well-typed fault-contract counterexample is:
 
-```ail
+```can
 false and ((1 / 0) == 0)
 ```
 
@@ -134,18 +134,18 @@ That must fault loudly, as must the corresponding `true or` expression. It must 
 The proposed target shape is:
 
 ```ts
-function $ailBoolAnd(left: boolean, right: boolean): boolean {
+function $canBoolAnd(left: boolean, right: boolean): boolean {
   return left && right;
 }
 
-const result = $ailBoolAnd(leftExpression, rightExpression);
+const result = $canBoolAnd(leftExpression, rightExpression);
 ```
 
 Both arguments evaluate before the helper combines their values. The interpreter likewise evaluates and stores both child results before applying the truth table. A left fault still stops execution before the right operand; strictness is not execution after failure.
 
 The ASCII predicate additions follow as **three separately gated stdlib operations**: digit, alpha, then alnum. Alnum composes explicit call results:
 
-```ail
+```can
 match call std__char__is_alpha(code)
   on Ok a => match call std__char__is_digit(code)
     on Ok d => Ok(value = a.value or d.value)
@@ -157,7 +157,7 @@ No operand-call exception or multi-call match is introduced.
 
 The emitter represents `dec` as canonical digit strings and routes arithmetic through exact helpers. Therefore integer negation can emit `(-x)`, but decimal negation must reuse exact subtraction from decimal zero. Source: `compiler/emit.go:430–568`.
 
-The unary record is deliberately small. Its migration changes only the `0 - scale` argument in `std__dec__divide_round_half_even_result`; it does not touch the shared-tail/`let` problem in `round_half_even`. Source: `std/scalars/scalars.ail:1088–1150`.
+The unary record is deliberately small. Its migration changes only the `0 - scale` argument in `std__dec__divide_round_half_even_result`; it does not touch the shared-tail/`let` problem in `round_half_even`. Source: `std/scalars/scalars.can:1088–1150`.
 
 ## Migration receipt
 
@@ -170,7 +170,7 @@ These counts include **all nested source arms**, including call-outcome arms—n
 | `value_from`            |                   22 |                       19 |                        Unchanged | Keep all **12**                                                |
 | `attributes__make_from` |                   18 | Forward RHS changes only |                        Unchanged | Keep its **3** own rows and existing transitive evidence       |
 
-The baseline bodies and rows are in `std/html/html.ail:175–214,484–543,551–636,923–950`.
+The baseline bodies and rows are in `std/html/html.can:175–214,484–543,551–636,923–950`.
 
 The boundary rows preserve consumer-specific behavior. For example, `/` terminates authority with an unchanged tail; `:` is accepted by scheme continuation but rejected by authority. They are not generated by assuming that every value outside an alphanumeric range should return false.
 
@@ -180,15 +180,15 @@ Nine new codes are proposed against the reviewed registry:
 
 | Code      | Rule                                   |
 | --------- | -------------------------------------- |
-| `AIL2003` | Constant naming                        |
-| `AIL2104` | Unknown constant                       |
-| `AIL2105` | External constant missing from `uses`  |
-| `AIL2205` | Duplicate same-module constant         |
-| `AIL6014` | Nonliteral constant initializer        |
-| `AIL3011` | Invalid forward placement or binder    |
-| `AIL4110` | Fully unreachable new-form pattern arm |
-| `AIL4111` | Redundant alternative                  |
-| `AIL4112` | Reversed integer range                 |
+| `CAN2003` | Constant naming                        |
+| `CAN2104` | Unknown constant                       |
+| `CAN2105` | External constant missing from `uses`  |
+| `CAN2205` | Duplicate same-module constant         |
+| `CAN6014` | Nonliteral constant initializer        |
+| `CAN3011` | Invalid forward placement or binder    |
+| `CAN4110` | Fully unreachable new-form pattern arm |
+| `CAN4111` | Redundant alternative                  |
+| `CAN4112` | Reversed integer range                 |
 
 These allocations were checked against `compiler/code.go:23–102`. The bundle supplies a complete proposed violating source world and a code/message/payload/span contract for each; they are **draft golden inputs, not captured compiler output**. Existing type, pin, coverage, termination, and fault codes are reused rather than duplicated.
 
@@ -205,7 +205,7 @@ go run ./tools/gramcheck
 
 The plan also adds a required generated-TS runtime parity gate. Type checking alone cannot detect accidental short-circuit behavior.
 
-The editor cleanup removes the documented dead vocabulary, then reintroduces `|` and `and` only with their implemented features. It does not treat the current regex-based gramcheck as a full TextMate precedence test; that limitation is explicit in its source. Sources: `editors/vscode/syntaxes/ail.tmGrammar.json:1`, `tools/gramcheck/main.go:1–5`.
+The editor cleanup removes the documented dead vocabulary, then reintroduces `|` and `and` only with their implemented features. It does not treat the current regex-based gramcheck as a full TextMate precedence test; that limitation is explicit in its source. Sources: `editors/vscode/syntaxes/can.tmGrammar.json:1`, `tools/gramcheck/main.go:1–5`.
 
 ## Validation status
 

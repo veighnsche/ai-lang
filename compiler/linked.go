@@ -17,7 +17,7 @@ import (
 )
 
 // checkLinkedGraph admits exactly the linked-executable
-// graph: checked AIL source or an admitted deterministic
+// graph: checked CAN source or an admitted deterministic
 // kernel, every branch inspected. Externs, state
 // operations, effectful functions, and unresolved calls
 // refuse before anything executes. The visited set ends
@@ -62,7 +62,7 @@ func checkLinkedGraph(prog *Program, root string) error {
 // expect. The ordinary whole-program suite must be fully
 // clean first; the root revision must match; each vector
 // gets a fresh store and a discarded coverage map, so
-// integration traces never satisfy AIL4107. A modeling,
+// integration traces never satisfy CAN4107. A modeling,
 // domain, or resource failure fails the test, never
 // trusted evidence.
 func runLinkedPure(t *testing.T, files map[string]string, order []string, root string, rev int, args map[string]string, expect string) error {

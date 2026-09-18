@@ -21,7 +21,7 @@ bytes__hex__decode
   restricted: false
 ```
 
-```ail
+```can
 error encoding.invalid_hex(value: str)
 ```
 
@@ -71,7 +71,7 @@ pre-judgment of output bytes).
   both steps provided EVERY non-nil host error discards
   Go's partial prefix and becomes the original-string
   language error. Malformed -> error `Value`, nil Go
-  error (B6 rule — AIL3110 depends on it). Partial bytes
+  error (B6 rule — CAN3110 depends on it). Partial bytes
   (`"00ffg0"` -> `[0,255]` + error) must NEVER escape
   as success.
 - TS: validate-then-decode, no `parseInt`. Full
@@ -116,21 +116,21 @@ contain neither.
   above incl. masking controls and fidelity rows.
 - Proof rules with diagnostics: missing Ok arm, missing
   error arm, stale arm, forbidden `given`, admission
-  (Bytes/int/brand -> AIL6003 `want str`) — THROUGH BOTH
+  (Bytes/int/brand -> CAN6003 `want str`) — THROUGH BOTH
   ARMS: valid-looking `Secret("41")` and malformed
   `Secret("zz")` (the error path would leak the brand's
   representation without admission).
-- Wrong-payload error expectation fails AIL4200 (tag
+- Wrong-payload error expectation fails CAN4200 (tag
   alone proves nothing).
 - Linkage both orders: `"41zz42"` scripted as
   `Ok([65])` (prefix-acceptance attack) AND `"zz"`
-  scripted as success; require AIL3110. Provider owns
+  scripted as success; require CAN3110. Provider owns
   valid+invalid direct rows.
 - Mixed probe module (test-only, NOT stdlib): the
   verdict's hex->utf8 chain (`"41"`, `"ff"`-then-reject,
   `"41zz42"`, `"00ffa"`), exact per-call unions,
   emitted execution of every arm, then the foreign
-  false-script AIL3110 both orders.
+  false-script CAN3110 both orders.
 - Execution parity: emitted fixture both outcomes, tags
   + bytes + full payloads; node vectors vs Go incl.
   exhaustive short malformed shapes.

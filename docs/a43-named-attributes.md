@@ -99,7 +99,7 @@ row). Shipped bare makers are untouched.
 
 1. P0 — Proposal (this file). No code.
 2. P1 — Record + result + five wrappers with rows in
-   `std/html/html.ail`; extend `provides`.
+   `std/html/html.can`; extend `provides`.
 3. P2 — Regen goldens; README line; gates; commit.
 
 ## Validation Plan

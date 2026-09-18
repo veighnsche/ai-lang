@@ -17,7 +17,7 @@ blanket same-file brand-to-brand sealing.
 - A seal whose argument is a brand requires all four, checked
   mechanically: (1) exact authorization — the source appears in the
   destination's `seals_from`; (2) ownership — source, destination, and
-  site in one module (AIL6004 otherwise); (3) representation — v0
+  site in one module (CAN6004 otherwise); (3) representation — v0
   brands are str-backed only, so agreement is structural, not a new
   check; (4) identity — evaluation and emission preserve the string
   exactly (erasure; no eval or emit change was needed).
@@ -43,7 +43,7 @@ not a language operation. The sharp rows: `a&amp;b → a&amp;b` (no
 double escape), `&amp;lt; → &amp;lt;` (entity-looking text untouched),
 `&lt;script&gt;` passthrough (encoding, not sanitizing), empty and
 astral identity. Six rows run in the evaluator at compile time; the
-emitted `return { $ail_kind: "ok", safe: text }` is the emit-side
+emitted `return { $can_kind: "ok", safe: text }` is the emit-side
 identity, frozen in the golden.
 
 ## Corrections to earlier notes
@@ -72,8 +72,8 @@ identity, frozen in the golden.
 
 - `compiler/parse.go`: `BrandDecl.SealsFrom`, extended brand regex.
 - `compiler/types.go`: `brandSeals` map, promotion branch in the seal
-  rule (AIL6003 unlisted, AIL6004 cross-module), `checkBrandDecl`
-  validates sources (AIL6002 unknown, AIL6004 foreign), brand-return
+  rule (CAN6003 unlisted, CAN6004 cross-module), `checkBrandDecl`
+  validates sources (CAN6002 unknown, CAN6004 foreign), brand-return
   rejection in `checkTypes`.
 - `compiler/lsp.go`: pass `prog` to `checkBrandDecl`.
 - `compiler/seal_test.go`: authorized, unauthorized, reverse,
@@ -82,7 +82,7 @@ identity, frozen in the golden.
   regenerated, `errors.json` empty (total module).
 - No eval or emit change: erasure already gives identity, and the
   tables plus golden prove it. One TextMate-grammar token:
-  `seals_from` joins the `keyword.control.ail` alternation with a
+  `seals_from` joins the `keyword.control.can` alternation with a
   gramcheck sample, so the new declaration keyword highlights.
 
 ## Still scheduled (not silently dropped)

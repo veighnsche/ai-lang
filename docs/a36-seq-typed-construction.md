@@ -32,7 +32,7 @@ The empty sequence is a value, not a failure.
   `int`, a brand, or a wrong-brand member; emptiness does not waive
   the check (`Seq<str>[]` vs `Seq<Html__Safe>[]` are distinct types).
 - Brand ownership preserved inside literals: executable positions mint
-  only their own module's brands (AIL6004); tests and given rows may
+  only their own module's brands (CAN6004); tests and given rows may
   name any declared brand as checked data (existing a15 rule).
 - `go test -count=1 ./...`, `go run ./tools/modcheck`,
   `go run ./tools/gramcheck` all green, plus new committed goldens
@@ -58,10 +58,10 @@ The empty sequence is a value, not a failure.
   support for test/linkage comparison, not a new language equality
   operator.
 - Brand rules under test: executable seals mint only their own
-  module's brands (`compiler/types.go:330-339`, AIL6004
-  `compiler/code.go:80`); mismatch is AIL6003
-  (`compiler/code.go:79`); inconsistent scripted results are AIL3110
-  (`compiler/code.go:53`); untaken arms are AIL4107
+  module's brands (`compiler/types.go:330-339`, CAN6004
+  `compiler/code.go:80`); mismatch is CAN6003
+  (`compiler/code.go:79`); inconsistent scripted results are CAN3110
+  (`compiler/code.go:53`); untaken arms are CAN4107
   (`compiler/code.go:70`).
 - Catalogue contract (`docs/ASTRA_STDLIB.md:233-243`): immutable
   ordered sequences; `seq__empty`/`seq__singleton`,
@@ -94,10 +94,10 @@ The empty sequence is a value, not a failure.
    (`Seq<str>[]`, `Seq<str>["a", ""]`). Rejected bare `[...]`
    values: that shape already means script rows, and
    `checkStubs`/`evMatch` depend on it — a bare list in a value
-   position is AIL6007, pointing at the typed form. Rejected
+   position is CAN6007, pointing at the typed form. Rejected
    empty/singleton-constructor-only construction: without literals
    (or append, a later slice) arbitrary contents are inexpressible.
-   Omitting `T` is a compile error (AIL6007 for bare lists;
+   Omitting `T` is a compile error (CAN6007 for bare lists;
    `CodeParse` for malformed `Seq<` shapes, which never cascade
    into binops). A valid head inside a larger expression
    (`Seq<str>["a"] == ...`) reparses parenthesized, so operator
@@ -110,7 +110,7 @@ The empty sequence is a value, not a failure.
    arguments, record fields, test arguments, expected results, and
    `given` exchange arguments/results. Entering a Seq literal does
    not reset `exec`: foreign seals inside executable literals stay
-   AIL6004; the same seal in test/given data stays accepted checked
+   CAN6004; the same seal in test/given data stays accepted checked
    data.
 4. `vEq` gains structural Seq comparison (length + ordered element
    comparison) as test-evaluator support. Not a language operator;
@@ -142,11 +142,11 @@ The empty sequence is a value, not a failure.
    `Small`/`Value` shapes, `walkCalls`-class readers.
 3. P2 — Types. `Seq<T>` admission in `knownType`; element checking
    at every value position above; `exec`-preserving recursion into
-   literals; AIL6003 mismatches (including empty-typed mismatch);
-   AIL6004 foreign seals in executable literals.
+   literals; CAN6003 mismatches (including empty-typed mismatch);
+   CAN6004 foreign seals in executable literals.
 4. P3 — Eval + `vEq`. Sequence value kind; literal evaluation
    preserving order/empties/duplicates; structural `vEq` so
-   false-success rows fail with AIL3110 instead of being trusted.
+   false-success rows fail with CAN3110 instead of being trusted.
 5. P4 — Emit. TS representation for Seq values in the positions P2
    admits; no new runtime helpers beyond what literals need.
 6. P5 — Goldens + tooling + docs. Committed decision-table rows
@@ -181,13 +181,13 @@ Compile-rejection rows (no runtime arm; reject before execution):
 
 | Row | Fixture | Required result |
 | --- | ------- | --------------- |
-| T1 | Explicit `Seq<str>` containing an `int` | AIL6003 |
-| T2 | `h: Html__Safe` in `Seq<str>` | AIL6003 |
-| T3 | `a: Html__Attribute` in `Seq<Html__Safe>` | AIL6003 |
-| T4 | `Seq<Html__Safe>[]` where `Seq<str>` required | AIL6003 despite emptiness |
-| T5 | Foreign-brand `seal` inside an executable Seq literal | AIL6004 |
+| T1 | Explicit `Seq<str>` containing an `int` | CAN6003 |
+| T2 | `h: Html__Safe` in `Seq<str>` | CAN6003 |
+| T3 | `a: Html__Attribute` in `Seq<Html__Safe>` | CAN6003 |
+| T4 | `Seq<Html__Safe>[]` where `Seq<str>` required | CAN6003 despite emptiness |
+| T5 | Foreign-brand `seal` inside an executable Seq literal | CAN6004 |
 | T6 | Same correctly typed foreign-brand seal in test data | Accepted as checked data |
-| T7 | Element type omitted from the literal (bare `[...]`) | AIL6007, pointing at `Seq<T>[...]` |
+| T7 | Element type omitted from the literal (bare `[...]`) | CAN6007, pointing at `Seq<T>[...]` |
 
 Run T1–T3 in body literals, call arguments, record fields, test
 arguments, expected results, and `given` arguments/results
@@ -198,8 +198,8 @@ Linkage rows (close the trust fallback):
 
 | Fixture | Expected |
 | ------- | -------- |
-| Foreign provider computes `Ok(S["a", ""])`; script claims `Ok(S["a"])` | AIL3110 |
-| Provider computes `Ok(S["a", "b"])`; script claims `Ok(S["b", "a"])` | AIL3110 |
+| Foreign provider computes `Ok(S["a", ""])`; script claims `Ok(S["a"])` | CAN3110 |
+| Provider computes `Ok(S["a", "b"])`; script claims `Ok(S["b", "a"])` | CAN3110 |
 
 Per slice: `go test -count=1 ./...`, `go run ./tools/modcheck`,
 `go run ./tools/gramcheck` (forced, never cached).
@@ -210,7 +210,7 @@ Per slice: `go test -count=1 ./...`, `go run ./tools/modcheck`,
   Mitigation: new spelling keeps bare `[...]` untouched; P1
   carries comma-in-member and nested-in-exchange parsing rows.
 - `vEq` structural comparison mis-specifies order/emptiness.
-  Mitigation: V2 plus the AIL3110 rows pin order, empties, and
+  Mitigation: V2 plus the CAN3110 rows pin order, empties, and
   duplicates; declarations alone are not accepted as evidence.
 - Rollback: revert Seq consumers first (none in this slice by
   construction), then Seq admission across checking, evaluation,
@@ -231,7 +231,7 @@ Per slice: `go test -count=1 ./...`, `go run ./tools/modcheck`,
 
 Resolved in implementation: literal spelling is `Seq<T>[...]`
 (decision 1, with the parenthesized-head embedding rule);
-omitted-`T` diagnostics are AIL6007/`CodeParse`; no registry,
-README, emitter, or conformance surface beyond `code.go` (AIL6007),
+omitted-`T` diagnostics are CAN6007/`CodeParse`; no registry,
+README, emitter, or conformance surface beyond `code.go` (CAN6007),
 `docs/README.md`, and `compiler/seq_s1_test.go` changed — S1
 needs no generated files.

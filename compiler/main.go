@@ -1,4 +1,4 @@
-// Package main is ailc v0.0.0, the ai-lang transpiler.
+// Package main is canlc v0.0.0, the can-lang transpiler.
 //
 // Golden outputs in sketches/auth-login are gated by TestGoldenAuthLogin:
 // any parse, test-evaluation, or emit change that alters output fails
@@ -32,7 +32,7 @@ var version = "dev"
 
 func run(argv []string) int {
 	if len(argv) > 0 && (argv[0] == "--version" || argv[0] == "-version" || argv[0] == "version") {
-		fmt.Printf("ailc %s\n", version)
+		fmt.Printf("canlc %s\n", version)
 		return 0
 	}
 	if len(argv) > 0 && argv[0] == "lsp" {
@@ -46,7 +46,7 @@ func run(argv []string) int {
 	}
 	if len(argv) > 0 && argv[0] == "normalize" {
 		if err := runNormalize(os.Stdout, argv[1:]); err != nil {
-			fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+			fmt.Fprintf(os.Stderr, "canlc FAILED: %v\n", err)
 			return 1
 		}
 		return 0
@@ -69,22 +69,22 @@ func run(argv []string) int {
 		}
 	}
 	if out == "" || len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: ailc [--format json] [--baseline BASE.json] --out OUT_DIR file.ail [...]")
+		fmt.Fprintln(os.Stderr, "usage: canlc [--format json] [--baseline BASE.json] --out OUT_DIR file.can [...]")
 		return 2
 	}
 	if format != "" && format != "json" {
-		fmt.Fprintf(os.Stderr, "ailc: unknown --format %q (want json)\n", format)
+		fmt.Fprintf(os.Stderr, "canlc: unknown --format %q (want json)\n", format)
 		return 2
 	}
 	if err := compileAll(out, args, format == "json", baseline); err != nil {
-		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		fmt.Fprintf(os.Stderr, "canlc FAILED: %v\n", err)
 		return 1
 	}
 	return 0
 }
 
 // runBaseline generates a candidate (unaccepted) revision baseline
-// from clean sources: `ailc baseline --out base.json [--origin ID]
+// from clean sources: `canlc baseline --out base.json [--origin ID]
 // files...`. Generation refuses broken programs; acceptance happens
 // by committing an accepted file, never by regenerating.
 func runBaseline(argv []string) int {
@@ -103,27 +103,27 @@ func runBaseline(argv []string) int {
 		}
 	}
 	if out == "" || len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: ailc baseline --out BASE.json [--origin ID] file.ail [...]")
+		fmt.Fprintln(os.Stderr, "usage: canlc baseline --out BASE.json [--origin ID] file.can [...]")
 		return 2
 	}
 	mods, texts, collected, err := parsePaths(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		fmt.Fprintf(os.Stderr, "canlc FAILED: %v\n", err)
 		return 1
 	}
 	prog, collected := checkProgram(mods, texts, collected, nil)
 	if err := firstError(collected); err != nil {
-		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		fmt.Fprintf(os.Stderr, "canlc FAILED: %v\n", err)
 		return 1
 	}
 	if origin == "" {
 		origin = "candidate"
 	}
 	if err := WriteBaseline(out, prog, origin); err != nil {
-		fmt.Fprintf(os.Stderr, "ailc FAILED: %v\n", err)
+		fmt.Fprintf(os.Stderr, "canlc FAILED: %v\n", err)
 		return 1
 	}
-	fmt.Printf("ailc: candidate baseline for %d declarations written to %s (unaccepted)\n", len(FingerprintProgram(prog)), out)
+	fmt.Printf("canlc: candidate baseline for %d declarations written to %s (unaccepted)\n", len(FingerprintProgram(prog)), out)
 	return 0
 }
 
@@ -168,7 +168,7 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 		var err error
 		base, err = LoadBaseline(baselinePath)
 		if err != nil {
-			return fmt.Errorf("ailc: cannot load baseline: %v", err)
+			return fmt.Errorf("canlc: cannot load baseline: %v", err)
 		}
 		if idDiags := CheckRevisionIdentity(prog, texts, base); len(idDiags) > 0 {
 			for _, d := range idDiags {
@@ -205,7 +205,7 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 				reportDiags(os.Stdout, pinDiags)
 			} else {
 				for _, d := range pinDiags {
-					fmt.Fprintf(os.Stderr, "ailc: warning %s:%d: %s\n", d.File, d.Line, d.Msg)
+					fmt.Fprintf(os.Stderr, "canlc: warning %s:%d: %s\n", d.File, d.Line, d.Msg)
 				}
 			}
 		}
@@ -292,12 +292,12 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 		return err
 	}
 	if !jsonOut {
-		fmt.Printf("ailc: %d tests passed, %d modules emitted to %s\n", total, len(mods), out)
+		fmt.Printf("canlc: %d tests passed, %d modules emitted to %s\n", total, len(mods), out)
 	}
 	return nil
 }
 
-// runNormalize implements `ailc normalize file.ail [...]`: gate on the
+// runNormalize implements `canlc normalize file.can [...]`: gate on the
 // full suite, then print every decision-table outcome in canonical form,
 // one `mod.fn/test => value` line per test, sorted. Expectation mismatches
 // still print (the outcome is the artifact); only execution failures —
@@ -305,7 +305,7 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 // Exit 0 on print: normalize observes, compile gates.
 func runNormalize(w io.Writer, paths []string) error {
 	if len(paths) == 0 {
-		return fmt.Errorf("usage: ailc normalize file.ail [...]")
+		return fmt.Errorf("usage: canlc normalize file.can [...]")
 	}
 	mods, _, collected, err := parsePaths(paths)
 	if err != nil {
@@ -338,14 +338,14 @@ func runNormalize(w io.Writer, paths []string) error {
 	return nil
 }
 
-// parsePaths reads and parses every path, collecting AIL1000 diagnostics
+// parsePaths reads and parses every path, collecting CAN1000 diagnostics
 // for files that do not parse instead of failing fast, so one broken file
 // never hides the rest. Raw IO errors still fail immediately.
 //
 // Identity is the cleaned input path: two inputs with different
 // identities are different modules even when their basenames match.
 // Output stems stay bare while unique, then disambiguate by directory;
-// the same identity twice is an AIL5007 collision, rejected before
+// the same identity twice is an CAN5007 collision, rejected before
 // evaluation or writing.
 func parsePaths(paths []string) (mods []*Module, texts map[string]string, collected []Diag, err error) {
 	texts = map[string]string{}
@@ -393,9 +393,9 @@ func assignStems(mods []*Module) {
 			used[m.Stem] = true
 			continue
 		}
-		candidate := sanitizeStem(strings.TrimSuffix(m.ID, ".ail"))
+		candidate := sanitizeStem(strings.TrimSuffix(m.ID, ".can"))
 		for n := 2; used[candidate]; n++ {
-			candidate = fmt.Sprintf("%s_%d", sanitizeStem(strings.TrimSuffix(m.ID, ".ail")), n)
+			candidate = fmt.Sprintf("%s_%d", sanitizeStem(strings.TrimSuffix(m.ID, ".can")), n)
 		}
 		m.Stem = candidate
 		used[candidate] = true

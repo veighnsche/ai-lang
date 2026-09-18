@@ -39,7 +39,7 @@ func smtNum(v string) *smt {
 	return snum(v)
 }
 
-// String renders SMT-LIB. Variables quote (AIL names carry dots);
+// String renders SMT-LIB. Variables quote (CAN names carry dots);
 // numerals render bare.
 func (s *smt) String() string {
 	switch s.op {
@@ -697,10 +697,10 @@ func (p *prover) script(ob obligation) string {
 // inconclusive, never as acceptance.
 const smtTimeout = 30 * time.Second
 
-// smtBinary locates the solver. AILC_Z3 overrides PATH for tests;
+// smtBinary locates the solver. CANLC_Z3 overrides PATH for tests;
 // otherwise z3 must resolve normally.
 func smtBinary() string {
-	if p := os.Getenv("AILC_Z3"); p != "" {
+	if p := os.Getenv("CANLC_Z3"); p != "" {
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
@@ -716,7 +716,7 @@ func smtBinary() string {
 func runSMTQuery(script, extra string) (string, error) {
 	bin := smtBinary()
 	if bin == "" {
-		return "", fmt.Errorf("no solver binary: install z3 or set AILC_Z3")
+		return "", fmt.Errorf("no solver binary: install z3 or set CANLC_Z3")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), smtTimeout)
 	defer cancel()

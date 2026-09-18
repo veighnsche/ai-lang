@@ -189,7 +189,7 @@ func TestSeqValuesClean(t *testing.T) {
 		{"V5 record carrier", seqV5},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			seqClean(t, map[string]string{"m.ail": c.body}, "m.ail")
+			seqClean(t, map[string]string{"m.can": c.body}, "m.can")
 		})
 	}
 }
@@ -200,15 +200,15 @@ func TestSeqExpectationsExecute(t *testing.T) {
 	drop := strings.Replace(seqV2,
 		`go() => Ok(vals = Seq<str>["b", "", "a", "b"])`,
 		`go() => Ok(vals = Seq<str>["b", "a", "b"])`, 1)
-	seqCode(t, map[string]string{"m.ail": drop}, "m.ail", CodeTestFailed, "go")
+	seqCode(t, map[string]string{"m.can": drop}, "m.can", CodeTestFailed, "go")
 
 	flip := strings.Replace(seqV2,
 		`go() => Ok(vals = Seq<str>["b", "", "a", "b"])`,
 		`go() => Ok(vals = Seq<str>["a", "", "b", "b"])`, 1)
-	seqCode(t, map[string]string{"m.ail": flip}, "m.ail", CodeTestFailed, "go")
+	seqCode(t, map[string]string{"m.can": flip}, "m.can", CodeTestFailed, "go")
 }
 
-// T1: an int member in Seq<str> is AIL6003 in every value position
+// T1: an int member in Seq<str> is CAN6003 in every value position
 // with its own checking path.
 func TestSeqT1Positions(t *testing.T) {
 	body := strings.Replace(seqV0, `Ok(vals = Seq<str>[])`,
@@ -261,7 +261,7 @@ fn m__go(xs: Seq<str>) -> M__Out rev 1
 		{"expected result", exp},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			seqCode(t, map[string]string{"m.ail": c.body}, "m.ail",
+			seqCode(t, map[string]string{"m.can": c.body}, "m.can",
 				CodeTypeMismatch, "want str")
 		})
 	}
@@ -325,11 +325,11 @@ fn app__go(x: str) -> App__Out rev 1
       go => [exchange args (xs = Seq<str>[1]) outcome Ok(vals = Seq<str>["a", ""])]
     on Ok v => Ok(vals = v.vals)
 `
-	seqCode(t, map[string]string{"lib.ail": seqLibTake, "app.ail": app},
-		"app.ail", CodeTypeMismatch, "want str")
+	seqCode(t, map[string]string{"lib.can": seqLibTake, "app.can": app},
+		"app.can", CodeTypeMismatch, "want str")
 }
 
-// T2: a branded member in Seq<str> is AIL6003.
+// T2: a branded member in Seq<str> is CAN6003.
 func TestSeqT2BrandInStr(t *testing.T) {
 	body := `mod m
   provides [m__go, M__B, M__Out]
@@ -346,11 +346,11 @@ fn m__go() -> M__Out rev 1
 =
   Ok(vals = Seq<str>[seal M__B("x")])
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want str")
 }
 
-// T3: a cross-brand member is AIL6003.
+// T3: a cross-brand member is CAN6003.
 func TestSeqT3CrossBrand(t *testing.T) {
 	body := `mod m
   provides [m__go, M__A, M__B, M__SeqOut]
@@ -372,7 +372,7 @@ fn m__go() -> M__SeqOut rev 1
 =
   Ok(vals = Seq<M__B>[seal M__A("x")])
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want M__B")
 }
 
@@ -393,11 +393,11 @@ fn m__go() -> M__Out rev 1
 =
   Ok(vals = Seq<str>[])
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "want Seq<str>")
 }
 
-// T5: a foreign seal inside an executable literal is AIL6004.
+// T5: a foreign seal inside an executable literal is CAN6004.
 const seqBrandLib = `mod lib
   provides [lib__get, Lib__B, Lib__Out]
   uses []
@@ -436,8 +436,8 @@ fn app__forge() -> App__Out rev 1
 =
   Ok(vals = Seq<Lib__B>[seal Lib__B("x")])
 `
-	seqCode(t, map[string]string{"lib.ail": seqBrandLib, "app.ail": app},
-		"app.ail", CodeSealForeign, "Lib__B")
+	seqCode(t, map[string]string{"lib.can": seqBrandLib, "app.can": app},
+		"app.can", CodeSealForeign, "Lib__B")
 }
 
 // T6: the same foreign seal in test data is checked data, not code.
@@ -458,13 +458,13 @@ fn app__go(xs: Seq<Lib__B>) -> App__Out rev 1
 =
   Ok(vals = xs)
 `
-	seqClean(t, map[string]string{"lib.ail": seqBrandLib, "app.ail": app}, "app.ail")
+	seqClean(t, map[string]string{"lib.can": seqBrandLib, "app.can": app}, "app.can")
 }
 
 // T7: a bare [...] in a value position names the typed form.
 func TestSeqT7BareList(t *testing.T) {
 	body := strings.Replace(seqV0, `Ok(vals = Seq<str>[])`, `Ok(vals = ["a"])`, 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeSeqLiteral, "Seq<T>")
 }
 
@@ -482,7 +482,7 @@ fn m__go() -> Seq<str> rev 1
 =
   Ok(vals = Seq<str>[])
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "bare-Seq")
 }
 
@@ -491,7 +491,7 @@ fn m__go() -> Seq<str> rev 1
 // so the single static error plus the executed mismatch pin both.
 func TestSeqUnknownElem(t *testing.T) {
 	body := strings.Replace(seqV0, "=\n  Ok(vals = Seq<str>[])", "=\n  Ok(vals = Seq<Nope>[\"a\"])", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeUnknownType, "Nope")
 }
 
@@ -505,8 +505,8 @@ func TestSeqParseShapes(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			body := strings.Replace(seqV0, `Seq<str>[]`, c.frag, 1)
-			dir := writeLSPDir(t, map[string]string{"m.ail": body})
-			diags := diagnose(dir, "m.ail", body)
+			dir := writeLSPDir(t, map[string]string{"m.can": body})
+			diags := diagnose(dir, "m.can", body)
 			found := false
 			for _, d := range diags {
 				if d.Sev == "error" && d.Code == CodeParse {
@@ -538,7 +538,7 @@ fn m__go() -> M__Flag rev 1
 =
   Ok(flag = (Seq<str>["a"] == Seq<str>["a"]))
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "sequence equality")
 }
 
@@ -563,8 +563,8 @@ fn app__go(x: str) -> App__Out rev 1
       go => [exchange args (x = "a") outcome Ok(vals = Seq<str>["a"])]
     on Ok v => Ok(vals = v.vals)
 `
-	seqCode(t, map[string]string{"lib.ail": seqLibEcho, "app.ail": app},
-		"app.ail", CodeInconsistentScript, "contradicts lib__echo")
+	seqCode(t, map[string]string{"lib.can": seqLibEcho, "app.can": app},
+		"app.can", CodeInconsistentScript, "contradicts lib__echo")
 }
 
 // Linkage: a scripted Seq that reorders fields contradicts too, and
@@ -592,11 +592,11 @@ fn app__go(x: str) -> App__Out rev 1
 `
 	}
 	seqCode(t,
-		map[string]string{"lib.ail": seqLibEcho, "app.ail": mkapp(`Seq<str>["", "a"]`)},
-		"app.ail", CodeInconsistentScript, "contradicts lib__echo")
+		map[string]string{"lib.can": seqLibEcho, "app.can": mkapp(`Seq<str>["", "a"]`)},
+		"app.can", CodeInconsistentScript, "contradicts lib__echo")
 	seqClean(t,
-		map[string]string{"lib.ail": seqLibEcho, "app.ail": mkapp(`Seq<str>["a", ""]`)},
-		"app.ail")
+		map[string]string{"lib.can": seqLibEcho, "app.can": mkapp(`Seq<str>["a", ""]`)},
+		"app.can")
 }
 
 // Emit: literals lower to array literals over the erased element type.

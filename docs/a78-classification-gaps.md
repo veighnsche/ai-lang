@@ -10,7 +10,7 @@ separately.
 
 ## Motivating case
 
-`html__url__scheme_token` (std/html/html.ail): 60 lines,
+`html__url__scheme_token` (std/html/html.can): 60 lines,
 ~20 arms, 14 test rows, 10 magic ASCII bounds (`58 43 45
 46 47 57 64 90 96 122`) — to express a 5-way character
 class (letter / digit / `+ - .` / `:` / reject) with a
@@ -30,7 +30,7 @@ implementation).
   `_`, `true`/`false`, `"str"`/`e"str"`, variant/case
   patterns. Anything else is `bad match pattern`.
 - Probe: arm `5 => 5` over an int scrutinee fails:
-  `ailc FAILED: bad match pattern: 5`.
+  `canlc FAILED: bad match pattern: 5`.
 - Prior decision: a28 ("keep OR-patterns/guards/
   multi-call out of v1"). Deferred, not overlooked —
   revisiting needs a trigger, and the motivating case
@@ -87,7 +87,7 @@ implementation).
 All four gaps reconfirmed; no brand-new major gap. New
 exhibits and one minor gap:
 
-- `html__url__authority` (std/html/html.ail:548, 87
+- `html__url__authority` (std/html/html.can:548, 87
   lines, largest in the corpus): repeats scheme_token's
   exact `47/57/64/90/96/122` ladder (bounds arithmetic
   now copy-pasted across functions); 12 identity relay
@@ -96,7 +96,7 @@ exhibits and one minor gap:
   terminator sub-ladders (`/`, `?`, `#`, end) that only
   or-patterns collapse (ranges alone do not). Magic
   numbers `47/63/35/0/46/45` throughout.
-- `std__dec__round_half_even` (scalars.ail:1111): a
+- `std__dec__round_half_even` (scalars.can:1111): a
   3-scrutinee match whose 4 arms repeat an identical
   5-line tail differing in one subexpression (`q` vs
   `q+1`), recomputing `(a.value % pd.value)` and

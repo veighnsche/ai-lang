@@ -44,7 +44,7 @@ func TestSeqLengthRows(t *testing.T) {
 	}
 	for name, row := range rows {
 		t.Run(name, func(t *testing.T) {
-			seqClean(t, map[string]string{"m.ail": seqLenMod(row[0], row[1])}, "m.ail")
+			seqClean(t, map[string]string{"m.can": seqLenMod(row[0], row[1])}, "m.can")
 		})
 	}
 }
@@ -54,7 +54,7 @@ func TestSeqLengthRows(t *testing.T) {
 func TestSeqLengthMiscountsFail(t *testing.T) {
 	for _, want := range []string{"3", "5"} {
 		bad := seqLenMod(`#Seq<str>["b", "", "a", "b"]`, want)
-		seqCode(t, map[string]string{"m.ail": bad}, "m.ail", CodeTestFailed, "go")
+		seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTestFailed, "go")
 	}
 }
 
@@ -75,7 +75,7 @@ fn m__go() -> M__Len rev 1
 =
   Ok(n = #Seq<M__B>[seal M__B("x"), seal M__B("")])
 `
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }
 
 // Length over a parameter, the S3 traversal-bound shape.
@@ -94,13 +94,13 @@ fn m__go(xs: Seq<str>) -> M__Len rev 1
 =
   Ok(n = #xs)
 `
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }
 
 // Non-sequence operands keep the pinned scalar diagnostic verbatim.
 func TestSeqLengthNonSeq(t *testing.T) {
 	body := seqLenMod(`#5`, "5")
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "cannot count scalars of int")
 }
 

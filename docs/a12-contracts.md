@@ -31,18 +31,18 @@ amendment:
 - `emits` is an explicit conservative upper bound. Unrealized
   entries are allowed (`db.down` needs no stub, no raising body);
   every entry must name a declared error. The stale-emits refusal
-  (`AIL4003`) is deleted with the circularity it enforced.
+  (`CAN4003`) is deleted with the circularity it enforced.
 - Error expectations are complete constructions:
   `=> auth.login_failed(user_id = "u_99")`, compared kind and
   payload. Bare kinds (`=> auth.login_failed`) prove nothing about
-  the payload and are refused (`AIL3204`).
+  the payload and are refused (`CAN3204`).
 - Every script row is an exchange:
   `key => [exchange args (id = "u_99") outcome db.user_not_found(id = "u_99")]`.
   At each hit the actual call args resolve through the callee
   signature (positional included) and must equal the expected args
   under the same names, with nothing unexpected; then the outcome
   must be `Ok` or a callee-declared emit, as before. Outcome-only
-  rows are refused (`AIL3109`). Zero-arg calls write
+  rows are refused (`CAN3109`). Zero-arg calls write
   `exchange args () outcome ...` — one spelling, no exceptions.
 - `exchange`, `args`, `outcome` join the control keywords (grammar
   + gramcheck). Rows stay single-line: the shape fits the existing
@@ -59,12 +59,12 @@ rules are unchanged.
 
 ## Implementation
 
-- `check.go`: the stale-emits loop, `stubbedKinds`, and `AIL4003`
+- `check.go`: the stale-emits loop, `stubbedKinds`, and `CAN4003`
   are deleted; `checkEmits` keeps unknown-kind and foreign-raise
   and gains the emits-entry existence check. `checkStub` requires
-  the exchange shape (`AIL3109`) and validates outcomes as before.
+  the exchange shape (`CAN3109`) and validates outcomes as before.
 - `types.go`: expectations accept dotted error constructors
-  (existence + field checks); bare kinds are `AIL3204`. Stub
+  (existence + field checks); bare kinds are `CAN3204`. Stub
   checking descends into exchange outcomes and types expected args
   against callee params. Extern manifests gain the same
   emits-entry existence check.
@@ -77,15 +77,15 @@ rules are unchanged.
   values, both directions) before producing the outcome.
 - `catalog.go`: kinds flow from complete expectations and exchange
   outcomes; `errors.json` content is unchanged (same kinds).
-- `code.go`: `AIL3109` (row shape), `AIL3204` (bare kind);
-  `AIL4003` deleted with its rule. Both row-shape codes join the
+- `code.go`: `CAN3109` (row shape), `CAN3204` (bare kind);
+  `CAN4003` deleted with its rule. Both row-shape codes join the
   prove-first gate: malformed evidence blocks execution, so each
   mistake yields exactly one diagnostic.
 - Tests: payload-mismatch and bare-kind tests; arg-mismatch,
   arg-name, and row-shape tests; the audit's wrong-user and
   wrong-payload mutations now fail with named diffs. Gallery gains
-  `incomplete-expectation.ail` and `missing-exchange.ail` (one
-  fault each); `stale-emits.ail` becomes `unknown-emits.ail`.
+  `incomplete-expectation.can` and `missing-exchange.can` (one
+  fault each); `stale-emits.can` becomes `unknown-emits.can`.
 - Grammar: `exchange`, `args`, `outcome` are control keywords with
   gramcheck samples.
 

@@ -113,7 +113,7 @@ kind (added, removed, changed, rebound, ownership); `Hint`
 restores the accepted interface or publishes/repins — never
 "regenerate the baseline". Transitive changes include the
 dependency path. Drift, missing-baseline, and stale-pin are
-three diagnostics with three repairs. An `ailc explain` entry
+three diagnostics with three repairs. An `canlc explain` entry
 follows the a71 convention.
 
 ## Probes (verdict §9)

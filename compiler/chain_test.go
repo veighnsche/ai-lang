@@ -7,7 +7,7 @@ import (
 // a86: sequential fallible composition. A `match chain` block lists
 // ordered call steps binding Ok payloads with one shared failure;
 // the checker elaborates it into nested call matches, so admission,
-// proofs, runs, coverage, emit, and AIL4107 see ordinary ladders.
+// proofs, runs, coverage, emit, and CAN4107 see ordinary ladders.
 
 const chainLib = `mod chain
   provides [chain__is_big, chain__is_odd, chain__fail_if_small, Chain__Bool, Chain__Out]
@@ -54,9 +54,9 @@ fn chain__fail_if_small(value: int) -> Chain__Out rev 1
 
 func chainDiags(t *testing.T, body string) []Diag {
 	t.Helper()
-	files := map[string]string{"chain.ail": chainLib, "client.ail": body}
+	files := map[string]string{"chain.can": chainLib, "client.can": body}
 	dir := writeLSPDir(t, files)
-	return diagnose(dir, "client.ail", body)
+	return diagnose(dir, "client.can", body)
 }
 
 func chainErrs(t *testing.T, body string) []Diag {
@@ -111,7 +111,7 @@ fn client__check(value: int) -> Client__Out rev 1
 
 // TestChainFailureArmNeedsRow pins the step-row law through the
 // existing test-per-arm rule: the guard-false arm with no selecting
-// row is AIL4107, naming the arm, not a silent gap.
+// row is CAN4107, naming the arm, not a silent gap.
 func TestChainFailureArmNeedsRow(t *testing.T) {
 	body := `mod client
   provides [client__check, Client__Out]
@@ -144,7 +144,7 @@ fn client__check(value: int) -> Client__Out rev 1
 		}
 	}
 	if len(taken) != 1 {
-		t.Fatalf("expected exactly one AIL4107, got %v", taken)
+		t.Fatalf("expected exactly one CAN4107, got %v", taken)
 	}
 }
 
@@ -328,9 +328,9 @@ fn client__check(chain: bool) -> Client__Out rev 1
     true => Ok(value = 1)
     false => Ok(value = 0)
 `
-	files := map[string]string{"client.ail": client}
+	files := map[string]string{"client.can": client}
 	dir := writeLSPDir(t, files)
-	if errs := diagnose(dir, "client.ail", client); len(errs) != 0 {
+	if errs := diagnose(dir, "client.can", client); len(errs) != 0 {
 		t.Fatalf("expected bool var named chain to match plainly, got %v", errs)
 	}
 }

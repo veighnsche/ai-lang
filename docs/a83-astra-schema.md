@@ -166,7 +166,7 @@ Comparing a requested digest with a registry digest authenticates the *expectati
 | Fetch encounters any redirect                                         | Reject; do not follow or approve the destination implicitly. | Future fetching layer                                      |
 | Network failure followed by an unsigned alternate asset               | Reject fallback.                                             | Future fetching layer                                      |
 
-The retrieval failure classes are obligations, not new `.ail` error declarations in this asset-only phase.
+The retrieval failure classes are obligations, not new `.can` error declarations in this asset-only phase.
 
 ---
 
@@ -321,7 +321,7 @@ The new result kinds are:
 | `schema.asset_not_approved`      | Language error from approval lookup. `asset` contains the original asset request, unchanged. No registered digest, policy contents, or alternate asset.                             |
 | `html.asset_stylesheet_rejected` | Language error from stylesheet construction. `asset` contains the original supplied `ApprovedAsset` value, unchanged.                                                               |
 | `html.asset_script_rejected`     | Language error from script construction. Same payload rule.                                                                                                                         |
-| `AssetRegistryChangeRejected`    | Administrative approval-workflow result, **not** a callable `.ail` registry-write API. Contains the submitted offending asset descriptor, not the existing entry or whole snapshot. |
+| `AssetRegistryChangeRejected`    | Administrative approval-workflow result, **not** a callable `.can` registry-write API. Contains the submitted offending asset descriptor, not the existing entry or whole snapshot. |
 
 `SchemaAuthorityInvalid` is a **compiler/acceptance diagnostic**, not an `emits` outcome. It covers missing trust roots, illegal construction of authority values, invalid sink certification, and malformed authority snapshots. It points to offending source/input without dumping trusted state.
 

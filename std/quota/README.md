@@ -1,6 +1,6 @@
 # quota-counter — validation plus a bounded counter
 
-- `quota.ail` — `mod quota`: monomorphic scalar validators
+- `quota.can` — `mod quota`: monomorphic scalar validators
   (`std__validate__require`, `std__validate__int_range`,
   `std__validate__int_nonnegative`, `std__validate__str_nonempty`,
   `std__validate__exclusive_pair`) plus a quota counter
@@ -12,6 +12,6 @@
 - `quota.ts` + `errors.json` — committed golden TS prod emit
   (tests/given stripped; the cell is a module-scope `let`).
   Regenerate: `go run ./compiler --out std/quota
-  std/quota/quota.ail`; verify: `go test ./...`.
+  std/quota/quota.can`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/a13-stdlib.md` (row 1).

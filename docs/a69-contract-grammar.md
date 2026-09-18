@@ -3,7 +3,7 @@
 First contracts slice after the a67 design (Part 3 order:
 grammar + AST now; §2.3 identity later; verifier last).
 Parses and stores outcome-indexed contracts; proves,
-checks, and emits nothing. No `.ail` changes (temp
+checks, and emits nothing. No `.can` changes (temp
 probe modules only).
 
 1. `requires` block (single spelling, block only):
@@ -19,7 +19,7 @@ probe modules only).
 3. Outcome names validated against `{Ok} ∪ fn.Emits`
    after the metadata loop (order-independent:
    `ensures` may precede `emits`). Unknown outcome is
-   AIL1000/`CodeParse`.
+   CAN1000/`CodeParse`.
 4. Representation: `ContractArm{Outcome, Bind, Preds,
    Matches, Line}` on `FnDecl` (`Requires`,
    `Ensures`). Every other phase ignores the fields:

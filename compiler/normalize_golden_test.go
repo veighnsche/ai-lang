@@ -12,7 +12,7 @@ import (
 // order), err kinds with sorted fields, stable sort of the row labels.
 func TestGoldenNormalize(t *testing.T) {
 	var buf bytes.Buffer
-	err := runNormalize(&buf, []string{"../sketches/auth-login/db.ail", "../sketches/auth-login/auth.ail"})
+	err := runNormalize(&buf, []string{"../sketches/auth-login/db.can", "../sketches/auth-login/auth.can"})
 	if err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
@@ -43,7 +43,7 @@ db.db__get_user/unknown_user => err(db.user_not_found(id = "u_99"))
 // empty stops at once with no fuel spent.
 func TestGoldenNormalizeRetryLoop(t *testing.T) {
 	var buf bytes.Buffer
-	err := runNormalize(&buf, []string{"../sketches/retry-loop/retry.ail"})
+	err := runNormalize(&buf, []string{"../sketches/retry-loop/retry.can"})
 	if err != nil {
 		t.Fatalf("normalize: %v", err)
 	}
@@ -62,7 +62,7 @@ retry.retry__fetch/now => Ok(body = "hi")
 // print 6 on the second), and double threads two bumps to 4.
 func TestGoldenNormalizeCounter(t *testing.T) {
 	var buf bytes.Buffer
-	err := runNormalize(&buf, []string{"../sketches/counter/counter.ail"})
+	err := runNormalize(&buf, []string{"../sketches/counter/counter.can"})
 	if err != nil {
 		t.Fatalf("normalize: %v", err)
 	}

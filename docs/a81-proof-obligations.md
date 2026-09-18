@@ -3,7 +3,7 @@
 Status: shipped, unwired. `VerifyContracts` (compiler/verify_prove.go)
 proves admitted functions callee-first through z3 QF_LIA queries.
 Pure classifier with probe-first tests; pipeline activation is a
-later slice. New codes AIL4304/4305/4306, all with `ailc explain`
+later slice. New codes CAN4304/4305/4306, all with `canlc explain`
 entries.
 
 ## Obligations
@@ -20,14 +20,14 @@ QF_LIA. Scripts (`given`) are never proof facts.
 
 ## Findings
 
-- AIL4304 unproven: the negation is satisfiable, with input
+- CAN4304 unproven: the negation is satisfiable, with input
   countermodels read back via `get-value` (e.g. max+1 reports
   its witnesses). Against a weak summary the finding is marked
   modulo callee assumptions, never a demonstrated execution.
-- AIL4305 inconclusive: timeout (30s per query), `unknown`,
+- CAN4305 inconclusive: timeout (30s per query), `unknown`,
   unrecognized responses, converter failure, or no solver
   binary. Never acceptance.
-- AIL4306 inadmissible test: a row unsatisfiable under
+- CAN4306 inadmissible test: a row unsatisfiable under
   `requires`. Non-literal rows cannot be assessed and stay
   silent.
 
@@ -35,8 +35,8 @@ QF_LIA. Scripts (`given`) are never proof facts.
 
 - The solver is external z3 over SMT-LIB text: integer
   completeness (`2*x==1` unsat) is load-bearing and not
-  reimplemented. `AILC_Z3` overrides discovery for tests.
-- A failed callee cascades: its callers degrade to AIL4303
+  reimplemented. `CANLC_Z3` overrides discovery for tests.
+- A failed callee cascades: its callers degrade to CAN4303
   (summary unavailable), never to false proofs.
 - `ensures false` arms make paths vacuous exactly when the
   summary was proved: the outage pilot's unreachable handler

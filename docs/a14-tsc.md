@@ -11,7 +11,7 @@ it. The claim has been aspirational since it was written.
 
 ## Decision
 
-The clause is suspended until a gate ships. `ailc` is the sole
+The clause is suspended until a gate ships. `canlc` is the sole
 verifier: its check phases plus the hermetic decision-table run
 are the complete proof, and emitted TypeScript is unverified
 output until the reinstatement criteria below are met.
@@ -26,7 +26,7 @@ A future PR reinstates the clause by shipping all three:
 2. A green run on the current goldens, including the multi-shape
    ok unions from the a13 emitter change.
 3. A documented policy for what `tsc` owns (type and contract
-   shape) versus what stays exclusively in `ailc` (exhaustiveness,
+   shape) versus what stays exclusively in `canlc` (exhaustiveness,
    termination, decision tables).
 
 ## Priced consequence, recorded now
@@ -65,12 +65,12 @@ aspiration.
 - Ownership: `tsc` owns type + contract shape of
   emitted output. Everything else — exhaustiveness,
   termination, decision tables, coverage — stays
-  exclusively in `ailc` (`go test ./...`). A green
-  `tsc` run never substitutes for the ailc proof, and
-  an ailc-green program never skips the `tsc` shape
+  exclusively in `canlc` (`go test ./...`). A green
+  `tsc` run never substitutes for the canlc proof, and
+  an canlc-green program never skips the `tsc` shape
   check on changed emit.
 - Follow-up (not this slice): drift-checking stubs
-  against their `.ail` extern decls (a signature
+  against their `.can` extern decls (a signature
   change today rots its stub silently until a human
   notices the mismatch).
 

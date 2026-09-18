@@ -1,8 +1,8 @@
-// auth-login/db.ail — user lookup module.
+// auth-login/db.can — user lookup module.
 // Type-discipline era: pw_hash is a branded secret (Db__Hash), not a
 // bare str. Raw hashes enter the program only through seal, one explicit
 // gate per construction site; the brand erases to string at runtime.
-// Delimiter era: no curly braces anywhere in ai-lang.
+// Delimiter era: no curly braces anywhere in can-lang.
 //   () application + records (construction reads as a call)
 //   [] enumerations (mod lists, given sequences)
 //   :  declares (type fields)

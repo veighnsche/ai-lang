@@ -1,7 +1,7 @@
-// ai-lang VSCode/Cursor client: coloring comes from the TextMate grammar,
-// squiggles come from `ailc lsp` over stdio (see compiler/lsp.go).
-// Server resolution: `ailc.serverPath` setting, else bundled bin/ailc,
-// else `ailc` on PATH.
+// can-lang VSCode/Cursor client: coloring comes from the TextMate grammar,
+// squiggles come from `canlc lsp` over stdio (see compiler/lsp.go).
+// Server resolution: `canlc.serverPath` setting, else bundled bin/canlc,
+// else `canlc` on PATH.
 const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
@@ -9,22 +9,22 @@ const { LanguageClient, TransportKind } = require("vscode-languageclient/node");
 let client;
 
 function serverCommand(context) {
-  const configured = vscode.workspace.getConfiguration("ailc").get("serverPath", "");
+  const configured = vscode.workspace.getConfiguration("canlc").get("serverPath", "");
   if (configured) {
     return configured;
   }
-  const bundled = path.join(context.extensionPath, "bin", "ailc");
+  const bundled = path.join(context.extensionPath, "bin", "canlc");
   return bundled;
 }
 
 function activate(context) {
   const command = serverCommand(context);
-  client = new LanguageClient("ailc", "ai-lang", {
+  client = new LanguageClient("canlc", "can-lang", {
     command,
     args: ["lsp"],
     transport: TransportKind.stdio,
   }, {
-    documentSelector: [{ scheme: "file", language: "ail" }],
+    documentSelector: [{ scheme: "file", language: "can" }],
   });
   client.start();
   context.subscriptions.push({ dispose: () => client && client.stop() });

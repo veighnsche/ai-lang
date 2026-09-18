@@ -49,9 +49,9 @@ fn m__use(value: int, limit: int) -> M__Out rev 1
 `
 
 func TestMultiShapeEmit(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": multiShapeSrc})
+	dir := writeLSPDir(t, map[string]string{"m.can": multiShapeSrc})
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -60,9 +60,9 @@ func TestMultiShapeEmit(t *testing.T) {
 	}
 	ts := string(raw)
 	for _, want := range []string{
-		`{ $ail_kind: "ok"; value: bigint }`,
-		`{ $ail_kind: "ok"; got: bigint; limit: bigint }`,
-		`{ $ail_kind: "m.too_big"; value: bigint; limit: bigint }`,
+		`{ $can_kind: "ok"; value: bigint }`,
+		`{ $can_kind: "ok"; got: bigint; limit: bigint }`,
+		`{ $can_kind: "m.too_big"; value: bigint; limit: bigint }`,
 	} {
 		if !strings.Contains(ts, want) {
 			t.Errorf("emit missing %s\n%s", want, ts)
@@ -76,9 +76,9 @@ func TestMultiShapeEmit(t *testing.T) {
 // shape (a14: emit narrowing, not suppressions). Every call-switch
 // also ends in an unreachable default arm.
 func TestPerFnResultUnions(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": multiShapeSrc})
+	dir := writeLSPDir(t, map[string]string{"m.can": multiShapeSrc})
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -88,16 +88,16 @@ func TestPerFnResultUnions(t *testing.T) {
 	ts := string(raw)
 	// m__use returns only its own ok shape plus the errors it emits:
 	// the value-shape ok member of m__check must not appear.
-	wantRet := `export function m__use(value: bigint, limit: bigint): { $ail_kind: "ok"; got: bigint; limit: bigint } | { $ail_kind: "m.too_big"; value: bigint; limit: bigint } {`
+	wantRet := `export function m__use(value: bigint, limit: bigint): { $can_kind: "ok"; got: bigint; limit: bigint } | { $can_kind: "m.too_big"; value: bigint; limit: bigint } {`
 	if !strings.Contains(ts, wantRet) {
 		t.Errorf("emit missing per-function return:\n%s", ts)
 	}
 	// The m__check call temporary carries m__check's union, not MResult.
-	wantTmp := `const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "m.too_big"; value: bigint; limit: bigint } = m__check(value, limit);`
+	wantTmp := `const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "m.too_big"; value: bigint; limit: bigint } = m__check(value, limit);`
 	if !strings.Contains(ts, wantTmp) {
 		t.Errorf("emit missing per-function call temporary:\n%s", ts)
 	}
-	if strings.Contains(ts, "const $ail_m1: MResult") {
+	if strings.Contains(ts, "const $can_m1: MResult") {
 		t.Errorf("call temporary uses module-wide union:\n%s", ts)
 	}
 	if !strings.Contains(ts, "throw new Error(\"unreachable\");") {
@@ -108,9 +108,9 @@ func TestPerFnResultUnions(t *testing.T) {
 // A single-shape module keeps exactly one ok member in the union,
 // now under the disjoint tag.
 func TestSingleShapeEmitUnchanged(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": helperClean})
+	dir := writeLSPDir(t, map[string]string{"m.can": helperClean})
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -123,7 +123,7 @@ func TestSingleShapeEmitUnchanged(t *testing.T) {
 			line = l
 		}
 	}
-	want := `export type MResult = { $ail_kind: "ok"; id: string } | { $ail_kind: "m.bad" };`
+	want := `export type MResult = { $can_kind: "ok"; id: string } | { $can_kind: "m.bad" };`
 	if line != want {
 		t.Errorf("single-shape union changed:\n got: %s\nwant: %s", line, want)
 	}

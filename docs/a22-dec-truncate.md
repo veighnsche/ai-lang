@@ -50,7 +50,7 @@ never negative, so the base arm doubles as the bound.
   accumulators, the `binomial_from` precedent.
 - No linkage interaction: same-file locals, no `uses` entries.
 - No effects, no emits, no kernel changes, no TS helpers (the
-  worker rides the existing `$ailDivMod`).
+  worker rides the existing `$canDivMod`).
 
 ## Implementation
 

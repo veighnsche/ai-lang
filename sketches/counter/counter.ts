@@ -1,34 +1,34 @@
-// GENERATED from counter.ail by ailc v0.0.0. DO NOT EDIT.
+// GENERATED from counter.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type CounterResult = { $ail_kind: "ok"; total: bigint };
+export type CounterResult = { $can_kind: "ok"; total: bigint };
 export type Count__Tally = { total: bigint };
 let Count__total: bigint = 0n;
-export function count__bump(by: bigint): { $ail_kind: "ok"; total: bigint } {
-  const $ail_m1: { $ail_kind: "ok", value: bigint } = { $ail_kind: "ok", value: Count__total };
-  switch ($ail_m1.$ail_kind) {
+export function count__bump(by: bigint): { $can_kind: "ok"; total: bigint } {
+  const $can_m1: { $can_kind: "ok", value: bigint } = { $can_kind: "ok", value: Count__total };
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const c = $ail_m1;
+    const c = $can_m1;
     Count__total = (c.value + by);
-    const $ail_m2: { $ail_kind: "ok" } = { $ail_kind: "ok" };
-    switch ($ail_m2.$ail_kind) {
+    const $can_m2: { $can_kind: "ok" } = { $can_kind: "ok" };
+    switch ($can_m2.$can_kind) {
     case "ok": {
-      const _ = $ail_m2;
-      return { $ail_kind: "ok", total: (c.value + by) };
+      const _ = $can_m2;
+      return { $can_kind: "ok", total: (c.value + by) };
     }
     }
   }
   }
 }
-export function count__twice(by: bigint): { $ail_kind: "ok"; total: bigint } {
-  const $ail_m1: { $ail_kind: "ok"; total: bigint } = count__bump(by);
-  switch ($ail_m1.$ail_kind) {
+export function count__twice(by: bigint): { $can_kind: "ok"; total: bigint } {
+  const $can_m1: { $can_kind: "ok"; total: bigint } = count__bump(by);
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const s = $ail_m1;
-    const $ail_m2: { $ail_kind: "ok"; total: bigint } = count__bump(by);
-    switch ($ail_m2.$ail_kind) {
+    const s = $can_m1;
+    const $can_m2: { $can_kind: "ok"; total: bigint } = count__bump(by);
+    switch ($can_m2.$can_kind) {
     case "ok": {
-      const t = $ail_m2;
-      return { $ail_kind: "ok", total: t.total };
+      const t = $can_m2;
+      return { $can_kind: "ok", total: t.total };
     }
     default: {
       throw new Error("unreachable");

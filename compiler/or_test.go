@@ -8,7 +8,7 @@ import (
 
 // Slice 4: or-patterns. Probes first: basic union arms, string
 // pipes, range/`|` precedence, per-alternative usefulness
-// (AIL4112), mixed slots, const alternatives, emit lowering,
+// (CAN4112), mixed slots, const alternatives, emit lowering,
 // and the one-obligation-per-source-arm law.
 
 // TestOrBasic pins `|` alternatives selecting end to end.
@@ -25,8 +25,8 @@ func TestOrBasic(t *testing.T) {
     1 | 2 | 3 => Ok(value = x)
     _ => Ok(value = 9)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("or alternatives reported: %v", diags)
 	}
 }
@@ -54,8 +54,8 @@ fn m__go(x: str) -> M__Out rev 1
     "a|b" | "c" => Ok(value = x)
     _ => Ok(value = "z")
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("string pipe reported: %v", diags)
 	}
 }
@@ -75,13 +75,13 @@ func TestOrRangePrecedence(t *testing.T) {
     1..10 | 5..15 => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("range alternatives reported: %v", diags)
 	}
 }
 
-// TestOrShadowedAlt pins AIL4112: an alternative whose
+// TestOrShadowedAlt pins CAN4112: an alternative whose
 // effective region is empty (covered by earlier arms and
 // earlier alternatives) is rejected statically.
 func TestOrShadowedAlt(t *testing.T) {
@@ -96,14 +96,14 @@ func TestOrShadowedAlt(t *testing.T) {
     ` + arm + ` => Ok(value = 1)
     _ => Ok(value = 2)
 `
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4112") {
-			t.Fatalf("%q reported no AIL4112: %v", arm, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4112") {
+			t.Fatalf("%q reported no CAN4112: %v", arm, diags)
 		}
 	}
 }
 
-// TestOrWildcardRejected pins AIL4112 for `_` inside
+// TestOrWildcardRejected pins CAN4112 for `_` inside
 // alternative lists: the wildcard stays its own arm.
 func TestOrWildcardRejected(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
@@ -114,9 +114,9 @@ func TestOrWildcardRejected(t *testing.T) {
   match x
     _ | 1 => Ok(value = 1)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4112") {
-		t.Fatalf("wildcard alternative reported no AIL4112: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4112") {
+		t.Fatalf("wildcard alternative reported no CAN4112: %v", diags)
 	}
 }
 
@@ -132,8 +132,8 @@ func TestOrMixedSlot(t *testing.T) {
     1 | "a" => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasError(diags) {
 		t.Fatalf("mixed alternatives reported nothing")
 	}
 }
@@ -165,8 +165,8 @@ fn m__go(x: int) -> M__Out rev 1
     m__A | m__B => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("const alternatives reported: %v", diags)
 	}
 }
@@ -193,8 +193,8 @@ fn m__go(x: bool) -> M__Out rev 1
   match x
     true | false => Ok(value = 1)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("bool alternatives reported: %v", diags)
 	}
 }
@@ -214,11 +214,11 @@ func TestOrEmit(t *testing.T) {
     _ => Ok(value = 99)
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -252,8 +252,8 @@ func TestOrVariantRejected(t *testing.T) {
     Ok | 1 => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasError(diags) {
 		t.Fatalf("variant alternative reported nothing")
 	}
 }
@@ -280,8 +280,8 @@ fn m__go(x: int, y: str) -> M__Out rev 1
     1 | 2, "a" | "b" => Ok(value = 1)
     _, _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("multi-slot alternatives reported: %v", diags)
 	}
 }
@@ -297,13 +297,13 @@ func TestOrCallMatchPipe(t *testing.T) {
   match call m__id(x = x)
     on Ok r | Ok q => Ok(value = 1)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasError(diags) {
 		t.Fatalf("call-match pipe reported nothing")
 	}
 }
 
-// TestOrOneObligation pins one AIL4107 obligation per source
+// TestOrOneObligation pins one CAN4107 obligation per source
 // arm: an or-arm taken by any alternative satisfies the law,
 // and an untaken or-arm is still exactly one obligation.
 func TestOrOneObligation(t *testing.T) {
@@ -317,8 +317,8 @@ func TestOrOneObligation(t *testing.T) {
     1 | 2 => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("taken or-arm reported: %v", diags)
 	}
 }

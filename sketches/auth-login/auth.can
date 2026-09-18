@@ -1,9 +1,9 @@
-// auth-login/auth.ail — login with one retry, zero braces. Match arms are bare expressions with nesting
+// auth-login/auth.can — login with one retry, zero braces. Match arms are bare expressions with nesting
 // shown by indentation. Tests read as call specifications:
 // name(inputs) => expected output.
 // Type-discipline era: the password is a branded secret (Auth__Password),
 // the stored hash another brand (Db__Hash), and the two never meet in
-// ail code. The comparison is a foreign predicate: auth__check_pw says
+// can code. The comparison is a foreign predicate: auth__check_pw says
 // Ok or auth.mismatch, and the proof wraps it. Secrets enter through
 // seal only; grep seal is the whole audit.
 // Helper era: the lockout-plus-password decision lives once in

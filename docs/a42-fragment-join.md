@@ -3,7 +3,7 @@
 Status: shipped. P0 approved under standing approval; P1–P3
 implemented and green: same-brand `+` (checker-only, rows in
 `compiler/seq_s5_test.go`), `Html__Children` + worker + entry
-in `std/html/html.ail` (11 rows, entry seeded from shipped
+in `std/html/html.can` (11 rows, entry seeded from shipped
 `fragment__empty`), goldens regenerated. Added the missing
 `TestGoldenStdHtml` gate (no test froze `html.ts` before).
 No deviations; the attributes fork below awaits its verdict.
@@ -18,7 +18,7 @@ checker amendment that unlocks it: same-brand `+`.
 
 ## Success Criteria
 
-- Decision rows below green in `std/html/html.ail`; empty
+- Decision rows below green in `std/html/html.can`; empty
   children coincide with shipped `fragment__empty` (the entry
   calls it — composition has the empty fragment as identity,
   in code, not just prose).
@@ -37,7 +37,7 @@ checker amendment that unlocks it: same-brand `+`.
   maker, no extra invariant.
 - Verified by probe (not yet committed): same-brand `==`
   checks clean today (erased comparison); same-brand `+` is
-  refused (`cannot add M__B with M__B`, AIL6003). So fragment
+  refused (`cannot add M__B with M__B`, CAN6003). So fragment
   assembly is blocked on exactly one rule, while emptiness
   tests need no machinery at all.
 - `Html__Safe seals_from [Html__Text]` exists; this slice adds
@@ -85,7 +85,7 @@ checker amendment that unlocks it: same-brand `+`.
    result type; brand+str, str+brand, cross-brand refusals;
    int/bool `+` unchanged.
 3. P2 — `Html__Children`, worker, entry with rows in
-   `std/html/html.ail`; extend `provides`.
+   `std/html/html.can`; extend `provides`.
 4. P3 — Regen `html.ts`/`errors.json`; update
    `std/html/README.md`; gates; commit with generated files.
 

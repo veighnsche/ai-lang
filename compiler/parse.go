@@ -320,7 +320,7 @@ type BrandDecl struct {
 
 // ConstDecl is a named scalar-literal constant (slice 1): const
 // Name: TYPE rev N = literal. V1 admits int, str, dec, bool
-// literals only; the checker rejects anything else (AIL6016).
+// literals only; the checker rejects anything else (CAN6016).
 // References resolve lazily at each consumer through the
 // program const table, so termination stays syntactic.
 type ConstDecl struct {
@@ -336,7 +336,7 @@ func (d *ConstDecl) declKind() string { return "const" }
 func (d *BrandDecl) declKind() string { return "brand" }
 
 // ExternDecl is a foreign function: declared, never defined. Calls to it
-// are scripted through given tables like ail calls; the host provides
+// are scripted through given tables like can calls; the host provides
 // the implementation and the TS emit imports it.
 type ExternDecl struct {
 	Name   string
@@ -964,7 +964,7 @@ func parseSmall(s string) (*Small, error) {
 		return &Small{Kind: "dec", Dec: canon}, nil
 	}
 	// Bare dotted numbers parse (as float nodes) so checkStatic can
-	// point at them with AIL6001; they never evaluate.
+	// point at them with CAN6001; they never evaluate.
 	if reFloat.MatchString(s) {
 		return &Small{Kind: "float", Str: s}, nil
 	}
@@ -976,7 +976,7 @@ func parseSmall(s string) (*Small, error) {
 	}
 	// Seal precedes binops so a literal containing == stays intact.
 	// The inner expression is kept raw: checkTypes enforces the
-	// string-literal rule with AIL6003, and eval enforces str.
+	// string-literal rule with CAN6003, and eval enforces str.
 	if m := reSeal.FindStringSubmatch(s); m != nil {
 		if idx := strings.Index(s, "("); idx >= 0 {
 			if end, err := balanced(s, idx); err == nil && end == len(s)-1 {
@@ -1231,8 +1231,8 @@ func parseSmallMul(s string) (*Small, error) {
 		// parseSmall's head, below this level, so - 3, -d"0.5",
 		// -3.5, and -true resolve here: ints and decs fold
 		// back to literal nodes (emitted bytes never change),
-		// while floats and bools pass through so AIL6001 and
-		// AIL6003 own them downstream. Anything else (refs,
+		// while floats and bools pass through so CAN6001 and
+		// CAN6003 own them downstream. Anything else (refs,
 		// calls, brackets, parens) descends; reaching here
 		// past the * split keeps the minus tight.
 		if lit, ok := parseNegAtom(rest); ok {
@@ -1622,7 +1622,7 @@ func parseModuleText(name, text string) (*Module, error) {
 	mod := &Module{Hdr: map[string][]string{}}
 	mod.Mod = parts[1]
 	base := path[strings.LastIndex(path, "/")+1:]
-	mod.Stem = strings.TrimSuffix(base, ".ail")
+	mod.Stem = strings.TrimSuffix(base, ".can")
 	i := 1
 	for i < len(rows) && rows[i].indent > 0 {
 		m := reHdrLine.FindStringSubmatch(rows[i].code)
@@ -2065,7 +2065,7 @@ func parsePattern(s string) (Pattern, error) {
 		// Slice 3: a closed range `LO..HI`. Bounds resolve
 		// here when both sides are integer literals; anything
 		// else (const names, garbage) resolves in buildWorld,
-		// so diagnostics stay check-level (AIL4110/AIL2104)
+		// so diagnostics stay check-level (CAN4110/CAN2104)
 		// instead of parse errors.
 		parts := strings.Split(s, "..")
 		if len(parts) != 2 {

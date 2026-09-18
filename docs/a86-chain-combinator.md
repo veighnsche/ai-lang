@@ -27,7 +27,7 @@ steps never evaluate. Unlike `forward`, each step binds its unwrapped
 value for later steps (`sc.first` → `entry_at` → `found.entry`). One
 possible surface (keyword and shape open):
 
-```ail
+```can
 match chain
   call schema__role__check(request.role) as rc when rc.value,
   call schema__url__prefix(request.url) as pc when pc.value,
@@ -115,14 +115,14 @@ Shipped as `MatchChain` (`compiler/chain.go`, elaborated in
   grammar, carried onto the elaborated call); the approval path stays
   script-free through `TestAssetNoScriptedEvidence`, not a ban.
 - Checker obligations hold without new machinery: elaborated ladders
-  reuse admission, prover, coverage, emit, and AIL4107, so the
+  reuse admission, prover, coverage, emit, and CAN4107, so the
   step-row law is the existing test-per-arm rule pointed at step
   lines, and short-circuit/termination/fault behavior is the ladder's.
 
-Approve migration (`std/schema/schema.ail`): 13 rungs become the
+Approve migration (`std/schema/schema.can`): 13 rungs become the
 `and`-wrapper plus 8 chain steps plus the window tail, zero test-row
-changes. `ailc normalize` old-vs-new is byte-identical over all 122
+changes. `canlc normalize` old-vs-new is byte-identical over all 122
 schema decision rows; the re-emitted `std/schema/schema.ts` differs
-only in `approve` (the `and` wrapper with the `$ailBoolAnd` helper,
+only in `approve` (the `and` wrapper with the `$canBoolAnd` helper,
 `!(rv.value)` for the inverted rung). Full gates green:
 `go test ./...`, `modcheck`, `gramcheck`, `tsc`.

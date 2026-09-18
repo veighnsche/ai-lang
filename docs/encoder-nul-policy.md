@@ -15,7 +15,7 @@ change — not a quiet tweak, and not folded into a28.
 - Detection is an integer compare (`s[0] == 0`), not a literal
   match: no invisible bytes in the body, code point explicit,
   following the `str_to_int` digit-compare precedent. Test rows
-  carry raw NUL bytes (the only spelling available — `.ail` has
+  carry raw NUL bytes (the only spelling available — `.can` has
   no escape syntax), named `nul_first/middle/last` and per-arm
   (`nul_plain/amp/lt/gt`) so every re-raise path executes.
 - `orig` is threaded through the worker (str_to_int precedent):

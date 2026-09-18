@@ -2,7 +2,7 @@
 
 Additive only. Ordinary `"..."` keeps raw semantics
 (pinned by `TestStrSemanticsEmit` and the
-`tail_backslash` row in `std/html/html.ail`: `"a\b"` is
+`tail_backslash` row in `std/html/html.can`: `"a\b"` is
 backslash+b). New `e"..."` form decodes exactly six
 escapes, once, left to right; same `str` type and runtime
 representation, no new primitive. Numbered a66: a62/a63
@@ -21,7 +21,7 @@ linked-pure runner shifts to a67.
 3. Escapes: `\"` `\\` `\n` `\r` `\t` `\0` only.
    `e"\\n"` is [92,110]; `e"\01"` is [0,49] (no
    octal); unknown escapes, dangling backslash, and
-   unterminated literals are AIL1000/`CodeParse`.
+   unterminated literals are CAN1000/`CodeParse`.
    No numeric/unicode escapes, no interpolation, no
    line continuation; `d"..."` untouched.
 4. `patDesc` (lsp.go): preserve the source token/span
@@ -50,10 +50,10 @@ Out of scope: `\b \f \v \a` and numeric controls
 - Probe first (red): `compiler/str_escapes_test.go`
   with the verdict's five utf8 rows (raw + escaped +
   decode-once + NUL + not-octal), the base64 rows
-  (`e"QUJD"` success for the AIL4107 Ok arm plus the
+  (`e"QUJD"` success for the CAN4107 Ok arm plus the
   two rejects `e"QQ==\n"` and length-eight
   `e"QUJD\r\n\r\n"`), and the `e"\x51Q=="`
-  AIL1000 rejection. Pre-fix the `e` forms do not
+  CAN1000 rejection. Pre-fix the `e` forms do not
   parse. Pattern parity (`on e"a\nb"` taken by its
   row) and the untaken-e-arm source-spelling diag
   complete the set.

@@ -1,4 +1,4 @@
-// broken-login/dangling-test.ail — DEMO: red squiggle, a test with no script.
+// broken-login/dangling-test.can — DEMO: red squiggle, a test with no script.
 // The extra test names an outcome the given table never scripts.
 // DEMO-EXPECTS: given table [happy] != tests [extra happy]
 

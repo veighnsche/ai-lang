@@ -44,7 +44,7 @@ No compiler gates have been run on B2 — there is no B2 code yet.
    ungranted-function export, cross-module grant, same-file private
    brand, record/sequence smuggling, test/given seals. The design
    claims "no new representation-recovery path for an unrelated,
-   unexported brand in checked AIL" — falsify it or confirm the
+   unexported brand in checked CAN" — falsify it or confirm the
    boundary, including the two stated limits (deliberate owner grant,
    promotion into an exported brand).
 6. `Bytes__Value` ownership. B2 introduces a compiler-owned record
@@ -79,5 +79,5 @@ concrete fixture that would expose it.
 - `compiler/check.go` (world construction, emits, linkage trust)
 - `compiler/eval.go` (call dispatch, exhaustiveness)
 - `compiler/emit.go` (call lowering, result-union emission)
-- `compiler/code.go` (`AIL6010`/`AIL6011` already reserved)
-- `std/html/html.ail` (future consumer; incoming `seals_from` paths)
+- `compiler/code.go` (`CAN6010`/`CAN6011` already reserved)
+- `std/html/html.can` (future consumer; incoming `seals_from` paths)

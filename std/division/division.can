@@ -1,9 +1,9 @@
-// std/division/division.ail — row 4 of the standard-library program,
+// std/division/division.can — row 4 of the standard-library program,
 // first cut. Exact Euclidean integer division: every input satisfies
 // dividend = divisor * quotient + remainder with
 // 0 <= remainder < abs(divisor), on every sign combination. A zero
 // divisor fails loud instead of pretending. Decimal division stays
-// refused (AIL6005 lives in checkSem: 1/3 does not terminate).
+// refused (CAN6005 lives in checkSem: 1/3 does not terminate).
 // See docs/a17-division.md.
 
 mod division
@@ -95,7 +95,7 @@ fn std__int__is_odd(value: int) -> Bool__Value rev 1
 //    value % 2 == 1, which would hide the Euclidean guarantee
 //    inside a passing test.
 // 3. Primality, binomial, and next_power_of_two ship as NOW-dagger
-//    linear downward scans in scalars.ail: the unit decreases rule
+//    linear downward scans in scalars.can: the unit decreases rule
 //    admits exact p - 1 steps, so each scan uses a shifted guard
 //    (e = d - 1, so the stop coincides with e <= 0). gcd and
 //    sqrt_floor graduated to the a19 blessed schemas (euclid and

@@ -1,4 +1,4 @@
-// broken-login/unknown-call.ail — DEMO: red squiggle, calling the void.
+// broken-login/unknown-call.can — DEMO: red squiggle, calling the void.
 // db__nope names no function anywhere, so the match can never run.
 
 mod auth

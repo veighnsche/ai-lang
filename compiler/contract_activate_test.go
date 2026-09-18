@@ -39,7 +39,7 @@ func writeActivateDir(t *testing.T, files map[string]string) (string, []string) 
 // program whose proof fails does not compile, and the failure
 // names the unproven obligation.
 func TestActivateBlocksUnproven(t *testing.T) {
-	dir, paths := writeActivateDir(t, map[string]string{"m.ail": activateMutantRows})
+	dir, paths := writeActivateDir(t, map[string]string{"m.can": activateMutantRows})
 	out := filepath.Join(dir, "out")
 	err := compile(out, paths)
 	if err == nil {
@@ -55,7 +55,7 @@ func TestActivateBlocksUnproven(t *testing.T) {
 // TestActivateAcceptsVerified pins the open gate: a verifying
 // contracted program still compiles.
 func TestActivateAcceptsVerified(t *testing.T) {
-	dir, paths := writeActivateDir(t, map[string]string{"m.ail": admitMax})
+	dir, paths := writeActivateDir(t, map[string]string{"m.can": admitMax})
 	out := filepath.Join(dir, "out")
 	if err := compile(out, paths); err != nil {
 		t.Fatalf("verified contract failed to compile: %v", err)
@@ -63,10 +63,10 @@ func TestActivateAcceptsVerified(t *testing.T) {
 }
 
 // TestActivateDiagnoseSquiggles pins the editor gate: drift from
-// the contract surfaces AIL4304 on the open document.
+// the contract surfaces CAN4304 on the open document.
 func TestActivateDiagnoseSquiggles(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": activateMutantRows})
-	diags := diagnose(dir, "m.ail", activateMutantRows)
+	dir := writeLSPDir(t, map[string]string{"m.can": activateMutantRows})
+	diags := diagnose(dir, "m.can", activateMutantRows)
 	if !hasCode(diags, CodeContractUnproven) {
 		t.Fatalf("editor reported no unproven finding: %v", diags)
 	}
@@ -77,13 +77,13 @@ func TestActivateDiagnoseSquiggles(t *testing.T) {
 func TestActivateSkipsBroken(t *testing.T) {
 	broken := strings.Replace(admitMax,
 		"on false => Ok(value = left)", "on false => Ok(value = nosuch)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": broken})
-	diags := diagnose(dir, "m.ail", broken)
+	dir := writeLSPDir(t, map[string]string{"m.can": broken})
+	diags := diagnose(dir, "m.can", broken)
 	if len(diags) == 0 {
 		t.Fatalf("broken program reported nothing")
 	}
 	for _, d := range diags {
-		if strings.HasPrefix(d.Code, "AIL43") {
+		if strings.HasPrefix(d.Code, "CAN43") {
 			t.Fatalf("broken program gained proof noise: %v", d)
 		}
 	}

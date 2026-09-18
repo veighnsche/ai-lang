@@ -1,4 +1,4 @@
-# FOR_REVIEWER — the ai-lang language, by example
+# FOR_REVIEWER — the can-lang language, by example
 
 Scope: the language only. How it parses, what it proves, what it
 refuses, and what shipped programs look like. Toolchain internals
@@ -10,9 +10,9 @@ Every function ships its decision table, every effect is a handled
 call, and anything the compiler cannot prove before running is a
 compile error, not a runtime surprise.
 
-## 1. Reading a file: `db.ail` end to end
+## 1. Reading a file: `db.can` end to end
 
-The smallest complete program (`sketches/auth-login/db.ail`):
+The smallest complete program (`sketches/auth-login/db.can`):
 
 ```
 mod db
@@ -63,7 +63,7 @@ construction (`=> auth.login_failed(user_id = "u_99")`, compared
 kind and payload — a12). Bare error kinds are refused.
 
 Foreign calls are scripted at the call site through `given` — one
-exchange sequence per test (`sketches/auth-login/auth.ail`):
+exchange sequence per test (`sketches/auth-login/auth.can`):
 
 ```
   match call db__get_user(id)
@@ -113,8 +113,8 @@ no curly braces anywhere, including comments.
 - Brands are nominal: `Auth__Password` is not `str` and not
   `Db__Hash`. Raw secrets enter only through `seal B("lit")`, and
   the only way out is a declared `extern` declassifier. `grep seal`
-  is the whole audit: in `auth.ail` the password brand and the hash
-  brand never meet in ail code — the comparison happens across the
+  is the whole audit: in `auth.can` the password brand and the hash
+  brand never meet in can code — the comparison happens across the
   foreign predicate `auth__check_pw`.
 - Errors are values, never thrown: `auth.login_failed(user_id = id)`
   constructs one; `on` arms handle them. A function raising anything
@@ -144,7 +144,7 @@ test passes.
 This is the load-bearing distinction. All calls happen as `match`
 scrutinees, but what the call *means* depends on locality:
 
-1. Foreign — an ail function from another file (via `uses` pin) or
+1. Foreign — an can function from another file (via `uses` pin) or
    a module-local `extern`. Never executed; the `given` stub is the
    outcome. Example: `match call db__get_user(id)`.
 2. Local helper — a function defined in the same file. Executed,
@@ -163,7 +163,7 @@ Same-file callees take no pin and no `rev` reference; a same-file
 ## 6. Helpers: the shrink, shown
 
 Before (each retry arm carried its own copy of the verify logic);
-after, both arms end identically (`auth.ail` lines 82–89):
+after, both arms end identically (`auth.can` lines 82–89):
 
 ```
         on Ok user => match call auth__verify(user.id, user.failed_attempts, pw, user.pw_hash)
@@ -187,7 +187,7 @@ line naming one `int` param; every self-call site must pass
 exactly `p - 1` and sit under the false arm of the canonical
 `p <= 0` guard (a11). Recursion across files is refused
 program-wide; only direct self-recursion is admitted
-(`retry.ail` lines 23–43):
+(`retry.can` lines 23–43):
 
 ```
 fn retry__fetch(fuel: int) -> Retry__Doc rev 1
@@ -219,7 +219,7 @@ are all rejected.
 
 ## 8. State: private cells, declared authority, isolated tests
 
-One cell, two builtins, one annotation (`counter.ail` quoted whole —
+One cell, two builtins, one annotation (`counter.can` quoted whole —
 38 lines):
 
 ```
@@ -277,7 +277,7 @@ error per mistake:
 - Division: no rule (exactness of `/` on `dec` needs its own).
 - `int` is unbounded and exact in proofs; TS emit preserves it
   (`bigint`). `dec` is exact in proofs and in TS emit
-  (canonical-digit strings plus exact `$ailDec` helpers, a10).
+  (canonical-digit strings plus exact `$canDec` helpers, a10).
 - Prod cells persist across calls while tests prove per-scenario
   behavior from init; prod recursion depth is host-limited.
 - No bool-returning calls, no cross-module externs, no non-literal
@@ -299,6 +299,6 @@ goldens byte-identical, `broken-login/` titles unchanged.
 
 `go test ./...` (goldens + diagnosis suites), `go run
 ./tools/modcheck` (uses/provides/totality), `go run
-./tools/gramcheck` (editor grammar). Open any `sketches/*/*.ail`
+./tools/gramcheck` (editor grammar). Open any `sketches/*/*.can`
 file with the editor extension: clean files show zero diagnostics,
 `broken-login/` shows exactly its titled squiggles.

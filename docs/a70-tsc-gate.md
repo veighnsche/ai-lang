@@ -1,6 +1,6 @@
 # a70: tsc gate reinstatement (a14 criteria)
 
-Ships all three a14 reinstatement criteria. No `.ail`
+Ships all three a14 reinstatement criteria. No `.can`
 changes; emit changes only if strict finds real
 defects (narrowing or per-function result types per
 the priced consequence — never suppressions).
@@ -14,17 +14,17 @@ the priced consequence — never suppressions).
    ok unions. Real strict failures get emit fixes.
 3. Ownership policy (`docs/a70-tsc-ownership.md` or
    a14 amendment): `tsc` owns type + contract shape;
-   `ailc` exclusively owns exhaustiveness,
+   `canlc` exclusively owns exhaustiveness,
    termination, decision tables. REQUIREMENTS R11
    tagged amendment reinstating the clause.
 4. Extern stubs: `sketches/auth-login/auth.externs.ts`
    (`auth__check_pw`), `sketches/retry-loop/retry.externs.ts`
-   (`net__fetch`), signatures read off the `.ail`
+   (`net__fetch`), signatures read off the `.can`
    extern decls + call sites. (Drift-checking stubs
    against decls is a named follow-up, not this
    slice.)
 
-Out of scope: contracts verifier, unions, any `.ail`
+Out of scope: contracts verifier, unions, any `.can`
 semantics; `tsc` never checks coverage.
 
 ## Rollback

@@ -40,8 +40,8 @@ fn m__max(left: int, right: int) -> M__Out rev 1
     on true => Ok(value = right)
     on false => Ok(value = left)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -80,8 +80,8 @@ fn m__check(value: int, lower: int, upper: int) -> M__Out rev 1
     on true => Ok(value = value)
     on false => m.out_of_range(value = value, lower = lower, upper = upper)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -148,10 +148,10 @@ fn m__go(value: int) -> M__Out rev 1
 `,
 	}
 	for name, src := range cases {
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		diags := diagnose(dir, "m.ail", src)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		diags := diagnose(dir, "m.can", src)
 		if !hasErrCode(diags, CodeParse) {
-			t.Fatalf("%s: expected AIL1000, got %v", name, diags)
+			t.Fatalf("%s: expected CAN1000, got %v", name, diags)
 		}
 	}
 }

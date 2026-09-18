@@ -83,7 +83,7 @@ narrower reading without stating it.
 - Raw control bytes in test rows, counted exactly like the
   a26/a29 rows (tab 0x09, FF 0x0C, NUL 0x00).
 - Independent oracle: the generated `html.ts` runs under node
-  over inputs ail literals cannot express — LF, CR, VT,
+  over inputs can literals cannot express — LF, CR, VT,
   both NUL/whitespace precedence directions, the lookalike.
   12/12 green. Scratch probe at `/tmp/id-probe.mjs`, not
   committed.

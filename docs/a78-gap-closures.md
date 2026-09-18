@@ -33,7 +33,7 @@ Verified against source (`compiler/lsp.go`,
 range/severity/source/message. The stable `code` and the a71
 `Expected`/`Found`/`Hint` payloads exist on the internal
 `Diag` but never reach the wire. Every new diagnostic in
-this record — and the existing AIL4301–4306 and AIL6013
+this record — and the existing CAN4301–4306 and CAN6013
 squiggles — loses its code in the editor until this is
 fixed. Small transport slice with wire-level goldens, before
 any item below ships a code. Comparing internal `Diag`
@@ -52,7 +52,7 @@ initialization, no import dependency at emit.
 
 Spelling shape (all drafts agree):
 
-```ail
+```can
 const std__ascii__COLON: int rev 1 = 58
 ```
 
@@ -72,7 +72,7 @@ constants — keeping R5's grep-names rule unambiguous.
 Pins read `std__ascii__COLON@1` like any `uses` entry.
 
 The ASCII declarations live in a new shared provider
-`std/ascii/ascii.ail` (`mod ascii`, verified absent);
+`std/ascii/ascii.can` (`mod ascii`, verified absent);
 the magic-bound migration is a cross-file acceptance
 proof. The ASCII predicates live beside the constants
 (`std__ascii__is_digit`, `std__ascii__is_alpha`,
@@ -156,13 +156,13 @@ verbatim); calls, arithmetic, matches, state, indexing, and
 slicing are excluded; Bytes and variant-valued constants stay
 inline. Validation reuses the shared tycker, so constructor
 fields get row-identical unknown/repeated/missing/mistyped
-rules (AIL6003), and eval/emit resolve through the existing
+rules (CAN6003), and eval/emit resolve through the existing
 lazy-substitution paths with no new mechanism.
 
 First consumer: `std/schema` decision tables migrate onto
 eleven fixture consts (requests, entries, sites, snapshots,
 policy seal). Row bytes 42,278 → 22,401 with zero outcome
-change (`ailc normalize` byte-identical over all 122 schema
+change (`canlc normalize` byte-identical over all 122 schema
 rows) and zero emit change (`schema.ts`, `errors.json`
 byte-identical). Single-use hostile shapes (quote, control,
 conflict, revoked, wrong-digest) stay inline where the bytes
@@ -172,7 +172,7 @@ are the point.
 
 Exactly a61's spelling (no new error mechanism):
 
-```ail
+```can
 on html.invalid_url e => forward e
 on Ok r => forward r
 ```
@@ -187,9 +187,9 @@ incoming union directly is rejected.
 **Elaboration timing (decided here):** the checker
 elaborates `forward e` into the ordinary complete
 constructor during checking, so admission, the prover,
-emit, and AIL4107 all see one shape:
+emit, and CAN4107 all see one shape:
 
-```ail
+```can
 on html.invalid_url e => html.invalid_url(value = e.value)
 ```
 
@@ -207,10 +207,10 @@ types; different wrapper-record names are not
 automatically disqualifying — the operation stays
 explicit field reconstruction, never a nominal record
 cast. The emitted shape stays the existing flat tagged
-union (`{ $ail_kind: "html.invalid_url", value: e.value
+union (`{ $can_kind: "html.invalid_url", value: e.value
 }`), never an unchecked `return e`.
 
-**AIL4107 is unchanged, and the boundary is precise:**
+**CAN4107 is unchanged, and the boundary is precise:**
 the certificate covers an unshadowed, bound **error arm
 of a local call** with a complete unchanged
 reconstruction (`relayStatus`, `compiler/lsp.go:425`).
@@ -251,10 +251,10 @@ but there is no remaining inventory question.
 Forwarding alone removes no arms, calls, or rows — only
 retranscription.
 
-This arm in `html__attribute__id` (std/html/html.ail:438)
+This arm in `html__attribute__id` (std/html/html.can:438)
 **must remain manual**:
 
-```ail
+```can
 on html.nul_byte e => html.nul_byte(value = value)
 ```
 
@@ -272,7 +272,7 @@ otherwise.
 
 Integer singletons and closed ranges:
 
-```ail
+```can
 ascii__COLON => ...
 ascii__UPPER_FIRST..ascii__UPPER_LAST => ...
 ```
@@ -313,7 +313,7 @@ a proved scalar remainder only — never call outcomes or
 variant cases. The final-`else` separation holds: proof
 results are consumed, never invented in emit.
 
-**One range arm stays one AIL4107 obligation.** Boundary
+**One range arm stays one CAN4107 obligation.** Boundary
 and neighbor rows are mandatory acceptance fixtures for
 the two stdlib migrations, written independently of the
 range constants — but not promoted into a universal new
@@ -333,7 +333,7 @@ their termination standing; no new certificate.
 `|` inside a single pattern slot, one RHS, one source
 arm:
 
-```ail
+```can
 ascii__SLASH | ascii__QUERY | ascii__HASH => ...
 ```
 
@@ -346,7 +346,7 @@ No wildcards inside alternative lists, no variant/error/
 `Ok` alternatives, no binder unification, no mixed scalar
 types per slot, no alternative tuple syntax.
 
-**Coverage has two layers:** AIL4107 stays one obligation
+**Coverage has two layers:** CAN4107 stays one obligation
 per source arm, and every explicitly written alternative
 in every slot needs a passing test selecting it in the
 winning arm. Not Cartesian-product — but `1..10 | 5..15`
@@ -358,7 +358,7 @@ to the test law.
 
 ### Authority terminators (verified against source)
 
-Authority's body (std/html/html.ail:548–639) branches
+Authority's body (std/html/html.can:548–639) branches
 `match n <= 0` first, then ladders `s[0] == 47/63/35/0`,
 each closing a `prev == "-"` sub-check. The naive
 flattening `match n <= 0, s[0]` evaluates `s[0]` on empty
@@ -368,13 +368,13 @@ delimiter stops (empty `prev` rejects at end, not at the
 delimiter arms). The migration is grouping **plus an
 ordinary helper extraction**, not alternatives alone:
 
-```ail
+```can
 html__ASCII_SLASH | html__ASCII_QUESTION | html__ASCII_HASH => match call html__url__authority_finish(orig, s, n, prev)
   on Ok r => forward r
   on html.invalid_url e => forward e
 ```
 
-```ail
+```can
 match prev == "-"
   true => html.invalid_url(value = orig)
   false => Ok(value = orig, tail = s, n = n)
@@ -396,7 +396,7 @@ decided.
 Strict keywords (the grammar's orphaned `and` is
 reclaimed; `or`/`not` ship with the item):
 
-```ail
+```can
 and
 or
 not
@@ -421,7 +421,7 @@ become typed `emits` outcomes or boolean results
 (`docs/fault-contracts.md` typed-outcome vs
 primitive-fault distinction, verified present):
 
-```ail
+```can
 false and ((1 / 0) == 0)
 true or ((1 / 0) == 0)
 ```
@@ -429,8 +429,8 @@ true or ((1 / 0) == 0)
 (The simpler `false and (1 / 0)` is ill-typed — integer
 right operand, not a short-circuit test.) Hence no bare
 `emit(left) && emit(right)` lowering: strict helper
-calls through `$ailBoolAnd`/`$ailBoolOr` (emitted only
-when used, following the established `$ailDec*` helper
+calls through `$canBoolAnd`/`$canBoolOr` (emitted only
+when used, following the established `$canDec*` helper
 pattern), and the interpreter evaluates and stores both
 child results before the truth table. Consequently `(n >
 0) and (s[0] == 65)` is **not an indexing guard** —
@@ -449,7 +449,7 @@ constants). Alnum composes explicitly bound call
 results; no operand-call exception, no multi-call
 match:
 
-```ail
+```can
 match call std__ascii__is_alpha(code)
   on Ok a => match call std__ascii__is_digit(code)
     on Ok d => Ok(value = a.value or d.value)
@@ -475,7 +475,7 @@ bytes; negated literal spellings normalize back to
 those forms (literals-only today — parser comment
 verified). Integers emit `(-value)`. **Decimals never
 emit JavaScript `-x`** (canonical strings): reuse exact
-subtraction from decimal zero, `$ailDecSub("0.0",
+subtraction from decimal zero, `$canDecSub("0.0",
 value)` — the helper exists (`compiler/emit.go:506`);
 the slice confirms the canonical-zero spelling against
 the decimal canonicalizer rather than assuming it.
@@ -484,12 +484,12 @@ Migration is deliberately small: the `0 - scale`
 arguments in `std__dec__divide_round_half_even_result`
 become `-scale` (verified idiom, 3 sites), plus
 `std__int__negate` (verified present at
-std/scalars/scalars.ail:394) keeping its three rows. Not
+std/scalars/scalars.can:394) keeping its three rows. Not
 the round-half-even shared-tail/`let` exhibit. The
 canonical-zero spelling is established, not pending:
 `d"1.0" - d"1.0"` evaluates to `"0.0"`
 (arith_test.go:36) and `d"0.0"` is used as a literal in
-scalars.ail — `$ailDecSub("0.0", value)` needs no
+scalars.can — `$canDecSub("0.0", value)` needs no
 further confirmation.
 
 ### Verifier touchpoint
@@ -538,20 +538,20 @@ split. All verified free of collisions:
 
 | Code | Rule | Source |
 | ---- | ---- | ------ |
-| `AIL2003` | Constant naming | design2 |
-| `AIL2104` | Unknown constant | design2 |
-| `AIL2105` | External constant missing from `uses` | design2 |
-| `AIL2205` | Duplicate same-module constant | all three |
-| `AIL6014` | Nonliteral constant initializer | design1+2 |
-| `AIL3011` | Invalid forward placement/binder | all three |
-| `AIL4110` | Invalid integer range bounds | all three |
-| `AIL4111` | Earlier arms fully cover this arm | all three |
-| `AIL4112` | Or-alternative contributes no remaining space | design1+2 |
+| `CAN2003` | Constant naming | design2 |
+| `CAN2104` | Unknown constant | design2 |
+| `CAN2105` | External constant missing from `uses` | design2 |
+| `CAN2205` | Duplicate same-module constant | all three |
+| `CAN6014` | Nonliteral constant initializer | design1+2 |
+| `CAN3011` | Invalid forward placement/binder | all three |
+| `CAN4110` | Invalid integer range bounds | all three |
+| `CAN4111` | Earlier arms fully cover this arm | all three |
+| `CAN4112` | Or-alternative contributes no remaining space | design1+2 |
 
-Dropped: design3-only `AIL2401`–`AIL2405` (const family
+Dropped: design3-only `CAN2401`–`CAN2405` (const family
 with no agreed semantics — the item-1 slice respawns
 codes only if five distinct const rules materialize)
-and `AIL4113`/`AIL4114` (folded into `AIL4112`'s
+and `CAN4113`/`CAN4114` (folded into `CAN4112`'s
 alternative-usefulness rule). `4112` takes the
 design1/design2 meaning (alternative contributes
 nothing), not design3's (unreachable arm — covered by
@@ -641,10 +641,10 @@ kept what holds, cut or fixed what does not:
   design1's inversion).
 - **Reconciled: diagnostics.** Nine-code set above;
   design3-only extras dropped with reasons.
-- **Reconciled: bool helper name.** `$ailBoolAnd`
-  (design1+2) over design3's `$ailAnd`.
+- **Reconciled: bool helper name.** `$canBoolAnd`
+  (design1+2) over design3's `$canAnd`.
 - **Reconciled: dec negation.** Concrete
-  `$ailDecSub("0.0", value)` (design1+2, helper
+  `$canDecSub("0.0", value)` (design1+2, helper
   verified present) over the abstract sign-toggle.
 - **Reconciled: OR migration.** Design2's extracted
   `authority_finish` (costed: 2 sites, 4 arms, 3 rows)
@@ -678,12 +678,12 @@ kept what holds, cut or fixed what does not:
   impure-value manuals (incl. the 438 arm), 1
   cross-module unknown (`render__utf8`).
 - Canonical zero `"0.0"` established
-  (arith_test.go:36, scalars.ail usage). Module
+  (arith_test.go:36, scalars.can usage). Module
   casing: all `mod` names lowercase; stdlib uses
   `std__<domain>__<name>` (scalars, text) and
   `html__*` (html) — the naming decision follows
   the two-module majority.
-- Manual arm `std/html/html.ail:438` in situ, true
+- Manual arm `std/html/html.can:438` in situ, true
   identity arm directly below.
 - Authority 548–639: `n <= 0` base, `s[0] ==
   47/63/35/0` ladders each closing `prev == "-"`.
@@ -692,8 +692,8 @@ kept what holds, cut or fixed what does not:
   `Bool__Value` present (division, scalars).
   `std/ascii` absent. No `let` in parser. Relay
   concept in eval. `std__dec__divide_round_half_even_result`
-  present. `$ail_kind`, `$ailDecSub` present.
-  `std__int__negate` (scalars.ail:394) present.
+  present. `$can_kind`, `$canDecSub` present.
+  `std__int__negate` (scalars.can:394) present.
   `docs/fault-contracts.md` present.
 - `TestDivZeroLoud` pins loud faults. Parser comment
   pins literals-only unary minus. `0 - scale` at 3

@@ -59,8 +59,8 @@ const variantValueExpect = `Ok(box = M__Box(state = Login__Authenticated(session
 // accounting sees the case).
 func TestVariantValueClean(t *testing.T) {
 	src := variantValueMod(variantValueBody, variantValueExpect)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -70,8 +70,8 @@ func TestVariantValueClean(t *testing.T) {
 func TestVariantValueUnknownField(t *testing.T) {
 	body := `Ok(box = M__Box(state = Login__Authenticated(bogus = Auth__Session(user_id = user))))`
 	src := variantValueMod(body, variantValueExpect)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "Login__Authenticated has no field bogus") {
 		t.Fatalf("expected unknown-field error, got %v", diags)
 	}
@@ -82,8 +82,8 @@ func TestVariantValueUnknownField(t *testing.T) {
 func TestVariantValueMissingField(t *testing.T) {
 	body := `Ok(box = M__Box(state = Login__Authenticated()))`
 	src := variantValueMod(body, variantValueExpect)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "Login__Authenticated is missing field session") {
 		t.Fatalf("expected missing-field error, got %v", diags)
 	}
@@ -94,8 +94,8 @@ func TestVariantValueMissingField(t *testing.T) {
 func TestVariantValueFieldType(t *testing.T) {
 	body := `Ok(box = M__Box(state = Login__Authenticated(session = "x")))`
 	src := variantValueMod(body, variantValueExpect)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "got str, want Auth__Session") {
 		t.Fatalf("expected field-type mismatch, got %v", diags)
 	}
@@ -107,8 +107,8 @@ func TestVariantValueFieldType(t *testing.T) {
 func TestVariantValueNominal(t *testing.T) {
 	body := `Ok(box = M__Box(state = Auth__Session(user_id = user)))`
 	src := variantValueMod(body, variantValueExpect)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "got Auth__Session, want Login__State") {
 		t.Fatalf("expected nominal mismatch, got %v", diags)
 	}
@@ -133,8 +133,8 @@ fn m__id(user: str) -> Login__State rev 1
 =
   Ok()
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "bare-variant returns are unsupported, return a record") {
 		t.Fatalf("expected bare-variant return rejection, got %v", diags)
 	}
@@ -144,8 +144,8 @@ fn m__id(user: str) -> Login__State rev 1
 // body: a bare case is its parent type, not the return record.
 func TestVariantBareBodyRejected(t *testing.T) {
 	src := variantValueMod(`Login__Anonymous()`, variantValueExpect)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "got Login__State, want M__Out") {
 		t.Fatalf("expected bare-body mismatch, got %v", diags)
 	}
@@ -184,8 +184,8 @@ fn m__go(value: int) -> M__Out rev 1
       g => [exchange args (value = 1) outcome Login__Anonymous()]
     on Ok v => Ok(value = v.value)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "neither Ok nor an error") {
 		t.Fatalf("expected bad-stub rejection, got %v", diags)
 	}
@@ -195,8 +195,8 @@ fn m__go(value: int) -> M__Out rev 1
 // expect Ok(...) or an error kind, never a bare case.
 func TestVariantBareExpectRejected(t *testing.T) {
 	src := variantValueMod(variantValueBody, `Login__Authenticated(session = Auth__Session(user_id = "u"))`)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "write Ok(...) or an error kind") {
 		t.Fatalf("expected bare-expectation rejection, got %v", diags)
 	}
@@ -230,8 +230,8 @@ fn m__eq(flag: int) -> M__Out rev 1
     true => Ok(value = 1)
     false => Ok(value = 0)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "variant equality is not in v1") {
 		t.Fatalf("expected variant-equality refusal, got %v", diags)
 	}
@@ -265,8 +265,8 @@ fn m__noop(value: int) -> M__Out rev 1
 =
   Ok(value = value)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "collides with record type Login__State") {
 		t.Fatalf("expected parent/record collision, got %v", diags)
 	}
@@ -297,8 +297,8 @@ fn m__pick(x: int) -> M__Out rev 1
 =
   Ok(pick = Pick__A(x = x))
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if !hasDiag(diags, "error", "Ok payload mismatch") {
 		t.Fatalf("expected tag-identity mismatch, got %v", diags)
 	}
@@ -357,17 +357,17 @@ fn cons__go(id: str) -> Cons__Out rev 1
     on Ok v => Ok(held = Prov__Data(id = v.id), state = Login__Anonymous())
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "prov.ail"), []byte(prov), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "prov.can"), []byte(prov), 0o644); err != nil {
 		t.Fatalf("write prov: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "cons.ail"), []byte(cons), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "cons.can"), []byte(cons), 0o644); err != nil {
 		t.Fatalf("write cons: %v", err)
 	}
-	if diags := diagnose(dir, "cons.ail", cons); len(diags) != 0 {
+	if diags := diagnose(dir, "cons.can", cons); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "prov.ail"), filepath.Join(dir, "cons.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "prov.can"), filepath.Join(dir, "cons.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "cons.ts"))
@@ -378,7 +378,7 @@ fn cons__go(id: str) -> Cons__Out rev 1
 	if !strings.Contains(ts, `import { prov__make, type Login__State, type Prov__Data, type ProvResult } from "./prov";`) {
 		t.Fatalf("missing provider type imports in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, `{ $ail_kind: "Login__Anonymous" }`) {
+	if !strings.Contains(ts, `{ $can_kind: "Login__Anonymous" }`) {
 		t.Fatalf("missing nullary case construction in emit:\n%s", ts)
 	}
 }
@@ -388,11 +388,11 @@ fn cons__go(id: str) -> Cons__Out rev 1
 func TestVariantNoCatalog(t *testing.T) {
 	src := variantValueMod(variantValueBody, variantValueExpect)
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "errors.json"))
@@ -410,11 +410,11 @@ func TestVariantNoCatalog(t *testing.T) {
 func TestVariantEmitUnion(t *testing.T) {
 	src := variantValueMod(variantValueBody, variantValueExpect)
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatalf("write: %v", err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -422,10 +422,10 @@ func TestVariantEmitUnion(t *testing.T) {
 		t.Fatalf("read m.ts: %v", err)
 	}
 	ts := string(raw)
-	if !strings.Contains(ts, `export type Login__State = { $ail_kind: "Login__Anonymous" } | { $ail_kind: "Login__Authenticated"; session: Auth__Session }`) {
+	if !strings.Contains(ts, `export type Login__State = { $can_kind: "Login__Anonymous" } | { $can_kind: "Login__Authenticated"; session: Auth__Session }`) {
 		t.Fatalf("missing variant union in emit:\n%s", ts)
 	}
-	if !strings.Contains(ts, `{ $ail_kind: "Login__Authenticated", session:`) {
+	if !strings.Contains(ts, `{ $can_kind: "Login__Authenticated", session:`) {
 		t.Fatalf("missing tagged construction in emit:\n%s", ts)
 	}
 }

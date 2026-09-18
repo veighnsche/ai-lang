@@ -54,7 +54,7 @@ sits a computed landmark header per module: entry points
 primary types, most-handled errors. Derived from facts
 the compiler already has — deterministic, zero
 maintenance, cold-start-proof, never rots. Served first
-by `ail_map`, or as its own `ail_landmarks` call.
+by `can_map`, or as its own `can_landmarks` call.
 Framing caution: landmarks guide but never gate. A
 "start here" is a previous decision handed to a new
 agent pre-loaded; the full L1 map stays one call away
@@ -88,36 +88,36 @@ One operation table in the compiler (operation → handler
 tools. Neither transport is first; the table is. Tool
 rule: every tool maps 1:1 to a compiler phase or
 artifact (parse → slices, check → diagnostics, eval →
-run, catalog → trace). If ailc cannot compute it, the
+run, catalog → trace). If canlc cannot compute it, the
 server cannot serve it — no bespoke endpoints with
 bespoke semantics. Conformance law: tool output
 byte-equals CLI output for the same query.
 
 Tools:
 
-- `ail_map(path)` → L1 (landmarks first).
-  `ail_contract(path)` → L2. `ail_source(path [, fn])`
-  → L3, whole file or one fn. `ail_landmarks(path)` →
+- `can_map(path)` → L1 (landmarks first).
+  `can_contract(path)` → L2. `can_source(path [, fn])`
+  → L3, whole file or one fn. `can_landmarks(path)` →
   the orientation header alone. The path of least
   resistance is landmarks-first, which makes token
   discipline structural instead of a system-prompt
   request agents defect from under pressure.
-- `ail_check(path)` → JSON diagnostics. Exists today as
+- `can_check(path)` → JSON diagnostics. Exists today as
   `--format json`; as a tool it becomes callable
   mid-reasoning with a schema instead of CLI arg
   guessing. Rides the diagnostic-quality work (a61 item
   1, a62, a63): every fix there improves this tool.
-- `ail_run(path)` → test results, structured per test.
-- `ail_trace(error_kind)` → the errors.json graph:
+- `can_run(path)` → test results, structured per test.
+- `can_trace(error_kind)` → the errors.json graph:
   raisers, handling arms, hitting tests. Gains mapping
   edges when a61 item 5 lands.
-- `ail_explain(code)` → the a61 per-code doc: rule,
+- `can_explain(code)` → the a61 per-code doc: rule,
   minimal violation, legal fix.
 
 Resources for stable addressing across turns:
-`ail://auth.ail?level=contract` — file slices citable
+`can://auth.can?level=contract` — file slices citable
 without re-reading. Views are read-only; edits happen on
-full source, verified through `ail_check`.
+full source, verified through `can_check`.
 
 Stateful facilities live server-side, explicitly outside
 language semantics, never presented as language truth:
@@ -130,7 +130,7 @@ language semantics, never presented as language truth:
   orientation; the only "favorites" that compound.
 - Escalation metrics (below).
 
-Why MCP rather than bash + `ailc`: tool schemas kill
+Why MCP rather than bash + `canlc`: tool schemas kill
 CLI-syntax guessing and grep-parse brittleness; L1-first
 becomes the default path rather than a convention; one
 integration serves every harness (Claude Code, Cursor,
@@ -154,8 +154,8 @@ earn their keep only if they cut L1 reads measurably.
   no Given-When-Then prose layer (cut from R9 in review
   as unverifiable duplication). Projections only.
 - Editable views. The server never accepts an L1/L2 edit;
-  there is exactly one source of truth, the `.ail` file.
-- New check/eval semantics. The server exposes what ailc
+  there is exactly one source of truth, the `.can` file.
+- New check/eval semantics. The server exposes what canlc
   computes; any behavior change is a compiler proposal
   first.
 - Replacing the CLI or LSP. Transport addition, not

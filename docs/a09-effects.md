@@ -62,7 +62,7 @@ effects [Retry__fuel.read, Retry__fuel.write]
 `get` needs `.read`, `put` needs `.write`. Capabilities are
 transitive through local calls: a caller declares everything its
 helpers may do — no inference, per the project goal. A foreign
-ail callee's effects are readable in its own file, so the caller
+can callee's effects are readable in its own file, so the caller
 declares a superset of them. Extern bodies are host-side and out
 of the proof (existing boundary: the host owns the implementation).
 
@@ -93,13 +93,13 @@ ordering questions.
 
 - `state__get`/`state__put` need no `uses` entry (same-file
   builtins, a07 precedent). Naming an undeclared cell is
-  `AIL3001`: the call names something undeclared.
-- Using an effect the signature does not declare is `AIL3107`
+  `CAN3001`: the call names something undeclared.
+- Using an effect the signature does not declare is `CAN3107`
   (foreign-raise precedent: the boundary was crossed silently).
 - A declared capability nothing uses — directly or through
-  callees — is stale, `AIL3108` (stale-emits precedent: proof
+  callees — is stale, `CAN3108` (stale-emits precedent: proof
   text that proves nothing misleads).
-- Put-value and cell-type mismatch is `AIL6003`, like every other
+- Put-value and cell-type mismatch is `CAN6003`, like every other
   conversion that does not exist. A `get` payload binds `on Ok v`
   with exactly one field, `value`, typed as the cell type.
 - Test-per-arm law applies to effect matches unchanged: an
@@ -145,7 +145,7 @@ stack and shared-state boundaries stay documented, not solved.
   per test from decl literals; get/put evaluate strictly in the
   caller's environment.
 - `lsp.go`: the `blocked` gate extends to the new codes.
-- `code.go`: `AIL3107`/`AIL3108` in the registry.
+- `code.go`: `CAN3107`/`CAN3108` in the registry.
 
 ## Consequences (accepted by writing this down)
 

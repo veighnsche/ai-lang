@@ -1,14 +1,14 @@
-// ALL_EXAMPLES.ail — every .ail program in the repo, concatenated for external review.
+// ALL_EXAMPLES.can — every .can program in the repo, concatenated for external review.
 // REVIEW COPY ONLY: not a compilable unit. Each section is one real file; section
 // headers give the repo path. Shipped programs come first, then the rejection gallery
 // (broken-login/): each file there is intentionally rejected by the compiler.
 
-// ===== sketches/auth-login/db.ail =====
-// auth-login/db.ail — user lookup module.
+// ===== sketches/auth-login/db.can =====
+// auth-login/db.can — user lookup module.
 // Type-discipline era: pw_hash is a branded secret (Db__Hash), not a
 // bare str. Raw hashes enter the program only through seal, one explicit
 // gate per construction site; the brand erases to string at runtime.
-// Delimiter era: no curly braces anywhere in ai-lang.
+// Delimiter era: no curly braces anywhere in can-lang.
 //   () application + records (construction reads as a call)
 //   [] enumerations (mod lists, given sequences)
 //   :  declares (type fields)
@@ -47,13 +47,13 @@ fn db__get_user(id: str) -> Db__User rev 5
 //   "db.Db__Hash@1": "h4100", "db.Db__User@4": "h3d11", "db.db__get_user@5": "hb905"
 // Revs 3/4 stay addressable under their hashes; pins decide who uses what.
 
-// ===== sketches/auth-login/auth.ail =====
-// auth-login/auth.ail — login with one retry, zero braces. Match arms are bare expressions with nesting
+// ===== sketches/auth-login/auth.can =====
+// auth-login/auth.can — login with one retry, zero braces. Match arms are bare expressions with nesting
 // shown by indentation. Tests read as call specifications:
 // name(inputs) => expected output.
 // Type-discipline era: the password is a branded secret (Auth__Password),
 // the stored hash another brand (Db__Hash), and the two never meet in
-// ail code. The comparison is a foreign predicate: auth__check_pw says
+// can code. The comparison is a foreign predicate: auth__check_pw says
 // Ok or auth.mismatch, and the proof wraps it. Secrets enter through
 // seal only; grep seal is the whole audit.
 // Helper era: the lockout-plus-password decision lives once in
@@ -177,8 +177,8 @@ fn auth__verify(user_id: str, failed_attempts: int, pw: Auth__Password, pw_hash:
 //    given table at the call site. The helper's own tables script
 //    every reaching test, so shared logic is written once.
 
-// ===== sketches/retry-loop/retry.ail =====
-// retry-loop/retry.ail — retry with fuel, zero braces. The loop is a
+// ===== sketches/retry-loop/retry.can =====
+// retry-loop/retry.can — retry with fuel, zero braces. The loop is a
 // proven self-call: retry__fetch recurses only through decreases fuel,
 // under the false arm of fuel <= 0 with fuel - 1 at the site, so the
 // compiler sees termination before running a single test.
@@ -224,8 +224,8 @@ fn retry__fetch(fuel: int) -> Retry__Doc rev 1
         on Ok d => Ok(body = d.body)
       on Ok d => Ok(body = d.body)
 
-// ===== sketches/counter/counter.ail =====
-// counter/counter.ail — a bounded counter, zero braces. State lives in
+// ===== sketches/counter/counter.can =====
+// counter/counter.can — a bounded counter, zero braces. State lives in
 // one private cell; authority to touch it is declared per function.
 // Every test starts from init, so three and three_again agree: the
 // tables themselves prove sequential tests cannot interfere.
@@ -264,8 +264,8 @@ fn count__twice(by: int) -> Count__Tally rev 1
     on Ok s => match call count__bump(by)
       on Ok t => Ok(total = t.total)
 
-// ===== sketches/broken-login/db.ail =====
-// broken-login/db.ail — shared provider for the squiggle demos.
+// ===== sketches/broken-login/db.can =====
+// broken-login/db.can — shared provider for the squiggle demos.
 // Clean file: opening it shows zero diagnostics.
 
 mod db
@@ -292,8 +292,8 @@ fn db__get(id: str) -> Db__User rev 1
     "u_01" => Ok(id = "u_01", pw_hash = "s", failed_attempts = 0)
     _ => db.user_not_found(id = id)
 
-// ===== sketches/broken-login/bad-name.ail =====
-// broken-login/bad-name.ail — DEMO: red squiggle, name breaks the grammar.
+// ===== sketches/broken-login/bad-name.can =====
+// broken-login/bad-name.can — DEMO: red squiggle, name breaks the grammar.
 // Functions must read domain__verb. This one doesn't.
 
 mod auth
@@ -323,8 +323,8 @@ fn go(id: str) -> Auth__S rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/dangling-test.ail =====
-// broken-login/dangling-test.ail — DEMO: red squiggle, a test with no script.
+// ===== sketches/broken-login/dangling-test.can =====
+// broken-login/dangling-test.can — DEMO: red squiggle, a test with no script.
 // The extra test names an outcome the given table never scripts.
 // DEMO-EXPECTS: given table [happy] != tests [extra happy]
 
@@ -352,8 +352,8 @@ fn auth__dangle(id: str) -> Auth__Dangle rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/dead-script.ail =====
-// broken-login/dead-script.ail — DEMO: yellow squiggle, a script no test runs.
+// ===== sketches/broken-login/dead-script.can =====
+// broken-login/dead-script.can — DEMO: yellow squiggle, a script no test runs.
 // The zzz outcome is scripted but the decision table never selects it.
 // DEMO-EXPECTS: given table [down happy missing zzz] != tests [down happy missing]
 
@@ -385,8 +385,8 @@ fn auth__script(id: str) -> Auth__Script rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/failing-test.ail =====
-// broken-login/failing-test.ail — DEMO: red squiggle, a test fails at build.
+// ===== sketches/broken-login/failing-test.can =====
+// broken-login/failing-test.can — DEMO: red squiggle, a test fails at build.
 // The missing-user case claims Ok but the code raises auth.bad.
 
 mod auth
@@ -414,8 +414,8 @@ fn auth__wrong(id: str) -> Auth__Wrong rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/foreign-raise.ail =====
-// broken-login/foreign-raise.ail — DEMO: red squiggle, raising outside emits.
+// ===== sketches/broken-login/foreign-raise.can =====
+// broken-login/foreign-raise.can — DEMO: red squiggle, raising outside emits.
 // The down arm forwards db.down, but the function only declares auth.bad.
 
 mod auth
@@ -445,8 +445,8 @@ fn auth__leak(id: str) -> Auth__Leak rev 1
     on db.down _ => db.down()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/incomplete-expectation.ail =====
-// broken-login/incomplete-expectation.ail — DEMO: red squiggle, a kind
+// ===== sketches/broken-login/incomplete-expectation.can =====
+// broken-login/incomplete-expectation.can — DEMO: red squiggle, a kind
 // without its payload. Error expectations must construct the complete
 // error value (a12): a bare kind proves nothing about the payload.
 
@@ -477,8 +477,8 @@ fn auth__need(id: str) -> Auth__Need rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/missing-arm.ail =====
-// broken-login/missing-arm.ail — DEMO: red squiggle, match not exhaustive.
+// ===== sketches/broken-login/missing-arm.can =====
+// broken-login/missing-arm.can — DEMO: red squiggle, match not exhaustive.
 // The db.down outcome has no arm, so the retry path is unhandled.
 
 mod auth
@@ -505,8 +505,8 @@ fn auth__partial(id: str) -> Auth__Partial rev 1
     on db.user_not_found _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/missing-exchange.ail =====
-// broken-login/missing-exchange.ail — DEMO: red squiggle, a response
+// ===== sketches/broken-login/missing-exchange.can =====
+// broken-login/missing-exchange.can — DEMO: red squiggle, a response
 // without its request. Every script row is an exchange binding
 // expected call args to one permitted outcome (a12): outcome-only
 // rows prove nothing about what was asked.
@@ -538,8 +538,8 @@ fn auth__ask(id: str) -> Auth__Ask rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/missing-rev.ail =====
-// broken-login/missing-rev.ail — DEMO: red squiggle, versioning missing.
+// ===== sketches/broken-login/missing-rev.can =====
+// broken-login/missing-rev.can — DEMO: red squiggle, versioning missing.
 // Every type and function carries rev N. This one doesn't.
 
 mod auth
@@ -565,8 +565,8 @@ fn auth__unrev(id: str) -> Auth__Unrev
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/missing-tests.ail =====
-// broken-login/missing-tests.ail — DEMO: yellow squiggle, no tests shipped.
+// ===== sketches/broken-login/missing-tests.can =====
+// broken-login/missing-tests.can — DEMO: yellow squiggle, no tests shipped.
 // Every function must carry its decision table. This one doesn't.
 
 mod auth
@@ -590,8 +590,8 @@ fn auth__bare(id: str) -> Auth__Bare rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/unknown-emits.ail =====
-// broken-login/unknown-emits.ail — DEMO: red squiggle, a manifest naming nothing.
+// ===== sketches/broken-login/unknown-emits.can =====
+// broken-login/unknown-emits.can — DEMO: red squiggle, a manifest naming nothing.
 // auth.stale sits in emits but no error auth.stale is declared anywhere.
 // Unrealized entries are a conservative upper bound (a12) and compile clean;
 // only undeclared entries are refused.
@@ -623,8 +623,8 @@ fn auth__promise(id: str) -> Auth__Promise rev 1
     on db.down _ => auth.bad()
     on Ok u => Ok(id = u.id)
 
-// ===== sketches/broken-login/unknown-call.ail =====
-// broken-login/unknown-call.ail — DEMO: red squiggle, calling the void.
+// ===== sketches/broken-login/unknown-call.can =====
+// broken-login/unknown-call.can — DEMO: red squiggle, calling the void.
 // db__nope names no function anywhere, so the match can never run.
 
 mod auth

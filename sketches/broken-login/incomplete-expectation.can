@@ -1,4 +1,4 @@
-// broken-login/incomplete-expectation.ail — DEMO: red squiggle, a kind
+// broken-login/incomplete-expectation.can — DEMO: red squiggle, a kind
 // without its payload. Error expectations must construct the complete
 // error value (a12): a bare kind proves nothing about the payload.
 

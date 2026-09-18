@@ -8,9 +8,9 @@
 
 The strongest evidence supports giving agents **reliable semantic information, fast validation, actionable feedback, and an acceptance process they cannot satisfy merely by rewriting the specification**. It does not establish that maximal explicitness, eliminating inference, removing syntactic sugar, or requiring a decision table in every function produces better end-to-end results. Type-aware generation and compiler-informed context have measured benefits, but those findings concern access to semantics—not necessarily spelling every semantic fact out in source. ([arXiv][1])
 
-My recommendation is to treat ai-lang as two experiments:
+My recommendation is to treat can-lang as two experiments:
 
-**The verification-and-tooling system** is the better-supported investment. **The new language surface** remains an experiment that must outperform an equally instrumented existing language—not an existing language deprived of ai-lang’s tools.
+**The verification-and-tooling system** is the better-supported investment. **The new language surface** remains an experiment that must outperform an equally instrumented existing language—not an existing language deprived of can-lang’s tools.
 
 There is encouraging evidence that unfamiliar, agent-oriented languages can be usable. There is also evidence that unfamiliar syntax, missing abstractions, excessive instructions, and superficially successful verification can undermine results. None of the reviewed sources establishes a universally best language for coding agents. ([GitHub][2])
 
@@ -80,7 +80,7 @@ The resulting design map is:
 
 Package hallucination also deserves its own boundary. A large study generated 576,000 Python and JavaScript samples across 16 models and found recurring invented package names. That supports checking against real dependencies—not the stronger conclusion that the standard library should be tiny. ([arXiv][8])
 
-**Implication for ai-lang:** optimizing grammar regularity while leaving specification, API discovery, and operational behavior weak would address only a fraction of the problem.
+**Implication for can-lang:** optimizing grammar regularity while leaving specification, API discovery, and operational behavior weak would address only a fraction of the problem.
 
 ## 2.2 Explicit semantics are valuable; mandatory explicit spelling is a separate bet
 
@@ -90,7 +90,7 @@ Package hallucination also deserves its own boundary. A large study generated 57
 
 Neither result establishes that an agent must manually write every type annotation.
 
-The distinction I would encode in ai-lang’s requirements is:
+The distinction I would encode in can-lang’s requirements is:
 
 > **The agent must not have to guess a semantic fact the compiler can determine. That does not imply the agent must spell that fact out.**
 
@@ -155,7 +155,7 @@ The first two do not imply the third.
 
 Decision tables can be excellent specifications for finite rule systems. Symbolic rows with universally proved obligations can also do substantially more than ordinary examples. But I found no direct comparative evidence that **mandatory per-function decision tables** outperform alternatives across general agent-written code.
 
-**Recommendation for ai-lang:** preserve branch evidence as one signal, but do not let it stand in for independent properties, boundary tests, or adequate contracts. Co-location of tests and logic is not the problem; **common generation errors and common authority to weaken both** are the problem.
+**Recommendation for can-lang:** preserve branch evidence as one signal, but do not let it stand in for independent properties, boundary tests, or adequate contracts. Co-location of tests and logic is not the problem; **common generation errors and common authority to weaken both** are the problem.
 
 ## 2.6 Verification helps—but there are three separate boundaries
 
@@ -165,7 +165,7 @@ Decision tables can be excellent specifications for finite rule systems. Symboli
 
 **Measured:** Clover checks consistency among code, documentation, and formal specifications. Its selected benchmark showed encouraging acceptance and rejection behavior, including finding flawed human-written examples. Its reported absence of accepted incorrect examples in that experiment is not a general zero-false-acceptance guarantee. ([arXiv][10])
 
-For ai-lang, a proof should therefore answer:
+For can-lang, a proof should therefore answer:
 
 > “What exactly was proved, under which assumptions, and who authorized those assumptions?”
 
@@ -212,7 +212,7 @@ Nevertheless, the design consequence is straightforward. An agent should not be 
 
 This requires an authority model, not merely a stern instruction.
 
-For ai-lang, specification changes should be **first-class semantic changes** with explicit authorization. Tests and contracts can remain in the same artifact while their approved portions are protected or independently checked.
+For can-lang, specification changes should be **first-class semantic changes** with explicit authorization. Tests and contracts can remain in the same artifact while their approved portions are protected or independently checked.
 
 ## 2.9 Much “LLM language” work answers a different question
 
@@ -220,9 +220,9 @@ Three categories should not be conflated.
 
 **Languages for building systems that call LLMs.** DSPy provides declarative modules and signatures and optimizes language-model pipelines against metrics. LMQL combines prompting, control flow, and constraints in a query language. Their measured results concern programming **with** language models, not whether coding agents produce more reliable applications when every source construct is explicit. ([arXiv][28])
 
-**Languages intended to be written by LLMs.** Vera explores mandatory contracts, effects, typed slot references, and compiler tooling. Sunholo’s **AILANG is a separate project from your ai-lang**; it explores a deterministic core, typed effects, capabilities, contracts, and agent-facing tooling. Aver is another relevant prototype. These are useful prior art, but their existence does not independently validate each design choice. ([GitHub][15])
+**Languages intended to be written by LLMs.** Vera explores mandatory contracts, effects, typed slot references, and compiler tooling. Sunholo’s **AILANG is a separate project from your can-lang**; it explores a deterministic core, typed effects, capabilities, contracts, and agent-facing tooling. Aver is another relevant prototype. These are useful prior art, but their existence does not independently validate each design choice. ([GitHub][15])
 
-**Opinion about what such a language should look like.** Fabio Akita’s February 2026 article discusses an agent-language wishlist developed through conversations with Claude and Codex. It is worth reading for ideas, but agreement among model-generated preferences is not empirical support. A wishlist resembling ai-lang may be an echo of the same intuitions rather than independent confirmation. ([AkitaOnRails][29])
+**Opinion about what such a language should look like.** Fabio Akita’s February 2026 article discusses an agent-language wishlist developed through conversations with Claude and Codex. It is worth reading for ideas, but agreement among model-generated preferences is not empirical support. A wishlist resembling can-lang may be an echo of the same intuitions rather than independent confirmation. ([AkitaOnRails][29])
 
 ---
 
@@ -249,15 +249,15 @@ The acceptance conditions below are proposed experiments, not thresholds establi
 | **9**  | **Contract/example/implementation consistency — R11**        | Compare decision tables alone, properties alone, and the combined specification system. Include wrong-but-self-consistent agent-generated specifications. Accept the combined system only if it improves external correctness enough to justify generation and proof cost.                                              |
 | **10** | **Executable conformance and resource checks — R14/R15/R18** | Differentially test emitted TypeScript against reference semantics, including numeric boundaries, serialization, foreign calls, time, and memory. Any program labeled as satisfying a particular guarantee must meet that guarantee under the documented execution assumptions.                                         |
 
-### The comparison ai-lang most needs
+### The comparison can-lang most needs
 
 Use three principal conditions:
 
 | Condition                                                                                                            | Purpose                                                      |
 | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | **A. Strict TypeScript with an ordinary competent agent harness**                                                    | Establish a practical baseline.                              |
-| **B. Strict TypeScript with the applicable ai-lang tooling, protected tests, semantic queries, and contract checks** | Estimate the benefit of the verification and tooling system. |
-| **C. ai-lang with the same agent, budget, and corresponding tooling**                                                | Estimate what the new language adds beyond the harness.      |
+| **B. Strict TypeScript with the applicable can-lang tooling, protected tests, semantic queries, and contract checks** | Estimate the benefit of the verification and tooling system. |
+| **C. can-lang with the same agent, budget, and corresponding tooling**                                                | Estimate what the new language adds beyond the harness.      |
 
 Make libraries, task semantics, and evaluation equivalent where possible, and explicitly record unavoidable capability differences.
 
@@ -282,7 +282,7 @@ A comparison between C and an under-tooled A could produce an impressive result 
 | **Termination, effects, exact numerics**                  | Valuable guarantees, but neither specification correctness nor operational sufficiency follows automatically.           | Preserve precise claims and validate their executable boundaries.                      |
 | **Transpile to TypeScript**                               | A deployment choice, not a correctness argument.                                                                        | Treat lowering, runtime support, and foreign interfaces as part of the trusted system. |
 
-The measured bases for these distinctions are the type/context studies, verbosity studies, testing research, and verification/runtime results—not a head-to-head evaluation of ai-lang. ([arXiv][1])
+The measured bases for these distinctions are the type/context studies, verbosity studies, testing research, and verification/runtime results—not a head-to-head evaluation of can-lang. ([arXiv][1])
 
 ## 4.2 Requirements missing or underemphasized
 

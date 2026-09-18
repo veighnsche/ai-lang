@@ -1,4 +1,4 @@
-// broken-login/missing-exchange.ail — DEMO: red squiggle, a response
+// broken-login/missing-exchange.can — DEMO: red squiggle, a response
 // without its request. Every script row is an exchange binding
 // expected call args to one permitted outcome (a12): outcome-only
 // rows prove nothing about what was asked.

@@ -4,7 +4,7 @@
 
 My re-rating is **7/10 → 8/10 for shipped, scenario-checked expressiveness**. That is **not** a soundness endorsement. The uploaded a05 plan provides the original 7/10 baseline, but no numerical subscore rubric; the more granular assessments below are mine, not reconstructed panel scores. *Source: `docs/a05-expressiveness.md`, “Consequences.”* 
 
-This is a language/specification audit. I did not execute the ai-lang compiler. I distinguish **findings supported directly by the files** from **deduced counterexamples whose compiler acceptance remains unverified**. Example citations refer to the real repository paths embedded in `docs/ALL_EXAMPLES.ail`.
+This is a language/specification audit. I did not execute the can-lang compiler. I distinguish **findings supported directly by the files** from **deduced counterexamples whose compiler acceptance remains unverified**. Example citations refer to the real repository paths embedded in `docs/ALL_EXAMPLES.can`.
 
 ---
 
@@ -26,7 +26,7 @@ is an exact mapping. These claims are incompatible.
 
 A counterexample requires no large numbers:
 
-```ail
+```can
 fn audit__sum(a: dec, b: dec) -> Audit__Value rev 1
   emits []
   tests
@@ -46,7 +46,7 @@ The integer boundary also interacts with termination. Under the documented `numb
 1000000000000000000 - 1 == 1000000000000000000
 ```
 
-as true. That value is within the evaluator’s stated `int64` domain, although outside its documented exact TypeScript domain. Consequently, an accepted source-level decrement need not decrease the emitted value. This is a **deduced production counterexample**, not a tested ai-lang compilation. *Sources: a06, “Eval semantics” / “TS emit”; a08, “Loop shape.”*   
+as true. That value is within the evaluator’s stated `int64` domain, although outside its documented exact TypeScript domain. Consequently, an accepted source-level decrement need not decrease the emitted value. This is a **deduced production counterexample**, not a tested can-lang compilation. *Sources: a06, “Eval semantics” / “TS emit”; a08, “Loop shape.”*   
 
 **Conclusion:** documentation of a numeric boundary is not enforcement of that boundary. Either the target preserves source arithmetic, or admissible source programs must be restricted accordingly.
 
@@ -66,7 +66,7 @@ However, a07 restricts its cycle check to **same-file edges**, and a08’s halti
 
 Consider two modules with properly pinned imports, ordinary record declarations, and these function fragments:
 
-```ail
+```can
 fn alpha__run(n: int) -> Alpha__Value rev 1
   emits []
   tests
@@ -78,7 +78,7 @@ fn alpha__run(n: int) -> Alpha__Value rev 1
     on Ok result => Ok(value = result.value)
 ```
 
-```ail
+```can
 fn beta__run(n: int) -> Beta__Value rev 1
   emits []
   tests
@@ -126,7 +126,7 @@ fuel 1 → down
 fuel 0 → exhausted
 ```
 
-Deleting metadata does not change those expressions or that trace. It changes whether the compiler admits the program. The example demonstrates **proof-gated admission**, not a program that would otherwise diverge. *Sources: `sketches/retry-loop/retry.ail`, header and `retry__fetch`; a05, “Consequences.”*   
+Deleting metadata does not change those expressions or that trace. It changes whether the compiler admits the program. The example demonstrates **proof-gated admission**, not a program that would otherwise diverge. *Sources: `sketches/retry-loop/retry.can`, header and `retry__fetch`; a05, “Consequences.”*   
 
 Replace that demonstration with mutations that remove the base case or make the recursive argument unchanged.
 
@@ -142,7 +142,7 @@ Replace that demonstration with mutations that remove the base case or make the 
 
 > “a declared-but-never-raised emit is an error too”
 
-Yet the shipped `db__get_user` declares `db.down` and has only two outcomes: `Ok` and `db.user_not_found`. The supposedly clean provider in `broken-login/db.ail` does the same.   
+Yet the shipped `db__get_user` declares `db.down` and has only two outcomes: `Ok` and `db.user_not_found`. The supposedly clean provider in `broken-login/db.can` does the same.   
 
 R10 instead says:
 
@@ -165,17 +165,17 @@ R8 scripts outcome sequences. It does not specify expected call arguments. *Sour
 
 **Deduced mutation:** changing the first login lookup from:
 
-```ail
+```can
 match call db__get_user(id)
 ```
 
 to:
 
-```ail
+```can
 match call db__get_user("the-wrong-user")
 ```
 
-does not change the selected scripted outcomes under the documented semantics. Its argument remains correctly typed. *Source: `sketches/auth-login/auth.ail`, `auth__login` first lookup.* 
+does not change the selected scripted outcomes under the documented semantics. Its argument remains correctly typed. *Source: `sketches/auth-login/auth.can`, `auth__login` first lookup.* 
 
 This is not a faulty implementation of R8. It is an important property that R8 currently does not establish.
 
@@ -183,13 +183,13 @@ This is not a faulty implementation of R8. It is an important property that R8 c
 
 `FOR_REVIEWER.md`, §2, explicitly says error expectations check the kind, not the fields. Consequently, changing:
 
-```ail
+```can
 auth.login_failed(user_id = id)
 ```
 
 to:
 
-```ail
+```can
 auth.login_failed(user_id = "somebody-else")
 ```
 
@@ -203,18 +203,18 @@ can preserve the existing error expectations.
 
 | Rule or promise                                                    | Counterexample or unresolved conflict                                                                                                                                                         | Assessment                                                                                                                                                     |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **R6:** “A function touching the outside world says so in `uses`.” | `retry.ail` has `uses []`, declares `extern net__fetch`, and calls it. R2 itself reserves `uses` for external **ail** items.                                                                  | Rewrite R6: `uses` is not a complete external-effect declaration.                                                                                              |
-| **R7:** “Each function carries `tests`.”                           | a07 says a function without tests is still a warning; `missing-tests.ail` explicitly advertises a yellow squiggle.                                                                            | Mandatory evidence and warning-only absence are inconsistent. This does **not** prove that this particular gallery file builds; it contains other problems.    |
+| **R6:** “A function touching the outside world says so in `uses`.” | `retry.can` has `uses []`, declares `extern net__fetch`, and calls it. R2 itself reserves `uses` for external **can** items.                                                                  | Rewrite R6: `uses` is not a complete external-effect declaration.                                                                                              |
+| **R7:** “Each function carries `tests`.”                           | a07 says a function without tests is still a warning; `missing-tests.can` explicitly advertises a yellow squiggle.                                                                            | Mandatory evidence and warning-only absence are inconsistent. This does **not** prove that this particular gallery file builds; it contains other problems.    |
 | **R9:** “types + signatures before bodies”                         | `auth__verify`’s signature follows the complete `auth__login` body.                                                                                                                           | An explicitly “to enforce” layout goal remains unmet—not a newly discovered implementation failure.                                                            |
 | **R4:** “Provider bumps never break pinned callers.”               | Runtime coexistence of revisions remains open question 1. The example claims old hashes remain addressable, but does not establish retained executable versions or their dependency closures. | Unsupported guarantee, not a verified runtime failure.                                                                                                         |
 | **R2:** `provides` names what the file defines.                    | Errors are omitted; private cells have an explicit exemption; module-local externs are included even though cross-module externs are unavailable.                                             | Define whether this is a declaration inventory or an export interface. Currently it is neither cleanly.                                                        |
-| **R2:** module `emits` describes errors the module can produce.    | `retry` includes handled `net.down`; its only ail function declares only `retry.exhausted`. The module/function relation is still explicitly open.                                            | Do not claim exact module-level escaping effects until the relation is defined.                                                                                |
+| **R2:** module `emits` describes errors the module can produce.    | `retry` includes handled `net.down`; its only can function declares only `retry.exhausted`. The module/function relation is still explicitly open.                                            | Do not claim exact module-level escaping effects until the relation is defined.                                                                                |
 
 I would **not** count a07’s original recursion ban versus a08’s amendment, or R8’s original all-calls wording versus its three-callee amendment, as contradictions. Those are identifiable, versioned changes. *Sources: Requirements status; R7–R8.*  
 
 Two additional honesty corrections:
 
-**The counter is not application-bounded.** Its `by: int` parameter and addition have no declared counter limit. “Bounded counter” should mean a specified limit with handling, not merely the existence of an integer representation. *Sources: a09, “Consequences”; `counter.ail`, `count__bump`.*  
+**The counter is not application-bounded.** Its `by: int` parameter and addition have no declared counter limit. “Bounded counter” should mean a specified limit with handling, not merely the existence of an integer representation. *Sources: a09, “Consequences”; `counter.can`, `count__bump`.*  
 
 **Fresh-store semantics provides test isolation; repeated rows demonstrate a regression case.** Those rows do not prove arbitrary production histories. a09 correctly acknowledges that production histories are outside its tables; the reviewer guide should retain that qualification wherever it says the tables “prove” isolation. *Sources: a09, “The isolation argument”; reviewer guide §8.*  
 
@@ -241,18 +241,18 @@ The language-level requirement should be: **every checker reasons over the same 
 
 | Gallery file        | Judgment                                                                                                                                                                                                    |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bad-name.ail`      | Consistent with the naming policy. It rejects a natural name, `go`, but this is deliberate convention—not a soundness benefit.                                                                              |
-| `dangling-test.ail` | Convincing: the new test reaches a foreign call without an outcome script.                                                                                                                                  |
-| `dead-script.ail`   | Convincing as stale evidence, but its yellow-warning description contradicts presenting the gallery as uniformly rejected.                                                                                  |
-| `failing-test.ail`  | Convincing: the expected success disagrees with the error-producing branch.                                                                                                                                 |
-| `foreign-raise.ail` | Convincing: forwarding is natural, but the escaping error must be declared. The mistake is the manifest, not forwarding itself.                                                                             |
-| `missing-arm.ail`   | Convincing: the declared `db.down` outcome lacks a handler.                                                                                                                                                 |
-| `missing-rev.ail`   | Convincing under the explicit-version policy.                                                                                                                                                               |
-| `missing-tests.ail` | Convincing in principle, inconsistent in severity. It also contains a `happy` script with no corresponding test, so it does not isolate one mistake.                                                        |
-| `stale-emits.ail`   | **The weakest rejection.** Conservative effect declarations are reasonable. Furthermore, `auth.stale` is not declared as an error, so the specimen confounds “unknown error” with “unused declared error.”  |
-| `unknown-call.ail`  | Convincing: no resolved callee means no contract to check.                                                                                                                                                  |
+| `bad-name.can`      | Consistent with the naming policy. It rejects a natural name, `go`, but this is deliberate convention—not a soundness benefit.                                                                              |
+| `dangling-test.can` | Convincing: the new test reaches a foreign call without an outcome script.                                                                                                                                  |
+| `dead-script.can`   | Convincing as stale evidence, but its yellow-warning description contradicts presenting the gallery as uniformly rejected.                                                                                  |
+| `failing-test.can`  | Convincing: the expected success disagrees with the error-producing branch.                                                                                                                                 |
+| `foreign-raise.can` | Convincing: forwarding is natural, but the escaping error must be declared. The mistake is the manifest, not forwarding itself.                                                                             |
+| `missing-arm.can`   | Convincing: the declared `db.down` outcome lacks a handler.                                                                                                                                                 |
+| `missing-rev.can`   | Convincing under the explicit-version policy.                                                                                                                                                               |
+| `missing-tests.can` | Convincing in principle, inconsistent in severity. It also contains a `happy` script with no corresponding test, so it does not isolate one mistake.                                                        |
+| `stale-emits.can`   | **The weakest rejection.** Conservative effect declarations are reasonable. Furthermore, `auth.stale` is not declared as an error, so the specimen confounds “unknown error” with “unused declared error.”  |
+| `unknown-call.can`  | Convincing: no resolved callee means no contract to check.                                                                                                                                                  |
 
-The “one squiggle” presentation should not become a language rule that conceals independent mistakes. For example, `failing-test.ail` also lacks a green test reaching its `db.down` arm. Suppressing dependent diagnostics can be sensible; calling the specimen single-fault is not. *Sources: that specimen; R10’s green-table coverage rule.*  
+The “one squiggle” presentation should not become a language rule that conceals independent mistakes. For example, `failing-test.can` also lacks a green test reaching its `db.down` arm. Suppressing dependent diagnostics can be sensible; calling the specimen single-fault is not. *Sources: that specimen; R10’s green-table coverage rule.*  
 
 ---
 
@@ -284,23 +284,23 @@ The following sketches are proposals unless described as existing syntax.
 
 No new source spelling is needed:
 
-```ail
+```can
 Ok(
   count = count + 1
   amount = amount + d"0.1"
 )
 ```
 
-**Breaks:** numeric TypeScript interfaces, host adapters, numeric goldens, and tests expecting `int64` overflow. The supplied small-value ail examples need no conceptual rewrite.
+**Breaks:** numeric TypeScript interfaces, host adapters, numeric goldens, and tests expecting `int64` overflow. The supplied small-value can examples need no conceptual rewrite.
 
 ## 2. Make recursion policy global, and simplify its local proof
 
 **Severity: soundness hole.**
 *Problem source: a07 “Termination”; a08 “Halting argument.”*  
 
-**Proposal:** inspect all ail call edges for cycles, including pinned imports. Initially allow only direct self-recursion. Simplify admission to a guarded unit decrement:
+**Proposal:** inspect all can call edges for cycles, including pinned imports. Initially allow only direct self-recursion. Simplify admission to a guarded unit decrement:
 
-```ail
+```can
 decreases fuel
 ...
 match fuel <= 0
@@ -321,7 +321,7 @@ Require each recursive call to occur under the positive branch. Negative inputs 
 
 **Proposal:** delete stale-emits rejection; retain explicit upper bounds and exhaustive handling. Require complete error expectations and argument-bound script steps:
 
-```ail
+```can
 tests
   missing(id = "u_99") =>
     auth.login_failed(user_id = "u_99")
@@ -336,7 +336,7 @@ given
 
 A script should prove “this request received this permitted response,” not merely supply the next response.
 
-**Breaks:** bare error expectations and outcome-only script rows. `stale-emits.ail` must become a positive upper-bound example, after declaring its error properly.
+**Breaks:** bare error expectations and outcome-only script rows. `stale-emits.can` must become a positive upper-bound example, after declaring its error properly.
 
 ## 4. Give effects stable identities, including extern authority
 
@@ -345,7 +345,7 @@ A script should prove “this request received this permitted response,” not m
 
 **Proposal:** export named, revisioned capabilities rather than private storage names. Declare extern authority explicitly and propagate it through callers.
 
-```ail
+```can
 capability Net__Fetch rev 1
 
 extern net__fetch() -> Retry__Doc rev 2
@@ -364,7 +364,7 @@ For state access, a public capability should map to private cells inside its def
 
 **Proposal:** allow explicitly typed record parameters and give every function its own result shape.
 
-```ail
+```can
 fn auth__verify(
   user: Db__User
   pw: Auth__Password
@@ -382,7 +382,7 @@ The signature already supplies the information needed to type the call and its `
 
 **Proposal:** missing tests and dead script keys are errors; script keys identify their root function and test; zero-field outcomes bind only `_`.
 
-```ail
+```can
 given
   auth__login.happy => [Ok()]
   auth__verify.vh_ok => [Ok()]
@@ -401,7 +401,7 @@ The last rule removes the need for a store-specific “bound but unusable value�
 
 **Proposal:** specify that a pinned function identifies its executable dependency closure, including local helpers, captured state initialization, and imported revisions—not merely its own textual body.
 
-```ail
+```can
 fn count__bump(by: int) -> Count__Tally rev 2
 ```
 
@@ -417,7 +417,7 @@ A relevant initialization or helper change can therefore require this bump even 
 
 **Motivation:** a09 proves fresh-store scenarios but excludes production histories. *Source: a09, “The isolation argument” / “Open decisions.”*  
 
-```ail
+```can
 state Count__total: int = 0
   invariant nonnegative
     Count__total >= 0
@@ -445,7 +445,7 @@ The two guarantees must stay distinct: **finite history tests are not the induct
 
 **Motivation:** int-backed brands are explicitly deferred, while current brands are string-backed and literal-sealed. *Sources: reviewer guide §§3 and 11.*  
 
-```ail
+```can
 brand Retry__Fuel is int rev 1
   invariant nonnegative
     value >= 0
@@ -469,7 +469,7 @@ match call brand__check(Retry__Fuel, raw)
 
 **Motivation:** a08 distinguishes termination from its depth cap and explicitly does not budget production stack usage. *Source: a08, “Halting argument” / “TS emit.”*  
 
-```ail
+```can
 fn retry__fetch(fuel: int) -> Retry__Doc rev 2
   requires [fuel >= 0]
   decreases fuel
@@ -497,7 +497,7 @@ fn retry__fetch(fuel: int) -> Retry__Doc rev 2
 
 Illustrative join fragment, assuming each branch has one declared failure kind:
 
-```ail
+```can
 match join Pair__Read
   order [left, right]
   left: Left__Value
@@ -522,7 +522,7 @@ match join Pair__Read
 
 **Why agents benefit:** no implicit “first error wins,” forgotten task, detached work, or scheduler-dependent failure selection.
 
-**Complications:** new trace semantics, join goldens, task result types, and state interference rules. Termination of an external service is **not** proved by a join type. Initially admit terminating ail tasks; host async requires an explicit trusted completion or timeout contract. Never smuggle that assumption into “proof-carrying.”
+**Complications:** new trace semantics, join goldens, task result types, and state interference rules. Termination of an external service is **not** proved by a join type. Initially admit terminating can tasks; host async requires an explicit trusted completion or timeout contract. Never smuggle that assumption into “proof-carrying.”
 
 ---
 

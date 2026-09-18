@@ -32,8 +32,8 @@ fn std__int__abs(value: int) -> M__Val rev 1
 `
 
 func TestMultiUnderscoreNameAccepted(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": multiUnderscoreSrc})
-	if diags := diagnose(dir, "m.ail", multiUnderscoreSrc); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": multiUnderscoreSrc})
+	if diags := diagnose(dir, "m.can", multiUnderscoreSrc); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -41,8 +41,8 @@ func TestMultiUnderscoreNameAccepted(t *testing.T) {
 func TestMalformedNamesRejected(t *testing.T) {
 	for _, name := range []string{"go", "_foo__bar", "foo__", "foo____bar"} {
 		bad := strings.ReplaceAll(multiUnderscoreSrc, "std__int__abs", name)
-		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-		if diags := diagnose(dir, "m.ail", bad); !hasDiag(diags, "error", "must match domain__verb") {
+		dir := writeLSPDir(t, map[string]string{"m.can": bad})
+		if diags := diagnose(dir, "m.can", bad); !hasDiag(diags, "error", "must match domain__verb") {
 			t.Fatalf("expected naming error for %q, got %v", name, diags)
 		}
 	}

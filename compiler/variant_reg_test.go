@@ -53,8 +53,8 @@ type Auth__Session rev 1 (
 // scalar payloads) diagnoses clean.
 func TestVariantRegistryClean(t *testing.T) {
 	src := variantMod("m__noop, M__Out, Login__State, Login__Event, Auth__Session", variantLoginDecls)
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -81,13 +81,13 @@ fn c__noop(value: int) -> C__Out rev 1
   Ok(value = value)
 `
 	}
-	dir := writeLSPDir(t, map[string]string{"m.ail": base, "c.ail": consumer("Login__State@1")})
-	if diags := diagnose(dir, "c.ail", consumer("Login__State@1")); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": base, "c.can": consumer("Login__State@1")})
+	if diags := diagnose(dir, "c.can", consumer("Login__State@1")); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
-	dir2 := writeLSPDir(t, map[string]string{"m.ail": base, "c.ail": consumer("Login__State@2")})
-	if diags := diagnose(dir2, "c.ail", consumer("Login__State@2")); !hasErrCode(diags, CodeUsesRev) {
-		t.Fatalf("expected AIL2103, got %v", diags)
+	dir2 := writeLSPDir(t, map[string]string{"m.can": base, "c.can": consumer("Login__State@2")})
+	if diags := diagnose(dir2, "c.can", consumer("Login__State@2")); !hasErrCode(diags, CodeUsesRev) {
+		t.Fatalf("expected CAN2103, got %v", diags)
 	}
 }
 
@@ -153,8 +153,8 @@ func TestVariantRegistryRejects(t *testing.T) {
 	}
 	for name, tc := range cases {
 		src := variantMod(tc.provides, tc.decls)
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		diags := diagnose(dir, "m.ail", src)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		diags := diagnose(dir, "m.can", src)
 		hit := false
 		for _, d := range diags {
 			if d.Sev != "error" {

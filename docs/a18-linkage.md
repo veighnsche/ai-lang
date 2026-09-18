@@ -3,9 +3,9 @@
 Scripts are claims about providers. Until now nothing checked the
 claim: a `given` row could script any outcome the emits allowed, and a
 wrong Ok value passed the build. a18 proves the claim when it can be
-proven: for a foreign ail call, every scripted **Ok** outcome is
+proven: for a foreign can call, every scripted **Ok** outcome is
 evaluated against the provider body on the script's own exchange args,
-and a mismatch fails the build with **AIL3110**:
+and a mismatch fails the build with **CAN3110**:
 
 ```
 script lie contradicts lib__double:
@@ -14,7 +14,7 @@ script lie contradicts lib__double:
 
 ## The rule
 
-For each foreign-ail call site, for each exchange row with an Ok
+For each foreign-can call site, for each exchange row with an Ok
 outcome: bind the row's args to the callee params, evaluate the callee
 body in a sandbox (fresh store, no scripts, depth bound), and compare
 with `vEq` — the same equality the test runner uses, so the check and
@@ -32,16 +32,16 @@ reality cannot disagree.
   cannot run proves nothing; panics inside the evaluator recover to
   trust. A check must never fail a build it cannot model.
 
-AIL3110 joins the prove-first gate: a contradicted script blocks test
+CAN3110 joins the prove-first gate: a contradicted script blocks test
 execution like any other unproven claim.
 
 ## The flagship gets honest
 
-The check caught four fictional rows in `auth.ail`: `failed_attempts
+The check caught four fictional rows in `auth.can`: `failed_attempts
 = 5` and `pw_hash = "wrong"` for `u_01`, which `db__get_user` never
 computes. The fix stages failure against real provider state instead:
 
-- `db.ail` gains a second user, `u_02`, whose row really carries five
+- `db.can` gains a second user, `u_02`, whose row really carries five
   failed attempts. The lockout tests now log in as `u_02`.
 - The wrong-password tests now supply a genuinely wrong password
   (`seal Auth__Password("wrong")`) against the real `u_01` row; the

@@ -84,7 +84,7 @@ type RevisionBaseline struct {
 	// canonical expectation rendering. Additive: older baselines
 	// carry no pins and simply track nothing, so the format does
 	// not bump for this advisory section. Pins never enter the
-	// fingerprint hash — weakening warns (AIL6017), never rejects.
+	// fingerprint hash — weakening warns (CAN6017), never rejects.
 	Pinned map[string]string `json:"pinned"`
 }
 
@@ -893,7 +893,7 @@ func CheckRevisionIdentity(prog *Program, texts map[string]string, base *Revisio
 		return spanDiag(text, line, "error", msg, token, code)
 	}
 	if base.Format != RevisionFormat {
-		return []Diag{mkspan(fmt.Sprintf("unsupported revision format %d (want %d): regenerate the baseline with a compatible ailc",
+		return []Diag{mkspan(fmt.Sprintf("unsupported revision format %d (want %d): regenerate the baseline with a compatible canlc",
 			base.Format, RevisionFormat), "mod", CodeRevisionIdentity)}
 	}
 	if !base.Accepted {
@@ -1171,7 +1171,7 @@ func PinnedRows(prog *Program) map[string]string {
 // against accepted baselines in the current format — identity owns
 // every other complaint. Fns whose identity is absent on either side
 // are skipped: added, removed, or revved declarations already report
-// through AIL6013, and new pins record silently on regen.
+// through CAN6013, and new pins record silently on regen.
 func CheckPinnedRows(prog *Program, texts map[string]string, base *RevisionBaseline) []Diag {
 	if base == nil || base.Format != RevisionFormat || !base.Accepted || len(base.Pinned) == 0 {
 		return nil

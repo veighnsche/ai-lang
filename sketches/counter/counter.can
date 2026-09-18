@@ -1,4 +1,4 @@
-// counter/counter.ail — a bounded counter, zero braces. State lives in
+// counter/counter.can — a bounded counter, zero braces. State lives in
 // one private cell; authority to touch it is declared per function.
 // Every test starts from init, so three and three_again agree: the
 // tables themselves prove sequential tests cannot interfere.

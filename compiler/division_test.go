@@ -9,7 +9,7 @@ import (
 // a17: / and % are exact Euclidean integer division (a == b*q + r
 // with 0 <= r < |b| on every sign combination), discharged through
 // big.Int.DivMod — no unit-step scans. Dec operands are refused
-// statically (AIL6005); a zero divisor is loud at runtime.
+// statically (CAN6005); a zero divisor is loud at runtime.
 
 func TestDivModVectors(t *testing.T) {
 	for _, c := range []struct{ expr, want string }{
@@ -80,46 +80,46 @@ fn m__div(a: dec, b: dec) -> M__Out rev 1
 `
 
 func TestDecDivisionRefused(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": typeDivDec})
-	diags := diagnose(dir, "m.ail", typeDivDec)
+	dir := writeLSPDir(t, map[string]string{"m.can": typeDivDec})
+	diags := diagnose(dir, "m.can", typeDivDec)
 	if !hasDiag(diags, "error", "has no exact result") {
-		t.Fatalf("expected AIL6005 inexact-division error, got %v", diags)
+		t.Fatalf("expected CAN6005 inexact-division error, got %v", diags)
 	}
 	found := false
 	for _, d := range diags {
-		if d.Code == "AIL6005" {
+		if d.Code == "CAN6005" {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("expected a coded AIL6005 diagnostic, got %v", diags)
+		t.Fatalf("expected a coded CAN6005 diagnostic, got %v", diags)
 	}
 }
 
 func TestDecRemainderRefused(t *testing.T) {
 	bad := strings.Replace(typeDivDec, "Ok(q = a / b)", "Ok(q = a % b)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "has no exact result") {
-		t.Fatalf("expected AIL6005 inexact-division error, got %v", diags)
+		t.Fatalf("expected CAN6005 inexact-division error, got %v", diags)
 	}
 }
 
 func TestDivEmitHelper(t *testing.T) {
 	// The Euclidean helper emits inline only when / or % is used.
-	dir := writeLSPDir(t, map[string]string{"m.ail": typeDivMod})
+	dir := writeLSPDir(t, map[string]string{"m.can": typeDivMod})
 	out := t.TempDir()
-	if err := compile(out, []string{dir + "/m.ail"}); err != nil {
+	if err := compile(out, []string{dir + "/m.can"}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(out + "/m.ts")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(raw), "function $ailDivMod") {
-		t.Fatalf("emit missing $ailDivMod helper:\n%s", raw)
+	if !strings.Contains(string(raw), "function $canDivMod") {
+		t.Fatalf("emit missing $canDivMod helper:\n%s", raw)
 	}
-	if !strings.Contains(string(raw), "$ailDivMod(a, 3n)[0]") {
+	if !strings.Contains(string(raw), "$canDivMod(a, 3n)[0]") {
 		t.Fatalf("emit missing helper call:\n%s", raw)
 	}
 }

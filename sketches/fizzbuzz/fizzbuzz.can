@@ -1,4 +1,4 @@
-// fizzbuzz/fizzbuzz.ail — FizzBuzz as one flat two-slot match (a28):
+// fizzbuzz/fizzbuzz.can — FizzBuzz as one flat two-slot match (a28):
 // divisibility by 3 and by 5 selects the word while the number rides
 // along untouched, so no digit renderer is needed. (Rendering an int
 // as text is recursion behind a helper — see std__convert__int_to_str

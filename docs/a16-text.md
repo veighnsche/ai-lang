@@ -11,7 +11,7 @@ its surface left open.
   and bools compute nothing, and mixed operands never convert.
   Static gate first (`cannot subtract str with str`), loud
   dynamic error past it, native `+` in emit (no helper needed).
-- `std/text/text.ail` blesses `std__str__concat` with decision
+- `std/text/text.can` blesses `std__str__concat` with decision
   tables covering empties, multi-scalar text, and
   markup-passthrough (concat preserves everything; escaping
   belongs to context encoders, never to construction).

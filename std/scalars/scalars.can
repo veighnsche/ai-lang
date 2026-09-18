@@ -1,4 +1,4 @@
-// std/scalars/scalars.ail — row 2 of the standard-library program.
+// std/scalars/scalars.can — row 2 of the standard-library program.
 // Monomorphic boolean logic, three-way comparisons, selection,
 // predicates, integer and decimal fundamentals, decimal observation
 // (parts), bounded arithmetic, exact power and recurrence helpers,

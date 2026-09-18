@@ -28,9 +28,9 @@ fn m__wrap(value: str) -> Str__Value rev 1
 `
 
 func TestBracesInStringsAllowed(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": braceStringSrc})
+	dir := writeLSPDir(t, map[string]string{"m.can": braceStringSrc})
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("braces in strings must compile: %v", err)
 	}
 }
@@ -44,8 +44,8 @@ func TestBracesOutsideStringsBanned(t *testing.T) {
 		// smuggles a brace past the ban.
 		"comment_quote": braceStringSrc + "// say \"hi\" { stray }\n",
 	} {
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		err := compile(t.TempDir(), []string{filepath.Join(dir, "m.ail")})
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		err := compile(t.TempDir(), []string{filepath.Join(dir, "m.can")})
 		if err == nil || !strings.Contains(err.Error(), "curly braces are banned") {
 			t.Errorf("%s: expected braces error, got %v", name, err)
 		}

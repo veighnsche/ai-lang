@@ -217,8 +217,8 @@ fn app__use(x: int) -> Svc__Out rev 1
 // handler execution, and neither disturbs the other. Both functions
 // verify while the outage test still passes ordinary checks.
 func TestVerifyOutageSeparation(t *testing.T) {
-	files := map[string]string{"svc.ail": verifyOutageSvc, "app.ail": verifyOutageApp}
-	prog, texts := revisionProg(t, files, []string{"svc.ail", "app.ail"})
+	files := map[string]string{"svc.can": verifyOutageSvc, "app.can": verifyOutageApp}
+	prog, texts := revisionProg(t, files, []string{"svc.can", "app.can"})
 	if diags := VerifyContracts(prog, texts); len(diags) != 0 {
 		t.Fatalf("outage separation did not verify: %v", diags)
 	}
@@ -387,7 +387,7 @@ fn m__go(x: int) -> M__Out rev 1
 // TestVerifyMissingSolver pins fail-closed tooling: with no solver
 // binary, contracted functions are inconclusive, never accepted.
 func TestVerifyMissingSolver(t *testing.T) {
-	t.Setenv("AILC_Z3", "/nonexistent/z3-bogus")
+	t.Setenv("CANLC_Z3", "/nonexistent/z3-bogus")
 	prog, texts := admitProg(t, admitMax)
 	diags := VerifyContracts(prog, texts)
 	if len(diags) == 0 {

@@ -1,5 +1,5 @@
 {
-  "name": "ail-tscheck",
+  "name": "can-tscheck",
   "private": true,
   "description": "Pinned TypeScript for the a14/a70 tsc gate over committed goldens.",
   "devDependencies": {

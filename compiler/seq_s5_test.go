@@ -31,7 +31,7 @@ fn m__go(a: M__B) -> M__BOut rev 1
 `
 
 func TestSeqBrandPlus(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": seqBrandPlusMod}, "m.ail")
+	seqClean(t, map[string]string{"m.can": seqBrandPlusMod}, "m.can")
 }
 
 // The result is the brand, not str: corrupt the field to str and
@@ -42,7 +42,7 @@ func TestSeqBrandPlusTyped(t *testing.T) {
 	// remaining error is the body's brand-vs-str refusal.
 	bad := strings.Replace(seqBrandPlusMod, "  v: M__B", "  v: str", 1)
 	bad = strings.Replace(bad, `Ok(v = seal M__B("xy"))`, `Ok(v = "xy")`, 1)
-	seqCode(t, map[string]string{"m.ail": bad}, "m.ail", CodeTypeMismatch, "want str")
+	seqCode(t, map[string]string{"m.can": bad}, "m.can", CodeTypeMismatch, "want str")
 }
 
 func TestSeqBrandPlusRefusals(t *testing.T) {
@@ -60,7 +60,7 @@ func TestSeqBrandPlusRefusals(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			body := strings.Replace(seqBrandPlusMod,
 				`Ok(v = a + seal M__B("y"))`, `Ok(v = `+c.expr+`)`, 1)
-			seqCode(t, map[string]string{"m.ail": body}, "m.ail", CodeTypeMismatch, c.sub)
+			seqCode(t, map[string]string{"m.can": body}, "m.can", CodeTypeMismatch, c.sub)
 		})
 	}
 }
@@ -72,7 +72,7 @@ func TestSeqBrandPlusEmit(t *testing.T) {
 	if !strings.Contains(ts, `(a + "y")`) {
 		t.Fatalf("emit missing native concat:\n%s", ts)
 	}
-	for _, helper := range []string{"$ailStr", "$ailSeq", "$ailDec", "$ailDivMod", "$ailEqRec"} {
+	for _, helper := range []string{"$canStr", "$canSeq", "$canDec", "$canDivMod", "$canEqRec"} {
 		if strings.Contains(ts, helper) {
 			t.Fatalf("emit should use no helper for brand concat, found %s:\n%s", helper, ts)
 		}

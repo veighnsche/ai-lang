@@ -4,7 +4,7 @@ Status: shipped, unwired. `CheckContractAdmission` (compiler/verify_admission.go
 classifies every contracted function before any solver runs. It is a
 pure function with probe-first tests; no pipeline calls it yet.
 Activation ("verifier checking is active") waits for the proving
-slices. New codes AIL4301/4302/4303, all with `ailc explain` entries.
+slices. New codes CAN4301/4302/4303, all with `canlc explain` entries.
 
 ## The fragment
 
@@ -22,19 +22,19 @@ omitted.
 
 ## Findings
 
-- AIL4301 malformed: non-Boolean requires rows, unknown binders
+- CAN4301 malformed: non-Boolean requires rows, unknown binders
   or fields, missing/duplicate outcome arms (verdict 3A: exactly
   one arm for `Ok` and every emits kind), ill-sorted combinations,
   non-Boolean ensures-match arms. A predicate position demands a
   Boolean expression, so a never-Boolean shape (constructor, seal)
   is malformed even though its sort is also unsupported.
-- AIL4302 unsupported: fragment-external sorts/operators in
+- CAN4302 unsupported: fragment-external sorts/operators in
   Boolean-shaped predicates, `requires false` (empty admitted
   domain proves vacuously), extern and kernel calls (tested
   behavior is not a proof rule), state effects, direct and mutual
   recursion in the contracted closure (no induction rule;
   language termination rules unchanged).
-- AIL4303 unavailable dependency: any function call from a
+- CAN4303 unavailable dependency: any function call from a
   contracted body, contracted or not. With no proving run yet,
   no summary is established; a plain callee's unstated summary
   is equally unusable. Self-calls stay silent here so the

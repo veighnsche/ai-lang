@@ -1,4 +1,4 @@
-// retry-loop/retry.ail — retry with fuel, zero braces. The loop is a
+// retry-loop/retry.can — retry with fuel, zero braces. The loop is a
 // proven self-call: retry__fetch recurses only through decreases fuel,
 // under the false arm of fuel <= 0 with fuel - 1 at the site, so the
 // compiler sees termination before running a single test.

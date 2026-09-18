@@ -10,7 +10,7 @@ import (
 )
 
 // a10: ints emit as bigint (unbounded, exact) and decs as strings
-// carrying canonical digits (exact via the $ailDec helpers below).
+// carrying canonical digits (exact via the $canDec helpers below).
 // The old number mapping was lossy (0.1+0.2) and is gone.
 var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string", "Bytes": "Uint8Array"}
 
@@ -74,7 +74,7 @@ func errorShapes(mods []*Module) map[string][][2]string {
 	return errs
 }
 
-// tsTypeB maps an ail annotation to TS, erasing brands to their
+// tsTypeB maps an can annotation to TS, erasing brands to their
 // underlying type. Branding is proof, not runtime: the emit forgets it.
 // Declared record names map to their emitted TS type of the same name.
 // Declared variant parents (a74) map to their emitted union type of
@@ -104,15 +104,15 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, va
 	if _, ok := variants[t]; ok {
 		return t, nil
 	}
-	return "", fmt.Errorf("cannot map ail type to TS: %s", t)
+	return "", fmt.Errorf("cannot map can type to TS: %s", t)
 }
 
 // tsTag is the outcome discriminator key in emitted TypeScript. It is
-// unspellable in ail (identifiers match \w+, so $ never appears in
+// unspellable in can (identifiers match \w+, so $ never appears in
 // source), keeping metadata disjoint from logical payload fields: a
 // field named kind stays data, and the tag can never be overwritten by
 // one. Payload fields keep their source names verbatim.
-const tsTag = "$ail_kind"
+const tsTag = "$can_kind"
 
 // tsField renders one payload field as target storage. Every declared
 // field becomes an own data property: ordinarily name: value, except
@@ -179,7 +179,7 @@ func builtinErrorLookup(name string, mods []*Module) *ErrorDecl {
 
 // externUnion is the TS Result type of a foreign call: ok carrying the
 // Ret record plus one member per declared emits kind. The host owns the
-// implementation; this is the contract ailc proves against.
+// implementation; this is the contract canlc proves against.
 func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	var td *TypeDecl
 	for _, b := range builtinTypeDecls() {
@@ -343,7 +343,7 @@ func (e *emitter) isScalar(ot string) bool {
 // brands compare natively; records and error payloads compare
 // field-by-field over their declared shape, ignoring the outcome
 // envelope; cell wrappers compare their .value payloads. Unknown or
-// unsupported operand types fail (AIL5005) instead of falling back to
+// unsupported operand types fail (CAN5005) instead of falling back to
 // object identity.
 func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 	ll, rr, shape := l, r, ot
@@ -382,7 +382,7 @@ func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 		fs = append(fs, strconv.Quote(f))
 	}
 	e.recEq = true
-	expr = fmt.Sprintf("$ailEqRec(%s, %s, [%s])", ll, rr, strings.Join(fs, ", "))
+	expr = fmt.Sprintf("$canEqRec(%s, %s, [%s])", ll, rr, strings.Join(fs, ", "))
 	if op == "!=" {
 		expr = "(!" + expr + ")"
 	}
@@ -392,7 +392,7 @@ func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 // equalityFields resolves the declared comparison shape for a record
 // or error-payload operand: record names to their type fields, err:
 // kinds to their error fields. Anything else is not structurally
-// comparable (AIL5005).
+// comparable (CAN5005).
 func (e *emitter) equalityFields(ot string) ([]string, error) {
 	if strings.HasPrefix(ot, "err:") {
 		fs, ok := e.errFields[strings.TrimPrefix(ot, "err:")]
@@ -411,7 +411,7 @@ func (e *emitter) equalityFields(ot string) ([]string, error) {
 	return nil, fmt.Errorf("cannot emit comparison over %s (%s)", ot, CodeBadCompare)
 }
 
-// binopOperandType reports the static ail type of a binop's operands
+// binopOperandType reports the static can type of a binop's operands
 // for dispatch. Same-type operands are enforced by the checker, so one
 // type describes both sides. Checker annotations win; literal kinds
 // are the fallback. Empty means unknown: the caller fails loud.
@@ -466,8 +466,8 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		return "[" + strings.Join(parts, ", ") + "]", nil
 	case "ref":
 		// Slice 1: a constant reference inlines its literal:
-		// the checker owns existence (AIL2104) and linkage
-		// (AIL2105), so emit substitutes the value. Unknown
+		// the checker owns existence (CAN2104) and linkage
+		// (CAN2105), so emit substitutes the value. Unknown
 		// names emit verbatim and fail downstream as before.
 		if len(node.Ref) == 1 && constNameRe.MatchString(node.Ref[0]) {
 			if c, ok := e.consts[node.Ref[0]]; ok && c.Value != nil {
@@ -487,12 +487,12 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		// Slice 5: eager combinators lower to strict helper
 		// calls (both arguments evaluate before the call, so
 		// no bare && short-circuits); the helper emits only
-		// when used, following the $ailDec* pattern.
+		// when used, following the $canDec* pattern.
 		if node.Op == "and" || node.Op == "or" {
-			name := "$ailBoolAnd"
+			name := "$canBoolAnd"
 			key := "and"
 			if node.Op == "or" {
-				name = "$ailBoolOr"
+				name = "$canBoolOr"
 				key = "or"
 			}
 			e.boolOps[key] = true
@@ -509,7 +509,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		// payloads, and cell wrappers compare field-by-field over
 		// their declared shape, ignoring the outcome envelope.
 		// Anything else fails instead of falling back to object
-		// identity (AIL5005).
+		// identity (CAN5005).
 		if node.Op == "==" || node.Op == "!=" {
 			eq, err := e.emitEquality(node.Op, ot, l, r)
 			if err != nil {
@@ -519,34 +519,34 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		}
 		if ot == "dec" {
 			// Decs are canonical-digit strings: route through the
-			// exact $ailDec helpers, never native operators.
+			// exact $canDec helpers, never native operators.
 			switch node.Op {
 			case "+":
 				e.decOps["add"] = true
-				return fmt.Sprintf("$ailDecAdd(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecAdd(%s, %s)", l, r), nil
 			case "-":
 				e.decOps["sub"] = true
-				return fmt.Sprintf("$ailDecSub(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecSub(%s, %s)", l, r), nil
 			case "*":
 				e.decOps["mul"] = true
-				return fmt.Sprintf("$ailDecMul(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecMul(%s, %s)", l, r), nil
 			case ">=":
 				e.decOps["ge"] = true
-				return fmt.Sprintf("$ailDecGe(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecGe(%s, %s)", l, r), nil
 			case "<=":
 				e.decOps["le"] = true
-				return fmt.Sprintf("$ailDecLe(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecLe(%s, %s)", l, r), nil
 			case ">":
 				e.decOps["gt"] = true
-				return fmt.Sprintf("$ailDecGt(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecGt(%s, %s)", l, r), nil
 			case "<":
 				e.decOps["lt"] = true
-				return fmt.Sprintf("$ailDecLt(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canDecLt(%s, %s)", l, r), nil
 			}
 			return "", fmt.Errorf("cannot emit op %s", node.Op)
 		}
 		// Strings and brands order by UTF-8 bytes through the
-		// $ailStr helpers, matching Go's byte-wise evaluator
+		// $canStr helpers, matching Go's byte-wise evaluator
 		// ordering (native target ordering is UTF-16 code units and
 		// disagrees past the BMP); string + concatenates natively
 		// and ==/!== stay exact in both runtimes.
@@ -554,28 +554,28 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			switch node.Op {
 			case ">=":
 				e.strOps["ge"] = true
-				return fmt.Sprintf("$ailStrGe(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canStrGe(%s, %s)", l, r), nil
 			case "<=":
 				e.strOps["le"] = true
-				return fmt.Sprintf("$ailStrLe(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canStrLe(%s, %s)", l, r), nil
 			case ">":
 				e.strOps["gt"] = true
-				return fmt.Sprintf("$ailStrGt(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canStrGt(%s, %s)", l, r), nil
 			case "<":
 				e.strOps["lt"] = true
-				return fmt.Sprintf("$ailStrLt(%s, %s)", l, r), nil
+				return fmt.Sprintf("$canStrLt(%s, %s)", l, r), nil
 			}
 		}
 		// Ints are bigints (native ops exact, except / and %: BigInt
 		// truncates toward zero, so Euclidean division rides the
-		// $ailDivMod helper, emitted inline only when used).
+		// $canDivMod helper, emitted inline only when used).
 		if ot == "int" && (node.Op == "/" || node.Op == "%") {
 			e.divmod = true
 			idx := "0"
 			if node.Op == "%" {
 				idx = "1"
 			}
-			return fmt.Sprintf("$ailDivMod(%s, %s)[%s]", l, r, idx), nil
+			return fmt.Sprintf("$canDivMod(%s, %s)[%s]", l, r, idx), nil
 		}
 		// a39 S4: sequence append lowers to spread with precise
 		// element types; the checker owns the operand rule
@@ -626,7 +626,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return fmt.Sprintf("(-%s)", v), nil
 		case "dec":
 			e.decOps["sub"] = true
-			return fmt.Sprintf("$ailDecSub(\"0.0\", %s)", v), nil
+			return fmt.Sprintf("$canDecSub(\"0.0\", %s)", v), nil
 		default:
 			return "", fmt.Errorf("cannot emit neg: operand type unknown (run checkSem first)")
 		}
@@ -646,10 +646,10 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 				return "", fmt.Errorf("cannot emit []: operand type unknown (run checkSem first)")
 			}
 			e.seqOps["seqat"] = true
-			return fmt.Sprintf("$ailSeqAt(%s, %s)", b, ix), nil
+			return fmt.Sprintf("$canSeqAt(%s, %s)", b, ix), nil
 		}
 		e.strOps["at"] = true
-		return fmt.Sprintf("$ailStrAt(%s, %s)", b, ix), nil
+		return fmt.Sprintf("$canStrAt(%s, %s)", b, ix), nil
 	case "strslice":
 		b, err := e.emitValue(node.L)
 		if err != nil {
@@ -667,7 +667,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "", fmt.Errorf("cannot emit [:]: operand type unknown (run checkSem first)")
 		}
 		e.strOps["slice"] = true
-		return fmt.Sprintf("$ailStrSlice(%s, %s, %s)", b, lo, hi), nil
+		return fmt.Sprintf("$canStrSlice(%s, %s, %s)", b, lo, hi), nil
 	case "ctor":
 		if node.Ctor == "Bytes" {
 			// a45 S1: validated byte lowering. Emit checked members
@@ -770,7 +770,7 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 // the wider scale, mul sums scales, results renormalize (no trailing
 // fractional zeros, -0 folds to 0.0).
 var decRuntimeShared = []string{
-	"function $ailDecSplit(d: string): { neg: boolean; ip: string; fp: string } {",
+	"function $canDecSplit(d: string): { neg: boolean; ip: string; fp: string } {",
 	"  let neg = false;",
 	"  if (d.startsWith(\"-\")) {",
 	"    neg = true;",
@@ -779,7 +779,7 @@ var decRuntimeShared = []string{
 	"  const dot = d.indexOf(\".\");",
 	"  return { neg, ip: d.slice(0, dot), fp: d.slice(dot + 1) };",
 	"}",
-	"function $ailDecNorm(ip: string, fp: string, neg: boolean): string {",
+	"function $canDecNorm(ip: string, fp: string, neg: boolean): string {",
 	"  ip = ip.replace(/^0+(?=\\d)/, \"\");",
 	"  fp = fp.replace(/0+$/, \"\");",
 	"  if (fp === \"\") {",
@@ -790,7 +790,7 @@ var decRuntimeShared = []string{
 	"  }",
 	"  return (neg ? \"-\" : \"\") + ip + \".\" + fp;",
 	"}",
-	"function $ailDecMant(p: { neg: boolean; ip: string; fp: string }, scale: number): bigint {",
+	"function $canDecMant(p: { neg: boolean; ip: string; fp: string }, scale: number): bigint {",
 	"  let f = p.fp;",
 	"  while (f.length < scale) {",
 	"    f += \"0\";",
@@ -798,7 +798,7 @@ var decRuntimeShared = []string{
 	"  const m = BigInt(p.ip + f);",
 	"  return p.neg ? -m : m;",
 	"}",
-	"function $ailDecFromMant(m: bigint, scale: number): string {",
+	"function $canDecFromMant(m: bigint, scale: number): string {",
 	"  let neg = false;",
 	"  if (m < 0n) {",
 	"    neg = true;",
@@ -808,75 +808,75 @@ var decRuntimeShared = []string{
 	"  while (digits.length < scale + 1) {",
 	"    digits = \"0\" + digits;",
 	"  }",
-	"  return $ailDecNorm(digits.slice(0, digits.length - scale), digits.slice(digits.length - scale), neg);",
+	"  return $canDecNorm(digits.slice(0, digits.length - scale), digits.slice(digits.length - scale), neg);",
 	"}",
 }
 
-// decRuntimeOps holds one exact operation per ail operator, in fixed
+// decRuntimeOps holds one exact operation per can operator, in fixed
 // order for byte-stable output. Only used entries are emitted.
 var decRuntimeOps = []struct {
 	key  string
 	code []string
 }{
 	{"add", []string{
-		"function $ailDecAdd(a: string, b: string): string {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
+		"function $canDecAdd(a: string, b: string): string {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
 		"  const s = Math.max(A.fp.length, B.fp.length);",
-		"  return $ailDecFromMant($ailDecMant(A, s) + $ailDecMant(B, s), s);",
+		"  return $canDecFromMant($canDecMant(A, s) + $canDecMant(B, s), s);",
 		"}",
 	}},
 	{"sub", []string{
-		"function $ailDecSub(a: string, b: string): string {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
+		"function $canDecSub(a: string, b: string): string {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
 		"  const s = Math.max(A.fp.length, B.fp.length);",
-		"  return $ailDecFromMant($ailDecMant(A, s) - $ailDecMant(B, s), s);",
+		"  return $canDecFromMant($canDecMant(A, s) - $canDecMant(B, s), s);",
 		"}",
 	}},
 	{"mul", []string{
-		"function $ailDecMul(a: string, b: string): string {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
-		"  return $ailDecFromMant($ailDecMant(A, A.fp.length) * $ailDecMant(B, B.fp.length), A.fp.length + B.fp.length);",
+		"function $canDecMul(a: string, b: string): string {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
+		"  return $canDecFromMant($canDecMant(A, A.fp.length) * $canDecMant(B, B.fp.length), A.fp.length + B.fp.length);",
 		"}",
 	}},
 	{"ge", []string{
-		"function $ailDecGe(a: string, b: string): boolean {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
+		"function $canDecGe(a: string, b: string): boolean {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
 		"  const s = Math.max(A.fp.length, B.fp.length);",
-		"  return $ailDecMant(A, s) >= $ailDecMant(B, s);",
+		"  return $canDecMant(A, s) >= $canDecMant(B, s);",
 		"}",
 	}},
 	{"le", []string{
-		"function $ailDecLe(a: string, b: string): boolean {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
+		"function $canDecLe(a: string, b: string): boolean {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
 		"  const s = Math.max(A.fp.length, B.fp.length);",
-		"  return $ailDecMant(A, s) <= $ailDecMant(B, s);",
+		"  return $canDecMant(A, s) <= $canDecMant(B, s);",
 		"}",
 	}},
 	{"gt", []string{
-		"function $ailDecGt(a: string, b: string): boolean {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
+		"function $canDecGt(a: string, b: string): boolean {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
 		"  const s = Math.max(A.fp.length, B.fp.length);",
-		"  return $ailDecMant(A, s) > $ailDecMant(B, s);",
+		"  return $canDecMant(A, s) > $canDecMant(B, s);",
 		"}",
 	}},
 	{"lt", []string{
-		"function $ailDecLt(a: string, b: string): boolean {",
-		"  const A = $ailDecSplit(a);",
-		"  const B = $ailDecSplit(b);",
+		"function $canDecLt(a: string, b: string): boolean {",
+		"  const A = $canDecSplit(a);",
+		"  const B = $canDecSplit(b);",
 		"  const s = Math.max(A.fp.length, B.fp.length);",
-		"  return $ailDecMant(A, s) < $ailDecMant(B, s);",
+		"  return $canDecMant(A, s) < $canDecMant(B, s);",
 		"}",
 	}},
 	{"parts", []string{
-		"function $ailDecParts(d: string): { coefficient: bigint; scale: bigint } {",
-		"  const p = $ailDecSplit(d);",
-		"  return { coefficient: $ailDecMant(p, p.fp.length), scale: BigInt(p.fp.length) };",
+		"function $canDecParts(d: string): { coefficient: bigint; scale: bigint } {",
+		"  const p = $canDecSplit(d);",
+		"  return { coefficient: $canDecMant(p, p.fp.length), scale: BigInt(p.fp.length) };",
 		"}",
 	}},
 }
@@ -887,7 +887,7 @@ var decRuntimeOps = []struct {
 // both sides to UTF-8 and comparing bytes reproduces the evaluator
 // exactly on every input.
 var strRuntimeShared = []string{
-	"function $ailStrCmp(a: string, b: string): number {",
+	"function $canStrCmp(a: string, b: string): number {",
 	"  const A = new TextEncoder().encode(a);",
 	"  const B = new TextEncoder().encode(b);",
 	"  const n = Math.min(A.length, B.length);",
@@ -908,17 +908,17 @@ var strRuntimeOps = []struct {
 	code []string
 }{
 	{"ge", []string{
-		"function $ailStrGe(a: string, b: string): boolean {",
-		"  return $ailStrCmp(a, b) >= 0;",
+		"function $canStrGe(a: string, b: string): boolean {",
+		"  return $canStrCmp(a, b) >= 0;",
 		"}",
 	}},
 	{"le", []string{
-		"function $ailStrLe(a: string, b: string): boolean {",
-		"  return $ailStrCmp(a, b) <= 0;",
+		"function $canStrLe(a: string, b: string): boolean {",
+		"  return $canStrCmp(a, b) <= 0;",
 		"}",
 	}},
 	{"at", []string{
-		"function $ailStrAt(s: string, i: bigint): bigint {",
+		"function $canStrAt(s: string, i: bigint): bigint {",
 		"  const cps = [...s];",
 		"  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"str index out of range\");",
 		"  const k = Number(i);",
@@ -929,7 +929,7 @@ var strRuntimeOps = []struct {
 		"}",
 	}},
 	{"slice", []string{
-		"function $ailStrSlice(s: string, a: bigint, b: bigint): string {",
+		"function $canStrSlice(s: string, a: bigint, b: bigint): string {",
 		"  const cps = [...s];",
 		"  const toIdx = (x: bigint): number => { if (x < 0n || x > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"str slice out of range\"); return Number(x); };",
 		"  const lo = toIdx(a), hi = toIdx(b);",
@@ -938,25 +938,25 @@ var strRuntimeOps = []struct {
 		"}",
 	}},
 	{"gt", []string{
-		"function $ailStrGt(a: string, b: string): boolean {",
-		"  return $ailStrCmp(a, b) > 0;",
+		"function $canStrGt(a: string, b: string): boolean {",
+		"  return $canStrCmp(a, b) > 0;",
 		"}",
 	}},
 	{"lt", []string{
-		"function $ailStrLt(a: string, b: string): boolean {",
-		"  return $ailStrCmp(a, b) < 0;",
+		"function $canStrLt(a: string, b: string): boolean {",
+		"  return $canStrCmp(a, b) < 0;",
 		"}",
 	}},
 }
 
-// eqHelpers renders the structural equality runtime: $ailEqRec
+// eqHelpers renders the structural equality runtime: $canEqRec
 // compares exactly the declared fields (ignoring the outcome
 // envelope, requiring own presence on both sides, matching vEq),
-// delegating per-field to $ailEqVal, which recurses into nested
+// delegating per-field to $canEqVal, which recurses into nested
 // objects and compares scalars exactly (bigint by value, canonical
 // dec strings and strings by content, booleans natively).
 var eqHelpers = []string{
-	"function $ailEqVal(x: any, y: any): boolean {",
+	"function $canEqVal(x: any, y: any): boolean {",
 	"  if (typeof x === \"object\" && x !== null && typeof y === \"object\" && y !== null) {",
 	"    const kx = Object.keys(x);",
 	"    if (kx.length !== Object.keys(y).length) {",
@@ -966,7 +966,7 @@ var eqHelpers = []string{
 	"      if (!Object.prototype.hasOwnProperty.call(y, k)) {",
 	"        return false;",
 	"      }",
-	"      if (!$ailEqVal((x as any)[k], (y as any)[k])) {",
+	"      if (!$canEqVal((x as any)[k], (y as any)[k])) {",
 	"        return false;",
 	"      }",
 	"    }",
@@ -974,7 +974,7 @@ var eqHelpers = []string{
 	"  }",
 	"  return x === y;",
 	"}",
-	"function $ailEqRec(a: any, b: any, fields: string[]): boolean {",
+	"function $canEqRec(a: any, b: any, fields: string[]): boolean {",
 	"  for (const f of fields) {",
 	"    if (!Object.prototype.hasOwnProperty.call(a, f)) {",
 	"      return false;",
@@ -982,7 +982,7 @@ var eqHelpers = []string{
 	"    if (!Object.prototype.hasOwnProperty.call(b, f)) {",
 	"      return false;",
 	"    }",
-	"    if (!$ailEqVal((a as any)[f], (b as any)[f])) {",
+	"    if (!$canEqVal((a as any)[f], (b as any)[f])) {",
 	"      return false;",
 	"    }",
 	"  }",
@@ -991,15 +991,15 @@ var eqHelpers = []string{
 }
 
 // bytesEqHelpers renders the structural equality runtime for shapes
-// that can contain Bytes (a45 S1): the same $ailEqRec shape, a
-// $ailEqVal with a typed-array branch before generic object-key
-// traversal, and the $ailEqBytes byte comparison. A typed array never
+// that can contain Bytes (a45 S1): the same $canEqRec shape, a
+// $canEqVal with a typed-array branch before generic object-key
+// traversal, and the $canEqBytes byte comparison. A typed array never
 // compares equal to an ordinary array merely because enumerable keys
 // match; exactly one side being bytes is false.
 var bytesEqHelpers = []string{
-	"function $ailEqVal(x: any, y: any): boolean {",
+	"function $canEqVal(x: any, y: any): boolean {",
 	"  if (x instanceof Uint8Array || y instanceof Uint8Array) {",
-	"    return $ailEqBytes(x, y);",
+	"    return $canEqBytes(x, y);",
 	"  }",
 	"  if (typeof x === \"object\" && x !== null && typeof y === \"object\" && y !== null) {",
 	"    const kx = Object.keys(x);",
@@ -1010,7 +1010,7 @@ var bytesEqHelpers = []string{
 	"      if (!Object.prototype.hasOwnProperty.call(y, k)) {",
 	"        return false;",
 	"      }",
-	"      if (!$ailEqVal((x as any)[k], (y as any)[k])) {",
+	"      if (!$canEqVal((x as any)[k], (y as any)[k])) {",
 	"        return false;",
 	"      }",
 	"    }",
@@ -1018,7 +1018,7 @@ var bytesEqHelpers = []string{
 	"  }",
 	"  return x === y;",
 	"}",
-	"function $ailEqBytes(x: any, y: any): boolean {",
+	"function $canEqBytes(x: any, y: any): boolean {",
 	"  if (!(x instanceof Uint8Array) || !(y instanceof Uint8Array)) {",
 	"    return false;",
 	"  }",
@@ -1032,7 +1032,7 @@ var bytesEqHelpers = []string{
 	"  }",
 	"  return true;",
 	"}",
-	"function $ailEqRec(a: any, b: any, fields: string[]): boolean {",
+	"function $canEqRec(a: any, b: any, fields: string[]): boolean {",
 	"  for (const f of fields) {",
 	"    if (!Object.prototype.hasOwnProperty.call(a, f)) {",
 	"      return false;",
@@ -1040,7 +1040,7 @@ var bytesEqHelpers = []string{
 	"    if (!Object.prototype.hasOwnProperty.call(b, f)) {",
 	"      return false;",
 	"    }",
-	"    if (!$ailEqVal((a as any)[f], (b as any)[f])) {",
+	"    if (!$canEqVal((a as any)[f], (b as any)[f])) {",
 	"      return false;",
 	"    }",
 	"  }",
@@ -1067,7 +1067,7 @@ var seqRuntimeOps = []struct {
 	code []string
 }{
 	{"seqat", []string{
-		"function $ailSeqAt<T>(a: T[], i: bigint): T {",
+		"function $canSeqAt<T>(a: T[], i: bigint): T {",
 		"  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(\"seq index out of range\");",
 		"  const k = Number(i);",
 		"  if (k >= a.length) throw new Error(\"seq index out of range\");",
@@ -1098,14 +1098,14 @@ func boolHelpers(used map[string]bool) []string {
 	out = append(out, "// Strict boolean runtime (slice 5): eager helpers, never bare &&.")
 	if used["and"] {
 		out = append(out,
-			"function $ailBoolAnd(a: boolean, b: boolean): boolean {",
+			"function $canBoolAnd(a: boolean, b: boolean): boolean {",
 			"  return a && b;",
 			"}",
 		)
 	}
 	if used["or"] {
 		out = append(out,
-			"function $ailBoolOr(a: boolean, b: boolean): boolean {",
+			"function $canBoolOr(a: boolean, b: boolean): boolean {",
 			"  return a || b;",
 			"}",
 		)
@@ -1206,7 +1206,7 @@ func (e *emitter) shapeContainsBytes(ot string) bool {
 var divModHelper = []string{
 	"// Euclidean integer division (a17): quotient and remainder with",
 	"// 0 <= r < |b| on every sign combination.",
-	"function $ailDivMod(a: bigint, b: bigint): [bigint, bigint] {",
+	"function $canDivMod(a: bigint, b: bigint): [bigint, bigint] {",
 	"  let q: bigint = a / b;",
 	"  let r: bigint = a - b * q;",
 	"  if (r < 0n) {",
@@ -1227,7 +1227,7 @@ var divModHelper = []string{
 // valid input; ignoreBOM:true preserves a leading U+FEFF, which the
 // default decoder would strip.
 var utf8DecodeHelper = []string{
-	"function $ailUtf8Decode(value: Uint8Array): { $ail_kind: \"ok\"; value: string } | { $ail_kind: \"encoding.invalid_utf8\"; value: Uint8Array } {",
+	"function $canUtf8Decode(value: Uint8Array): { $can_kind: \"ok\"; value: string } | { $can_kind: \"encoding.invalid_utf8\"; value: Uint8Array } {",
 	"  let i = 0;",
 	"  const n = value.length;",
 	"  let valid = true;",
@@ -1253,8 +1253,8 @@ var utf8DecodeHelper = []string{
 	"    }",
 	"    i += 1 + need;",
 	"  }",
-	"  if (!valid) return { $ail_kind: \"encoding.invalid_utf8\", value: value };",
-	"  return { $ail_kind: \"ok\", value: new TextDecoder(\"utf-8\", { fatal: true, ignoreBOM: true }).decode(value) };",
+	"  if (!valid) return { $can_kind: \"encoding.invalid_utf8\", value: value };",
+	"  return { $can_kind: \"ok\", value: new TextDecoder(\"utf-8\", { fatal: true, ignoreBOM: true }).decode(value) };",
 	"}",
 }
 
@@ -1263,7 +1263,7 @@ var utf8DecodeHelper = []string{
 // digit table (not arithmetic + case fixups) is what makes
 // lowercase structural; indices keep views exact.
 var hexEncodeHelper = []string{
-	"function $ailHexEncode(value: Uint8Array): string {",
+	"function $canHexEncode(value: Uint8Array): string {",
 	"  const digits = \"0123456789abcdef\";",
 	"  let out = \"\";",
 	"  for (let i = 0; i < value.length; i++) {",
@@ -1282,22 +1282,22 @@ var hexEncodeHelper = []string{
 // value with the original string. Allocation and host-contract
 // failures stay loud: no catch relabels them as invalid hex.
 var hexDecodeHelper = []string{
-	"function $ailHexVal(c: number): number {",
+	"function $canHexVal(c: number): number {",
 	"  if (c >= 48 && c <= 57) return c - 48;",
 	"  if (c >= 65 && c <= 70) return c - 55;",
 	"  if (c >= 97 && c <= 102) return c - 87;",
 	"  return -1;",
 	"}",
-	"function $ailHexDecode(value: string): { $ail_kind: \"ok\"; value: Uint8Array } | { $ail_kind: \"encoding.invalid_hex\"; value: string } {",
-	"  if (value.length % 2 !== 0) return { $ail_kind: \"encoding.invalid_hex\", value: value };",
+	"function $canHexDecode(value: string): { $can_kind: \"ok\"; value: Uint8Array } | { $can_kind: \"encoding.invalid_hex\"; value: string } {",
+	"  if (value.length % 2 !== 0) return { $can_kind: \"encoding.invalid_hex\", value: value };",
 	"  const out = new Uint8Array(value.length / 2);",
 	"  for (let i = 0; i < value.length; i += 2) {",
-	"    const hi = $ailHexVal(value.charCodeAt(i));",
-	"    const lo = $ailHexVal(value.charCodeAt(i + 1));",
-	"    if (hi < 0 || lo < 0) return { $ail_kind: \"encoding.invalid_hex\", value: value };",
+	"    const hi = $canHexVal(value.charCodeAt(i));",
+	"    const lo = $canHexVal(value.charCodeAt(i + 1));",
+	"    if (hi < 0 || lo < 0) return { $can_kind: \"encoding.invalid_hex\", value: value };",
 	"    out[i / 2] = hi * 16 + lo;",
 	"  }",
-	"  return { $ail_kind: \"ok\", value: out };",
+	"  return { $can_kind: \"ok\", value: out };",
 	"}",
 }
 
@@ -1307,7 +1307,7 @@ var hexDecodeHelper = []string{
 // host btoa, whose binary-string contract is a misuse trap) is what
 // makes the mapping structural; indices keep views exact.
 var b64EncodeHelper = []string{
-	"function $ailB64Encode(value: Uint8Array): string {",
+	"function $canB64Encode(value: Uint8Array): string {",
 	"  const alpha = \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\";",
 	"  let out = \"\";",
 	"  let i = 0;",
@@ -1336,7 +1336,7 @@ var b64EncodeHelper = []string{
 // Fresh output buffer per call; malformed input returns the error
 // value with the original string. No atob (forgiving), no catch.
 var b64DecodeHelper = []string{
-	"function $ailB64Val(c: number): number {",
+	"function $canB64Val(c: number): number {",
 	"  if (c >= 65 && c <= 90) return c - 65;",
 	"  if (c >= 97 && c <= 122) return c - 71;",
 	"  if (c >= 48 && c <= 57) return c + 4;",
@@ -1344,8 +1344,8 @@ var b64DecodeHelper = []string{
 	"  if (c === 47) return 63;",
 	"  return -1;",
 	"}",
-	"function $ailB64Decode(value: string): { $ail_kind: \"ok\"; value: Uint8Array } | { $ail_kind: \"encoding.invalid_base64\"; value: string } {",
-	"  if (value.length % 4 !== 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"function $canB64Decode(value: string): { $can_kind: \"ok\"; value: Uint8Array } | { $can_kind: \"encoding.invalid_base64\"; value: string } {",
+	"  if (value.length % 4 !== 0) return { $can_kind: \"encoding.invalid_base64\", value: value };",
 	"  const nq = value.length / 4;",
 	"  let pad = 0;",
 	"  const vals: number[] = new Array(value.length);",
@@ -1354,18 +1354,18 @@ var b64DecodeHelper = []string{
 	"    const pos = i % 4;",
 	"    const c = value.charCodeAt(i);",
 	"    if (c === 61) {",
-	"      if (q !== nq - 1 || pos < 2) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"      if (q !== nq - 1 || pos < 2) return { $can_kind: \"encoding.invalid_base64\", value: value };",
 	"      pad++;",
 	"      vals[i] = 0;",
 	"    } else {",
-	"      const v = $ailB64Val(c);",
-	"      if (v < 0 || pad > 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"      const v = $canB64Val(c);",
+	"      if (v < 0 || pad > 0) return { $can_kind: \"encoding.invalid_base64\", value: value };",
 	"      vals[i] = v;",
 	"    }",
 	"  }",
-	"  if (pad > 2) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
-	"  if (pad === 2 && (vals[value.length - 3] & 15) !== 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
-	"  if (pad === 1 && (vals[value.length - 2] & 3) !== 0) return { $ail_kind: \"encoding.invalid_base64\", value: value };",
+	"  if (pad > 2) return { $can_kind: \"encoding.invalid_base64\", value: value };",
+	"  if (pad === 2 && (vals[value.length - 3] & 15) !== 0) return { $can_kind: \"encoding.invalid_base64\", value: value };",
+	"  if (pad === 1 && (vals[value.length - 2] & 3) !== 0) return { $can_kind: \"encoding.invalid_base64\", value: value };",
 	"  const out = new Uint8Array((value.length / 4) * 3 - pad);",
 	"  for (let q = 0; q < nq; q++) {",
 	"    const n = (vals[q * 4] << 18) | (vals[q * 4 + 1] << 12) | (vals[q * 4 + 2] << 6) | vals[q * 4 + 3];",
@@ -1374,16 +1374,16 @@ var b64DecodeHelper = []string{
 	"    if (base + 1 < out.length) out[base + 1] = (n >> 8) & 255;",
 	"    if (base + 2 < out.length) out[base + 2] = n & 255;",
 	"  }",
-	"  return { $ail_kind: \"ok\", value: out };",
+	"  return { $can_kind: \"ok\", value: out };",
 	"}",
 }
 
 func (e *emitter) fresh() string {
 	e.tmp++
-	// Unspellable in ail (identifiers match \w+, so $ never appears in
+	// Unspellable in can (identifiers match \w+, so $ never appears in
 	// source): generated temporaries can never collide with source
 	// bindings such as a parameter named _m1.
-	return fmt.Sprintf("$ail_m%d", e.tmp)
+	return fmt.Sprintf("$can_m%d", e.tmp)
 }
 
 func (e *emitter) retLines(rhs *Node, env map[string]string) ([]string, error) {
@@ -1511,7 +1511,7 @@ func (e *emitter) emitCallArms(node *Node, tmp string, out *[]string) error {
 // emitValueMatch emits a value table of any arity 1..N: one arm loop
 // for every shape. Scrutinee references preserve the legacy layout
 // exactly — the single expression inline (no temporary, golden bytes),
-// one $ail_mN temporary per slot past arity 1 — so the only
+// one $can_mN temporary per slot past arity 1 — so the only
 // arity-dependent choice is output formatting, never match semantics.
 // A conditionless arm owns its whole residual: trailing lines mid-chain
 // with later arms dead (the historical wild shape, kept for arity-1
@@ -1752,7 +1752,7 @@ func (e *emitter) valueConds(arm Arm, refs []string, known []*bool) (conds []str
 		case "or":
 			// Slice 4: one source arm, unioned conditions. No
 			// contradiction learning across alternatives: the
-			// proof owns alternative usefulness (AIL4112).
+			// proof owns alternative usefulness (CAN4112).
 			parts := make([]string, 0, len(p.Alts))
 			for _, alt := range p.Alts {
 				parts = append(parts, e.altCond(alt, refs[i]))
@@ -1812,7 +1812,7 @@ func (e *emitter) stmtStoreOp(node *Node, scrut *Small, out *[]string) error {
 }
 
 // stmtDecParts emits a dec-observation match: the operand evaluates
-// once through $ailDecParts into an ok-tagged pair, then the single
+// once through $canDecParts into an ok-tagged pair, then the single
 // Ok arm binds it like any other payload. Only Ok-variant arms are
 // legal past the exhaustiveness gate.
 func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
@@ -1825,7 +1825,7 @@ func (e *emitter) stmtDecParts(node *Node, scrut *Small, out *[]string) error {
 	}
 	e.decOps["parts"] = true
 	tmp := e.fresh()
-	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", coefficient: bigint, scale: bigint } = { "+tsTag+": \"ok\", ...$ailDecParts(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", coefficient: bigint, scale: bigint } = { "+tsTag+": \"ok\", ...$canDecParts(%s) };", tmp, v))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
 		pat := arm.Pats[0]
@@ -1993,13 +1993,13 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 	var helper string
 	switch {
 	case isBytesDecode(scrut.Fname):
-		helper = "$ailUtf8Decode"
+		helper = "$canUtf8Decode"
 		e.utf8dec = true
 	case isBytesHexDecode(scrut.Fname):
-		helper = "$ailHexDecode"
+		helper = "$canHexDecode"
 		e.hexdec = true
 	case isBytesB64Decode(scrut.Fname):
-		helper = "$ailB64Decode"
+		helper = "$canB64Decode"
 		e.b64dec = true
 	default:
 		return fmt.Errorf("no fallible lowering for %s", scrut.Fname)
@@ -2015,7 +2015,7 @@ func (e *emitter) stmtBytesDecode(node *Node, scrut *Small, out *[]string) error
 }
 
 // stmtBytesHexEncode lowers hex encoding (a52 B8): the input Bytes
-// through $ailHexEncode into an Ok record of lowercase hex. Total
+// through $canHexEncode into an Ok record of lowercase hex. Total
 // kernel, so matches take the Ok arm only.
 func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) error {
 	slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
@@ -2034,7 +2034,7 @@ func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) er
 	}
 	tmp := e.fresh()
 	e.hexenc = true
-	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: string } = { "+tsTag+": \"ok\", value: $ailHexEncode(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: string } = { "+tsTag+": \"ok\", value: $canHexEncode(%s) };", tmp, v))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
 		pat := arm.Pats[0]
@@ -2055,7 +2055,7 @@ func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) er
 }
 
 // stmtBytesB64Encode lowers base64 encoding (a58 B12): the input
-// Bytes through $ailB64Encode into an Ok record of padded base64.
+// Bytes through $canB64Encode into an Ok record of padded base64.
 // Total kernel, so matches take the Ok arm only.
 func (e *emitter) stmtBytesB64Encode(node *Node, scrut *Small, out *[]string) error {
 	slots, err := bindSlots(scrut.Fname, scrut.Args, bytesKernels[scrut.Fname].params)
@@ -2074,7 +2074,7 @@ func (e *emitter) stmtBytesB64Encode(node *Node, scrut *Small, out *[]string) er
 	}
 	tmp := e.fresh()
 	e.b64enc = true
-	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: string } = { "+tsTag+": \"ok\", value: $ailB64Encode(%s) };", tmp, v))
+	*out = append(*out, fmt.Sprintf("const %s: { "+tsTag+": \"ok\", value: string } = { "+tsTag+": \"ok\", value: $canB64Encode(%s) };", tmp, v))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	for _, arm := range node.Arms {
 		pat := arm.Pats[0]
@@ -2096,7 +2096,7 @@ func (e *emitter) stmtBytesB64Encode(node *Node, scrut *Small, out *[]string) er
 
 func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	// Per-function temp scope: every fresh() temporary lands as a
-	// const inside this body, so numbering restarts at $ail_m1 per
+	// const inside this body, so numbering restarts at $can_m1 per
 	// function. Editing one function no longer renumbers later
 	// functions' goldens.
 	e.tmp = 0
@@ -2128,7 +2128,7 @@ func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 
 func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]string, fnUnions map[string]string) (string, error) {
 	var L []string
-	L = append(L, fmt.Sprintf("// GENERATED from %s by ailc v0.0.0. DO NOT EDIT.", mod.File))
+	L = append(L, fmt.Sprintf("// GENERATED from %s by canlc v0.0.0. DO NOT EDIT.", mod.File))
 	L = append(L, "// Prod emit: tests + given stripped.")
 	// Declared records resolve to their emitted TS type of the same
 	// name throughout this module. Declared variant parents (a74)
@@ -2433,7 +2433,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	}
 	// Exact-decimal runtime: emitted inline only when a dec operation
 	// or ordering is used, so files without dec arithmetic gain no code.
-	// Helpers carry $ prefixes, which ail naming (domain__verb) cannot
+	// Helpers carry $ prefixes, which can naming (domain__verb) cannot
 	// spell, so user code can never collide with them.
 	if len(em.decOps) > 0 {
 		L = append(L, decHelpers(em.decOps)...)

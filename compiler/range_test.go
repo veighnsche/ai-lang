@@ -8,9 +8,9 @@ import (
 )
 
 // Slice 3: integer range patterns. Probes first: singletons,
-// const bounds, cut-point coverage, shadowing (AIL4111), bad
-// bounds (AIL4110), mixed slots, witnesses, emit lowering,
-// admission stability, and the AIL4107-per-arm obligation.
+// const bounds, cut-point coverage, shadowing (CAN4111), bad
+// bounds (CAN4110), mixed slots, witnesses, emit lowering,
+// admission stability, and the CAN4107-per-arm obligation.
 
 const rangeLib = `mod m
   provides [m__go, M__Out]
@@ -35,8 +35,8 @@ func TestRangeSingleton(t *testing.T) {
     5 => Ok(value = 5)
     _ => Ok(value = 7)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("int singleton reported: %v", diags)
 	}
 }
@@ -71,8 +71,8 @@ fn m__go(x: int) -> M__Out rev 1
     m__N => Ok(value = 2)
     _ => Ok(value = 3)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("const bounds reported: %v", diags)
 	}
 }
@@ -93,13 +93,13 @@ func TestRangeCutPoints(t *testing.T) {
     5..15 => Ok(value = 2)
     _ => Ok(value = 3)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("overlapping ranges reported: %v", diags)
 	}
 }
 
-// TestRangeShadowed pins AIL4111: an arm whose region earlier
+// TestRangeShadowed pins CAN4111: an arm whose region earlier
 // arms fully cover is a static error, not a coverage wait.
 func TestRangeShadowed(t *testing.T) {
 	for _, arm := range []string{"3..5", "5"} {
@@ -114,14 +114,14 @@ func TestRangeShadowed(t *testing.T) {
     ` + arm + ` => Ok(value = 2)
     _ => Ok(value = 3)
 `
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4111") {
-			t.Fatalf("%q reported no AIL4111: %v", arm, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4111") {
+			t.Fatalf("%q reported no CAN4111: %v", arm, diags)
 		}
 	}
 }
 
-// TestRangeBadBounds pins AIL4110: equal, inverted, and
+// TestRangeBadBounds pins CAN4110: equal, inverted, and
 // non-integer bounds are rejected with the malformed-range code.
 func TestRangeBadBounds(t *testing.T) {
 	for _, arm := range []string{"5..5", "10..5", "1.5..5", "x..5", "5..", "m__S..5"} {
@@ -136,14 +136,14 @@ fn m__go(x: int) -> M__Out rev 1
     ` + arm + ` => Ok(value = 1)
     _ => Ok(value = 2)
 `
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4110") {
-			t.Fatalf("%q reported no AIL4110: %v", arm, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4110") {
+			t.Fatalf("%q reported no CAN4110: %v", arm, diags)
 		}
 	}
 }
 
-// TestRangeUnknownBound pins AIL2104 for names that resolve
+// TestRangeUnknownBound pins CAN2104 for names that resolve
 // nowhere: a bound that is not a visible constant is unknown,
 // not merely malformed.
 func TestRangeUnknownBound(t *testing.T) {
@@ -156,9 +156,9 @@ func TestRangeUnknownBound(t *testing.T) {
     m__NOPE..5 => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL2104") {
-		t.Fatalf("unknown bound reported no AIL2104: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN2104") {
+		t.Fatalf("unknown bound reported no CAN2104: %v", diags)
 	}
 }
 
@@ -175,9 +175,9 @@ func TestRangeMixedSlot(t *testing.T) {
     5 => Ok(value = 5)
     _ => Ok(value = 0)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4103") {
-		t.Fatalf("mixed slot reported no AIL4103: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4103") {
+		t.Fatalf("mixed slot reported no CAN4103: %v", diags)
 	}
 }
 
@@ -192,10 +192,10 @@ func TestRangeUncovered(t *testing.T) {
   match x
     1..10 => Ok(value = x)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
-	if !hasCode(diags, "AIL4101") {
-		t.Fatalf("uncovered tails reported no AIL4101: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
+	if !hasCode(diags, "CAN4101") {
+		t.Fatalf("uncovered tails reported no CAN4101: %v", diags)
 	}
 	if !hasFound(diags, "(0)") || !hasFound(diags, "(11)") {
 		t.Fatalf("expected concrete tail witnesses (0) and (11), got %v", diags)
@@ -203,7 +203,7 @@ func TestRangeUncovered(t *testing.T) {
 }
 
 // TestRangeCallArm pins that call arms still take only error
-// kinds and Ok: integer patterns there are AIL4105.
+// kinds and Ok: integer patterns there are CAN4105.
 func TestRangeCallArm(t *testing.T) {
 	src := `mod m
   provides [m__go, m__work, M__Out, M__Work]
@@ -234,13 +234,13 @@ fn m__go(x: int) -> M__Out rev 1
     5 => Ok(value = 5)
     on Ok r => Ok(value = r.value)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4105") {
-		t.Fatalf("int call-arm pattern reported no AIL4105: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4105") {
+		t.Fatalf("int call-arm pattern reported no CAN4105: %v", diags)
 	}
 }
 
-// TestRangeArmObligation pins one arm one AIL4107: an untaken
+// TestRangeArmObligation pins one arm one CAN4107: an untaken
 // range arm fails execution law even where the proof is clean.
 func TestRangeArmObligation(t *testing.T) {
 	src := rangeLib + `fn m__go(x: int) -> M__Out rev 1
@@ -254,9 +254,9 @@ func TestRangeArmObligation(t *testing.T) {
     11..20 => Ok(value = 2)
     _ => Ok(value = 3)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4107") {
-		t.Fatalf("untaken range arm reported no AIL4107: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4107") {
+		t.Fatalf("untaken range arm reported no CAN4107: %v", diags)
 	}
 }
 
@@ -291,8 +291,8 @@ fn m__go(x: int) -> M__Out rev 1
     lib__LO..lib__HI => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": pinned})
-	if diags := diagnose(dir, "app.ail", pinned); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": pinned})
+	if diags := diagnose(dir, "app.can", pinned); hasError(diags) {
 		t.Fatalf("pinned foreign bounds reported: %v", diags)
 	}
 	unpinned := `mod m
@@ -314,9 +314,9 @@ fn m__go(x: int) -> M__Out rev 1
     lib__LO..lib__HI => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir2 := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": unpinned})
-	if diags := diagnose(dir2, "app.ail", unpinned); !hasCode(diags, "AIL2105") {
-		t.Fatalf("unpinned foreign bounds reported no AIL2105: %v", diags)
+	dir2 := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": unpinned})
+	if diags := diagnose(dir2, "app.can", unpinned); !hasCode(diags, "CAN2105") {
+		t.Fatalf("unpinned foreign bounds reported no CAN2105: %v", diags)
 	}
 }
 
@@ -336,11 +336,11 @@ func TestRangeEmit(t *testing.T) {
     _ => Ok(value = 99)
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -376,12 +376,12 @@ func TestRangeAdmissionContract(t *testing.T) {
     1..10 => Ok(value = 1)
     _ => Ok(value = 2)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
-	if hasCode(diags, "AIL4302") {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
+	if hasCode(diags, "CAN4302") {
 		t.Fatalf("admitted int body reported unsupported: %v", diags)
 	}
-	if !hasCode(diags, "AIL4305") {
+	if !hasCode(diags, "CAN4305") {
 		t.Fatalf("expected fail-closed inconclusive, got %v", diags)
 	}
 }

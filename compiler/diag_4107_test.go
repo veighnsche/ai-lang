@@ -5,19 +5,19 @@ import (
 	"testing"
 )
 
-// Chatbot verdict C: AIL4107 is KEPT. Scripts are not
+// Chatbot verdict C: CAN4107 is KEPT. Scripts are not
 // coverage: each caller's own handlers need passing-test
 // evidence. This file commits the verdict's two-function
 // negative fixture as the regression.
 
-// TestArmTakenPerCaller pins the two AIL4107 locations:
+// TestArmTakenPerCaller pins the two CAN4107 locations:
 // client__success corrupts the rejected payload and
 // client__failure discards decoded bytes, each exercised
 // only on its correct path.
 func TestArmTakenPerCaller(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__success, client__failure]
@@ -48,9 +48,9 @@ fn client__failure(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = Bytes(Seq<int>[]))
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	diags := diagnose(dir, "client.ail", client)
+	diags := diagnose(dir, "client.can", client)
 	var taken []Diag
 	for _, d := range diags {
 		if d.Code == CodeArmUntaken {
@@ -61,17 +61,17 @@ fn client__failure(value: str) -> Bytes__Value rev 1
 		}
 	}
 	if len(taken) != 2 {
-		t.Fatalf("expected exactly two AIL4107, got %v", diags)
+		t.Fatalf("expected exactly two CAN4107, got %v", diags)
 	}
 }
 
 // TestArmTakenMissingRowsExposeBugs pins the second half:
 // adding the missing rows with correct expectations fails
-// behaviorally (AIL4200) against the corrupt handlers.
+// behaviorally (CAN4200) against the corrupt handlers.
 func TestArmTakenMissingRowsExposeBugs(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__success, client__failure]
@@ -104,9 +104,9 @@ fn client__failure(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = Bytes(Seq<int>[]))
     on encoding.invalid_hex e => encoding.invalid_hex(value = e.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	diags := diagnose(dir, "client.ail", client)
+	diags := diagnose(dir, "client.can", client)
 	var failed []Diag
 	for _, d := range diags {
 		if d.Code == CodeTestFailed {
@@ -114,7 +114,7 @@ fn client__failure(value: str) -> Bytes__Value rev 1
 		}
 	}
 	if len(failed) != 2 {
-		t.Fatalf("expected exactly two AIL4200, got %v", diags)
+		t.Fatalf("expected exactly two CAN4200, got %v", diags)
 	}
 	if hasErrCode(diags, CodeArmUntaken) {
 		t.Fatalf("no arm may stay untaken, got %v", diags)

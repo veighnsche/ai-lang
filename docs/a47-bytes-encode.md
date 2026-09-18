@@ -1,7 +1,7 @@
 # a47 S3: Generic UTF-8 encode kernel (B3)
 
 Third execution slice of the Bytes workstream
-([bytes-plan.md](/Users/vince/Projects/ai-lang/docs/bytes-plan.md) B3).
+([bytes-plan.md](/Users/vince/Projects/can-lang/docs/bytes-plan.md) B3).
 
 ## Scope (one operation)
 
@@ -18,12 +18,12 @@ Third execution slice of the Bytes workstream
   kernels only — the export input stays call-site-specific).
 - Strict `str` admission through the existing checker: `callee()`
   serves the encode signature, so brand/int/wrong-type arguments
-  fail `AIL6003` and arity failures fail binding. The nominal
+  fail `CAN6003` and arity failures fail binding. The nominal
   boundary is static by design (brands erase at runtime): a
   statically rejected brand call may still pass at runtime, and the
   committed row documents that the static rule is the whole boundary.
 - Byte-correctness: same transformation as the exporter (total over
-  AIL scalars; NUL and BOM preserved; no normalization).
+  CAN scalars; NUL and BOM preserved; no normalization).
 
 ## Non-scope
 
@@ -41,8 +41,8 @@ the `docs/README.md` row moves.
 | # | Row | Gate |
 | - | --- | ---- |
 | N0 | Encode vectors incl. NUL/BOM (positional + named spellings) | clean |
-| N1 | Brand argument → `AIL6003` (static boundary documented) | code |
-| N2 | Non-`str` argument → `AIL6003` | code |
+| N1 | Brand argument → `CAN6003` (static boundary documented) | code |
+| N2 | Non-`str` argument → `CAN6003` | code |
 | N3 | Arity failures → binding errors | code |
 | N4 | `given` on encode → deterministic-call rejection | code |
 | N5 | `EmitsOf` entries exist explicitly for both kernels | unit |

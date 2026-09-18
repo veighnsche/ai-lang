@@ -1,6 +1,6 @@
 package main
 
-// Scrutinee-trap lint (AIL4109): a multi-scrutinee match evaluates every
+// Scrutinee-trap lint (CAN4109): a multi-scrutinee match evaluates every
 // scrutinee eagerly, so a trapping operation (string index/slice,
 // division/remainder, calls) warns; pure tables, literal-nonzero
 // divisors, and arity-1 matches stay silent.
@@ -73,8 +73,8 @@ fn m__p(n: int, b: bool) -> M__Out rev 1
 
 func eagerDiags(t *testing.T) []Diag {
 	t.Helper()
-	dir := writeLSPDir(t, map[string]string{"m.ail": eagerText})
-	return diagnose(dir, "m.ail", eagerText)
+	dir := writeLSPDir(t, map[string]string{"m.can": eagerText})
+	return diagnose(dir, "m.can", eagerText)
 }
 
 func TestEagerScrutineeWarns(t *testing.T) {
@@ -88,11 +88,11 @@ func TestEagerScrutineeWarns(t *testing.T) {
 		}
 	}
 	if len(warns) != 1 {
-		t.Fatalf("expected exactly one AIL4109 warning, got %v", warns)
+		t.Fatalf("expected exactly one CAN4109 warning, got %v", warns)
 	}
 	w := warns[0]
 	if w.Sev != "warning" {
-		t.Fatalf("AIL4109 must be warning-grade, got %q", w.Sev)
+		t.Fatalf("CAN4109 must be warning-grade, got %q", w.Sev)
 	}
 	if !strings.Contains(w.Msg, "scrutinee 2") || !strings.Contains(w.Msg, "remainder") || !strings.Contains(w.Msg, "eagerly") {
 		t.Fatalf("warning names slot, cause, and hazard, got %q", w.Msg)
@@ -101,7 +101,7 @@ func TestEagerScrutineeWarns(t *testing.T) {
 
 func TestEagerScrutineeSilent(t *testing.T) {
 	// Pure tables (m__g), arity-1 trapping scrutinees (m__h), and
-	// literal-nonzero divisors (m__p) produce no AIL4109. The warns test
+	// literal-nonzero divisors (m__p) produce no CAN4109. The warns test
 	// above already pins the total count at one; here the pipeline must
 	// additionally be error-free on those functions, which it checks by
 	// failing on any error diagnostic.

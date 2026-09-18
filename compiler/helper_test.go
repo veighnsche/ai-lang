@@ -42,8 +42,8 @@ fn m__go(id: str) -> M__S rev 1
 `
 
 func TestHelperClean(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": helperClean})
-	if diags := diagnose(dir, "m.ail", helperClean); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": helperClean})
+	if diags := diagnose(dir, "m.can", helperClean); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -52,8 +52,8 @@ func TestHelperGivenIsError(t *testing.T) {
 	bad := strings.Replace(helperClean,
 		"  match call m__help(id)\n    on m.bad _ => m.bad()",
 		"  match call m__help(id)\n    given\n      g_ok => [exchange args (id = \"a\") outcome Ok(id = \"a\")]\n      g_bad => [exchange args (id = \"a\") outcome m.bad()]\n    on m.bad _ => m.bad()", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "takes no given table") {
 		t.Fatalf("expected given-on-local error, got %v", diags)
 	}
@@ -80,8 +80,8 @@ fn m__loop(id: str) -> M__S rev 1
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": loop})
-	diags := diagnose(dir, "m.ail", loop)
+	dir := writeLSPDir(t, map[string]string{"m.can": loop})
+	diags := diagnose(dir, "m.can", loop)
 	if !hasDiag(diags, "error", "local call cycle m__loop -> m__loop") {
 		t.Fatalf("expected self-cycle error, got %v", diags)
 	}
@@ -117,8 +117,8 @@ fn m__b(id: str) -> M__S rev 1
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": pair})
-	diags := diagnose(dir, "m.ail", pair)
+	dir := writeLSPDir(t, map[string]string{"m.can": pair})
+	diags := diagnose(dir, "m.can", pair)
 	if !hasDiag(diags, "error", "local call cycle m__a -> m__b -> m__a") {
 		t.Fatalf("expected mutual-cycle error, got %v", diags)
 	}
@@ -126,8 +126,8 @@ fn m__b(id: str) -> M__S rev 1
 
 func TestHelperNeedsNoPin(t *testing.T) {
 	pinned := strings.Replace(helperClean, "uses []", "uses [m__help@1]", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": pinned})
-	diags := diagnose(dir, "m.ail", pinned)
+	dir := writeLSPDir(t, map[string]string{"m.can": pinned})
+	diags := diagnose(dir, "m.can", pinned)
 	if !hasDiag(diags, "error", "resolves nowhere") {
 		t.Fatalf("expected same-file uses rejection, got %v", diags)
 	}
@@ -166,8 +166,8 @@ fn m__go(id: str) -> M__S rev 1
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": flow})
-	if diags := diagnose(dir, "m.ail", flow); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": flow})
+	if diags := diagnose(dir, "m.can", flow); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -227,8 +227,8 @@ fn m__go(id: str) -> M__S rev 1
     on m.bad _ => m.bad()
     on Ok s => Ok(id = s.id)
 `
-	dir := writeLSPDir(t, map[string]string{"db.ail": needsDB, "m.ail": needsGo})
-	diags := diagnose(dir, "m.ail", needsGo)
+	dir := writeLSPDir(t, map[string]string{"db.can": needsDB, "m.can": needsGo})
+	diags := diagnose(dir, "m.can", needsGo)
 	if !hasDiag(diags, "error", "test g_ok has no script at the call to db__get") {
 		t.Fatalf("expected dangling caller-test error, got %v", diags)
 	}

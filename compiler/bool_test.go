@@ -53,8 +53,8 @@ func TestBoolBasic(t *testing.T) {
 =
   Ok(value = not x)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("truth tables reported: %v", diags)
 	}
 }
@@ -86,14 +86,14 @@ fn m__go(a: bool, b: bool, c: bool) -> M__Out rev 1
 =
   Ok(value = a or b and c)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("precedence reported: %v", diags)
 	}
 }
 
 // TestBoolOperandTypes pins bool-only operands: integers
-// are AIL6003, never truthy.
+// are CAN6003, never truthy.
 func TestBoolOperandTypes(t *testing.T) {
 	for _, body := range []string{
 		"Ok(value = 1 and right)",
@@ -107,15 +107,15 @@ func TestBoolOperandTypes(t *testing.T) {
     go(left = true, right = true) => Ok(value = true)
 =
   ` + body + "\n"
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6003") {
-			t.Fatalf("%q reported no AIL6003: %v", body, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6003") {
+			t.Fatalf("%q reported no CAN6003: %v", body, diags)
 		}
 	}
 }
 
 // TestBoolCallOperand pins no calls inside operands: a bare
-// call stays AIL3003 outside a match scrutinee.
+// call stays CAN3003 outside a match scrutinee.
 func TestBoolCallOperand(t *testing.T) {
 	src := `mod m
   provides [m__go, m__flag, M__Out]
@@ -139,9 +139,9 @@ fn m__flag() -> M__Out rev 1
 =
   Ok(value = left and call m__flag())
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL3003") {
-		t.Fatalf("call operand reported no AIL3003: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN3003") {
+		t.Fatalf("call operand reported no CAN3003: %v", diags)
 	}
 }
 
@@ -159,15 +159,15 @@ func TestBoolSymbolsRejected(t *testing.T) {
     go(left = true, right = true) => Ok(value = true)
 =
   ` + body + "\n"
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasError(diags) {
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasError(diags) {
 			t.Fatalf("%q reported nothing", body)
 		}
 	}
 }
 
 // TestBoolEagerFault pins loud faults: the well-typed fault
-// cases fail the build (AIL4200), never settling into a
+// cases fail the build (CAN4200), never settling into a
 // boolean or a typed outcome.
 func TestBoolEagerFault(t *testing.T) {
 	for _, body := range []string{
@@ -180,15 +180,15 @@ func TestBoolEagerFault(t *testing.T) {
     go() => Ok(value = false)
 =
   ` + body + "\n"
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4200") {
-			t.Fatalf("%q reported no AIL4200: %v", body, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN4200") {
+			t.Fatalf("%q reported no CAN4200: %v", body, diags)
 		}
 	}
 }
 
 // TestBoolEmitHelpers pins strict helper lowering: and/or
-// emit $ailBoolAnd/$ailBoolOr calls (never bare &&), and a
+// emit $canBoolAnd/$canBoolOr calls (never bare &&), and a
 // module using no boolean operator emits neither helper.
 func TestBoolEmitHelpers(t *testing.T) {
 	src := boolLib + `fn m__go(left: bool, right: bool) -> M__Out rev 1
@@ -211,11 +211,11 @@ func TestBoolEmitHelpers(t *testing.T) {
   Ok(value = not x)
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw, err := os.ReadFile(filepath.Join(out, "m.ts"))
@@ -223,7 +223,7 @@ func TestBoolEmitHelpers(t *testing.T) {
 		t.Fatal(err)
 	}
 	ts := string(raw)
-	for _, want := range []string{"$ailBoolAnd(", "$ailBoolOr(", "!("} {
+	for _, want := range []string{"$canBoolAnd(", "$canBoolOr(", "!("} {
 		if !strings.Contains(ts, want) {
 			t.Fatalf("emit missing %q", want)
 		}
@@ -245,18 +245,18 @@ fn m__go(left: bool) -> M__Out rev 1
   Ok(value = left)
 `
 	dir2 := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir2, "m.ail"), []byte(plain), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir2, "m.can"), []byte(plain), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out2 := t.TempDir()
-	if err := compile(out2, []string{filepath.Join(dir2, "m.ail")}); err != nil {
+	if err := compile(out2, []string{filepath.Join(dir2, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	raw2, err := os.ReadFile(filepath.Join(out2, "m.ts"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"$ailBoolAnd", "$ailBoolOr"} {
+	for _, want := range []string{"$canBoolAnd", "$canBoolOr"} {
 		if strings.Contains(string(raw2), want) {
 			t.Fatalf("unused helper emitted: %q", want)
 		}
@@ -310,25 +310,25 @@ fn m__eager(x: int) -> M__Out rev 1
   Ok(value = (x > 100) and ((10 / x) > 1))
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "m.ail"), []byte(src), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "m.can"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "m.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "m.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	driver := `import { m__and, m__or, m__not, m__eager } from "./m.ts";
 const eq = (got, want, name) => {
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(name + ": got " + JSON.stringify(got));
 };
-eq(m__and(true, true), { $ail_kind: "ok", value: true }, "and tt");
-eq(m__and(true, false), { $ail_kind: "ok", value: false }, "and tf");
-eq(m__and(false, true), { $ail_kind: "ok", value: false }, "and ft");
-eq(m__or(false, false), { $ail_kind: "ok", value: false }, "or ff");
-eq(m__or(false, true), { $ail_kind: "ok", value: true }, "or ft");
-eq(m__not(true), { $ail_kind: "ok", value: false }, "not t");
-eq(m__not(false), { $ail_kind: "ok", value: true }, "not f");
-eq(m__eager(200n), { $ail_kind: "ok", value: false }, "eager big");
+eq(m__and(true, true), { $can_kind: "ok", value: true }, "and tt");
+eq(m__and(true, false), { $can_kind: "ok", value: false }, "and tf");
+eq(m__and(false, true), { $can_kind: "ok", value: false }, "and ft");
+eq(m__or(false, false), { $can_kind: "ok", value: false }, "or ff");
+eq(m__or(false, true), { $can_kind: "ok", value: true }, "or ft");
+eq(m__not(true), { $can_kind: "ok", value: false }, "not t");
+eq(m__not(false), { $can_kind: "ok", value: true }, "not f");
+eq(m__eager(200n), { $can_kind: "ok", value: false }, "eager big");
 let threw = false;
 try { m__eager(0n); } catch { threw = true; }
 if (!threw) throw new Error("eager zero did not throw");

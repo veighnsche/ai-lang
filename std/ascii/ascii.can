@@ -1,4 +1,4 @@
-// std/ascii/ascii.ail — row 1 of the a78 gap closures: named ASCII
+// std/ascii/ascii.can — row 1 of the a78 gap closures: named ASCII
 // scalar bounds shared across stdlib. URL scheme tokens, authority
 // checks, and every future ASCII classifier compare against these
 // names instead of magic code points, so bounds stay greppable and

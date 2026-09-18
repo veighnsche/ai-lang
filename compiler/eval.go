@@ -321,7 +321,7 @@ type Program struct {
 	// Consts maps constant name to its declaration (slice 1);
 	// ConstFile maps every constant name to its declaring
 	// module file. Same file means a local reference;
-	// anything else needs a uses pin (AIL2105).
+	// anything else needs a uses pin (CAN2105).
 	Consts    map[string]*ConstDecl
 	ConstFile map[string]string
 	// ConstUsed records per-module constant names referenced in
@@ -590,7 +590,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		// a38 S3: sequences fetch members, never scalars. Bounds
 		// never clamp: an unguarded out-of-range index (or a
 		// non-int64 one) fails loud, reachable only without the
-		// .ail guards the checked wrapper owns.
+		// .can guards the checked wrapper owns.
 		if b.Kind == "seq" {
 			if ix.Kind != "int" {
 				return nil, fmt.Errorf("bad index operands")
@@ -773,7 +773,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			if !ok {
 				// Slice 1: a constant reference resolves
 				// lazily to its literal: the checker owns
-				// existence (AIL2104) and linkage (AIL2105),
+				// existence (CAN2104) and linkage (CAN2105),
 				// so eval just substitutes the value.
 				// Unknown names still fail loud as unbound.
 				if ctx != nil && constNameRe.MatchString(node.Ref[0]) {
@@ -796,7 +796,7 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 
 // localCallee resolves a same-file helper call: the callee must be a
 // function defined in the caller's own file. Anything else (pinned
-// foreign ail, externs, unknown names) is not local.
+// foreign can, externs, unknown names) is not local.
 func localCallee(prog *Program, owner, fname string) *FnDecl {
 	if prog == nil {
 		return nil
@@ -1247,7 +1247,7 @@ func evBytesHexDecodeOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner str
 }
 
 // isHexStr reports the strict hex grammar: even length, every byte
-// an ASCII hex digit. Byte-indexed: AIL strings that reach here are
+// an ASCII hex digit. Byte-indexed: CAN strings that reach here are
 // validated scalar-by-scalar upstream, and any non-ASCII byte fails
 // the digit predicate regardless of position.
 func isHexStr(s string) bool {
@@ -1445,7 +1445,7 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			v = val
 		} else {
 			// Externs are module-local foreign imports: no uses pin, but
-			// still scripted through given tables like ail calls.
+			// still scripted through given tables like can calls.
 			if calleeUnknown(ctx.Prog, fname) {
 				return nil, &UnknownCallError{Owner: owner, Fname: fname}
 			}
@@ -1977,7 +1977,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			}
 			if calleeUnknown(prog, fname) {
 				// a62: the call resolves nowhere (checkCalls
-				// owns the AIL3001); prove nothing about its
+				// owns the CAN3001); prove nothing about its
 				// outcomes, but still prove nested matches.
 				for _, a := range n.Arms {
 					walk(a.Rhs, owner, anc)
@@ -2214,7 +2214,7 @@ func residualInLast(prior []armCover, last armCover, nslot int, domains [][]valu
 // (docs/a28): no call scrutinees, one pattern per slot on every arm,
 // bool and string literals never mixed in one slot, and the arms'
 // product spaces covering the total space. Arity 1 keeps the historical
-// single policy verbatim (AIL4103/AIL4104 byte-pinned; the product
+// single policy verbatim (CAN4103/CAN4104 byte-pinned; the product
 // engine would accept more, and that language change is parked, not
 // smuggled in). Diagnostics reuse the single-match codes, tuple-rendered
 // past arity 1 and anchored by the same message shapes proofDiag matches
@@ -2268,9 +2268,9 @@ func verifyValueMatch(n *Node, owner string) []error {
 			case "or":
 				// Slice 4: alternatives inventory like lone
 				// patterns. Written wildcards never reach
-				// here (elaboration owns AIL4112); a wild
+				// here (elaboration owns CAN4112); a wild
 				// left by dec-constant fallthrough stays
-				// cover-silent beside its own AIL6016.
+				// cover-silent beside its own CAN6016.
 				// Variant alternatives keep the historical
 				// refusal verbatim.
 				for _, alt := range p.Alts {

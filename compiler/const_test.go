@@ -35,7 +35,7 @@ const m__COLON: int rev 1 = 58
 // ConstDecl carrying name, type, revision, and literal value.
 func TestConstParses(t *testing.T) {
 	dir := t.TempDir()
-	fp := filepath.Join(dir, "m.ail")
+	fp := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(fp, []byte(constDeclSrc), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestConstParses(t *testing.T) {
 	}
 }
 
-// TestConstNaming pins AIL2003: const names are domain__SCREAMING.
+// TestConstNaming pins CAN2003: const names are domain__SCREAMING.
 func TestConstNaming(t *testing.T) {
 	src := `mod m
   provides [m__go, Foo]
@@ -69,15 +69,15 @@ func TestConstNaming(t *testing.T) {
 
 const Foo: int rev 1 = 1
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL2003") {
-		t.Fatalf("bad const name reported no AIL2003: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN2003") {
+		t.Fatalf("bad const name reported no CAN2003: %v", diags)
 	}
 }
 
 // TestConstNamingMulti pins the decided stdlib convention: the
 // domain is the first segment, so std__ascii__COLON is accepted
-// (no AIL2003) while the SCREAMING tail stays mandatory.
+// (no CAN2003) while the SCREAMING tail stays mandatory.
 func TestConstNamingMulti(t *testing.T) {
 	src := `mod m
   provides [m__go, std__ascii__COLON]
@@ -86,13 +86,13 @@ func TestConstNamingMulti(t *testing.T) {
 
 const std__ascii__COLON: int rev 1 = 58
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasCode(diags, "AIL2003") {
-		t.Fatalf("multi-segment const name reported AIL2003: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasCode(diags, "CAN2003") {
+		t.Fatalf("multi-segment const name reported CAN2003: %v", diags)
 	}
 }
 
-// TestConstDuplicate pins AIL2205 for same-module duplicates.
+// TestConstDuplicate pins CAN2205 for same-module duplicates.
 func TestConstDuplicate(t *testing.T) {
 	src := `mod m
   provides [m__go, m__A]
@@ -103,13 +103,13 @@ const m__A: int rev 1 = 1
 
 const m__A: int rev 1 = 2
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL2205") {
-		t.Fatalf("duplicate const reported no AIL2205: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN2205") {
+		t.Fatalf("duplicate const reported no CAN2205: %v", diags)
 	}
 }
 
-// TestConstLiteralOnly pins AIL6016: initializers are literals,
+// TestConstLiteralOnly pins CAN6016: initializers are literals,
 // never computed, never aliases.
 func TestConstLiteralOnly(t *testing.T) {
 	for name, init := range map[string]string{"computed": "1 + 2", "alias": "m__A"} {
@@ -122,9 +122,9 @@ const m__A: int rev 1 = 1
 
 const m__B: int rev 1 = ` + init + `
 `
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6016") {
-			t.Fatalf("%s initializer reported no AIL6016: %v", name, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6016") {
+			t.Fatalf("%s initializer reported no CAN6016: %v", name, diags)
 		}
 	}
 }
@@ -150,8 +150,8 @@ fn m__go(x: int) -> M__Out rev 1
 
 const m__N: int rev 1 = 58
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("use-before-decl reported: %v", diags)
 	}
 }
@@ -179,7 +179,7 @@ fn m__go(x: int) -> M__Out rev 1
   Ok(value = m__N)
 `
 	dir := t.TempDir()
-	fp := filepath.Join(dir, "m.ail")
+	fp := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(fp, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +218,7 @@ fn m__go(x: int) -> M__Out rev 1
   Ok(value = m__N)
 `
 	dir := t.TempDir()
-	fp := filepath.Join(dir, "m.ail")
+	fp := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(fp, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -227,7 +227,7 @@ fn m__go(x: int) -> M__Out rev 1
 	}
 }
 
-// TestConstUnknown pins AIL2104 for references that resolve nowhere.
+// TestConstUnknown pins CAN2104 for references that resolve nowhere.
 func TestConstUnknown(t *testing.T) {
 	src := `mod m
   provides [m__go, M__Out]
@@ -245,13 +245,13 @@ fn m__go(x: int) -> M__Out rev 1
 =
   Ok(value = m__NOPE)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL2104") {
-		t.Fatalf("unknown const reported no AIL2104: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN2104") {
+		t.Fatalf("unknown const reported no CAN2104: %v", diags)
 	}
 }
 
-// TestConstMissingUses pins AIL2105: a foreign const without a pin.
+// TestConstMissingUses pins CAN2105: a foreign const without a pin.
 func TestConstMissingUses(t *testing.T) {
 	lib := `mod lib
   provides [lib__K]
@@ -276,9 +276,9 @@ fn app__go(x: int) -> A__Out rev 1
 =
   Ok(value = lib__K)
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": app})
-	if diags := diagnose(dir, "app.ail", app); !hasCode(diags, "AIL2105") {
-		t.Fatalf("unpinnned foreign const reported no AIL2105: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
+	if diags := diagnose(dir, "app.can", app); !hasCode(diags, "CAN2105") {
+		t.Fatalf("unpinnned foreign const reported no CAN2105: %v", diags)
 	}
 }
 
@@ -308,8 +308,8 @@ fn app__go(x: int) -> A__Out rev 1
 =
   Ok(value = lib__K)
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": app})
-	if diags := diagnose(dir, "app.ail", app); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
+	if diags := diagnose(dir, "app.can", app); hasError(diags) {
 		t.Fatalf("pinned foreign const reported: %v", diags)
 	}
 }
@@ -323,9 +323,9 @@ func TestConstProvidesMiss(t *testing.T) {
 
 const m__K: int rev 1 = 7
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, CodeProvidesMiss) {
-		t.Fatalf("unprovided const reported no AIL2301: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, CodeProvidesMiss) {
+		t.Fatalf("unprovided const reported no CAN2301: %v", diags)
 	}
 }
 
@@ -358,8 +358,8 @@ fn m__go(x: int, s: str) -> M__Out rev 1
       m__SEP => Ok(value = "sep")
       _ => Ok(value = "no")
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("const patterns reported: %v", diags)
 	}
 }
@@ -389,8 +389,8 @@ fn m__go(x: int) -> M__Out rev 1
     m__N => Ok(value = 2)
     _ => Ok(value = 3)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("int const pattern reported: %v", diags)
 	}
 }
@@ -421,13 +421,13 @@ fn app__go(x: int) -> A__Out rev 1
 =
   Ok(value = x)
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": app})
-	if diags := diagnose(dir, "app.ail", app); hasCode(diags, "AIL3401") {
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
+	if diags := diagnose(dir, "app.can", app); hasCode(diags, "CAN3401") {
 		t.Fatalf("evidence-only const pin reported unused: %v", diags)
 	}
 }
 
-// TestConstPatternForeignPin pins AIL2105 for patterns: a foreign
+// TestConstPatternForeignPin pins CAN2105 for patterns: a foreign
 // constant in pattern position needs its rev pin like a body
 // reference.
 func TestConstPatternForeignPin(t *testing.T) {
@@ -457,15 +457,15 @@ fn app__go(x: int) -> A__Out rev 1
     lib__FLAG => Ok(value = "yes")
     false => Ok(value = "no")
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": app})
-	if diags := diagnose(dir, "app.ail", app); !hasCode(diags, "AIL2105") {
-		t.Fatalf("unpinned foreign const pattern reported no AIL2105: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
+	if diags := diagnose(dir, "app.can", app); !hasCode(diags, "CAN2105") {
+		t.Fatalf("unpinned foreign const pattern reported no CAN2105: %v", diags)
 	}
 }
 
 // TestConstPatternMarksUsed pins the pattern evidence interplay: a
 // pinned foreign const referenced only in a pattern still marks
-// its pin used (no AIL3401).
+// its pin used (no CAN3401).
 func TestConstPatternMarksUsed(t *testing.T) {
 	lib := `mod lib
   provides [lib__FLAG]
@@ -493,8 +493,8 @@ fn app__go(x: int) -> A__Out rev 1
     lib__FLAG => Ok(value = "yes")
     false => Ok(value = "no")
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": app})
-	if diags := diagnose(dir, "app.ail", app); hasCode(diags, "AIL3401") {
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": app})
+	if diags := diagnose(dir, "app.can", app); hasCode(diags, "CAN3401") {
 		t.Fatalf("pattern-only const pin reported unused: %v", diags)
 	}
 }
@@ -510,8 +510,8 @@ func TestConstIdentityDrift(t *testing.T) {
 
 const m__N: int rev 1 = 58
 `
-	files := map[string]string{"m.ail": base}
-	progB, _ := revisionProg(t, files, []string{"m.ail"})
+	files := map[string]string{"m.can": base}
+	progB, _ := revisionProg(t, files, []string{"m.can"})
 	bsln := revisionBaseline(t, progB, "review-base:B")
 	changed := `mod m
   provides [m__N]
@@ -520,7 +520,7 @@ const m__N: int rev 1 = 58
 
 const m__N: int rev 1 = 59
 `
-	progC, textsC := revisionProg(t, map[string]string{"m.ail": changed}, []string{"m.ail"})
+	progC, textsC := revisionProg(t, map[string]string{"m.can": changed}, []string{"m.can"})
 	diags := CheckRevisionIdentity(progC, textsC, bsln)
 	if !hasDiag(diags, "error", "differs from accepted baseline") {
 		t.Fatalf("expected value drift, got %v", diags)
@@ -540,8 +540,8 @@ func TestConstIdentityClean(t *testing.T) {
 
 const m__N: int rev 1 = 58
 `
-	files := map[string]string{"m.ail": src}
-	prog, texts := revisionProg(t, files, []string{"m.ail"})
+	files := map[string]string{"m.can": src}
+	prog, texts := revisionProg(t, files, []string{"m.can"})
 	bsln := revisionBaseline(t, prog, "review-base:B")
 	if diags := CheckRevisionIdentity(prog, texts, bsln); len(diags) != 0 {
 		t.Fatalf("expected clean identity, got %v", diags)
@@ -575,8 +575,8 @@ fn m__poll(n: int) -> M__S rev 1
     false => match call m__poll(n - m__ONE)
       on Ok s => Ok(n = s.n)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	diags := diagnose(dir, "m.ail", src)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	diags := diagnose(dir, "m.can", src)
 	if len(diags) == 0 {
 		t.Fatalf("const-spelled step certified the recursion")
 	}
@@ -618,8 +618,8 @@ fn m__go(p: M__Point) -> M__Bool rev 1
     true, true => Ok(value = true)
     _, _ => Ok(value = false)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("record fixture reported errors: %v", diags)
 	}
 }
@@ -665,13 +665,13 @@ fn m__go(s: M__Snap, r: Seq<M__Entry>) -> M__Bool rev 1
     true, true, true => Ok(value = true)
     _, _, _ => Ok(value = false)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); hasError(diags) {
 		t.Fatalf("nested fixture reported errors: %v", diags)
 	}
 }
 
-// TestCompositeConstShapes pins AIL6016 on every non-data
+// TestCompositeConstShapes pins CAN6016 on every non-data
 // initializer and every excluded sort: calls, arithmetic,
 // aliases, cross-shape heads, unknown sorts, Bytes, variants.
 func TestCompositeConstShapes(t *testing.T) {
@@ -712,15 +712,15 @@ fn m__go(p: M__Point) -> M__Bool rev 1
 =
   Ok(value = p.x == 0)
 `
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6016") {
-			t.Fatalf("%s initializer reported no AIL6016: %v", name, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6016") {
+			t.Fatalf("%s initializer reported no CAN6016: %v", name, diags)
 		}
 	}
 }
 
 // TestCompositeConstVariant pins the design3 exclusion: a
-// variant-typed constant stays inline with AIL6016.
+// variant-typed constant stays inline with CAN6016.
 func TestCompositeConstVariant(t *testing.T) {
 	src := `mod m
   provides [m__go, M__State, m__B]
@@ -734,15 +734,15 @@ variant M__State rev 1 (
 
 const m__B: M__State rev 1 = M__State.Ready()
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": src})
-	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6016") {
-		t.Fatalf("variant initializer reported no AIL6016: %v", diags)
+	dir := writeLSPDir(t, map[string]string{"m.can": src})
+	if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6016") {
+		t.Fatalf("variant initializer reported no CAN6016: %v", diags)
 	}
 }
 
 // TestCompositeConstFields pins shared field checking: unknown,
 // repeated, missing, and mistyped constructor fields fail inside
-// const values exactly as in handwritten rows (AIL6003).
+// const values exactly as in handwritten rows (CAN6003).
 func TestCompositeConstFields(t *testing.T) {
 	for name, init := range map[string]string{
 		"unknown":  `M__Point(x = 0, z = 0)`,
@@ -773,9 +773,9 @@ fn m__go(p: M__Point) -> M__Bool rev 1
 =
   Ok(value = p.x == 0)
 `
-		dir := writeLSPDir(t, map[string]string{"m.ail": src})
-		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL6003") {
-			t.Fatalf("%s field reported no AIL6003: %v", name, diags)
+		dir := writeLSPDir(t, map[string]string{"m.can": src})
+		if diags := diagnose(dir, "m.can", src); !hasCode(diags, "CAN6003") {
+			t.Fatalf("%s field reported no CAN6003: %v", name, diags)
 		}
 	}
 }

@@ -38,11 +38,11 @@ fn m__go(value: Bytes) -> Encoding__Text rev 1
 // row (ab, deadbeef), order kept, ASCII-looking bytes never pass
 // through as text, leading zeros kept.
 func TestBytesH0HexVectors(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesHexBase}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesHexBase}, "m.can")
 	named := strings.Replace(bytesHexBase,
 		"match call bytes__hex__encode(value)",
 		"match call bytes__hex__encode(value = value)", 1)
-	seqClean(t, map[string]string{"m.ail": named}, "m.ail")
+	seqClean(t, map[string]string{"m.can": named}, "m.can")
 }
 
 // H1: the deterministic kernel takes no given table.
@@ -50,7 +50,7 @@ func TestBytesH1NoGiven(t *testing.T) {
 	body := strings.Replace(bytesHexBase,
 		"  match call bytes__hex__encode(value)\n    on Ok r => Ok(value = r.value)",
 		"  match call bytes__hex__encode(value)\n    given\n      empty => [exchange args (value = Bytes(Seq<int>[])) outcome Ok(value = \"\")]\n    on Ok r => Ok(value = r.value)", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeGivenOnLocal, "no given table")
 }
 
@@ -74,21 +74,21 @@ fn m__go(value: PARAM) -> Encoding__Text rev 1
 		s = strings.Replace(s, "PARAM", param, 1)
 		return strings.Replace(s, "ARG", arg, 1)
 	}
-	seqCode(t, map[string]string{"m.ail": mk("str", `"A"`)}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("str", `"A"`)}, "m.can",
 		CodeTypeMismatch, "want Bytes")
-	seqCode(t, map[string]string{"m.ail": mk("int", "3")}, "m.ail",
+	seqCode(t, map[string]string{"m.can": mk("int", "3")}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 	branded := strings.Replace(mk("M__Secret", `seal M__Secret("s")`),
 		"fn m__go(value: M__Secret)", "brand M__Secret is str rev 1\n\nfn m__go(value: M__Secret)", 1)
 	branded = strings.Replace(branded, "provides [m__go]", "provides [M__Secret, m__go]", 1)
-	seqCode(t, map[string]string{"m.ail": branded}, "m.ail",
+	seqCode(t, map[string]string{"m.can": branded}, "m.can",
 		CodeTypeMismatch, "want Bytes")
 }
 
 // H3: the kernel contract exists explicitly (never absent).
 func TestBytesH3ContractsRegistered(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": bytesHexBase})
-	mods, texts, _, err := parsePaths([]string{dir + "/m.ail"})
+	dir := writeLSPDir(t, map[string]string{"m.can": bytesHexBase})
+	mods, texts, _, err := parsePaths([]string{dir + "/m.can"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestBytesH3ContractsRegistered(t *testing.T) {
 // H4: the encoder lowers through the hex helper, not TextEncoder.
 func TestBytesH4EmitPin(t *testing.T) {
 	ts := compileEmit(t, bytesHexBase)
-	if !strings.Contains(ts, "$ailHexEncode(value)") {
+	if !strings.Contains(ts, "$canHexEncode(value)") {
 		t.Fatalf("emit missing hex helper lowering:\n%s", ts)
 	}
 	if strings.Contains(ts, "TextEncoder") {
@@ -120,8 +120,8 @@ func TestBytesH5StaleArm(t *testing.T) {
 		"    on Ok r => Ok(value = r.value)\n    on m.boom e => Ok(value = \"\")", 1)
 	body = strings.Replace(body, "fn m__go(value: Bytes)",
 		"error m.boom(value: str)\n\nfn m__go(value: Bytes)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.boom") {
 		t.Fatalf("expected stale-arm rejection, got %v", diags)
 	}

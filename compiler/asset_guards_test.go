@@ -12,19 +12,19 @@ import (
 
 func assetGuardModules(t *testing.T) (*Module, *Module) {
 	t.Helper()
-	htmlRaw, err := os.ReadFile("../std/html/html.ail")
+	htmlRaw, err := os.ReadFile("../std/html/html.can")
 	if err != nil {
 		t.Fatal(err)
 	}
-	schemaRaw, err := os.ReadFile("../std/schema/schema.ail")
+	schemaRaw, err := os.ReadFile("../std/schema/schema.can")
 	if err != nil {
 		t.Fatal(err)
 	}
-	htmlMod, err := parseModuleText("html.ail", string(htmlRaw))
+	htmlMod, err := parseModuleText("html.can", string(htmlRaw))
 	if err != nil {
 		t.Fatalf("parse html: %v", err)
 	}
-	schemaMod, err := parseModuleText("schema.ail", string(schemaRaw))
+	schemaMod, err := parseModuleText("schema.can", string(schemaRaw))
 	if err != nil {
 		t.Fatalf("parse schema: %v", err)
 	}
@@ -87,11 +87,11 @@ func TestAssetSinkPurity(t *testing.T) {
 	if len(htmlMod.Hdr["uses"]) == 0 {
 		return
 	}
-	asciiRaw, err := os.ReadFile("../std/ascii/ascii.ail")
+	asciiRaw, err := os.ReadFile("../std/ascii/ascii.can")
 	if err != nil {
 		t.Fatal(err)
 	}
-	asciiMod, err := parseModuleText("ascii.ail", string(asciiRaw))
+	asciiMod, err := parseModuleText("ascii.can", string(asciiRaw))
 	if err != nil {
 		t.Fatalf("parse ascii: %v", err)
 	}

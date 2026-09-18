@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-// a79: LSP revision enforcement. `ailc lsp --baseline` surfaces the
-// same AIL6013 drift findings as the CLI on every keystroke. Probes
+// a79: LSP revision enforcement. `canlc lsp --baseline` surfaces the
+// same CAN6013 drift findings as the CLI on every keystroke. Probes
 // first: diagnoseWith threads an accepted baseline through diagnose.
 
 func lspBaselineDir(t *testing.T, model, client string) string {
 	t.Helper()
 	dir := t.TempDir()
-	for name, text := range map[string]string{"model.ail": model, "client.ail": client} {
+	for name, text := range map[string]string{"model.can": model, "client.can": client} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
 			t.Fatalf("write %s: %v", name, err)
 		}
@@ -24,7 +24,7 @@ func lspBaselineDir(t *testing.T, model, client string) string {
 func lspAcceptedBaseline(t *testing.T) *RevisionBaseline {
 	t.Helper()
 	files := revisionFiles(revisionModelB, revisionClientB)
-	prog, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	prog, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	return revisionBaseline(t, prog, "review-base:lsp")
 }
 
@@ -33,13 +33,13 @@ func lspAcceptedBaseline(t *testing.T) *RevisionBaseline {
 func TestLSPBaselineClean(t *testing.T) {
 	dir := lspBaselineDir(t, revisionModelB, revisionClientB)
 	base := lspAcceptedBaseline(t)
-	if diags := diagnoseWith(dir, "client.ail", revisionClientB, base); hasCode(diags, CodeRevisionIdentity) {
+	if diags := diagnoseWith(dir, "client.can", revisionClientB, base); hasCode(diags, CodeRevisionIdentity) {
 		t.Fatalf("clean world under accepted baseline reported identity drift: %+v", diags)
 	}
 }
 
 // TestLSPBaselineDrift pins enforcement: a sibling interface change
-// (new variant case, same revision) surfaces AIL6013 in the editor
+// (new variant case, same revision) surfaces CAN6013 in the editor
 // even though the program still checks clean.
 func TestLSPBaselineDrift(t *testing.T) {
 	drifted := `mod model
@@ -55,7 +55,7 @@ variant Model__State rev 1 (
 `
 	dir := lspBaselineDir(t, drifted, revisionClientB)
 	base := lspAcceptedBaseline(t)
-	diags := diagnoseWith(dir, "client.ail", revisionClientB, base)
+	diags := diagnoseWith(dir, "client.can", revisionClientB, base)
 	if !hasCode(diags, CodeRevisionIdentity) {
 		t.Fatalf("drifted world under accepted baseline reported no identity finding")
 	}
@@ -70,7 +70,7 @@ variant Model__State rev 1 (
 // means no identity findings, exactly today's behavior.
 func TestLSPBaselineNil(t *testing.T) {
 	dir := lspBaselineDir(t, revisionModelB, revisionClientB)
-	if diags := diagnoseWith(dir, "client.ail", revisionClientB, nil); hasCode(diags, CodeRevisionIdentity) {
+	if diags := diagnoseWith(dir, "client.can", revisionClientB, nil); hasCode(diags, CodeRevisionIdentity) {
 		t.Fatalf("nil baseline reported identity drift: %+v", diags)
 	}
 }
@@ -81,7 +81,7 @@ func TestLSPBaselineUnaccepted(t *testing.T) {
 	dir := lspBaselineDir(t, revisionModelB, revisionClientB)
 	base := lspAcceptedBaseline(t)
 	base.Accepted = false
-	if diags := diagnoseWith(dir, "client.ail", revisionClientB, base); !hasCode(diags, CodeRevisionIdentity) {
+	if diags := diagnoseWith(dir, "client.can", revisionClientB, base); !hasCode(diags, CodeRevisionIdentity) {
 		t.Fatalf("unaccepted baseline reported no identity finding")
 	}
 }

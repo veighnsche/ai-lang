@@ -11,11 +11,11 @@ import (
 // and no-text-interpretation vectors.
 
 // TestBytesB13ForeignCaller pins cross-module callability against
-// the REAL text.ail.
+// the REAL text.can.
 func TestBytesB13ForeignCaller(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__go]
@@ -40,9 +40,9 @@ fn client__go(value: Bytes) -> Encoding__Text rev 1
       notext => [exchange args (value = Bytes(Seq<int>[0, 65])) outcome Ok(value = "AEE=")]
     on Ok r => Ok(value = r.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	if diags := diagnose(dir, "client.ail", client); len(diags) != 0 {
+	if diags := diagnose(dir, "client.can", client); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }

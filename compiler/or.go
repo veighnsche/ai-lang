@@ -7,7 +7,7 @@ import (
 // Slice 4: or-patterns. One source arm, several alternatives per
 // slot; coverage unions over them, credit is sequential (an
 // alternative must add space beyond earlier arms and earlier
-// alternatives of its own arm, AIL4112).
+// alternatives of its own arm, CAN4112).
 
 // patCoverAtoms renders one scalar pattern as its covered atom
 // indices in a slot domain: the single-atom cases verbatim from
@@ -101,7 +101,7 @@ func orAltUseful(covers []armCover, i, slot int, altAtoms [][]int, k, nslot int,
 
 // checkOrAlternatives enforces per-alternative usefulness over
 // computed covers: every explicitly written alternative of
-// every or-arm must contribute remaining space (AIL4112).
+// every or-arm must contribute remaining space (CAN4112).
 // Arms without alternatives never reach here; callers run this
 // only after their legacy gates pass, so domains are sound.
 func checkOrAlternatives(n *Node, owner string, covers []armCover, domains [][]valueAtom, atomIndex []map[string]int) []error {

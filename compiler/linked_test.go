@@ -69,15 +69,15 @@ fn client__go(value: str) -> Encoding__Text rev 1
       a => [exchange args (value = "A") outcome Ok(value = "A")]
     on Ok r => Ok(value = r.value)
 `
-	return map[string]string{"leaf.ail": leaf, "middle.ail": middle, "client.ail": client}
+	return map[string]string{"leaf.can": leaf, "middle.can": middle, "client.can": client}
 }
 
 // TestLinkedPureMismatch pins the falsifier: linked
 // execution reports actual "" against expected "A".
 func TestLinkedPureMismatch(t *testing.T) {
 	for _, order := range [][]string{
-		{"leaf.ail", "middle.ail", "client.ail"},
-		{"client.ail", "middle.ail", "leaf.ail"},
+		{"leaf.can", "middle.can", "client.can"},
+		{"client.can", "middle.can", "leaf.can"},
 	} {
 		files := leafMiddleClient(true)
 		err := runLinkedPure(t, files, order, "middle__copy", 1,
@@ -96,7 +96,7 @@ func TestLinkedPureMismatch(t *testing.T) {
 func TestLinkedPureControl(t *testing.T) {
 	files := leafMiddleClient(false)
 	if err := runLinkedPure(t, files,
-		[]string{"leaf.ail", "middle.ail", "client.ail"},
+		[]string{"leaf.can", "middle.can", "client.can"},
 		"middle__copy", 1,
 		map[string]string{"value": `"A"`}, `Ok(value = "A")`); err != nil {
 		t.Fatalf("expected linked pass, got %v", err)
@@ -164,8 +164,8 @@ fn m__go(value: str) -> M__T rev 1
 `,
 	}
 	for name, src := range cases {
-		err := runLinkedPure(t, map[string]string{"m.ail": src},
-			[]string{"m.ail"}, "m__go", 1,
+		err := runLinkedPure(t, map[string]string{"m.can": src},
+			[]string{"m.can"}, "m__go", 1,
 			map[string]string{"value": `"A"`}, `Ok(value = "A")`)
 		if err == nil {
 			t.Fatalf("%s: expected refusal, got pass", name)

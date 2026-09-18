@@ -1,6 +1,6 @@
 package main
 
-// a71 (a61 item 1, first cut) established `ailc explain CODE`:
+// a71 (a61 item 1, first cut) established `canlc explain CODE`:
 // the rule, a minimal violation, the legal fix. Populated to
 // full coverage 2026-09-18: every registered code carries a
 // per-code entry grounded in its emission message. The family
@@ -118,7 +118,7 @@ var explainDocs = map[string]explainEntry{
 	},
 	CodeConstNotInUses: {
 		rule:    "A foreign constant needs a rev pin in uses, like a foreign call (R2/R4).",
-		violate: `Ok(value = lib__K) with uses [] while lib.ail provides lib__K@1.`,
+		violate: `Ok(value = lib__K) with uses [] while lib.can provides lib__K@1.`,
 		fix:     "Pin the provider rev (uses [lib__K@1]). Same-module constants need no pin.",
 	},
 	CodeDupFn: {
@@ -128,7 +128,7 @@ var explainDocs = map[string]explainEntry{
 	},
 	CodeDupSibling: {
 		rule:    "One name, one provider across the build: a sibling file defining the same item is a double definition (R2).",
-		violate: `db__get_user defined in both db.ail and cache.ail.`,
+		violate: `db__get_user defined in both db.can and cache.can.`,
 		fix:     "Keep one provider; the other file uses it through uses with a rev pin.",
 	},
 	CodeDupVariant: {
@@ -157,7 +157,7 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Define it or drop it from provides. No forward declarations, no aspirational exports.",
 	},
 	CodeUnknownCall: {
-		rule:    "Every callee resolves: same-file helper, uses-pinned ail function, own-module extern, or state intrinsic. Unknown callees and other modules' externs are rejected.",
+		rule:    "Every callee resolves: same-file helper, uses-pinned can function, own-module extern, or state intrinsic. Unknown callees and other modules' externs are rejected.",
 		violate: `call db__get_user(...) with no such function, or calling another module's extern directly.`,
 		fix:     "Fix the name, add the uses pin, or declare your own extern — externs are module-local and never shared.",
 	},
@@ -207,12 +207,12 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Match the callee's params exactly. The message names the offending arg; the signature is the contract.",
 	},
 	CodeBadForward: {
-		rule:    "forward is the entire RHS of its own call-outcome arm, and the operand is that arm's bound payload binder (AIL3011).",
+		rule:    "forward is the entire RHS of its own call-outcome arm, and the operand is that arm's bound payload binder (CAN3011).",
 		violate: `on m.bad e => forward e.value, or forward x from an outer scope.`,
 		fix:     "Write forward with exactly the arm binder: on KIND binder => forward binder. Anything else (projections, outer names, constructors, value matches) is handwritten reconstruction.",
 	},
 	CodeChainElab: {
-		rule:    "A match chain elaborates into nested call matches at check time; the elaborated ladder must be well-formed (AIL3012).",
+		rule:    "A match chain elaborates into nested call matches at check time; the elaborated ladder must be well-formed (CAN3012).",
 		violate: `a chain whose shared else cannot parse on some level.`,
 		fix:     "The else text parsed when the chain was read; report the chain, the step, and the else text as a compiler bug.",
 	},
@@ -229,7 +229,7 @@ var explainDocs = map[string]explainEntry{
 	CodeNoGiven: {
 		rule:    "Foreign calls are stubbed at the call site: every such call carries a given table, one exchange sequence per test (R8).",
 		violate: `match call db__get_user(id) with no given table beneath it.`,
-		fix:     "Add the given table with one row per reaching test (unreachable tests written - explicitly). Deterministic calls take no table — see AIL3106.",
+		fix:     "Add the given table with one row per reaching test (unreachable tests written - explicitly). Deterministic calls take no table — see CAN3106.",
 	},
 	CodeGivenOnLocal: {
 		rule:    "Only a single foreign-call match takes given: deterministic calls (same-file helpers, state intrinsics) execute, and multi-scrutinee matches take no table.",
@@ -249,7 +249,7 @@ var explainDocs = map[string]explainEntry{
 	CodeDeadScript: {
 		rule:    "Given-table keys must equal the reaching test names: a script no test selects is dead (R8).",
 		violate: `zzz => [...] under given with no test named zzz.`,
-		fix:     "Delete the row or add the test. Keys and tests are a set equality, checked both directions (see AIL3105).",
+		fix:     "Delete the row or add the test. Keys and tests are a set equality, checked both directions (see CAN3105).",
 	},
 	CodeNoExchange: {
 		rule:    "Every script row is an exchange binding expected call args to one permitted outcome: outcome-only rows prove nothing about the request (R8).",
@@ -304,7 +304,7 @@ var explainDocs = map[string]explainEntry{
 	CodeStaleArm: {
 		rule:    "Arms name outcomes the scrutinee can produce: a stale arm is a dead dispatch and a compile error.",
 		violate: `on db.down ... where the callee never emits db.down.`,
-		fix:     "Delete the arm or fix the callee's emits. Every arm must be reachable in principle, taken in practice (see AIL4107).",
+		fix:     "Delete the arm or fix the callee's emits. Every arm must be reachable in principle, taken in practice (see CAN4107).",
 	},
 	CodeBoolArms: {
 		rule:    "A bool match is exactly true plus false — no more, no fewer, and never mixed with string or integer patterns in one slot.",
@@ -347,17 +347,17 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Guard the scrutinee first (bounds check in an outer match) or nest the matches so the risky evaluation sits under its guard.",
 	},
 	CodeBadRange: {
-		rule:    "Integer ranges are closed `LOW..HIGH` with lower under upper and integer bounds: literals or visible integer constants (AIL4110).",
+		rule:    "Integer ranges are closed `LOW..HIGH` with lower under upper and integer bounds: literals or visible integer constants (CAN4110).",
 		violate: `10..5, 5..5 (use the singleton 5), or m__S..9 where the constant is not an int.`,
-		fix:     "Order the bounds lower-first with a strict gap, and bind only integer literals or integer constants. Unknown names are AIL2104, not malformed bounds.",
+		fix:     "Order the bounds lower-first with a strict gap, and bind only integer literals or integer constants. Unknown names are CAN2104, not malformed bounds.",
 	},
 	CodeUselessArm: {
-		rule:    "Every arm must add coverage: an arm earlier arms fully cover is statically useless, even before any test runs (AIL4111).",
+		rule:    "Every arm must add coverage: an arm earlier arms fully cover is statically useless, even before any test runs (CAN4111).",
 		violate: `3..5 after 1..10, or a second 5 after a first 5.`,
 		fix:     "Delete the shadowed arm or narrow the earlier one. Partial overlaps stay legal under first-match semantics; only fully covered arms fail.",
 	},
 	CodeUselessAlt: {
-		rule:    "Every or-alternative must contribute remaining space: an alternative earlier arms and earlier alternatives fully cover adds nothing (AIL4112). Wildcards stay their own arm, never an alternative.",
+		rule:    "Every or-alternative must contribute remaining space: an alternative earlier arms and earlier alternatives fully cover adds nothing (CAN4112). Wildcards stay their own arm, never an alternative.",
 		violate: `1..10 | 5..8, a second 1 after a first 1, or _ | 1.`,
 		fix:     "Delete the empty alternative or narrow what precedes it. Credit is sequential: 7 cannot cover both 1..10 and 5..15, so the second range needs its own exclusive region.",
 	},
@@ -368,7 +368,7 @@ var explainDocs = map[string]explainEntry{
 	},
 	CodeSiblingParse: {
 		rule:    "World errors report per file without hiding the rest: a sibling that fails to parse is reported at the open file too.",
-		violate: `editing auth.ail while db.ail has a syntax error.`,
+		violate: `editing auth.can while db.can has a syntax error.`,
 		fix:     "Fix the sibling file. Execution-dependent checks stay suppressed until the world parses; nothing else hides.",
 	},
 	CodeBadCompare: {
@@ -378,7 +378,7 @@ var explainDocs = map[string]explainEntry{
 	},
 	CodeModuleCollision: {
 		rule:    "One canonical identity per file: the same module fed twice is a collision, not an idempotent re-add.",
-		violate: `passing db.ail twice on the command line, or two spellings of one path.`,
+		violate: `passing db.can twice on the command line, or two spellings of one path.`,
 		fix:     "Pass each file once. The message names the doubled module.",
 	},
 	CodeFloatLiteral: {
@@ -398,7 +398,7 @@ var explainDocs = map[string]explainEntry{
 	},
 	CodeSealForeign: {
 		rule:    "Bodies seal only their own module's brands: minting and promotion stay inside one module, so grep seal is the whole audit.",
-		violate: `seal Db__Hash("...") inside auth.ail.`,
+		violate: `seal Db__Hash("...") inside auth.can.`,
 		fix:     "Seal in the owning module and pass the brand through typed params, or declare your own brand. Cross-module minting is never admitted.",
 	},
 	CodeInexactDivision: {
@@ -449,7 +449,7 @@ var explainDocs = map[string]explainEntry{
 	CodeConstNonliteral: {
 		rule:    "V1 constant initializers are scalar literals (int, str, dec, bool) matching the declared type. Computed, alias, and cross-constant initializers are rejected.",
 		violate: `const m__B: int rev 1 = 1 + 2, or = m__A.`,
-		fix:     "Write the literal value. (Allocated AIL6016: the drafts' AIL6014 collided with shipped AssetBridgeAuthority.)",
+		fix:     "Write the literal value. (Allocated CAN6016: the drafts' CAN6014 collided with shipped AssetBridgeAuthority.)",
 	},
 	CodePrimitiveShadow: {
 		rule:    "Declarations never shadow a compiler kernel or primitive: Bytes and kernel names are reserved.",
@@ -461,12 +461,12 @@ var explainDocs = map[string]explainEntry{
 // explainFamily describes each code family for codes
 // without a per-code doc yet.
 var explainFamily = map[string]string{
-	"AIL1": "Parse and grammar rules.",
-	"AIL2": "Declaration rules (naming R3, rev pins R4, provides/uses R2).",
-	"AIL3": "Call and decision-table rules (resolution, given/test R8).",
-	"AIL4": "Error and proof rules (emits R5, exhaustiveness, test runs).",
-	"AIL5": "World and tooling rules.",
-	"AIL6": "Type rules (brands, seal, extern, numerics).",
+	"CAN1": "Parse and grammar rules.",
+	"CAN2": "Declaration rules (naming R3, rev pins R4, provides/uses R2).",
+	"CAN3": "Call and decision-table rules (resolution, given/test R8).",
+	"CAN4": "Error and proof rules (emits R5, exhaustiveness, test runs).",
+	"CAN5": "World and tooling rules.",
+	"CAN6": "Type rules (brands, seal, extern, numerics).",
 }
 
 // explainCode returns the doc text for a registered code.
@@ -496,16 +496,16 @@ func explainCode(code string) (string, bool) {
 	return fmt.Sprintf("%s\n%s No per-code doc yet; see the family rule and the diagnostic message.", code, fam), true
 }
 
-// runExplain implements `ailc explain CODE`.
+// runExplain implements `canlc explain CODE`.
 func runExplain(out io.Writer, argv []string) int {
 	if len(argv) != 1 {
-		fmt.Fprintln(out, "usage: ailc explain AILnnnn")
+		fmt.Fprintln(out, "usage: canlc explain CANnnnn")
 		return 2
 	}
 	code := strings.ToUpper(strings.TrimSpace(argv[0]))
 	text, ok := explainCode(code)
 	if !ok {
-		fmt.Fprintf(out, "ailc: unknown diagnostic code %q\n", argv[0])
+		fmt.Fprintf(out, "canlc: unknown diagnostic code %q\n", argv[0])
 		return 2
 	}
 	fmt.Fprintln(out, text)

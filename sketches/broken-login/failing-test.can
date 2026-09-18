@@ -1,4 +1,4 @@
-// broken-login/failing-test.ail — DEMO: red squiggle, a test fails at build.
+// broken-login/failing-test.can — DEMO: red squiggle, a test fails at build.
 // The missing-user case claims Ok but the code raises auth.bad.
 
 mod auth

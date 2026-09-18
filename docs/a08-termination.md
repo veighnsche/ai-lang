@@ -35,7 +35,7 @@ the project goal — if a behavior can be declared, it must be.
 > Amendment (a11): tightened — see `a11-recursion.md`. Only the
 > unit step `p - 1` is admitted (larger steps refused), and every
 > site must sit under the false arm of the canonical `p <= 0`
-> guard (unguarded sites refused as `AIL3009`). The recursion ban
+> guard (unguarded sites refused as `CAN3009`). The recursion ban
 > itself is program-wide, not same-file-only.
 
 Why structural decrease and not the other two candidates: fuel
@@ -65,7 +65,7 @@ turns a missed base case into a test failure instead of a hang.
 > the production claim alone.
 
 What the proof does not cover, explicitly: mutual recursion stays
-banned (`AIL3005` — lexicographic and global decrease arguments are
+banned (`CAN3005` — lexicographic and global decrease arguments are
 a proposal of their own, not smuggled inside this one). `dec`
 decreases are out (ints only; the rule stays total). The 1024-deep
 sandbox bound stays as a resource bound, loud on breach, same class
@@ -77,26 +77,26 @@ as int overflow: it is not the proof and never was.
 
 ## Static rules (one rule, one code)
 
-- `decreases p` must name a declared `int` param (`AIL3006`).
+- `decreases p` must name a declared `int` param (`CAN3006`).
   Unknown name and non-int param are the same mistake: the
   annotation proves nothing about that name.
-- `decreases` with no self-call site is stale (`AIL3007`), same
+- `decreases` with no self-call site is stale (`CAN3007`), same
   family as stale emits: proof text that proves nothing is
   misleading, not harmless.
 - A self-call site that does not pass `p - k` is not a loop step
-  (`AIL3008`): unchanged `p`, `p + k`, `p - 0`, computed steps,
+  (`CAN3008`): unchanged `p`, `p + k`, `p - 0`, computed steps,
   and literals all fail here with the site line named.
   Amendment (a11): unit step only — the message now reads
   `pass p - 1`, and larger steps fail here too.
 - A self-call site outside the positive branch is not admitted
-  (`AIL3009`, a11): recursion must sit under the false arm of the
+  (`CAN3009`, a11): recursion must sit under the false arm of the
   canonical `p <= 0` guard.
 - A self-call with no `decreases` line is the existing cycle error
-  (`AIL3005`). That is the "would hang" shape, refused.
+  (`CAN3005`). That is the "would hang" shape, refused.
   Amendment (a11): the shape is finite either way — the refusal is
   proof-gated admission, not a diverted hang (`a11-recursion.md`).
 - All three new errors block test execution exactly like the cycle
-  ban: the gate is prove-first, run-after. `AIL4200` stays the
+  ban: the gate is prove-first, run-after. `CAN4200` stays the
   coarse bucket for the loud runtime side (negative entry).
 
 ## Unchanged machinery (proof by non-interference)
@@ -138,7 +138,7 @@ budget prod stack.
   `decreases` line (validity owned by `checkDecreases`, so one
   mistake yields one error family).
   Amendment (a11): unit step, guard-carrying walk (`isGuardScrut`),
-  `AIL3009`, plus `checkGlobalCycles` over all ail edges with
+  `CAN3009`, plus `checkGlobalCycles` over all can edges with
   caller-file attribution; the verdict feeds the prove-first gate
   in both CLI and editor (`a11-recursion.md`).
 - `lsp.go`: the `blocked` gate extends to the three new codes —
@@ -149,8 +149,8 @@ budget prod stack.
   tests and local calls) — unreachable past the guard rule, and
   keeping it would contradict the returned-outcome theorem. The
   1024 depth bound stays as the hang backstop.
-- `code.go`: `AIL3006`/`AIL3007`/`AIL3008` in the registry.
-  Amendment (a11): plus `AIL3009` (unguarded recursion).
+- `code.go`: `CAN3006`/`CAN3007`/`CAN3008` in the registry.
+  Amendment (a11): plus `CAN3009` (unguarded recursion).
 
 ## Consequences (accepted before building)
 

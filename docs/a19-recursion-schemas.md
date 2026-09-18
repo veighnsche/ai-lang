@@ -32,8 +32,8 @@ The `decreases` line has three spellings, one per meaning:
 
 Anything else on the line is `bad decreases line` at parse,
 including unknown schema names (`by half`), one name with a schema,
-and three names. Step violations are `AIL3008`, guard violations
-`AIL3009` — the same code families as the unit loop, with
+and three names. Step violations are `CAN3008`, guard violations
+`CAN3009` — the same code families as the unit loop, with
 schema-aware messages, so one mistake still yields one diagnostic.
 
 ## Theorems (written down, not waved at)
@@ -73,7 +73,7 @@ backstop is still a resource bound, not the proof.
 - `check.go`: `checkDecreases` dispatches on schema with one step
   predicate and one guard predicate each (`isEuclidStep`,
   `isNarrowStep`/`isMid`, `isNarrowGuard`); the guarded arm-walk is
-  shared. Codes reused: `AIL3008`/`AIL3009`.
+  shared. Codes reused: `CAN3008`/`CAN3009`.
 - `loop_test.go`: clean, bad-step, bad-guard, bad-line, and non-int
   pins per schema.
 - `std/scalars`: `gcd_euclid` and `sqrt_floor_search` replace the

@@ -150,7 +150,7 @@ func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []cata
 		}
 	}
 	// A kernel's declared failures attribute to the compiler
-	// intrinsic, not to an .ail source location: availability is not
+	// intrinsic, not to an .can source location: availability is not
 	// an execution claim. Total kernels emit nothing and contribute
 	// no rows here.
 	for name, k := range bytesKernels {

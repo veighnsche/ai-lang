@@ -1,3 +1,3 @@
-module github.com/veighnsche/ai-lang
+module github.com/veighnsche/can-lang
 
 go 1.21

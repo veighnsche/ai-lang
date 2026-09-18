@@ -43,21 +43,21 @@ fn audit__cmp(flag: str) -> Audit__Pair rev 1
 `
 
 func TestRecordEqualityEvaluates(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"audit.ail": eqFixture})
+	dir := writeLSPDir(t, map[string]string{"audit.can": eqFixture})
 	// The evaluator compares structurally: distinct equal records
 	// match (same), one changed field does not (diff).
-	if diags := diagnose(dir, "audit.ail", eqFixture); len(diags) != 0 {
+	if diags := diagnose(dir, "audit.can", eqFixture); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestRecordEqualityEmit(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "audit.ail"), []byte(eqFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "audit.can"), []byte(eqFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "audit.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "audit.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "audit.ts"))
@@ -66,9 +66,9 @@ func TestRecordEqualityEmit(t *testing.T) {
 	}
 	src := string(got)
 	for _, want := range []string{
-		`$ailEqRec(left, right, ["first", "second"])`,
-		"function $ailEqRec",
-		"function $ailEqVal",
+		`$canEqRec(left, right, ["first", "second"])`,
+		"function $canEqRec",
+		"function $canEqVal",
 	} {
 		if !strings.Contains(src, want) {
 			t.Errorf("emit missing %q\n--- emit ---\n%s", want, src)

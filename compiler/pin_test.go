@@ -53,14 +53,14 @@ func pinConsumer(uses string) string {
 
 func TestPinExactResolves(t *testing.T) {
 	consumer := pinConsumer("alpha__read@1, Alpha__Data@1, Alpha__Tag@2")
-	dir := writeLSPDir(t, map[string]string{"alpha.ail": pinProvider, "beta.ail": consumer})
+	dir := writeLSPDir(t, map[string]string{"alpha.can": pinProvider, "beta.can": consumer})
 	// Clean, and the scripted foreign call executes: the pin resolved.
-	if diags := diagnose(dir, "beta.ail", consumer); len(diags) != 0 {
+	if diags := diagnose(dir, "beta.can", consumer); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
-func TestPinMismatchIsAIL2103(t *testing.T) {
+func TestPinMismatchIsCAN2103(t *testing.T) {
 	cases := []struct {
 		name string
 		uses string
@@ -74,13 +74,13 @@ func TestPinMismatchIsAIL2103(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			consumer := pinConsumer(tc.uses)
-			dir := writeLSPDir(t, map[string]string{"alpha.ail": pinProvider, "beta.ail": consumer})
-			diags := diagnose(dir, "beta.ail", consumer)
+			dir := writeLSPDir(t, map[string]string{"alpha.can": pinProvider, "beta.can": consumer})
+			diags := diagnose(dir, "beta.can", consumer)
 			if !hasDiag(diags, "error", tc.want) {
 				t.Fatalf("expected %q, got %v", tc.want, diags)
 			}
-			if !hasCode(diags, "AIL2103") {
-				t.Fatalf("expected AIL2103, got %v", diags)
+			if !hasCode(diags, "CAN2103") {
+				t.Fatalf("expected CAN2103, got %v", diags)
 			}
 		})
 	}
@@ -89,13 +89,13 @@ func TestPinMismatchIsAIL2103(t *testing.T) {
 func TestPinStaleAfterProviderBump(t *testing.T) {
 	bumped := strings.Replace(pinProvider, "fn alpha__read(id: str) -> Alpha__Data rev 1", "fn alpha__read(id: str) -> Alpha__Data rev 2", 1)
 	consumer := pinConsumer("alpha__read@1, Alpha__Data@1, Alpha__Tag@2")
-	dir := writeLSPDir(t, map[string]string{"alpha.ail": bumped, "beta.ail": consumer})
-	diags := diagnose(dir, "beta.ail", consumer)
+	dir := writeLSPDir(t, map[string]string{"alpha.can": bumped, "beta.can": consumer})
+	diags := diagnose(dir, "beta.can", consumer)
 	if !hasDiag(diags, "error", "pins rev 1, but alpha__read declares rev 2") {
 		t.Fatalf("expected stale-pin error, got %v", diags)
 	}
-	if !hasCode(diags, "AIL2103") {
-		t.Fatalf("expected AIL2103, got %v", diags)
+	if !hasCode(diags, "CAN2103") {
+		t.Fatalf("expected CAN2103, got %v", diags)
 	}
 }
 

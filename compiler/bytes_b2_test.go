@@ -63,7 +63,7 @@ func onlyCodes(diags []Diag, codes ...string) bool {
 
 // bytesPub is the canonical granted exporter with byte-correctness
 // rows: empty, ASCII, two-byte, astral, NUL, BOM. NULROW/BOMROW carry
-// raw bytes (the only .ail spelling) and are spliced in by tests.
+// raw bytes (the only .can spelling) and are spliced in by tests.
 const bytesPub = `mod pub
   provides [Pub__Doc, pub__export]
   uses []
@@ -97,7 +97,7 @@ func bytesPubFull() string {
 // E0: the granted export is a value computation, byte-exact across
 // the whole scalar range including preserved NUL and BOM.
 func TestBytesE0GrantedExport(t *testing.T) {
-	seqClean(t, map[string]string{"pub.ail": bytesPubFull()}, "pub.ail")
+	seqClean(t, map[string]string{"pub.can": bytesPubFull()}, "pub.can")
 }
 
 const bytesClientGood = `mod client
@@ -119,8 +119,8 @@ fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
 // E1: a correct scripted consumer passes under both module orders.
 // Certificates issue before any linkage evaluation either way.
 func TestBytesE1ClientBothOrders(t *testing.T) {
-	files := map[string]string{"pub.ail": bytesPubFull(), "client.ail": bytesClientGood}
-	for _, order := range [][]string{{"pub.ail", "client.ail"}, {"client.ail", "pub.ail"}} {
+	files := map[string]string{"pub.can": bytesPubFull(), "client.can": bytesClientGood}
+	for _, order := range [][]string{{"pub.can", "client.can"}, {"client.can", "pub.can"}} {
 		diags := checkTwo(t, order, files)
 		for _, d := range diags {
 			if d.Sev == "error" {
@@ -146,15 +146,15 @@ fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
 `
 
-// E2: an incorrect scripted export result contradicts (AIL3110) under
+// E2: an incorrect scripted export result contradicts (CAN3110) under
 // both module orders. The exporter computes [65]; the script claims
 // [66]. Order must not smuggle the lie through linkage trust.
 func TestBytesE2ContradictionBothOrders(t *testing.T) {
-	files := map[string]string{"pub.ail": bytesPubFull(), "client.ail": bytesClientLie}
-	for _, order := range [][]string{{"pub.ail", "client.ail"}, {"client.ail", "pub.ail"}} {
+	files := map[string]string{"pub.can": bytesPubFull(), "client.can": bytesClientLie}
+	for _, order := range [][]string{{"pub.can", "client.can"}, {"client.can", "pub.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasErrCode(diags, CodeInconsistentScript) {
-			t.Fatalf("order %v: expected AIL3110, got %v", order, diags)
+			t.Fatalf("order %v: expected CAN3110, got %v", order, diags)
 		}
 		if !hasDiag(diags, "error", "contradicts pub__export") {
 			t.Fatalf("order %v: expected contradiction message, got %v", order, diags)
@@ -162,29 +162,29 @@ func TestBytesE2ContradictionBothOrders(t *testing.T) {
 	}
 }
 
-// E3: removing the grant fails the export call with AIL6010. Fresh
+// E3: removing the grant fails the export call with CAN6010. Fresh
 // programs carry no stale certificate.
 func TestBytesE3GrantRemoval(t *testing.T) {
 	body := strings.Replace(bytesPubFull(), "exports_utf8 Pub__Doc via pub__export@1\n\n", "", 1)
-	seqCode(t, map[string]string{"pub.ail": body}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": body}, "pub.can",
 		CodeBytesExportAuthority, "not authorized")
 }
 
-// E5: grants that fail authority are AIL6010: revision mismatch,
+// E5: grants that fail authority are CAN6010: revision mismatch,
 // unknown targets, cross-module reach, and ambiguous brands.
 func TestBytesE5GrantAuthority(t *testing.T) {
 	grant := "exports_utf8 Pub__Doc via pub__export@1"
 	rev := strings.Replace(bytesPubFull(), grant, "exports_utf8 Pub__Doc via pub__export@2", 1)
-	seqCode(t, map[string]string{"pub.ail": rev}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": rev}, "pub.can",
 		CodeBytesExportAuthority, "declares rev")
 	brand := strings.Replace(bytesPubFull(), grant, "exports_utf8 Nope__X via pub__export@1", 1)
-	seqCode(t, map[string]string{"pub.ail": brand}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": brand}, "pub.can",
 		CodeBytesExportAuthority, "unknown brand")
 	fn := strings.Replace(bytesPubFull(), grant, "exports_utf8 Pub__Doc via missing__fn@1", 1)
 	// Two true facts here (the grant names nothing, and the export
 	// call is therefore uncertified), so pin presence, not single.
-	dir := writeLSPDir(t, map[string]string{"pub.ail": fn})
-	diags := diagnose(dir, "pub.ail", fn)
+	dir := writeLSPDir(t, map[string]string{"pub.can": fn})
+	diags := diagnose(dir, "pub.can", fn)
 	if !hasDiag(diags, "error", "unknown function missing__fn") {
 		t.Fatalf("expected unknown-function rejection, got %v", diags)
 	}
@@ -209,10 +209,10 @@ fn client__use(document: Pub__Doc) -> Bytes__Value rev 1
       go => [exchange args (document = seal Pub__Doc("A")) outcome Ok(value = Bytes(Seq<int>[65]))]
     on Ok r => Ok(value = r.value)
 `
-	diags := checkTwo(t, []string{"pub.ail", "client.ail"},
-		map[string]string{"pub.ail": pub, "client.ail": client})
+	diags := checkTwo(t, []string{"pub.can", "client.can"},
+		map[string]string{"pub.can": pub, "client.can": client})
 	if !hasErrCode(diags, CodeBytesExportAuthority) {
-		t.Fatalf("expected AIL6010 cross-module rejection, got %v", diags)
+		t.Fatalf("expected CAN6010 cross-module rejection, got %v", diags)
 	}
 	if !hasDiag(diags, "error", "owner-local") {
 		t.Fatalf("expected owner-local message, got %v", diags)
@@ -245,17 +245,17 @@ fn app__export(document: Dup__B) -> Bytes__Value rev 1
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
 `
-	diags := checkTwo(t, []string{"lib.ail", "sib.ail", "app.ail"},
-		map[string]string{"lib.ail": lib, "sib.ail": sib, "app.ail": app})
+	diags := checkTwo(t, []string{"lib.can", "sib.can", "app.can"},
+		map[string]string{"lib.can": lib, "sib.can": sib, "app.can": app})
 	if !hasErrCode(diags, CodeBytesExportAuthority) {
-		t.Fatalf("expected AIL6010 ambiguity rejection, got %v", diags)
+		t.Fatalf("expected CAN6010 ambiguity rejection, got %v", diags)
 	}
 	if !hasDiag(diags, "error", "ambiguous brand") {
 		t.Fatalf("expected ambiguity message, got %v", diags)
 	}
 }
 
-// E6: exporters that fail the exact shape are AIL6011. Each fixture
+// E6: exporters that fail the exact shape are CAN6011. Each fixture
 // keeps a valid grant, so the shape rule is the single voice.
 func TestBytesE6ExporterShape(t *testing.T) {
 	extraParam := `mod pub
@@ -275,7 +275,7 @@ fn pub__export(document: Pub__Doc, extra: int) -> Bytes__Value rev 1
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
 `
-	seqCode(t, map[string]string{"pub.ail": extraParam}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": extraParam}, "pub.can",
 		CodeBytesExportShape, "exactly one parameter")
 	wrongParam := `mod pub
   provides [Pub__Doc, pub__export]
@@ -294,7 +294,7 @@ fn pub__export(document: str) -> Bytes__Value rev 1
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
 `
-	seqCode(t, map[string]string{"pub.ail": wrongParam}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": wrongParam}, "pub.can",
 		CodeBytesExportShape, "must have type Pub__Doc")
 	base := bytesPubFull()
 	fnLine := "fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1"
@@ -324,7 +324,7 @@ fn pub__export(document: str) -> Bytes__Value rev 1
 				fx = strings.Replace(fx, "provides [Pub__Doc, pub__export]",
 					"provides [Pub__Doc, pub__export, M__Out]", 1)
 			}
-			seqCode(t, map[string]string{"pub.ail": fx}, "pub.ail",
+			seqCode(t, map[string]string{"pub.can": fx}, "pub.can",
 				CodeBytesExportShape, c.sub)
 		})
 	}
@@ -336,17 +336,17 @@ func TestBytesE6CompanionRules(t *testing.T) {
 	twoArms := strings.Replace(bytesPubFull(),
 		"    on Ok r => Ok(value = r.value)",
 		"    on Ok r => Ok(value = r.value)\n    on Ok r2 => Ok(value = r2.value)", 1)
-	dir := writeLSPDir(t, map[string]string{"pub.ail": twoArms})
-	if diags := diagnose(dir, "pub.ail", twoArms); !hasErrCode(diags, CodeBytesExportShape) {
-		t.Fatalf("two arms: expected AIL6011, got %v", diags)
+	dir := writeLSPDir(t, map[string]string{"pub.can": twoArms})
+	if diags := diagnose(dir, "pub.can", twoArms); !hasErrCode(diags, CodeBytesExportShape) {
+		t.Fatalf("two arms: expected CAN6011, got %v", diags)
 	}
 	given := strings.Replace(bytesPubFull(),
 		"  match call bytes__utf8__export(document)\n    on Ok r => Ok(value = r.value)",
 		"  match call bytes__utf8__export(document)\n    given\n      empty => [exchange args (document = seal Pub__Doc(\"\")) outcome Ok(value = Bytes(Seq<int>[]))]\n    on Ok r => Ok(value = r.value)", 1)
-	dir = writeLSPDir(t, map[string]string{"pub.ail": given})
-	diags := diagnose(dir, "pub.ail", given)
+	dir = writeLSPDir(t, map[string]string{"pub.can": given})
+	diags := diagnose(dir, "pub.can", given)
 	if !hasErrCode(diags, CodeBytesExportShape) {
-		t.Fatalf("given table: expected AIL6011, got %v", diags)
+		t.Fatalf("given table: expected CAN6011, got %v", diags)
 	}
 	if !hasErrCode(diags, CodeGivenOnLocal) {
 		t.Fatalf("given table: expected deterministic-call rejection, got %v", diags)
@@ -354,9 +354,9 @@ func TestBytesE6CompanionRules(t *testing.T) {
 	decreases := strings.Replace(bytesPubFull(),
 		"fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1\n  emits []",
 		"fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1\n  decreases document\n  emits []", 1)
-	dir = writeLSPDir(t, map[string]string{"pub.ail": decreases})
-	if diags := diagnose(dir, "pub.ail", decreases); !hasErrCode(diags, CodeBytesExportShape) {
-		t.Fatalf("decreases: expected AIL6011, got %v", diags)
+	dir = writeLSPDir(t, map[string]string{"pub.can": decreases})
+	if diags := diagnose(dir, "pub.can", decreases); !hasErrCode(diags, CodeBytesExportShape) {
+		t.Fatalf("decreases: expected CAN6011, got %v", diags)
 	}
 }
 
@@ -364,16 +364,16 @@ func TestBytesE6ContractClauses(t *testing.T) {
 	emits := strings.Replace(bytesPubFull(),
 		"fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1\n  emits []",
 		"error pub.boom(value: str)\n\nfn pub__export(document: Pub__Doc) -> Bytes__Value rev 1\n  emits [pub.boom]", 1)
-	seqCode(t, map[string]string{"pub.ail": emits}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": emits}, "pub.can",
 		CodeBytesExportShape, "emits []")
 	effects := strings.Replace(bytesPubFull(),
 		"fn pub__export(document: Pub__Doc) -> Bytes__Value rev 1\n  emits []",
 		"state M__C: int = 0\n\nfn pub__export(document: Pub__Doc) -> Bytes__Value rev 1\n  effects [M__C.read]\n  emits []", 1)
-	// Companion AIL3108 (declared-but-unused effect) co-fires; pin
+	// Companion CAN3108 (declared-but-unused effect) co-fires; pin
 	// the shape rule by presence.
-	dir := writeLSPDir(t, map[string]string{"pub.ail": effects})
-	if diags := diagnose(dir, "pub.ail", effects); !hasErrCode(diags, CodeBytesExportShape) {
-		t.Fatalf("effects: expected AIL6011, got %v", diags)
+	dir := writeLSPDir(t, map[string]string{"pub.can": effects})
+	if diags := diagnose(dir, "pub.can", effects); !hasErrCode(diags, CodeBytesExportShape) {
+		t.Fatalf("effects: expected CAN6011, got %v", diags)
 	}
 }
 
@@ -394,7 +394,7 @@ fn m__go(document: M__Doc) -> Bytes__Value rev 1
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeBytesExportAuthority, "not authorized")
 }
 
@@ -423,7 +423,7 @@ fn bytes__utf8__export(x: int) -> M__Out rev 1
 =
   Ok(flag = true)
 `
-	seqCode(t, map[string]string{"m.ail": shadowFn}, "m.ail",
+	seqCode(t, map[string]string{"m.can": shadowFn}, "m.can",
 		CodePrimitiveShadow, "shadows")
 	shadowEx := `mod m
   provides [m__go, M__Out, bytes__utf8__export]
@@ -443,19 +443,19 @@ fn m__go() -> M__Out rev 1
 =
   Ok(flag = true)
 `
-	seqCode(t, map[string]string{"m.ail": shadowEx}, "m.ail",
+	seqCode(t, map[string]string{"m.can": shadowEx}, "m.can",
 		CodePrimitiveShadow, "shadows")
 	rec := strings.Replace(bytesPubFull(), `brand Pub__Doc is str rev 1`,
 		"type Bytes__Value rev 1 (\n  x: int\n)\n\nbrand Pub__Doc is str rev 1", 1)
 	rec = strings.Replace(rec, "provides [Pub__Doc, pub__export]",
 		"provides [Pub__Doc, pub__export, Bytes__Value]", 1)
-	seqCode(t, map[string]string{"pub.ail": rec}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": rec}, "pub.can",
 		CodePrimitiveShadow, "shadows")
 	brand := strings.Replace(bytesPubFull(), `brand Pub__Doc is str rev 1`,
 		"brand Bytes__Value is str rev 1\n\nbrand Pub__Doc is str rev 1", 1)
 	brand = strings.Replace(brand, "provides [Pub__Doc, pub__export]",
 		"provides [Pub__Doc, pub__export, Bytes__Value]", 1)
-	seqCode(t, map[string]string{"pub.ail": brand}, "pub.ail",
+	seqCode(t, map[string]string{"pub.can": brand}, "pub.can",
 		CodePrimitiveShadow, "shadows")
 }
 
@@ -496,11 +496,11 @@ fn c__try(document: C__Doc) -> Bytes__Value rev 1
   match call bytes__utf8__export(document)
     on Ok r => Ok(value = r.value)
 `
-	files := map[string]string{"a.ail": a, "b.ail": b, "c.ail": c}
-	for _, order := range [][]string{{"a.ail", "b.ail", "c.ail"}, {"c.ail", "b.ail", "a.ail"}} {
+	files := map[string]string{"a.can": a, "b.can": b, "c.can": c}
+	for _, order := range [][]string{{"a.can", "b.can", "c.can"}, {"c.can", "b.can", "a.can"}} {
 		diags := checkTwo(t, order, files)
 		if !hasErrCode(diags, CodeBytesExportAuthority) {
-			t.Fatalf("order %v: expected AIL6010 for the ungranted brand, got %v", order, diags)
+			t.Fatalf("order %v: expected CAN6010 for the ungranted brand, got %v", order, diags)
 		}
 		if !onlyCodes(diags, CodeBytesExportAuthority, CodeTestFailed, CodeInconsistentScript) {
 			t.Fatalf("order %v: unexpected companion errors, got %v", order, diags)
@@ -545,7 +545,7 @@ fn m__route(document: M__Doc) -> T__Text rev 1
         go => [exchange args (b = Bytes(Seq<int>[65])) outcome Ok(value = "A")]
       on Ok s => Ok(value = s.value)
 `
-	seqClean(t, map[string]string{"m.ail": allowed}, "m.ail")
+	seqClean(t, map[string]string{"m.can": allowed}, "m.can")
 	denied := `mod m
   provides [M__Secret, m__route, T__Text]
   uses []
@@ -565,7 +565,7 @@ fn m__route(secret: M__Secret) -> T__Text rev 1
   match call bytes__utf8__export(secret)
     on Ok e => Ok(value = "s")
 `
-	seqCode(t, map[string]string{"m.ail": denied}, "m.ail",
+	seqCode(t, map[string]string{"m.can": denied}, "m.can",
 		CodeBytesExportAuthority, "not authorized")
 }
 
@@ -614,14 +614,14 @@ fn attacker__export(secret: Vault__Secret) -> Bytes__Value rev 1
   match call bytes__utf8__export(secret)
     on Ok r => Ok(value = r.value)
 `
-	files := map[string]string{"trusted/common.ail": trusted, "attacker/common.ail": attacker}
+	files := map[string]string{"trusted/common.can": trusted, "attacker/common.can": attacker}
 	for _, order := range [][]string{
-		{"trusted/common.ail", "attacker/common.ail"},
-		{"attacker/common.ail", "trusted/common.ail"},
+		{"trusted/common.can", "attacker/common.can"},
+		{"attacker/common.can", "trusted/common.can"},
 	} {
 		diags := checkTwo(t, order, files)
 		if !hasErrCode(diags, CodeBytesExportAuthority) {
-			t.Fatalf("order %v: expected AIL6010, got %v", order, diags)
+			t.Fatalf("order %v: expected CAN6010, got %v", order, diags)
 		}
 		if !hasDiag(diags, "error", "owner-local") {
 			t.Fatalf("order %v: expected owner-local message, got %v", order, diags)
@@ -642,8 +642,8 @@ func TestBytesE4GrantParseShapes(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			body := strings.Replace(bytesPubFull(), grant, c.frag, 1)
-			dir := writeLSPDir(t, map[string]string{"pub.ail": body})
-			diags := diagnose(dir, "pub.ail", body)
+			dir := writeLSPDir(t, map[string]string{"pub.can": body})
+			diags := diagnose(dir, "pub.can", body)
 			found := false
 			for _, d := range diags {
 				if d.Sev == "error" && d.Code == CodeParse {

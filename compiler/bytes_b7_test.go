@@ -9,16 +9,16 @@ import (
 // kernel, and the first stdlib function over the fallible path.
 // The foreign-caller probe scripts TRUE outcomes for both sides:
 // success, failure with identical payload, and the NUL/BOM
-// inputs the committed rows omit (text.ail stays a text file).
+// inputs the committed rows omit (text.can stays a text file).
 
 // TestBytesB7ForeignCaller pins cross-module callability against
-// the REAL text.ail. Each client fn covers both arms (AIL4107):
+// the REAL text.can. Each client fn covers both arms (CAN4107):
 // ok+bad share one fn with nul, bom shares one with a second
-// bad input. NUL/BOM spliced (only .ail spellings).
+// bad input. NUL/BOM spliced (only .can spellings).
 func TestBytesB7ForeignCaller(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__a, client__b]
@@ -53,9 +53,9 @@ fn client__b(value: Bytes) -> Encoding__Text rev 1
     on Ok r => Ok(value = r.value)
     on encoding.invalid_utf8 e => encoding.invalid_utf8(value = e.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	if diags := diagnose(dir, "client.ail", client); len(diags) != 0 {
+	if diags := diagnose(dir, "client.can", client); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }

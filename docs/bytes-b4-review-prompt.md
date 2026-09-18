@@ -10,7 +10,7 @@ them except where B4 depends on them.
 ---
 
 Review the B4 design: `html__render__utf8(document: Html__Safe) ->
-Bytes__Value` in `std/html/html.ail`, authorized by an HTML-owned
+Bytes__Value` in `std/html/html.can`, authorized by an HTML-owned
 `exports_utf8 Html__Safe via html__render__utf8@1` grant, rendering
 exact serialization bytes with NUL preserved and no second escaping.
 For each item, return: holds / broken with file:line evidence and a
@@ -18,7 +18,7 @@ concrete counterexample / unresolved with the exact missing source.
 No B4 compiler gates have been run — there is no B4 code yet.
 
 1. Grant placement. The grant, the `Html__Safe` brand, and the render
-   function must share one canonical module. Is `std/html/html.ail`
+   function must share one canonical module. Is `std/html/html.can`
    exactly one module for this purpose, and does the grant text pin
    the right function revision? What breaks if the HTML module is
    ever split?
@@ -48,7 +48,7 @@ No B4 compiler gates have been run — there is no B4 code yet.
    suite, goldens, registries), and which of those artifacts does B4
    regenerate vs leave untouched? Name any artifact B4 must touch
    that the plan omits.
-6. Stdlib plumbing. `html.ail` gains a function returning the
+6. Stdlib plumbing. `html.can` gains a function returning the
    compiler-owned `Bytes__Value`: required `provides` entry, header
    inventory consequences, `errors.json` regeneration (or a reasoned
    no-op), and `html.ts` regeneration. Does the compiler-owned
@@ -65,7 +65,7 @@ No B4 compiler gates have been run — there is no B4 code yet.
    no new wall" or finds the wall. If the implementation needs any
    machinery beyond B1–B3 (checker, evaluator, emitter, or grant
    changes), name it precisely. "No new wall" must survive contact
-   with the real `html.ail`: generics-free, effects-free, and
+   with the real `html.can`: generics-free, effects-free, and
    revision-pinned.
 
 Close with the single highest-risk hole in the B4 design and the
@@ -80,7 +80,7 @@ would expose it.
 - `docs/bytes-workstream.md` (requirements, acceptance, non-goals)
 - `docs/a46-bytes-export.md` (shipped B2: grants, kernel, barrier)
 - `docs/a47-bytes-encode.md` (shipped B3: generic encoder)
-- `std/html/html.ail` (the module B4 changes)
+- `std/html/html.can` (the module B4 changes)
 - `std/html/html.ts` (the committed artifact B4 regenerates)
 - `std/html/errors.json` (the registry B4 must justify touching or not)
 - `docs/encoder-nul-policy.md` (NUL boundary the design relies on)

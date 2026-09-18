@@ -34,7 +34,7 @@ in meaning on both types.
   merged neighbors (`1000000000000000000 - 1` is distinct again).
 - `dec` emits as a `string` carrying canonical digits. `==`/`!=`
   stay native (`===`/`!==` is exact on canonical strings);
-  `+`, `-`, `*`, `>=`, `<=` route through emitted `$ailDec`
+  `+`, `-`, `*`, `>=`, `<=` route through emitted `$canDec`
   helpers that mirror `decArith`/`canonDec` exactly (align-to-wider
   scale, sum scales on multiply, renormalize, `-0` folds to `0.0`).
 - Dispatch is static, never heuristic: the checker annotates every
@@ -43,7 +43,7 @@ in meaning on both types.
   of guessing.
 - Helpers are emitted inline, only the used operations plus shared
   plumbing, in fixed order for byte-stable output. `$` prefixes are
-  unspellable in ail (`domain__verb` cannot start with `$`), so user
+  unspellable in can (`domain__verb` cannot start with `$`), so user
   code can never collide with them. Files without dec arithmetic
   gain no code.
 - The one remaining platform boundary, stated: emitted code needs
@@ -69,7 +69,7 @@ in meaning on both types.
 - Tests: `arith_test.go` inverts the old overflow test into exact
   big-value proofs; `numeric_emit_test.go` compiles a dec+int
   fixture and pins helper dispatch, literal shapes, and the absence
-  of `number`-typed values. The `$ailDec` helpers were additionally
+  of `number`-typed values. The `$canDec` helpers were additionally
   probed under node against a Python-`Fraction` oracle (17 cases:
   the float-killer, negatives, scale alignment, `-0` folding,
   30-digit values) — throwaway probe under `/tmp`, not a repo gate.
@@ -83,7 +83,7 @@ in meaning on both types.
 - Breaks (stated plainly): every TS consumer of emitted
   types (fields are `bigint`/`string` now), host adapters and
   `.externs` stubs touching numeric fields, and any test asserting
-  `int overflow`. Small-value ail sources need no rewrite.
+  `int overflow`. Small-value can sources need no rewrite.
 - a04's "15 significant digits" boundary and a06's "TS mapping is
   exact for `|int| < 2^53`" are superseded; both carry an
   `Amendment (a10)` pointer to this doc. The a05 plan baseline is

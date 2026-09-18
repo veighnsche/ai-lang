@@ -31,7 +31,7 @@ policy (row 5), not to this boundary.
 
 | Route | Finding | Decision |
 |---|---|---|
-| Source decoding / literal construction | Malformed entered silently; emit repaired silently and divergently | **REPAIRED (row 4)**: `parseModuleText` refuses malformed UTF-8 (`AIL1000`; all four routes share the choke point), pinned by `TestMalformedSourceRefused` on CLI and editor paths |
+| Source decoding / literal construction | Malformed entered silently; emit repaired silently and divergently | **REPAIRED (row 4)**: `parseModuleText` refuses malformed UTF-8 (`CAN1000`; all four routes share the choke point), pinned by `TestMalformedSourceRefused` on CLI and editor paths |
 | Extern success/error payloads | Real route: host-implemented externs return `str`-bearing records in prod (sketches), scripted in tests. Well-formedness is currently nobody's job | **TRUSTED under explicit contract**: host functions must return valid scalar-value strings, records included. Enforcement (runtime validation of host returns) is disproportionate now; the condition is written down instead of assumed. |
 | TypeScript entry points | Emitted functions take unchecked `string`; lone surrogates spread to lone-surrogate code points where Go yields FFFD — live runtime divergence for host-supplied strings | **TRUSTED under explicit contract** on emitted modules: callers supply valid scalar-value strings. Same reasoning as externs; not silently redesignated unsupported. |
 | Internal string operations | Conditional preservation (see above) | **CONDITIONAL theorem**: holds iff ingress holds. No per-operation validation. |

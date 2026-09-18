@@ -213,7 +213,7 @@ type exportGrantSite struct {
 
 // certifyExports validates every exports_utf8 grant in the program and
 // annotates each exact permitted call site. Authority failures are
-// AIL6010, exporter-shape failures AIL6011. A grant that names a
+// CAN6010, exporter-shape failures CAN6011. A grant that names a
 // function (even invalidly) owns that function's diagnostics: the
 // uncertified-call rule fires only where no grant names the function,
 // so one problem reports once.
@@ -273,7 +273,7 @@ func certifyExports(mods []*Module, prog *Program, texts map[string]string) []Di
 		if !ok {
 			if prog.Externs[g.Function] != nil {
 				emit(gs.m, spanDiag(text, g.Line, "error",
-					fmt.Sprintf("exports_utf8 grant names extern %s: exporters are ail functions", g.Function), g.Function, CodeBytesExportAuthority))
+					fmt.Sprintf("exports_utf8 grant names extern %s: exporters are can functions", g.Function), g.Function, CodeBytesExportAuthority))
 				continue
 			}
 			emit(gs.m, spanDiag(text, g.Line, "error",

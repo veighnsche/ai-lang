@@ -1,12 +1,12 @@
-// GENERATED from text.ail by ailc v0.0.0. DO NOT EDIT.
+// GENERATED from text.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type TextResult = { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "ok"; value: bigint } | { $ail_kind: "ok"; value: boolean } | { $ail_kind: "ok"; value: string } | { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } | { $ail_kind: "text.empty_pattern" } | { $ail_kind: "text.empty_separator" } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } | { $ail_kind: "encoding.invalid_base64"; value: string };
+export type TextResult = { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; values: string[] } | { $can_kind: "text.index_out_of_range"; value: string; index: bigint } | { $can_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } | { $can_kind: "text.empty_pattern" } | { $can_kind: "text.empty_separator" } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string } | { $can_kind: "encoding.invalid_base64"; value: string };
 export type Str__Value = { value: string };
 export type Bool__Value = { value: boolean };
 export type Int__Value = { value: bigint };
 export type Split__Result = { values: string[] };
 // Byte-order string comparison: UTF-8 bytes, matching Go.
-function $ailStrCmp(a: string, b: string): number {
+function $canStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
   const B = new TextEncoder().encode(b);
   const n = Math.min(A.length, B.length);
@@ -20,7 +20,7 @@ function $ailStrCmp(a: string, b: string): number {
   }
   return A.length < B.length ? -1 : 1;
 }
-function $ailStrAt(s: string, i: bigint): bigint {
+function $canStrAt(s: string, i: bigint): bigint {
   const cps = [...s];
   if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("str index out of range");
   const k = Number(i);
@@ -29,7 +29,7 @@ function $ailStrAt(s: string, i: bigint): bigint {
   if (cp === undefined) throw new Error("str index out of range");
   return BigInt(cp);
 }
-function $ailStrSlice(s: string, a: bigint, b: bigint): string {
+function $canStrSlice(s: string, a: bigint, b: bigint): string {
   const cps = [...s];
   const toIdx = (x: bigint): number => { if (x < 0n || x > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("str slice out of range"); return Number(x); };
   const lo = toIdx(a), hi = toIdx(b);
@@ -37,13 +37,13 @@ function $ailStrSlice(s: string, a: bigint, b: bigint): string {
   return cps.slice(lo, hi).join("");
 }
 // Sequence indexing (a38 S3): bounds throw, matching Go.
-function $ailSeqAt<T>(a: T[], i: bigint): T {
+function $canSeqAt<T>(a: T[], i: bigint): T {
   if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("seq index out of range");
   const k = Number(i);
   if (k >= a.length) throw new Error("seq index out of range");
   return a[k];
 }
-function $ailUtf8Decode(value: Uint8Array): { $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } {
+function $canUtf8Decode(value: Uint8Array): { $can_kind: "ok"; value: string } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array } {
   let i = 0;
   const n = value.length;
   let valid = true;
@@ -69,10 +69,10 @@ function $ailUtf8Decode(value: Uint8Array): { $ail_kind: "ok"; value: string } |
     }
     i += 1 + need;
   }
-  if (!valid) return { $ail_kind: "encoding.invalid_utf8", value: value };
-  return { $ail_kind: "ok", value: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(value) };
+  if (!valid) return { $can_kind: "encoding.invalid_utf8", value: value };
+  return { $can_kind: "ok", value: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(value) };
 }
-function $ailHexEncode(value: Uint8Array): string {
+function $canHexEncode(value: Uint8Array): string {
   const digits = "0123456789abcdef";
   let out = "";
   for (let i = 0; i < value.length; i++) {
@@ -80,24 +80,24 @@ function $ailHexEncode(value: Uint8Array): string {
   }
   return out;
 }
-function $ailHexVal(c: number): number {
+function $canHexVal(c: number): number {
   if (c >= 48 && c <= 57) return c - 48;
   if (c >= 65 && c <= 70) return c - 55;
   if (c >= 97 && c <= 102) return c - 87;
   return -1;
 }
-function $ailHexDecode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } {
-  if (value.length % 2 !== 0) return { $ail_kind: "encoding.invalid_hex", value: value };
+function $canHexDecode(value: string): { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string } {
+  if (value.length % 2 !== 0) return { $can_kind: "encoding.invalid_hex", value: value };
   const out = new Uint8Array(value.length / 2);
   for (let i = 0; i < value.length; i += 2) {
-    const hi = $ailHexVal(value.charCodeAt(i));
-    const lo = $ailHexVal(value.charCodeAt(i + 1));
-    if (hi < 0 || lo < 0) return { $ail_kind: "encoding.invalid_hex", value: value };
+    const hi = $canHexVal(value.charCodeAt(i));
+    const lo = $canHexVal(value.charCodeAt(i + 1));
+    if (hi < 0 || lo < 0) return { $can_kind: "encoding.invalid_hex", value: value };
     out[i / 2] = hi * 16 + lo;
   }
-  return { $ail_kind: "ok", value: out };
+  return { $can_kind: "ok", value: out };
 }
-function $ailB64Encode(value: Uint8Array): string {
+function $canB64Encode(value: Uint8Array): string {
   const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   let out = "";
   let i = 0;
@@ -115,7 +115,7 @@ function $ailB64Encode(value: Uint8Array): string {
   }
   return out;
 }
-function $ailB64Val(c: number): number {
+function $canB64Val(c: number): number {
   if (c >= 65 && c <= 90) return c - 65;
   if (c >= 97 && c <= 122) return c - 71;
   if (c >= 48 && c <= 57) return c + 4;
@@ -123,8 +123,8 @@ function $ailB64Val(c: number): number {
   if (c === 47) return 63;
   return -1;
 }
-function $ailB64Decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string } {
-  if (value.length % 4 !== 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+function $canB64Decode(value: string): { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string } {
+  if (value.length % 4 !== 0) return { $can_kind: "encoding.invalid_base64", value: value };
   const nq = value.length / 4;
   let pad = 0;
   const vals: number[] = new Array(value.length);
@@ -133,18 +133,18 @@ function $ailB64Decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | 
     const pos = i % 4;
     const c = value.charCodeAt(i);
     if (c === 61) {
-      if (q !== nq - 1 || pos < 2) return { $ail_kind: "encoding.invalid_base64", value: value };
+      if (q !== nq - 1 || pos < 2) return { $can_kind: "encoding.invalid_base64", value: value };
       pad++;
       vals[i] = 0;
     } else {
-      const v = $ailB64Val(c);
-      if (v < 0 || pad > 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+      const v = $canB64Val(c);
+      if (v < 0 || pad > 0) return { $can_kind: "encoding.invalid_base64", value: value };
       vals[i] = v;
     }
   }
-  if (pad > 2) return { $ail_kind: "encoding.invalid_base64", value: value };
-  if (pad === 2 && (vals[value.length - 3] & 15) !== 0) return { $ail_kind: "encoding.invalid_base64", value: value };
-  if (pad === 1 && (vals[value.length - 2] & 3) !== 0) return { $ail_kind: "encoding.invalid_base64", value: value };
+  if (pad > 2) return { $can_kind: "encoding.invalid_base64", value: value };
+  if (pad === 2 && (vals[value.length - 3] & 15) !== 0) return { $can_kind: "encoding.invalid_base64", value: value };
+  if (pad === 1 && (vals[value.length - 2] & 3) !== 0) return { $can_kind: "encoding.invalid_base64", value: value };
   const out = new Uint8Array((value.length / 4) * 3 - pad);
   for (let q = 0; q < nq; q++) {
     const n = (vals[q * 4] << 18) | (vals[q * 4 + 1] << 12) | (vals[q * 4 + 2] << 6) | vals[q * 4 + 3];
@@ -153,72 +153,72 @@ function $ailB64Decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | 
     if (base + 1 < out.length) out[base + 1] = (n >> 8) & 255;
     if (base + 2 < out.length) out[base + 2] = n & 255;
   }
-  return { $ail_kind: "ok", value: out };
+  return { $can_kind: "ok", value: out };
 }
-export function std__str__concat(left: string, right: string): { $ail_kind: "ok"; value: string } {
-  return { $ail_kind: "ok", value: (left + right) };
+export function std__str__concat(left: string, right: string): { $can_kind: "ok"; value: string } {
+  return { $can_kind: "ok", value: (left + right) };
 }
-export function std__str__is_empty(value: string): { $ail_kind: "ok"; value: boolean } {
-  return { $ail_kind: "ok", value: (value === "") };
+export function std__str__is_empty(value: string): { $can_kind: "ok"; value: boolean } {
+  return { $can_kind: "ok", value: (value === "") };
 }
-export function std__str__is_whitespace(scalar: bigint): { $ail_kind: "ok"; value: boolean } {
+export function std__str__is_whitespace(scalar: bigint): { $can_kind: "ok"; value: boolean } {
   if ((scalar === 32n || scalar === 9n || scalar === 10n || scalar === 13n)) {
-    return { $ail_kind: "ok", value: true };
+    return { $can_kind: "ok", value: true };
   }
-  return { $ail_kind: "ok", value: false };
+  return { $can_kind: "ok", value: false };
 }
-export function std__str__length_scalars(value: string): { $ail_kind: "ok"; value: bigint } {
-  return { $ail_kind: "ok", value: (BigInt([...value].length)) };
+export function std__str__length_scalars(value: string): { $can_kind: "ok"; value: bigint } {
+  return { $can_kind: "ok", value: (BigInt([...value].length)) };
 }
-export function std__str__scalar_at(value: string, index: bigint): { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.index_out_of_range"; value: string; index: bigint } {
+export function std__str__scalar_at(value: string, index: bigint): { $can_kind: "ok"; value: bigint } | { $can_kind: "text.index_out_of_range"; value: string; index: bigint } {
   if ((index >= 0n)) {
     if ((index < (BigInt([...value].length)))) {
-      return { $ail_kind: "ok", value: $ailStrAt(value, index) };
+      return { $can_kind: "ok", value: $canStrAt(value, index) };
     }
     else {
-      return { $ail_kind: "text.index_out_of_range", value: value, index: index };
+      return { $can_kind: "text.index_out_of_range", value: value, index: index };
     }
   }
   else {
-    return { $ail_kind: "text.index_out_of_range", value: value, index: index };
+    return { $can_kind: "text.index_out_of_range", value: value, index: index };
   }
 }
-export function std__str__slice_scalars(value: string, start: bigint, end: bigint): { $ail_kind: "ok"; value: string } | { $ail_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } {
-  const $ail_m1 = (start >= 0n);
-  const $ail_m2 = (end >= start);
-  const $ail_m3 = (end <= (BigInt([...value].length)));
-  if ($ail_m1 && $ail_m2 && $ail_m3) {
-    return { $ail_kind: "ok", value: $ailStrSlice(value, start, end) };
+export function std__str__slice_scalars(value: string, start: bigint, end: bigint): { $can_kind: "ok"; value: string } | { $can_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } {
+  const $can_m1 = (start >= 0n);
+  const $can_m2 = (end >= start);
+  const $can_m3 = (end <= (BigInt([...value].length)));
+  if ($can_m1 && $can_m2 && $can_m3) {
+    return { $can_kind: "ok", value: $canStrSlice(value, start, end) };
   }
-  else if ($ail_m1 && $ail_m2 && !($ail_m3)) {
-    return { $ail_kind: "text.invalid_slice", value: value, start: start, end: end };
+  else if ($can_m1 && $can_m2 && !($can_m3)) {
+    return { $can_kind: "text.invalid_slice", value: value, start: start, end: end };
   }
-  else if ($ail_m1 && !($ail_m2)) {
-    return { $ail_kind: "text.invalid_slice", value: value, start: start, end: end };
+  else if ($can_m1 && !($can_m2)) {
+    return { $can_kind: "text.invalid_slice", value: value, start: start, end: end };
   }
   else {
-    return { $ail_kind: "text.invalid_slice", value: value, start: start, end: end };
+    return { $can_kind: "text.invalid_slice", value: value, start: start, end: end };
   }
 }
-export function std__str__find_from(orig: string, value: string, pattern: string, pos: bigint, n: bigint): { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } {
+export function std__str__find_from(orig: string, value: string, pattern: string, pos: bigint, n: bigint): { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } {
   if ((n <= 0n)) {
-    return { $ail_kind: "text.not_found", value: orig, pattern: pattern };
+    return { $can_kind: "text.not_found", value: orig, pattern: pattern };
   }
   else {
     if (((BigInt([...value].length)) >= (BigInt([...pattern].length)))) {
-      if (($ailStrSlice(value, 0n, (BigInt([...pattern].length))) === pattern)) {
-        return { $ail_kind: "ok", value: pos };
+      if (($canStrSlice(value, 0n, (BigInt([...pattern].length))) === pattern)) {
+        return { $can_kind: "ok", value: pos };
       }
       else {
-        const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } = std__str__find_from(orig, $ailStrSlice(value, 1n, (BigInt([...value].length))), pattern, (pos + 1n), (n - 1n));
-        switch ($ail_m1.$ail_kind) {
+        const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find_from(orig, $canStrSlice(value, 1n, (BigInt([...value].length))), pattern, (pos + 1n), (n - 1n));
+        switch ($can_m1.$can_kind) {
         case "text.not_found": {
-          const e = $ail_m1;
-          return { $ail_kind: "text.not_found", value: e.value, pattern: e.pattern };
+          const e = $can_m1;
+          return { $can_kind: "text.not_found", value: e.value, pattern: e.pattern };
         }
         case "ok": {
-          const r = $ail_m1;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -227,24 +227,24 @@ export function std__str__find_from(orig: string, value: string, pattern: string
       }
     }
     else {
-      return { $ail_kind: "text.not_found", value: orig, pattern: pattern };
+      return { $can_kind: "text.not_found", value: orig, pattern: pattern };
     }
   }
 }
-export function std__str__find(value: string, pattern: string): { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } {
+export function std__str__find(value: string, pattern: string): { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } {
   if (((BigInt([...pattern].length)) === 0n)) {
-    return { $ail_kind: "ok", value: 0n };
+    return { $can_kind: "ok", value: 0n };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } = std__str__find_from(value, value, pattern, 0n, (BigInt([...value].length)));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find_from(value, value, pattern, 0n, (BigInt([...value].length)));
+    switch ($can_m1.$can_kind) {
     case "text.not_found": {
-      const e = $ail_m1;
-      return { $ail_kind: "text.not_found", value: e.value, pattern: e.pattern };
+      const e = $can_m1;
+      return { $can_kind: "text.not_found", value: e.value, pattern: e.pattern };
     }
     case "ok": {
-      const r = $ail_m1;
-      return { $ail_kind: "ok", value: r.value };
+      const r = $can_m1;
+      return { $can_kind: "ok", value: r.value };
     }
     default: {
       throw new Error("unreachable");
@@ -252,60 +252,60 @@ export function std__str__find(value: string, pattern: string): { $ail_kind: "ok
     }
   }
 }
-export function std__str__contains(value: string, pattern: string): { $ail_kind: "ok"; value: boolean } {
-  const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } = std__str__find(value, pattern);
-  switch ($ail_m1.$ail_kind) {
+export function std__str__contains(value: string, pattern: string): { $can_kind: "ok"; value: boolean } {
+  const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find(value, pattern);
+  switch ($can_m1.$can_kind) {
   case "text.not_found": {
-    const _ = $ail_m1;
-    return { $ail_kind: "ok", value: false };
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: false };
   }
   case "ok": {
-    const _ = $ail_m1;
-    return { $ail_kind: "ok", value: true };
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: true };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__str__starts_with(value: string, pattern: string): { $ail_kind: "ok"; value: boolean } {
+export function std__str__starts_with(value: string, pattern: string): { $can_kind: "ok"; value: boolean } {
   if (((BigInt([...pattern].length)) <= (BigInt([...value].length)))) {
-    if (($ailStrSlice(value, 0n, (BigInt([...pattern].length))) === pattern)) {
-      return { $ail_kind: "ok", value: true };
+    if (($canStrSlice(value, 0n, (BigInt([...pattern].length))) === pattern)) {
+      return { $can_kind: "ok", value: true };
     }
     else {
-      return { $ail_kind: "ok", value: false };
+      return { $can_kind: "ok", value: false };
     }
   }
   else {
-    return { $ail_kind: "ok", value: false };
+    return { $can_kind: "ok", value: false };
   }
 }
-export function std__str__ends_with(value: string, pattern: string): { $ail_kind: "ok"; value: boolean } {
+export function std__str__ends_with(value: string, pattern: string): { $can_kind: "ok"; value: boolean } {
   if (((BigInt([...pattern].length)) <= (BigInt([...value].length)))) {
-    if (($ailStrSlice(value, ((BigInt([...value].length)) - (BigInt([...pattern].length))), (BigInt([...value].length))) === pattern)) {
-      return { $ail_kind: "ok", value: true };
+    if (($canStrSlice(value, ((BigInt([...value].length)) - (BigInt([...pattern].length))), (BigInt([...value].length))) === pattern)) {
+      return { $can_kind: "ok", value: true };
     }
     else {
-      return { $ail_kind: "ok", value: false };
+      return { $can_kind: "ok", value: false };
     }
   }
   else {
-    return { $ail_kind: "ok", value: false };
+    return { $can_kind: "ok", value: false };
   }
 }
-export function std__str__replace_all_from(value: string, old: string, replacement: string, acc: string, n: bigint): { $ail_kind: "ok"; value: string } {
+export function std__str__replace_all_from(value: string, old: string, replacement: string, acc: string, n: bigint): { $can_kind: "ok"; value: string } {
   if ((n <= 0n)) {
-    return { $ail_kind: "ok", value: (acc + value) };
+    return { $can_kind: "ok", value: (acc + value) };
   }
   else {
     if (((BigInt([...value].length)) >= (BigInt([...old].length)))) {
-      if (($ailStrSlice(value, 0n, (BigInt([...old].length))) === old)) {
-        const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__replace_all_from($ailStrSlice(value, (BigInt([...old].length)), (BigInt([...value].length))), old, replacement, (acc + replacement), (n - 1n));
-        switch ($ail_m1.$ail_kind) {
+      if (($canStrSlice(value, 0n, (BigInt([...old].length))) === old)) {
+        const $can_m1: { $can_kind: "ok"; value: string } = std__str__replace_all_from($canStrSlice(value, (BigInt([...old].length)), (BigInt([...value].length))), old, replacement, (acc + replacement), (n - 1n));
+        switch ($can_m1.$can_kind) {
         case "ok": {
-          const r = $ail_m1;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -313,11 +313,11 @@ export function std__str__replace_all_from(value: string, old: string, replaceme
         }
       }
       else {
-        const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__replace_all_from($ailStrSlice(value, 1n, (BigInt([...value].length))), old, replacement, (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
-        switch ($ail_m2.$ail_kind) {
+        const $can_m2: { $can_kind: "ok"; value: string } = std__str__replace_all_from($canStrSlice(value, 1n, (BigInt([...value].length))), old, replacement, (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+        switch ($can_m2.$can_kind) {
         case "ok": {
-          const r = $ail_m2;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -326,20 +326,20 @@ export function std__str__replace_all_from(value: string, old: string, replaceme
       }
     }
     else {
-      return { $ail_kind: "ok", value: (acc + value) };
+      return { $can_kind: "ok", value: (acc + value) };
     }
   }
 }
-export function std__str__replace_all(value: string, old: string, replacement: string): { $ail_kind: "ok"; value: string } | { $ail_kind: "text.empty_pattern" } {
+export function std__str__replace_all(value: string, old: string, replacement: string): { $can_kind: "ok"; value: string } | { $can_kind: "text.empty_pattern" } {
   if (((BigInt([...old].length)) === 0n)) {
-    return { $ail_kind: "text.empty_pattern" };
+    return { $can_kind: "text.empty_pattern" };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__replace_all_from(value, old, replacement, "", (BigInt([...value].length)));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; value: string } = std__str__replace_all_from(value, old, replacement, "", (BigInt([...value].length)));
+    switch ($can_m1.$can_kind) {
     case "ok": {
-      const r = $ail_m1;
-      return { $ail_kind: "ok", value: r.value };
+      const r = $can_m1;
+      return { $can_kind: "ok", value: r.value };
     }
     default: {
       throw new Error("unreachable");
@@ -347,21 +347,21 @@ export function std__str__replace_all(value: string, old: string, replacement: s
     }
   }
 }
-export function std__str__trim_left(value: string, n: bigint): { $ail_kind: "ok"; value: string } {
+export function std__str__trim_left(value: string, n: bigint): { $can_kind: "ok"; value: string } {
   if ((n <= 0n)) {
-    return { $ail_kind: "ok", value: value };
+    return { $can_kind: "ok", value: value };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; value: boolean } = std__str__is_whitespace($ailStrAt(value, 0n));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; value: boolean } = std__str__is_whitespace($canStrAt(value, 0n));
+    switch ($can_m1.$can_kind) {
     case "ok": {
-      const w = $ail_m1;
+      const w = $can_m1;
       if (w.value) {
-        const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__trim_left($ailStrSlice(value, 1n, (BigInt([...value].length))), (n - 1n));
-        switch ($ail_m2.$ail_kind) {
+        const $can_m2: { $can_kind: "ok"; value: string } = std__str__trim_left($canStrSlice(value, 1n, (BigInt([...value].length))), (n - 1n));
+        switch ($can_m2.$can_kind) {
         case "ok": {
-          const r = $ail_m2;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -369,11 +369,11 @@ export function std__str__trim_left(value: string, n: bigint): { $ail_kind: "ok"
         }
       }
       else {
-        const $ail_m3: { $ail_kind: "ok"; value: string } = std__str__trim_right(value, (BigInt([...value].length)));
-        switch ($ail_m3.$ail_kind) {
+        const $can_m3: { $can_kind: "ok"; value: string } = std__str__trim_right(value, (BigInt([...value].length)));
+        switch ($can_m3.$can_kind) {
         case "ok": {
-          const r = $ail_m3;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m3;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -387,21 +387,21 @@ export function std__str__trim_left(value: string, n: bigint): { $ail_kind: "ok"
     }
   }
 }
-export function std__str__trim_right(value: string, n: bigint): { $ail_kind: "ok"; value: string } {
+export function std__str__trim_right(value: string, n: bigint): { $can_kind: "ok"; value: string } {
   if ((n <= 0n)) {
-    return { $ail_kind: "ok", value: value };
+    return { $can_kind: "ok", value: value };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; value: boolean } = std__str__is_whitespace($ailStrAt(value, (n - 1n)));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; value: boolean } = std__str__is_whitespace($canStrAt(value, (n - 1n)));
+    switch ($can_m1.$can_kind) {
     case "ok": {
-      const w = $ail_m1;
+      const w = $can_m1;
       if (w.value) {
-        const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__trim_right($ailStrSlice(value, 0n, (n - 1n)), (n - 1n));
-        switch ($ail_m2.$ail_kind) {
+        const $can_m2: { $can_kind: "ok"; value: string } = std__str__trim_right($canStrSlice(value, 0n, (n - 1n)), (n - 1n));
+        switch ($can_m2.$can_kind) {
         case "ok": {
-          const r = $ail_m2;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -409,7 +409,7 @@ export function std__str__trim_right(value: string, n: bigint): { $ail_kind: "ok
         }
       }
       else {
-        return { $ail_kind: "ok", value: value };
+        return { $can_kind: "ok", value: value };
       }
     }
     default: {
@@ -418,32 +418,32 @@ export function std__str__trim_right(value: string, n: bigint): { $ail_kind: "ok
     }
   }
 }
-export function std__str__trim_ascii(value: string): { $ail_kind: "ok"; value: string } {
-  const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__trim_left(value, (BigInt([...value].length)));
-  switch ($ail_m1.$ail_kind) {
+export function std__str__trim_ascii(value: string): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } = std__str__trim_left(value, (BigInt([...value].length)));
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__str__upper_ascii_from(value: string, acc: string, n: bigint): { $ail_kind: "ok"; value: string } {
+export function std__str__upper_ascii_from(value: string, acc: string, n: bigint): { $can_kind: "ok"; value: string } {
   if ((n <= 0n)) {
-    return { $ail_kind: "ok", value: acc };
+    return { $can_kind: "ok", value: acc };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } = std__str__find("abcdefghijklmnopqrstuvwxyz", $ailStrSlice(value, 0n, 1n));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find("abcdefghijklmnopqrstuvwxyz", $canStrSlice(value, 0n, 1n));
+    switch ($can_m1.$can_kind) {
     case "ok": {
-      const f = $ail_m1;
-      const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__upper_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice("ABCDEFGHIJKLMNOPQRSTUVWXYZ", f.value, (f.value + 1n))), (n - 1n));
-      switch ($ail_m2.$ail_kind) {
+      const f = $can_m1;
+      const $can_m2: { $can_kind: "ok"; value: string } = std__str__upper_ascii_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice("ABCDEFGHIJKLMNOPQRSTUVWXYZ", f.value, (f.value + 1n))), (n - 1n));
+      switch ($can_m2.$can_kind) {
       case "ok": {
-        const r = $ail_m2;
-        return { $ail_kind: "ok", value: r.value };
+        const r = $can_m2;
+        return { $can_kind: "ok", value: r.value };
       }
       default: {
         throw new Error("unreachable");
@@ -451,12 +451,12 @@ export function std__str__upper_ascii_from(value: string, acc: string, n: bigint
       }
     }
     case "text.not_found": {
-      const _ = $ail_m1;
-      const $ail_m3: { $ail_kind: "ok"; value: string } = std__str__upper_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
-      switch ($ail_m3.$ail_kind) {
+      const _ = $can_m1;
+      const $can_m3: { $can_kind: "ok"; value: string } = std__str__upper_ascii_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+      switch ($can_m3.$can_kind) {
       case "ok": {
-        const r = $ail_m3;
-        return { $ail_kind: "ok", value: r.value };
+        const r = $can_m3;
+        return { $can_kind: "ok", value: r.value };
       }
       default: {
         throw new Error("unreachable");
@@ -469,32 +469,32 @@ export function std__str__upper_ascii_from(value: string, acc: string, n: bigint
     }
   }
 }
-export function std__str__upper_ascii(value: string): { $ail_kind: "ok"; value: string } {
-  const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__upper_ascii_from(value, "", (BigInt([...value].length)));
-  switch ($ail_m1.$ail_kind) {
+export function std__str__upper_ascii(value: string): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } = std__str__upper_ascii_from(value, "", (BigInt([...value].length)));
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__str__lower_ascii_from(value: string, acc: string, n: bigint): { $ail_kind: "ok"; value: string } {
+export function std__str__lower_ascii_from(value: string, acc: string, n: bigint): { $can_kind: "ok"; value: string } {
   if ((n <= 0n)) {
-    return { $ail_kind: "ok", value: acc };
+    return { $can_kind: "ok", value: acc };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; value: bigint } | { $ail_kind: "text.not_found"; value: string; pattern: string } = std__str__find("ABCDEFGHIJKLMNOPQRSTUVWXYZ", $ailStrSlice(value, 0n, 1n));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find("ABCDEFGHIJKLMNOPQRSTUVWXYZ", $canStrSlice(value, 0n, 1n));
+    switch ($can_m1.$can_kind) {
     case "ok": {
-      const f = $ail_m1;
-      const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__lower_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice("abcdefghijklmnopqrstuvwxyz", f.value, (f.value + 1n))), (n - 1n));
-      switch ($ail_m2.$ail_kind) {
+      const f = $can_m1;
+      const $can_m2: { $can_kind: "ok"; value: string } = std__str__lower_ascii_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice("abcdefghijklmnopqrstuvwxyz", f.value, (f.value + 1n))), (n - 1n));
+      switch ($can_m2.$can_kind) {
       case "ok": {
-        const r = $ail_m2;
-        return { $ail_kind: "ok", value: r.value };
+        const r = $can_m2;
+        return { $can_kind: "ok", value: r.value };
       }
       default: {
         throw new Error("unreachable");
@@ -502,12 +502,12 @@ export function std__str__lower_ascii_from(value: string, acc: string, n: bigint
       }
     }
     case "text.not_found": {
-      const _ = $ail_m1;
-      const $ail_m3: { $ail_kind: "ok"; value: string } = std__str__lower_ascii_from($ailStrSlice(value, 1n, (BigInt([...value].length))), (acc + $ailStrSlice(value, 0n, 1n)), (n - 1n));
-      switch ($ail_m3.$ail_kind) {
+      const _ = $can_m1;
+      const $can_m3: { $can_kind: "ok"; value: string } = std__str__lower_ascii_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+      switch ($can_m3.$can_kind) {
       case "ok": {
-        const r = $ail_m3;
-        return { $ail_kind: "ok", value: r.value };
+        const r = $can_m3;
+        return { $can_kind: "ok", value: r.value };
       }
       default: {
         throw new Error("unreachable");
@@ -520,30 +520,30 @@ export function std__str__lower_ascii_from(value: string, acc: string, n: bigint
     }
   }
 }
-export function std__str__lower_ascii(value: string): { $ail_kind: "ok"; value: string } {
-  const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__lower_ascii_from(value, "", (BigInt([...value].length)));
-  switch ($ail_m1.$ail_kind) {
+export function std__str__lower_ascii(value: string): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } = std__str__lower_ascii_from(value, "", (BigInt([...value].length)));
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__str__join_from(values: string[], separator: string, position: bigint, fuel: bigint, acc: string): { $ail_kind: "ok"; value: string } {
+export function std__str__join_from(values: string[], separator: string, position: bigint, fuel: bigint, acc: string): { $can_kind: "ok"; value: string } {
   if ((fuel <= 0n)) {
-    return { $ail_kind: "ok", value: acc };
+    return { $can_kind: "ok", value: acc };
   }
   else {
     if ((position < (BigInt([...values].length)))) {
       if ((position === 0n)) {
-        const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__join_from(values, separator, (position + 1n), (fuel - 1n), (acc + $ailSeqAt(values, position)));
-        switch ($ail_m1.$ail_kind) {
+        const $can_m1: { $can_kind: "ok"; value: string } = std__str__join_from(values, separator, (position + 1n), (fuel - 1n), (acc + $canSeqAt(values, position)));
+        switch ($can_m1.$can_kind) {
         case "ok": {
-          const r = $ail_m1;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -551,11 +551,11 @@ export function std__str__join_from(values: string[], separator: string, positio
         }
       }
       else {
-        const $ail_m2: { $ail_kind: "ok"; value: string } = std__str__join_from(values, separator, (position + 1n), (fuel - 1n), ((acc + separator) + $ailSeqAt(values, position)));
-        switch ($ail_m2.$ail_kind) {
+        const $can_m2: { $can_kind: "ok"; value: string } = std__str__join_from(values, separator, (position + 1n), (fuel - 1n), ((acc + separator) + $canSeqAt(values, position)));
+        switch ($can_m2.$can_kind) {
         case "ok": {
-          const r = $ail_m2;
-          return { $ail_kind: "ok", value: r.value };
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
         default: {
           throw new Error("unreachable");
@@ -564,38 +564,38 @@ export function std__str__join_from(values: string[], separator: string, positio
       }
     }
     else {
-      return { $ail_kind: "ok", value: acc };
+      return { $can_kind: "ok", value: acc };
     }
   }
 }
-export function std__str__join(values: string[], separator: string): { $ail_kind: "ok"; value: string } {
-  const $ail_m1: { $ail_kind: "ok"; value: string } = std__str__join_from(values, separator, 0n, ((BigInt([...values].length)) + 1n), "");
-  switch ($ail_m1.$ail_kind) {
+export function std__str__join(values: string[], separator: string): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } = std__str__join_from(values, separator, 0n, ((BigInt([...values].length)) + 1n), "");
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__str__split_from(value: string, separator: string, current: string, acc: string[], fuel: bigint): { $ail_kind: "ok"; values: string[] } {
+export function std__str__split_from(value: string, separator: string, current: string, acc: string[], fuel: bigint): { $can_kind: "ok"; values: string[] } {
   if ((fuel <= 0n)) {
-    return { $ail_kind: "ok", values: [...acc, current] };
+    return { $can_kind: "ok", values: [...acc, current] };
   }
   else {
     if ((value === "")) {
-      return { $ail_kind: "ok", values: [...acc, current] };
+      return { $can_kind: "ok", values: [...acc, current] };
     }
     else {
       if (((BigInt([...value].length)) >= (BigInt([...separator].length)))) {
-        if (($ailStrSlice(value, 0n, (BigInt([...separator].length))) === separator)) {
-          const $ail_m1: { $ail_kind: "ok"; values: string[] } = std__str__split_from($ailStrSlice(value, (BigInt([...separator].length)), (BigInt([...value].length))), separator, "", [...acc, current], (fuel - 1n));
-          switch ($ail_m1.$ail_kind) {
+        if (($canStrSlice(value, 0n, (BigInt([...separator].length))) === separator)) {
+          const $can_m1: { $can_kind: "ok"; values: string[] } = std__str__split_from($canStrSlice(value, (BigInt([...separator].length)), (BigInt([...value].length))), separator, "", [...acc, current], (fuel - 1n));
+          switch ($can_m1.$can_kind) {
           case "ok": {
-            const r = $ail_m1;
-            return { $ail_kind: "ok", values: r.values };
+            const r = $can_m1;
+            return { $can_kind: "ok", values: r.values };
           }
           default: {
             throw new Error("unreachable");
@@ -603,11 +603,11 @@ export function std__str__split_from(value: string, separator: string, current: 
           }
         }
         else {
-          const $ail_m2: { $ail_kind: "ok"; values: string[] } = std__str__split_from($ailStrSlice(value, 1n, (BigInt([...value].length))), separator, (current + $ailStrSlice(value, 0n, 1n)), acc, (fuel - 1n));
-          switch ($ail_m2.$ail_kind) {
+          const $can_m2: { $can_kind: "ok"; values: string[] } = std__str__split_from($canStrSlice(value, 1n, (BigInt([...value].length))), separator, (current + $canStrSlice(value, 0n, 1n)), acc, (fuel - 1n));
+          switch ($can_m2.$can_kind) {
           case "ok": {
-            const r = $ail_m2;
-            return { $ail_kind: "ok", values: r.values };
+            const r = $can_m2;
+            return { $can_kind: "ok", values: r.values };
           }
           default: {
             throw new Error("unreachable");
@@ -616,11 +616,11 @@ export function std__str__split_from(value: string, separator: string, current: 
         }
       }
       else {
-        const $ail_m3: { $ail_kind: "ok"; values: string[] } = std__str__split_from($ailStrSlice(value, 1n, (BigInt([...value].length))), separator, (current + $ailStrSlice(value, 0n, 1n)), acc, (fuel - 1n));
-        switch ($ail_m3.$ail_kind) {
+        const $can_m3: { $can_kind: "ok"; values: string[] } = std__str__split_from($canStrSlice(value, 1n, (BigInt([...value].length))), separator, (current + $canStrSlice(value, 0n, 1n)), acc, (fuel - 1n));
+        switch ($can_m3.$can_kind) {
         case "ok": {
-          const r = $ail_m3;
-          return { $ail_kind: "ok", values: r.values };
+          const r = $can_m3;
+          return { $can_kind: "ok", values: r.values };
         }
         default: {
           throw new Error("unreachable");
@@ -630,16 +630,16 @@ export function std__str__split_from(value: string, separator: string, current: 
     }
   }
 }
-export function std__str__split(value: string, separator: string): { $ail_kind: "ok"; values: string[] } | { $ail_kind: "text.empty_separator" } {
+export function std__str__split(value: string, separator: string): { $can_kind: "ok"; values: string[] } | { $can_kind: "text.empty_separator" } {
   if ((separator === "")) {
-    return { $ail_kind: "text.empty_separator" };
+    return { $can_kind: "text.empty_separator" };
   }
   else {
-    const $ail_m1: { $ail_kind: "ok"; values: string[] } = std__str__split_from(value, separator, "", [], ((BigInt([...value].length)) + 1n));
-    switch ($ail_m1.$ail_kind) {
+    const $can_m1: { $can_kind: "ok"; values: string[] } = std__str__split_from(value, separator, "", [], ((BigInt([...value].length)) + 1n));
+    switch ($can_m1.$can_kind) {
     case "ok": {
-      const r = $ail_m1;
-      return { $ail_kind: "ok", values: r.values };
+      const r = $can_m1;
+      return { $can_kind: "ok", values: r.values };
     }
     default: {
       throw new Error("unreachable");
@@ -647,75 +647,75 @@ export function std__str__split(value: string, separator: string): { $ail_kind: 
     }
   }
 }
-export function std__utf8__encode(value: string): { $ail_kind: "ok"; value: Uint8Array } {
-  const $ail_m1: { $ail_kind: "ok", value: Uint8Array } = { $ail_kind: "ok", value: new TextEncoder().encode(value) };
-  switch ($ail_m1.$ail_kind) {
+export function std__utf8__encode(value: string): { $can_kind: "ok"; value: Uint8Array } {
+  const $can_m1: { $can_kind: "ok", value: Uint8Array } = { $can_kind: "ok", value: new TextEncoder().encode(value) };
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   }
 }
-export function std__utf8__decode(value: Uint8Array): { $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } {
-  const $ail_m1: { $ail_kind: "ok"; value: string } | { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array } = $ailUtf8Decode(value);
-  switch ($ail_m1.$ail_kind) {
+export function std__utf8__decode(value: Uint8Array): { $can_kind: "ok"; value: string } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array } {
+  const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array } = $canUtf8Decode(value);
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   case "encoding.invalid_utf8": {
-    const e = $ail_m1;
-    return { $ail_kind: "encoding.invalid_utf8", value: e.value };
+    const e = $can_m1;
+    return { $can_kind: "encoding.invalid_utf8", value: e.value };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__hex__encode(value: Uint8Array): { $ail_kind: "ok"; value: string } {
-  const $ail_m1: { $ail_kind: "ok", value: string } = { $ail_kind: "ok", value: $ailHexEncode(value) };
-  switch ($ail_m1.$ail_kind) {
+export function std__hex__encode(value: Uint8Array): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok", value: string } = { $can_kind: "ok", value: $canHexEncode(value) };
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   }
 }
-export function std__hex__decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } {
-  const $ail_m1: { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_hex"; value: string } = $ailHexDecode(value);
-  switch ($ail_m1.$ail_kind) {
+export function std__hex__decode(value: string): { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string } = $canHexDecode(value);
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   case "encoding.invalid_hex": {
-    const e = $ail_m1;
-    return { $ail_kind: "encoding.invalid_hex", value: e.value };
+    const e = $can_m1;
+    return { $can_kind: "encoding.invalid_hex", value: e.value };
   }
   default: {
     throw new Error("unreachable");
   }
   }
 }
-export function std__base64__encode(value: Uint8Array): { $ail_kind: "ok"; value: string } {
-  const $ail_m1: { $ail_kind: "ok", value: string } = { $ail_kind: "ok", value: $ailB64Encode(value) };
-  switch ($ail_m1.$ail_kind) {
+export function std__base64__encode(value: Uint8Array): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok", value: string } = { $can_kind: "ok", value: $canB64Encode(value) };
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   }
 }
-export function std__base64__decode(value: string): { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string } {
-  const $ail_m1: { $ail_kind: "ok"; value: Uint8Array } | { $ail_kind: "encoding.invalid_base64"; value: string } = $ailB64Decode(value);
-  switch ($ail_m1.$ail_kind) {
+export function std__base64__decode(value: string): { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string } = $canB64Decode(value);
+  switch ($can_m1.$can_kind) {
   case "ok": {
-    const r = $ail_m1;
-    return { $ail_kind: "ok", value: r.value };
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
   }
   case "encoding.invalid_base64": {
-    const e = $ail_m1;
-    return { $ail_kind: "encoding.invalid_base64", value: e.value };
+    const e = $can_m1;
+    return { $can_kind: "encoding.invalid_base64", value: e.value };
   }
   default: {
     throw new Error("unreachable");

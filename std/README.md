@@ -24,7 +24,7 @@ helpers ship as same-file locals; see `docs/a13-stdlib.md`):
   (`docs/a17-division.md`).
 
 Admission rule (from the program doc): a module is not blessed
-until it has a real motivating `.ail` program, complete
+until it has a real motivating `.can` program, complete
 producer-owned outcomes, green compile-time decision tables,
 negative examples for its invariants, a checked termination
 argument where it iterates, and committed golden emit

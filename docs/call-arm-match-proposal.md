@@ -146,6 +146,6 @@ trace. Mere writability with the proposed feature does not qualify.
 - D7's kind design, the D4 consumption protocol, and the D6
   prohibition-vs-checking choice are all reassessed at
   implementation time against the compiler as it then stands.
-- No `AIL4109`-style lint, diagnostic, or grammar affordance is
+- No `CAN4109`-style lint, diagnostic, or grammar affordance is
   implied for this surface; the eager-trap lint covers the shipped
   product form only.

@@ -28,10 +28,10 @@ The check works one match at a time, syntax only:
 3. **Report**; rewrite only under an explicit `--fix`.
 
 Equivalence oracle is the existing stack, not a new proof:
-`ailc normalize` byte-identical over the module, plus the full
+`canlc normalize` byte-identical over the module, plus the full
 gates (`go test ./...`, modcheck, gramcheck, tsc). Merged arms
 stay covered: rows select by outcome, so rows that selected the
-old arms still select the merged one, and AIL4107 needs no
+old arms still select the merged one, and CAN4107 needs no
 adjustment. Idempotence is the acceptance test: the check on
 its own output reports nothing.
 
@@ -45,7 +45,7 @@ its own output reports nothing.
    does not make two binders one. Value matches only — call-match
    `on` arms, guards, and `given` tables are out of scope.
 3. **Wildcard stays separate.** `_` inside an or-pattern is
-   AIL4112, so a wildcard arm never folds into an or-arm; it
+   CAN4112, so a wildcard arm never folds into an or-arm; it
    remains the fallback arm.
 4. **Byte safety.** Sources carry literal NUL/control bytes with
    documented positions; the check reads and writes bytes, never
@@ -67,7 +67,7 @@ output must introduce none either.
 
 ## Open questions
 
-Where the check lives (`ailc` subcommand vs `tools/` vs a check gate);
+Where the check lives (`canlc` subcommand vs `tools/` vs a check gate);
 warn vs fail in CI; the tool's name (no working title proposed here); whether
 merged-arm line attribution should point at the surviving arm
 or the whole group for coverage; interaction with the editor

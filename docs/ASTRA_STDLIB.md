@@ -1,4 +1,4 @@
-# ai-lang standard library program
+# can-lang standard library program
 
 **Build one contract stack, not five competing frameworks: a monomorphic pure standard library, typed HTML construction, one HTTP handler model, one typed SQL query model, and one component model.**
 
@@ -27,7 +27,7 @@ Unless an error list follows, the proposed function declares `emits []`. For exa
   ! [math.invalid_bounds]
 ```
 
-Every actual `.ail` declaration must spell out its `emits`, revision, tests, and relevant call evidence.
+Every actual `.can` declaration must spell out its `emits`, revision, tests, and relevant call evidence.
 
 Where two concrete names share a row, they are **separate monomorphic functions**, not an inferred overload. `N`, `T`, and `E` below are specification notation; polymorphic APIs remain blocked until explicit generic and error-set parameters exist.
 
@@ -35,7 +35,7 @@ Where two concrete names share a row, they are **separate monomorphic functions*
 
 | Label           | Meaning                                                                                                                                          |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **NOW**         | Implementable in pure `.ail` using the current brief’s features.                                                                                 |
+| **NOW**         | Implementable in pure `.can` using the current brief’s features.                                                                                 |
 | **NOW†**        | Also implementable today, but an obvious guarded implementation can be impractically expensive. Expressibility is not a performance endorsement. |
 | **Text**        | String inspection and construction, with specified indexing and Unicode semantics.                                                               |
 | **Numeric**     | Explicit decimal coefficient/scale access and practical exact numeric conversion primitives. No floats or implicit coercions.                    |
@@ -48,7 +48,7 @@ Where two concrete names share a row, they are **separate monomorphic functions*
 | **Schema**      | Explicit, revisioned schema descriptors with machine-checked codecs or query contracts.                                                          |
 | **Host**        | A conforming TypeScript `extern` implementation. This is an implementation dependency, not a claim that `extern` syntax is missing.              |
 
-**Important release gate:** the earlier reviewer guide treats cross-file `.ail` calls as scripted rather than executed. Unless that has changed, the standard-library program needs an explicit decision about evaluating verified pure imports. A caller’s arbitrary script should not substitute for evaluating `std__int__clamp`. The function bodies below can still be `NOW`; trustworthy computational reuse is a separate linkage question. 
+**Important release gate:** the earlier reviewer guide treats cross-file `.can` calls as scripted rather than executed. Unless that has changed, the standard-library program needs an explicit decision about evaluating verified pure imports. A caller’s arbitrary script should not substitute for evaluating `std__int__clamp`. The function bodies below can still be `NOW`; trustworthy computational reuse is a separate linkage question. 
 
 ---
 
@@ -268,7 +268,7 @@ A few comparator examples do not prove a total order. Initially accept built-in 
 | `std__json__decode`                                | `(bytes: Bytes, schema: JsonSchema<T>) → T ! [json.invalid_syntax, json.duplicate_key, json.schema_mismatch, json.numeric_out_of_range]`. | Reject duplicate keys and schema drift instead of selecting undocumented behavior. | Same                                          |
 | `std__schema__migrate`                             | `(value: Old, migration: Migration<Old,New>) → New ! E`.                                                                                  | Every field transformation and possible failure is declared.                       | Schema + Types + Functions                    |
 
-For interchange, **do not assume JSON numbers preserve ai-lang’s arbitrary precision in other consumers**. RFC 8259 explicitly discusses numeric precision limits and interoperability problems. Each schema should declare exact integer/decimal strings or another explicit representation; no automatic conversion through a host number. ([RFC Editor][3])
+For interchange, **do not assume JSON numbers preserve can-lang’s arbitrary precision in other consumers**. RFC 8259 explicitly discusses numeric precision limits and interoperability problems. Each schema should declare exact integer/decimal strings or another explicit representation; no automatic conversion through a host number. ([RFC Editor][3])
 
 ### Host-support shelf—not pure `NOW` std
 
@@ -352,7 +352,7 @@ These are fragments, not complete functions. Child collection syntax is proposed
 
 Assume `title` is already `Html__Text`, and both attribute values have been validated.
 
-```ail
+```can
 match call html__text__node(text = title)
   on Ok text_node =>
     match call html__el__h1(
@@ -378,7 +378,7 @@ It is tall and inconvenient. That is consistent with the language.
 
 ### Candidate B — nested element-call expressions
 
-```ail
+```can
 html__el__div(
   attributes = container_attributes
   children = Html__Children(
@@ -402,7 +402,7 @@ This is visually attractive, but it is **not merely a library design**. Under th
 
 ### Candidate C — a dedicated indentation template block
 
-```ail
+```can
 template page__title(title: Html__Text)
   html__el__div(attributes = container_attributes)
     children
@@ -413,7 +413,7 @@ template page__title(title: Html__Text)
 
 **Reject.** It introduces a second execution surface and special child-binding rules. The improvement is mainly aesthetic, while the proof surface grows.
 
-**Recommendation:** ship A. Reconsider B only if expression-call semantics become justified by ordinary `.ail` programs independently of templates.
+**Recommendation:** ship A. Reconsider B only if expression-call semantics become justified by ordinary `.can` programs independently of templates.
 
 ### Template acceptance programme
 
@@ -441,7 +441,7 @@ Http__Handler<E, C>
 
 A mounted route must supply an exhaustive error-to-response mapping. This lets the router store normalized handlers without erasing unhandled application errors.
 
-**Borrow Go’s small handler boundary, not its mutable response-writer mechanics.** Go’s handler writes through `ResponseWriter`; for ai-lang, returning a complete response is easier to give a deterministic outcome contract. ([Go Packages][4])
+**Borrow Go’s small handler boundary, not its mutable response-writer mechanics.** Go’s handler writes through `ResponseWriter`; for can-lang, returning a complete response is easier to give a deterministic outcome contract. ([Go Packages][4])
 
 ### Alternatives rejected
 
@@ -486,7 +486,7 @@ A mounted route must supply an exhaustive error-to-response mapping. This lets t
 | `http__server__stop`                                                                                                                                                | `(server: Server, context) → Pass ! [http.shutdown_failed, http.deadline_exceeded]`.                                                                                                                         | Explicit bounded shutdown and handle consumption.                               | Async + Resources + Host                              |
 | `http/client`: `http__client__send`                                                                                                                                 | `(client, request, context) → Http__Response ! [http.name_resolution_failed, http.connect_failed, http.tls_failed, http.protocol_failure, http.cancelled, http.deadline_exceeded, http.response_too_large]`. | One transport contract; retries and redirects are not silently enabled.         | Async + Resources + Collections + Host                |
 
-**Termination boundary:** do not introduce an infinitely running `.ail` `serve()` function. The host owns the event loop; each `.ail` request callback must terminate. Startup, shutdown, and each host operation have their own completion contracts.
+**Termination boundary:** do not introduce an infinitely running `.can` `serve()` function. The host owns the event loop; each `.can` request callback must terminate. Startup, shutdown, and each host operation have their own completion contracts.
 
 The first HTTP sketch should expose a real status/account page with one successful route, a typed parameter, a form error, an authentication rejection, and a bounded external dependency.
 
@@ -539,7 +539,7 @@ QueryErrors =
   sql.driver_fault
 ```
 
-Actual `.ail` declarations enumerate their applicable kinds. `sql.driver_fault` is a documented provider-contract failure with a sanitized diagnostic payload—not an excuse to omit known failure modes.
+Actual `.can` declarations enumerate their applicable kinds. `sql.driver_fault` is a documented provider-contract failure with a sanitized diagnostic payload—not an excuse to omit known failure modes.
 
 ## 4.2 Wishlist
 
@@ -563,7 +563,7 @@ Actual `.ail` declarations enumerate their applicable kinds. `sql.driver_fault` 
 | `sql/migration`: `sql__migration__plan`      | `(current_schema, target_schema, migrations) → MigrationPlan ! [sql.migration_gap, sql.migration_conflict, sql.unapproved_data_loss]`.                           | Migration order and declared destructive changes are inspectable.                                   | Schema + Collections                                    |
 | `sql__migration__apply`                      | `(pool, plan, context) → MigrationReceipt ! QueryErrors + [sql.migration_failed, sql.commit_unknown]`.                                                           | Applying a migration is explicit—not an import-time side effect.                                    | Schema + Collections + Async + Resources + Host         |
 
-**No live database during ordinary compilation.** Query checks use a pinned schema artifact. Runtime schema verification and driver conformance tests cover different obligations; scripted `.ail` tests do not establish that an arbitrary TypeScript driver binds parameters correctly.
+**No live database during ordinary compilation.** Query checks use a pinned schema artifact. Runtime schema verification and driver conformance tests cover different obligations; scripted `.can` tests do not establish that an arbitrary TypeScript driver binds parameters correctly.
 
 The motivating sketch should be a small ledger or reservation service—not a read-only “hello database.” It must exercise exact decimals, absence, duplicate matches, nullable columns, constraint failure, transactional rollback, and uncertain commit handling.
 
@@ -573,7 +573,7 @@ The motivating sketch should be a small ledger or reservation service—not a re
 
 ## Blessed abstraction: pure view + explicit state transition + typed commands
 
-Borrow the component-and-props idea, not every execution model available in Preact. Preact documents both function and class components; ai-lang should bless only one shape. ([Preact][6])
+Borrow the component-and-props idea, not every execution model available in Preact. Preact documents both function and class components; can-lang should bless only one shape. ([Preact][6])
 
 ```text
 Ui__Component<Props, State, Message>
@@ -596,7 +596,7 @@ The view is pure. Event callbacks produce typed messages. Updates produce a new 
 
 **Reject:** class components, hook-order protocols, implicit dependency tracking, render-time I/O, arbitrary DOM mutation from view functions, and a second state-management framework.
 
-Use one controlled-state form model. That is a deliberate contract choice, not a claim that Preact universally recommends controlled inputs. Preact’s documentation describes synchronization pitfalls when a controlled input is not re-rendered; ai-lang’s driver conformance suite must test actual DOM resynchronization, including updates that return unchanged state. ([Preact][7])
+Use one controlled-state form model. That is a deliberate contract choice, not a claim that Preact universally recommends controlled inputs. Preact’s documentation describes synchronization pitfalls when a controlled input is not re-rendered; can-lang’s driver conformance suite must test actual DOM resynchronization, including updates that return unchanged state. ([Preact][7])
 
 ## 5.1 Wishlist
 
@@ -644,7 +644,7 @@ The first full UI sketch should be an editable account or reservation form with 
 
 ## Admission rule for every entry
 
-A module is not blessed until it has a real motivating `.ail` sketch, complete producer-owned outcomes, green compile-time decision tables, negative examples for its invariants, a checked termination argument where it iterates, and target/driver conformance evidence where execution crosses into TypeScript.
+A module is not blessed until it has a real motivating `.can` sketch, complete producer-owned outcomes, green compile-time decision tables, negative examples for its invariants, a checked termination argument where it iterates, and target/driver conformance evidence where execution crosses into TypeScript.
 
 These are separate obligations. A scripted success from an escaping or SQL extern is not evidence that its implementation escapes or binds correctly.
 

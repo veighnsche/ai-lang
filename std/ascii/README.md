@@ -1,6 +1,6 @@
 # ascii — named ASCII scalar bounds
 
-- `ascii.ail` — `mod ascii`: `std__ascii__HASH`, `PLUS`, `MINUS`,
+- `ascii.can` — `mod ascii`: `std__ascii__HASH`, `PLUS`, `MINUS`,
   `DOT`, `SLASH`, `ZERO`, `NINE`, `COLON`, `QUESTION`, `AT`, `A`,
   `Z`, `BACKTICK`, `SMALL_A`, `SMALL_Z` (lowercase needs marking;
   bare `A`/`Z` are uppercase). Consumers pin

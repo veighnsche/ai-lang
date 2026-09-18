@@ -1,6 +1,6 @@
 # html — constructor-controlled brands, starting with text
 
-- `html.ail` — `mod html`: `brand Html__Text`, `html__text__escape`
+- `html.can` — `mod html`: `brand Html__Text`, `html__text__escape`
   plus its `_from` worker. The worker scans scalar by scalar
   (front-consumption shape, `upper_ascii` precedent), emitting
   `&amp;`, `&lt;`, `&gt;` and passing everything else through,
@@ -79,7 +79,7 @@
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; `errors.json` is the error registry).
   Regenerate: `go run ./compiler --out std/html
-  std/html/html.ail`; verify: `go test ./...`.
+  std/html/html.can`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/a25-html-text.md`,
 `docs/a26-html-node.md`, `docs/a27-attribute-name.md`,

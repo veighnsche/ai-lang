@@ -7,15 +7,15 @@ LDFLAGS = -X main.version=$(VERSION)
 
 build:
 	mkdir -p $(BINDIR)
-	go build -ldflags "$(LDFLAGS)" -o $(BINDIR)/ailc ./compiler
+	go build -ldflags "$(LDFLAGS)" -o $(BINDIR)/canlc ./compiler
 
 test:
 	go test ./...
 
 install: build
 	mkdir -p $(PREFIX)
-	cp $(BINDIR)/ailc $(PREFIX)/ailc
-	@echo "installed ailc to $(PREFIX)/ailc"
+	cp $(BINDIR)/canlc $(PREFIX)/canlc
+	@echo "installed canlc to $(PREFIX)/canlc"
 
 uninstall:
-	rm -f $(PREFIX)/ailc
+	rm -f $(PREFIX)/canlc

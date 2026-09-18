@@ -9,22 +9,22 @@ rebracketed, NUL withdrawn, Gap2/Gap9 closed as stale) → v2 → this
 resolution → B2 pre-implementation review folded (certificate lifecycle
 barrier, registration/identity/shape corrections, order-independence
 fixtures) → B4 pre-implementation review folded (v3 example rows joined —
-split outcomes are `AIL1000`; promotion-chain audit; NUL vector; escaping
+split outcomes are `CAN1000`; promotion-chain audit; NUL vector; escaping
 regressions; artifact expectations; downstream unresolved). Reviewer caveat: it saw v1/v2 + prompt only (v3 and the B1
 doc failed to retrieve on its side; both exist locally) — its cited
-anchors were re-verified here against `de82756` before folding. Prior docs: [bytes-workstream.md](/Users/vince/Projects/ai-lang/docs/bytes-workstream.md),
-[bytes-plan-review-prompt.md](/Users/vince/Projects/ai-lang/docs/bytes-plan-review-prompt.md),
-[bytes-open-items-prompt.md](/Users/vince/Projects/ai-lang/docs/bytes-open-items-prompt.md).
+anchors were re-verified here against `de82756` before folding. Prior docs: [bytes-workstream.md](/Users/vince/Projects/can-lang/docs/bytes-workstream.md),
+[bytes-plan-review-prompt.md](/Users/vince/Projects/can-lang/docs/bytes-plan-review-prompt.md),
+[bytes-open-items-prompt.md](/Users/vince/Projects/can-lang/docs/bytes-open-items-prompt.md).
 
 **No compiler gates have been run.** Below are implementation decisions and
 required acceptance evidence — not claims of compiling/passing code.
 Baseline commit `de82756`. Anchor sweep (post-resolution, all green):
-`AIL6008–AIL6012` free (`compiler/code.go:23–84`, type family ends
-`AIL6007`); `isScalar` maps every `tsBase` entry to identity comparison
+`CAN6008–CAN6012` free (`compiler/code.go:23–84`, type family ends
+`CAN6007`); `isScalar` maps every `tsBase` entry to identity comparison
 (`compiler/emit.go:247–252`) with `emitEquality` scalar-first dispatch
-(`260–292`); `seals_from` same-module authority + `AIL6003` promotion
+(`260–292`); `seals_from` same-module authority + `CAN6003` promotion
 rejection (`compiler/types.go:412–419,1166–1186`); exact
-`got != want → AIL6003` rule (`compiler/types.go:464`); `Module.ID`
+`got != want → CAN6003` rule (`compiler/types.go:464`); `Module.ID`
 canonical identity vs display `File` (`compiler/parse.go:195–205,1281–1282`);
 positional-construction rejection the Bytes branch must precede
 (`compiler/eval.go:508–511`); `vEq` + `verifyExhaustiveAll` + `EmitsOf`
@@ -33,13 +33,13 @@ positional-construction rejection the Bytes branch must precede
 (`compiler/lsp.go:357–405`); UTF-8 source gate
 (`compiler/parse.go:1042–1050`); fault triptych
 (`docs/fault-contracts.md:9–14`); `text.empty_separator` declared+raised
-but header-omitted (`std/text/text.ail:21,27,390–405`); brand base
-(`std/html/html.ail:8–12,28–30`); Seq atomic-boundary + `vEq`-as-support
+but header-omitted (`std/text/text.can:21,27,390–405`); brand base
+(`std/html/html.can:8–12,28–30`); Seq atomic-boundary + `vEq`-as-support
 (`docs/a36-seq-typed-construction.md:106–118`); one-operation + kernel
 plumbing warning (`docs/a37-seq-length.md:39–55`); `checkCalls`/`checkGiven`/
 `evCallMatch`/`emitValue`/`emitModule`/`ctor` parse sites exist. Not
 line-verified: emit/eval/check interior sub-spans (function-level
-touchpoints confirmed by name; drift risk cosmetic only). `checkStateDecl` admits four scalars with `AIL6002` rejection
+touchpoints confirmed by name; drift risk cosmetic only). `checkStateDecl` admits four scalars with `CAN6002` rejection
 (`compiler/check.go:1607–1638`); deterministic-call `given` rejection exists
 (`compiler/check.go:647–671`, `CodeGivenOnLocal`); positional-construction
 rejection via `isKwargList` (`compiler/eval.go:509`, `compiler/parse.go:949`).
@@ -48,7 +48,7 @@ rejection via `isKwargList` (`compiler/eval.go:509`, `compiler/parse.go:949`).
 
 New declaration form:
 
-```ail
+```can
 exports_utf8 Html__Safe via html__render__utf8@1
 ```
 
@@ -112,9 +112,9 @@ uncalled — the invariant covers it if that changes.
 Legal Render example (additions to the HTML module; add function to
 `provides`; `Bytes__Value` per item 9; `Html__Safe` stays an
 ordinary-child-fragment brand — no script/style/attribute/URL authority;
-anchor `std/html/html.ail:1–12,28–42`):
+anchor `std/html/html.can:1–12,28–42`):
 
-```ail
+```can
 exports_utf8 Html__Safe via html__render__utf8@1
 
 fn html__render__utf8(document: Html__Safe) -> Bytes__Value rev 1
@@ -147,12 +147,12 @@ test: two independently granted brands in one program, both module orders,
 plus a third ungranted brand still rejected.
 
 Secret path stays closed — generic kernel parameter is exactly `str`, so
-`Vault__Secret → bytes__utf8__encode` fails `AIL6003` at the argument
+`Vault__Secret → bytes__utf8__encode` fails `CAN6003` at the argument
 (anchors `compiler/types.go:350–630,630–650`); no decoder repairs the missing
 edge. Only the first forbidden edge must fail — downstream correctly-typed
 edges need no invented diagnostic. Required rejection fixtures: generic encode of `Vault__Secret` then
-decode (`AIL6003` at encoder); ungranted-function export then decode
-(authority diagnostic); `Vault__Secret` to public Render (`AIL6003`);
+decode (`CAN6003` at encoder); ungranted-function export then decode
+(authority diagnostic); `Vault__Secret` to public Render (`CAN6003`);
 cross-module grant (authority diagnostic); granted function returning `str` /
 extra fields / calling helpers (shape diagnostic); same-file private brand to
 granted public-brand exporter (nominal mismatch); private value hidden in a
@@ -164,7 +164,7 @@ owner granting export to a private brand changes its disclosure contract;
 permitted promotions into an exported brand reach the exporter — inspect
 incoming `seals_from` paths for the HTML grant. Guarantee: no new
 representation-recovery path for an unrelated unexported brand in checked
-AIL — not an information-flow theorem, not protection against hostile
+CAN — not an information-flow theorem, not protection against hostile
 TypeScript bypassing erased brands.
 
 ## 2. NUL triptych
@@ -179,7 +179,7 @@ TypeScript bypassing erased brands.
 Policy: "the encoder rejects NUL," not "every `Html__Text` is NUL-free";
 promotion preserves NUL; `html__text__node` seals with `emits []` without the
 escaping encoder (anchors `encoder-nul-policy.md:9–24,38–43`;
-`std/html/html.ail:97–107`). Required Render rows (`N` = U+0000 notation):
+`std/html/html.can:97–107`). Required Render rows (`N` = U+0000 notation):
 `"" → []`; `N → [0]`; `Na → [0,97]`; `aNb → [97,0,98]`; `abN → [97,98,0]`;
 `"&amp;" → [38,97,109,112,59]` (no second escaping). Mirror NUL-position rows
 in generic encode/decode; keep HTML-escape rejection rows. Fixtures use the
@@ -203,9 +203,9 @@ conversion is deferred — no runtime path in this workstream.
 | `Bytes(xs)`, runtime `xs: Seq<int>`   | Reject             | Bytes-literal-shape diagnostic                              |
 
 New codes (verified free against `compiler/code.go:3–20,75–105`; rebase must
-re-check collisions): `AIL6008 CodeBytesLiteral`, `AIL6009
-CodeBytesElementRange`, `AIL6010 CodeBytesExportAuthority`, `AIL6011
-CodeBytesExportShape`, `AIL6012 CodePrimitiveShadow`. Append to `allCodes`
+re-check collisions): `CAN6008 CodeBytesLiteral`, `CAN6009
+CodeBytesElementRange`, `CAN6010 CodeBytesExportAuthority`, `CAN6011
+CodeBytesExportShape`, `CAN6012 CodePrimitiveShadow`. Append to `allCodes`
 and JSON diagnostic goldens. Parser/AST: reuse `Small{Kind: "ctor", Ctor:
 "Bytes"}` (anchors `compiler/parse.go:650–820`; `compiler/eval.go:265–585`) —
 no new `Small` kind or lexer rule; existing `walkSmallTrees` traversal
@@ -231,7 +231,7 @@ value-expression node.
 
 Nested equality: B1 preserves existing structural `==` for admitted records
 and error payloads containing Bytes (compositional admission, not
-unobservability). Add a typed-array branch before `$ailEqVal`'s generic
+unobservability). Add a typed-array branch before `$canEqVal`'s generic
 object traversal (anchor `compiler/emit.go:773–811`): length + ordered
 contents; typed array never equals an ordinary numeric array via enumerable
 keys. Generate branch + helper only when the compared declared shape can
@@ -247,7 +247,7 @@ scalar runtime kinds — separate repair).
 
 Byte columns use hex octet notation for readability — not hex literal syntax.
 
-UTF-8: encode all AIL scalar strings, preserving every scalar incl. NUL and
+UTF-8: encode all CAN scalar strings, preserving every scalar incl. NUL and
 U+FEFF; no BOM insert/remove; no normalization. Decode strictly: malformed →
 `encoding.invalid_utf8(value = original_bytes)`; never a decoded prefix or
 U+FFFD substitution. Grammar excludes overlongs, surrogates, > U+10FFFF
@@ -270,7 +270,7 @@ or validate-then-`TextDecoder("utf-8", {fatal: true, ignoreBOM: true})`
 (preserves BOM). Never blanket-catch host/resource exceptions as invalid
 UTF-8 ([Encoding Standard](https://encoding.spec.whatwg.org/)). Source parser
 already rejects malformed UTF-8 (`compiler/parse.go:1042–1050`); the encoder
-is total over AIL scalars — a host lone surrogate is a loud host-contract
+is total over CAN scalars — a host lone surrogate is a loud host-contract
 fault, not `html.nul_byte` (anchor `fault-contracts.md:9–14`).
 
 Hex: lowercase ASCII encode, two chars/byte. Decode: either letter case,
@@ -297,7 +297,7 @@ trailing newline). Conformance harness checks round-trip laws with domains:
 UTF-8 identity (scalar strings, valid bytes); byte identity (hex/base64);
 hex lowercase canonicalization; exact text identity (canonical base64).
 Cross-operation laws run in the Go/target harness — no manufactured
-unwitnessable AIL decoder-error arm for a round-trip function.
+unwitnessable CAN decoder-error arm for a round-trip function.
 
 ## 6. Codec protocol: deterministic kernels + stdlib wrappers
 
@@ -372,11 +372,11 @@ contents; `false, nil` for unequal valid Bytes), `normalizeValue` (canonical
 `Bytes(Seq<int>[0, 255])`), diagnostic/result rendering (Bytes distinct from
 text/Seq). Anchors `compiler/eval.go:15–33,287–340,343–585,999–1055`.
 
-Linkage fixture (required `AIL3110`, not acceptance): provider computes
+Linkage fixture (required `CAN3110`, not acceptance): provider computes
 `Ok(value = Bytes(Seq<int>[0, 255]))`, call-site script claims
 `Ok(value = Bytes(Seq<int>[0]))`. Repeat: reordered/changed bytes, Bytes in
 record/sequence, provider computing Bytes via the real kernel once encoding
-exists; plus an intentionally wrong direct expected result (`AIL4200`).
+exists; plus an intentionally wrong direct expected result (`CAN4200`).
 Obligation: no new unevaluable/incomparable path — not "no Bytes program ever
 enters the fallback" (unavailable foreign deps, resource/depth failures, eval
 errors, panics still trust; anchor `compiler/check.go:763–810`). Test
@@ -387,7 +387,7 @@ for the intended evidence.
 
 Registry owns:
 
-```ail
+```can
 type Bytes__Value rev 1 (value: Bytes)
 type Encoding__Text rev 1 (value: str)
 error encoding.invalid_utf8(value: Bytes)
@@ -405,7 +405,7 @@ checking/emission need typed `ErrorDecl` fields). Emit builtin record
 definitions into referencing generated modules. Reject source shadowing of
 primitive/kernel/compiler-owned names. Keep `errors.json` schema (name-only
 `fields`); typed declarations authoritative. Kernel attribution as
-`kernel.bytes__utf8__decode` (no invented `.ail` line); wrappers via
+`kernel.bytes__utf8__decode` (no invented `.can` line); wrappers via
 `eachRaise`. Regenerate `errors.json`, TypeScript, normalization and
 diagnostic goldens. Wrapper arms reconstruct same kind + unchanged original
 input; `emits` lists re-raised kinds; no callee-emits-superset rule;
@@ -414,7 +414,7 @@ input; `emits` lists re-raised kinds; no callee-emits-superset rule;
 ## 10. State cells: defer
 
 No `checkStateDecl` change. `state Store__payload: Bytes =
-Bytes(Seq<int>[])` stays rejected (`AIL6002`) — add that regression beside
+Bytes(Seq<int>[])` stays rejected (`CAN6002`) — add that regression beside
 the scalar-state cases. Primitive ≠ state-admissible.
 
 ## 11. Scope rulings
@@ -438,7 +438,7 @@ Preserves Seq's value-admission vs operations/customers distinction
 ## 12. Slice gates + return wrappers
 
 Every slice: versioned scope/rollback doc, committed direct rows,
-README/index updates, regenerated outputs where applicable. Every new AIL
+README/index updates, regenerated outputs where applicable. Every new CAN
 match arm executed by a committed row (identity-relay exception is not
 substitute evidence; anchors `a36-seq-typed-construction.md:134–155`;
 `compiler/lsp.go:357–405`). After each slice, forcibly:
@@ -459,19 +459,19 @@ declared records, not example rows).
 ## 13. Remnants
 
 Module-header inventory: add `text.empty_separator` to
-`std/text/text.ail`'s header (declared + raised at `text.ail:390–405` with two
+`std/text/text.can`'s header (declared + raised at `text.can:390–405` with two
 rejection rows; catalog `std/text/errors.json:14–23`). Header = inventory of
 the module's declared function outcomes, not a union of callee outcomes — no
 new global checker law. Gap8 wording + constructor regressions:
 
 | Position | Diagnostic |
 | -------- | ---------- |
-| `Bytes([0, 1])` | `AIL6007` (bare list) |
-| Bare `Seq` annotation incl. Bytes-constructing bodies | `AIL6002` |
-| Malformed `Seq<...` inside Bytes | `AIL1000` / `CodeParse` |
-| `Bytes(Seq)`, unbound value name | `AIL6003` at the reference |
-| Valid `Seq<int>` syntax, runtime member | `AIL6008` |
-| Integer literal outside `0..255` | `AIL6009` |
+| `Bytes([0, 1])` | `CAN6007` (bare list) |
+| Bare `Seq` annotation incl. Bytes-constructing bodies | `CAN6002` |
+| Malformed `Seq<...` inside Bytes | `CAN1000` / `CodeParse` |
+| `Bytes(Seq)`, unbound value name | `CAN6003` at the reference |
+| Valid `Seq<int>` syntax, runtime member | `CAN6008` |
+| Integer literal outside `0..255` | `CAN6009` |
 
 Check children first; suppress derivative Bytes-shape diagnostics when the
 child's own rule explains the failure; never overwrite the original code for
@@ -487,10 +487,10 @@ consumers. Each slice closes item-12 gates before the next lands.
 
 | Slice | Single capability | Slice-specific acceptance |
 | ----- | ----------------- | ------------------------- |
-| B1 | Value admission + literal construction | Five-case matrix; all value positions; empty/nonempty/order/repeats; `Seq<Bytes>` composition; nested structural `==`; normalization; wrong-result `AIL3110`/`AIL4200`; direct-operator + state rejection; emitter numeric-literal pins. |
-| B2 | Owner-authorized typed UTF-8 export | Grant declaration (separate registration pass) + exact AST exporter shape; lifecycle barrier (certificates before any linkage evaluation); branded export rows incl. own byte-correctness (empty/ASCII/non-ASCII/supplementary/NUL/BOM); unrelated-brand denials; same-basename/different-owner rejection via both loader routes; no string-returning or helper-forwarding exporter; explicit `EmitsOf` entry with independent existence check; two-grant both-orders test; sink controls (allowed route / denied route / real-decoder repeat); order-independence: `AIL3110` for wrong scripted export bytes under both module orders; grant-removal invalidation control; no real HTML consumer yet. |
+| B1 | Value admission + literal construction | Five-case matrix; all value positions; empty/nonempty/order/repeats; `Seq<Bytes>` composition; nested structural `==`; normalization; wrong-result `CAN3110`/`CAN4200`; direct-operator + state rejection; emitter numeric-literal pins. |
+| B2 | Owner-authorized typed UTF-8 export | Grant declaration (separate registration pass) + exact AST exporter shape; lifecycle barrier (certificates before any linkage evaluation); branded export rows incl. own byte-correctness (empty/ASCII/non-ASCII/supplementary/NUL/BOM); unrelated-brand denials; same-basename/different-owner rejection via both loader routes; no string-returning or helper-forwarding exporter; explicit `EmitsOf` entry with independent existence check; two-grant both-orders test; sink controls (allowed route / denied route / real-decoder repeat); order-independence: `CAN3110` for wrong scripted export bytes under both module orders; grant-removal invalidation control; no real HTML consumer yet. |
 | B3 | Generic UTF-8 encode kernel | Strict `str` admission; NUL/BOM/Unicode vectors; no brand acceptance; empty `EmitsOf`; deterministic no-`given` rule. |
-| B4 | `html__render__utf8` consumer | HTML-owned grant + function (single-line rows — split outcomes are `AIL1000`); empty/entity/markup/Unicode/NUL-position rows; exact serialization with no second escaping (distinguish decode `[38]` from double-escape); 8-byte NUL vector `[65, 0, 38, 97, 109, 112, 59, 66]`; disclosure audit closes on Text/Attributes/Attribute chain + opaque composition; unchanged `Html__Safe`, promotion, escaping; `html.ts` regen (new fn + union member), `errors.json` regen expecting byte-identical; README remnants (`seals_from` description, errors-empty claim, `utf8 waits` comment at `html.ail:1580`); composition probes in temp-copy harness, never stdlib rows; downstream consumer contract stays unresolved (claim is exact serialization, not end-to-end delivery). |
+| B4 | `html__render__utf8` consumer | HTML-owned grant + function (single-line rows — split outcomes are `CAN1000`); empty/entity/markup/Unicode/NUL-position rows; exact serialization with no second escaping (distinguish decode `[38]` from double-escape); 8-byte NUL vector `[65, 0, 38, 97, 109, 112, 59, 66]`; disclosure audit closes on Text/Attributes/Attribute chain + opaque composition; unchanged `Html__Safe`, promotion, escaping; `html.ts` regen (new fn + union member), `errors.json` regen expecting byte-identical; README remnants (`seals_from` description, errors-empty claim, `utf8 waits` comment at `html.can:1580`); composition probes in temp-copy harness, never stdlib rows; downstream consumer contract stays unresolved (claim is exact serialization, not end-to-end delivery). |
 | B5 | `std__utf8__encode` wrapper | Declared Bytes wrapper result; computed encoding rows; inventories + artifacts updated. |
 | B6 | UTF-8 decode kernel | Strict grammar + complete-input errors; BOM/NUL preservation; fallible contract; missing/stale-arm rejections; full encode→decode brand-rejection fixtures; harness round-trip laws. |
 | B7 | `std__utf8__decode` wrapper | Valid/invalid rows; exhaustive match; unchanged reconstruction; full Bytes payload verified. |

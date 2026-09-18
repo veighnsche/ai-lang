@@ -13,13 +13,13 @@ The package targets commit `e87e5cb997aa12a7c9d54453270b00fcc6205e96`. It contai
 
 Choose a real, typed, revisioned declaration:
 
-```ail
+```can
 const ascii__COLON: int rev 1 = 58
 const ascii__UPPER_FIRST: int rev 1 = 65
 const ascii__UPPER_LAST: int rev 1 = 90
 ```
 
-The ASCII declarations live in a shared `std/ascii/ascii.ail` provider. HTML imports them through ordinary pinned `uses` entries. This makes the actual magic-bound migration a cross-file acceptance proof, rather than demonstrating providibility only in a synthetic fixture.
+The ASCII declarations live in a shared `std/ascii/ascii.can` provider. HTML imports them through ordinary pinned `uses` entries. This makes the actual magic-bound migration a cross-file acceptance proof, rather than demonstrating providibility only in a synthetic fixture.
 
 **Constants are closed data, not compile-time functions.** V1 admits `int`, `str`, `dec`, `bool`, existing brands, finite acyclic records, and sequences of those types. Initializers may contain literals, constant references, record/sequence construction, and existing authorized seals. Calls, arithmetic, matches, state, indexing, and slicing are excluded. Bytes and variant-valued constants are explicitly outside this first slice.
 
@@ -41,7 +41,7 @@ Consequently, a coordinated rename is revision-inert, but a changed value cannot
 
 Keep a61’s proposed spelling:
 
-```ail
+```can
 on html.invalid_url e => forward e
 on Ok r => forward r
 ```
@@ -50,7 +50,7 @@ on Ok r => forward r
 
 The checker elaborates it into the ordinary constructor:
 
-```ail
+```can
 on html.invalid_url e => html.invalid_url(value = e.value)
 ```
 
@@ -61,10 +61,10 @@ For `Ok`, it reconstructs the complete success payload and runs the same return-
 The emitted shape remains the existing flat tagged union:
 
 ```ts
-return { $ail_kind: "html.invalid_url", value: e.value };
+return { $can_kind: "html.invalid_url", value: e.value };
 ```
 
-It is not replaced by an unchecked `return e`. The current generated code uses `$ail_kind` and flat payload fields.
+It is not replaced by an unchecked `return e`. The current generated code uses `$can_kind` and flat payload fields.
 
 ### Two important migration details
 
@@ -81,7 +81,7 @@ Scheme-token has two first-character recursive sites and six continuation sites;
 
 Conversely, this arm in `html__attribute__id` **must remain manual**:
 
-```ail
+```can
 on html.nul_byte e => html.nul_byte(value = value)
 ```
 
@@ -91,7 +91,7 @@ It selects the enclosing input `value`, not `e.value`. Matching test values do n
 
 Choose integer singletons and closed ranges:
 
-```ail
+```can
 ascii__COLON => ...
 ascii__UPPER_FIRST..ascii__UPPER_LAST => ...
 ```
@@ -120,7 +120,7 @@ uncovered = total product minus all arm spaces
 
 Compilation requires `uncovered` to be empty. A `_` in one product row does not establish coverage elsewhere:
 
-```ail
+```can
 0..9, true => ...
 _, false => ...
 ```
@@ -137,7 +137,7 @@ The canonical `n <= 0` guard and `n - 1` recursive step remain unchanged. A rang
 
 Choose `|` inside a single pattern slot:
 
-```ail
+```can
 ascii__SLASH | ascii__QUERY | ascii__HASH => ...
 ```
 
@@ -156,7 +156,7 @@ That preserves the purpose of a78’s complaint: reducing handwriting must not m
 
 This rewrite is rejected:
 
-```ail
+```can
 match n <= 0, s[0]
 ```
 
@@ -164,7 +164,7 @@ It indexes even when the base branch should return. Nor is `n <= 0` equivalent t
 
 The chosen migration uses one ordinary, explicitly tested helper:
 
-```ail
+```can
 match at_end, prev
   true, "" => html.invalid_url(value = orig)
   _, "-" => html.invalid_url(value = orig)
@@ -179,7 +179,7 @@ The helper’s three arms and six own test rows are included in the migration co
 
 Choose:
 
-```ail
+```can
 and
 or
 not
@@ -206,7 +206,7 @@ Both operands must be bool. Evaluation is left-to-right, and the right operand e
 
 The well-typed fault counterexample is:
 
-```ail
+```can
 false and ((1 / 0) == 0)
 ```
 
@@ -215,18 +215,18 @@ false and ((1 / 0) == 0)
 Bare target lowering to `emit(left) && emit(right)` would violate that decision. Use eager helper arguments:
 
 ```ts
-function $ailAnd(left: boolean, right: boolean): boolean {
+function $canAnd(left: boolean, right: boolean): boolean {
   return left && right;
 }
 
-$ailAnd(leftExpression, rightExpression)
+$canAnd(leftExpression, rightExpression)
 ```
 
 Both source computations occur before the helper body. Emit these helpers only when used. No source call operands, thunks, closures, or early-return syntax are introduced.
 
 The ASCII predicate row follows as three separate stdlib slices: alpha, digit, then alnum. They use the shared constants and the existing `Bool__Value` wrapper. Alnum composes explicitly bound call results:
 
-```ail
+```can
 match call std__ascii__is_alpha(code)
   on Ok a => match call std__ascii__is_digit(code)
     on Ok d => Ok(value = a.value or d.value)
@@ -264,10 +264,10 @@ The package fixes thirteen proposed codes, with message templates, payload strin
 
 | Item                            | New codes                                                      |
 | ------------------------------- | -------------------------------------------------------------- |
-| Constants                       | `AIL2003`, `AIL2205`, `AIL2401`–`AIL2405`                      |
-| Forward                         | `AIL3011`                                                      |
-| Ranges                          | `AIL4110`–`AIL4112`                                            |
-| OR                              | `AIL4113`, `AIL4114`                                           |
+| Constants                       | `CAN2003`, `CAN2205`, `CAN2401`–`CAN2405`                      |
+| Forward                         | `CAN3011`                                                      |
+| Ranges                          | `CAN4110`–`CAN4112`                                            |
+| OR                              | `CAN4113`, `CAN4114`                                           |
 | Boolean operators / unary minus | Reuse existing parse, type, call, fault, and termination codes |
 
 One additional prerequisite emerged from the actual source: **LSP publication currently omits codes and payload fields**, despite carrying diagnostics internally. The plan therefore includes a small transport fix and actual wire-level goldens. Comparing internal `Diag` arrays alone would not satisfy CLI/LSP parity.

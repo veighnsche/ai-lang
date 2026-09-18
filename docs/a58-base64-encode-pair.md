@@ -13,7 +13,7 @@ B12 — `bytes__base64__encode` kernel:
    + dispatch branch. Strict `Bytes` admission.
 3. `compiler/emit.go`: `stmtBytesB64Encode` (Ok-only,
    own lowering — no sharing with text/hex paths) +
-   dispatch + `$ailB64Encode` table helper, call-only
+   dispatch + `$canB64Encode` table helper, call-only
    emission.
 4. `compiler/bytes_b12_test.go`: G-rows (empty, `AA==`,
    `/w==`, padding shapes 0/1/2 mod 3, `deadbeef` order,
@@ -23,7 +23,7 @@ B12 — `bytes__base64__encode` kernel:
    TextEncoder absence).
 
 B13 — `std__base64__encode` wrapper:
-5. `std/text/text.ail`: `provides +=`, fn after
+5. `std/text/text.can`: `provides +=`, fn after
    `std__hex__decode` relaying the kernel, `emits []`,
    one-line rows mirroring G0. Header comment + README:
    retire the base64 waits-remark (last one — #42's

@@ -59,8 +59,8 @@ fn app__go(x: int) -> int rev 1
 `
 
 func TestScriptContradictionFails(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"lib.ail": linkLib, "app.ail": linkAppLie})
-	diags := diagnose(dir, "app.ail", linkAppLie)
+	dir := writeLSPDir(t, map[string]string{"lib.can": linkLib, "app.can": linkAppLie})
+	diags := diagnose(dir, "app.can", linkAppLie)
 	found := false
 	for _, d := range diags {
 		if d.Sev == "error" && d.Code == CodeInconsistentScript {
@@ -68,7 +68,7 @@ func TestScriptContradictionFails(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected AIL3110 contradiction, got %v", diags)
+		t.Fatalf("expected CAN3110 contradiction, got %v", diags)
 	}
 	if !hasDiag(diags, "error", "contradicts lib__double") {
 		t.Fatalf("expected contradiction message, got %v", diags)
@@ -91,8 +91,8 @@ fn lib__double(x: int) -> int rev 1
   match x
     _ => Ok(value = x * 2)
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": linkAppTruth})
-	if diags := diagnose(dir, "app.ail", linkAppTruth); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"lib.can": lib, "app.can": linkAppTruth})
+	if diags := diagnose(dir, "app.can", linkAppTruth); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -148,8 +148,8 @@ fn app__go(x: int) -> Mid__Out rev 1
     on mid.boom _ => app.boom()
     on Ok ok => Ok()
 `
-	dir := writeLSPDir(t, map[string]string{"mid.ail": mid, "app.ail": app})
-	if diags := diagnose(dir, "app.ail", app); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"mid.can": mid, "app.can": app})
+	if diags := diagnose(dir, "app.can", app); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }

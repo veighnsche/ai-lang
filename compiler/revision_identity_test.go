@@ -41,7 +41,7 @@ fn client__pass(state: Model__State) -> Client__Result rev 1
 `
 
 func revisionFiles(model, client string) map[string]string {
-	return map[string]string{"model.ail": model, "client.ail": client}
+	return map[string]string{"model.can": model, "client.can": client}
 }
 
 func revisionProg(t *testing.T, files map[string]string, order []string) (*Program, map[string]string) {
@@ -96,7 +96,7 @@ func revisionBaseline(t *testing.T, prog *Program, origin string) *RevisionBasel
 // parsed twice fingerprints identically.
 func TestRevisionFingerprintStable(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	order := []string{"model.ail", "client.ail"}
+	order := []string{"model.can", "client.can"}
 	prog1, _ := revisionProg(t, files, order)
 	prog2, _ := revisionProg(t, files, order)
 	fp1, fp2 := FingerprintProgram(prog1), FingerprintProgram(prog2)
@@ -115,10 +115,10 @@ func TestRevisionFingerprintStable(t *testing.T) {
 // comments, blank lines, and positions change nothing.
 func TestRevisionFingerprintIgnoresPresentation(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	prog1, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	prog1, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	noisy := "// leading comment\n\n\n" + revisionModelB + "\n// trailing comment\n"
 	files2 := revisionFiles(noisy, revisionClientB)
-	prog2, _ := revisionProg(t, files2, []string{"model.ail", "client.ail"})
+	prog2, _ := revisionProg(t, files2, []string{"model.can", "client.can"})
 	fp1, fp2 := FingerprintProgram(prog1), FingerprintProgram(prog2)
 	for k, e1 := range fp1 {
 		if e2, ok := fp2[k]; !ok || e1.Fingerprint != e2.Fingerprint {
@@ -154,8 +154,8 @@ fn m__go(left: int, right: int) -> M__Out rev 1
 		"emits":         strings.Replace(base, "emits []\n  requires", "emits [m.oops]\n  requires", 1),
 		"requires":      strings.Replace(base, "  requires\n    true\n", "  requires\n    left >= right\n", 1),
 	}
-	files := map[string]string{"m.ail": base}
-	prog, _ := revisionProg(t, files, []string{"m.ail"})
+	files := map[string]string{"m.can": base}
+	prog, _ := revisionProg(t, files, []string{"m.can"})
 	fp := FingerprintProgram(prog)
 	key := "fn:m.m__go@1"
 	before, ok := fp[key]
@@ -166,8 +166,8 @@ fn m__go(left: int, right: int) -> M__Out rev 1
 		if name == "emits" {
 			mut = "mod m\n  provides [m__go, M__Out]\n  uses []\n  emits [m.oops]\n\nerror m.oops(value: int)\n\ntype M__Out rev 1 (\n  value: int\n)\n\nfn m__go(left: int, right: int) -> M__Out rev 1\n  emits [m.oops]\n  requires\n    true\n  tests\n    go(left = 1, right = 2) => Ok(value = 1)\n=\n  Ok(value = left)\n"
 		}
-		files := map[string]string{"m.ail": mut}
-		prog, _ := revisionProg(t, files, []string{"m.ail"})
+		files := map[string]string{"m.can": mut}
+		prog, _ := revisionProg(t, files, []string{"m.can"})
 		after := FingerprintProgram(prog)[key]
 		if after.Fingerprint == before.Fingerprint {
 			t.Fatalf("%s left the fingerprint unchanged", name)
@@ -180,17 +180,17 @@ fn m__go(left: int, right: int) -> M__Out rev 1
 // is identity drift naming the case — not silent, not a pin error.
 func TestRevisionIdentityPrimary(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	progB, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	base := revisionBaseline(t, progB, "review-base:B")
 	modelC := strings.Replace(revisionModelB,
 		"  case Waiting()\n)", "  case Waiting()\n  case Expired()\n)", 1)
-	progC, textsC := revisionProg(t, revisionFiles(modelC, revisionClientB), []string{"model.ail", "client.ail"})
+	progC, textsC := revisionProg(t, revisionFiles(modelC, revisionClientB), []string{"model.can", "client.can"})
 	diags := CheckRevisionIdentity(progC, textsC, base)
 	if !hasFound(diags, "Model__Expired") {
 		t.Fatalf("expected drift naming the added case, got %v", diags)
 	}
-	if !hasCode(diags, "AIL6013") {
-		t.Fatalf("expected AIL6013, got %v", diags)
+	if !hasCode(diags, "CAN6013") {
+		t.Fatalf("expected CAN6013, got %v", diags)
 	}
 }
 
@@ -198,13 +198,13 @@ func TestRevisionIdentityPrimary(t *testing.T) {
 // and additive test rows change no identity.
 func TestRevisionIdentityCommentsSilent(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	progB, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	base := revisionBaseline(t, progB, "review-base:B")
 	modelC := "// a comment\n" + revisionModelB
 	clientC := strings.Replace(revisionClientB,
 		"    waiting(state = Model__Waiting()) => Ok(state = Model__Waiting())",
 		"    waiting(state = Model__Waiting()) => Ok(state = Model__Waiting())\n    waiting2(state = Model__Waiting()) => Ok(state = Model__Waiting())", 1)
-	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.ail", "client.ail"})
+	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.can", "client.can"})
 	if diags := CheckRevisionIdentity(progC, textsC, base); len(diags) != 0 {
 		t.Fatalf("expected no identity findings, got %v", diags)
 	}
@@ -244,7 +244,7 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
     on Model__Waiting _ => Ok(ready = false)
 `
 	files := revisionFiles(modelB, clientB)
-	progB, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	base := revisionBaseline(t, progB, "review-base:B")
 	modelC := strings.Replace(modelB,
 		"  case Waiting()\n)", "  case Waiting()\n  case Expired()\n)", 1)
@@ -254,12 +254,12 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
 	clientC = strings.Replace(clientC,
 		"    waiting(state = Model__Waiting()) => Ok(ready = false)",
 		"    waiting(state = Model__Waiting()) => Ok(ready = false)\n    expired(state = Model__Expired()) => Ok(ready = false)", 1)
-	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.ail", "client.ail"})
+	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.can", "client.can"})
 	diags := CheckRevisionIdentity(progC, textsC, base)
-	if !hasCode(diags, "AIL6013") {
+	if !hasCode(diags, "CAN6013") {
 		t.Fatalf("expected identity rejection, got %v", diags)
 	}
-	if hasCode(diags, "AIL4101") {
+	if hasCode(diags, "CAN4101") {
 		t.Fatalf("complete eliminators must not report missing cases, got %v", diags)
 	}
 }
@@ -300,8 +300,8 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
 	modelC := strings.Replace(modelB,
 		"  case Waiting()\n)", "  case Waiting()\n  case Expired()\n)", 1)
 	dir := writeLSPDir(t, revisionFiles(modelC, clientB))
-	diags := diagnose(dir, "client.ail", clientB)
-	if !hasCode(diags, "AIL4101") {
+	diags := diagnose(dir, "client.can", clientB)
+	if !hasCode(diags, "CAN4101") {
 		t.Fatalf("expected missing-case rejection, got %v", diags)
 	}
 }
@@ -311,8 +311,8 @@ fn client__pick(state: Model__State) -> Client__Result rev 1
 func TestRevisionIdentityBumpPin(t *testing.T) {
 	model := strings.Replace(revisionModelB, "rev 1 (", "rev 2 (", 1)
 	dir := writeLSPDir(t, revisionFiles(model, revisionClientB))
-	diags := diagnose(dir, "client.ail", revisionClientB)
-	if !hasCode(diags, "AIL2103") {
+	diags := diagnose(dir, "client.can", revisionClientB)
+	if !hasCode(diags, "CAN2103") {
 		t.Fatalf("expected stale-pin rejection, got %v", diags)
 	}
 }
@@ -321,11 +321,11 @@ func TestRevisionIdentityBumpPin(t *testing.T) {
 // with repin records removal plus addition, never drift.
 func TestRevisionIdentityProperBump(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	progB, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	base := revisionBaseline(t, progB, "review-base:B")
 	modelC := strings.Replace(revisionModelB, "rev 1 (", "rev 2 (", 1)
 	clientC := strings.Replace(revisionClientB, "Model__State@1", "Model__State@2", 1)
-	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.ail", "client.ail"})
+	progC, textsC := revisionProg(t, revisionFiles(modelC, clientC), []string{"model.can", "client.can"})
 	diags := CheckRevisionIdentity(progC, textsC, base)
 	if !hasFound(diags, "REMOVED") || !hasFound(diags, "ADDED") {
 		t.Fatalf("expected removal plus addition, got %v", diags)
@@ -339,7 +339,7 @@ func TestRevisionIdentityProperBump(t *testing.T) {
 // candidate-generated baseline is refused before any comparison.
 func TestRevisionIdentityUntrustedBaseline(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	progB, textsB := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, textsB := revisionProg(t, files, []string{"model.can", "client.can"})
 	base := revisionBaseline(t, progB, "candidate:unaccepted")
 	base.Accepted = false
 	diags := CheckRevisionIdentity(progB, textsB, base)
@@ -352,7 +352,7 @@ func TestRevisionIdentityUntrustedBaseline(t *testing.T) {
 // format is refused, never silently rehashed.
 func TestRevisionIdentityBadFormat(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	progB, textsB := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, textsB := revisionProg(t, files, []string{"model.can", "client.can"})
 	base := revisionBaseline(t, progB, "review-base:B")
 	base.Format = 999
 	diags := CheckRevisionIdentity(progB, textsB, base)
@@ -385,21 +385,21 @@ fn m__max(left: int, right: int) -> M__Out rev 1
     on true => Ok(value = right)
     on false => Ok(value = left)
 `
-	files := map[string]string{"m.ail": modB}
-	progB, _ := revisionProg(t, files, []string{"m.ail"})
+	files := map[string]string{"m.can": modB}
+	progB, _ := revisionProg(t, files, []string{"m.can"})
 	base := &RevisionBaseline{
 		Format: RevisionFormat, Origin: "review-base:B",
 		Accepted: true, Scope: []string{"m"},
 		Entries: FingerprintProgram(progB),
 	}
 	modC := strings.Replace(modB, "    left >= right\n", "    true\n", 1)
-	progC, textsC := revisionProg(t, map[string]string{"m.ail": modC}, []string{"m.ail"})
+	progC, textsC := revisionProg(t, map[string]string{"m.can": modC}, []string{"m.can"})
 	diags := CheckRevisionIdentity(progC, textsC, base)
 	if !hasDiag(diags, "error", "m__max") {
 		t.Fatalf("expected drift on the weakened contract, got %v", diags)
 	}
-	if !hasCode(diags, "AIL6013") {
-		t.Fatalf("expected AIL6013, got %v", diags)
+	if !hasCode(diags, "CAN6013") {
+		t.Fatalf("expected CAN6013, got %v", diags)
 	}
 }
 
@@ -407,7 +407,7 @@ fn m__max(left: int, right: int) -> M__Out rev 1
 // reload, and compare byte-identical across runs.
 func TestRevisionBaselineRoundTrip(t *testing.T) {
 	files := revisionFiles(revisionModelB, revisionClientB)
-	progB, _ := revisionProg(t, files, []string{"model.ail", "client.ail"})
+	progB, _ := revisionProg(t, files, []string{"model.can", "client.can"})
 	dir := t.TempDir()
 	p1 := filepath.Join(dir, "b1.json")
 	p2 := filepath.Join(dir, "b2.json")

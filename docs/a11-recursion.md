@@ -25,16 +25,16 @@ line — false. Deleting metadata changes admission, not the trace.
 
 ## Rule
 
-The ail call graph — every ail-to-ail edge, same-file and
+The can call graph — every can-to-can edge, same-file and
 cross-file — must be acyclic except proven self-edges. A self-call
 is admitted iff its function declares `decreases p` over an `int`
 param and every self-call site has both properties:
 
 1. Unit step: the site passes exactly `p - 1` (named or positional).
    Larger steps terminate but break one spelling per meaning and are
-   refused (`AIL3008`).
+   refused (`CAN3008`).
 2. Positive branch: the site sits under the false arm of the
-   canonical `p <= 0` guard (`AIL3009`). `p >= 1`, `p > 0`, `p == 0`
+   canonical `p <= 0` guard (`CAN3009`). `p >= 1`, `p > 0`, `p == 0`
    spell the same bound; only this shape admits recursion.
 
 The param never rebinds, so a site reached under a false guard
@@ -46,7 +46,7 @@ entry steps further negative) and are refused, guard or no guard.
 Externs are host code outside the proof and never form cycle edges;
 unknown callees belong to other codes. A cycle touching two or more
 files reports once, at the call site that closes it, in the caller's
-file (`AIL3005`, the same rule as the local ban). Same-file cycles
+file (`CAN3005`, the same rule as the local ban). Same-file cycles
 stay with the local check: one mistake, one diagnostic.
 
 ## Theorem (written down, not waved at)
@@ -61,32 +61,32 @@ same class as before, still not the proof.
 
 - `check.go`: `isDecrease` requires exactly `1`; `checkDecreases`
   walks match arms carrying the guard flag (`isGuardScrut`
-  recognizes only `p <= 0`); unguarded unit sites are `AIL3009`.
-- `check.go`: `checkGlobalCycles` builds the whole-program ail-edge
+  recognizes only `p <= 0`); unguarded unit sites are `CAN3009`.
+- `check.go`: `checkGlobalCycles` builds the whole-program can-edge
   graph (sorted for determinism), skips externs and unknown
   callees, skips same-file-only cycles (local check owns them), and
   attributes each reported cycle to its closing call site.
 - `lsp.go` / `main.go`: the global verdict feeds the existing
-  prove-first gate (`extBlocked` into `checkSem`, `AIL3009` joins
+  prove-first gate (`extBlocked` into `checkSem`, `CAN3009` joins
   the blocking codes), per the R10 world-error rule — reported
   per-line, suppressing only execution-dependent checks, in both
   the CLI and the editor.
 - `eval.go`: both negative-entry failures (root tests and local
   calls) are deleted — unreachable past the guard rule, and keeping
   them would contradict the returned-outcome theorem.
-- `code.go`: `AIL3009` in the registry.
+- `code.go`: `CAN3009` in the registry.
 
 ## Consequences
 
 - The alpha/beta probe is refused with
   `call cycle alpha__run -> beta__run -> alpha__run` and no test
   executes. Same-file behavior is unchanged (same messages, same
-  codes); `retry.ail`, `auth.ail`, and `counter.ail` compile
+  codes); `retry.can`, `auth.can`, and `counter.can` compile
   byte-identically — no golden changes.
 - Breaks (stated plainly): larger-step recursion (`p - 2` and
   friends), unguarded self-calls, and cross-file cycles are now
   errors. `TestLoopNegativeEntryLoud` is inverted: negative entries
-  take the base arm. The `AIL3008` message now names the unit step.
+  take the base arm. The `CAN3008` message now names the unit step.
 - The retry header, the reviewer guide's loop section, and the a08
   "would hang" passages are corrected to proof-gated admission;
   each carries an `Amendment (a11)` pointer here. The a05 plan

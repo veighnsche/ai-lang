@@ -35,7 +35,7 @@ computed text — the constructor row was unimplementable, and the
 tables passed while the seal was rejected. The rule is now:
 same-file seals take string literals or string-typed refs and
 fields; brands never seal brands (fail closed: only `str`
-passes). The file-ownership ban (AIL6004) and the grep-seal
+passes). The file-ownership ban (CAN6004) and the grep-seal
 audit are untouched. What changed is the minting discipline for
 computed brands: decision tables prove the output instead of
 eyeballing literals. The evaluator already accepted arbitrary

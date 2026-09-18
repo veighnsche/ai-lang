@@ -1,7 +1,7 @@
 # a68: runLinkedPure (verdict B, a67 §1.3)
 
 Explicitly-selected linked-pure execution for committed
-Go tests. No `.ail` syntax, no `given` change, no
+Go tests. No `.can` syntax, no `given` change, no
 coverage credit. Spec lives in a67 §1.3; this slice is
 mechanism only.
 
@@ -16,7 +16,7 @@ mechanism only.
 2. Admission walk before execution: BFS from root over
    `walkCalls`. Refuse on externs (`prog.Externs`),
    store ops (`isStoreOp`), non-empty `Effects`,
-   unknown names, and anything not AIL source or an
+   unknown names, and anything not CAN source or an
    admitted deterministic kernel (`isBytesKernel`,
    `isDecParts`). All branches inspected, not just the
    exercised one. Cycles terminate the walk via

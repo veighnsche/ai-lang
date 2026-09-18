@@ -1,13 +1,13 @@
 # a85 — Deep-research prompt: best language for an AI coding agent (pre-decision, 2026-09-18)
 
-Status: paste-ready prompt. We skipped the research phase for ai-lang; this commissions it retroactively.
+Status: paste-ready prompt. We skipped the research phase for can-lang; this commissions it retroactively.
 
 ---
 
 # Deep research: what makes a programming language good for AI coding agents?
 
 ## Context
-I am designing `ai-lang`, an experimental contract-first language optimized for AI agents (not humans) to read, write, and verify. Current thesis: verbose, explicit, single canonical form; no inference an agent would have to guess; tests + logic are one artifact (every function ships a decision table + branch evidence); declared error sets; machine-checkable contracts (termination, effects, exact numerics); transpiles to TypeScript.
+I am designing `can-lang`, an experimental contract-first language optimized for AI agents (not humans) to read, write, and verify. Current thesis: verbose, explicit, single canonical form; no inference an agent would have to guess; tests + logic are one artifact (every function ships a decision table + branch evidence); declared error sets; machine-checkable contracts (termination, effects, exact numerics); transpiles to TypeScript.
 
 I skipped the research phase. Now I need it retroactively: what have OTHER people already discovered about requirements for agent-friendly languages?
 
@@ -26,13 +26,13 @@ What language requirements, design principles, and empirical findings exist abou
 - Distinguish (a) measured results with benchmarks, (b) reasoned proposals with prototypes, (c) pure opinion. Label each finding accordingly.
 - For each finding give: claim, source (link + date), evidence strength, and any known replication or rebuttal.
 - Surface disagreements explicitly (where sources contradict each other).
-- Do NOT start from my thesis and confirm it. Treat ai-lang's choices as hypotheses to check, and flag where prior art disagrees with them.
+- Do NOT start from my thesis and confirm it. Treat can-lang's choices as hypotheses to check, and flag where prior art disagrees with them.
 
 ## Deliverable format
 1. **Requirements catalog** — table: ID | requirement (one sentence) | why it helps agents | evidence (measured/proposed/opinion + source) | confidence (high/med/low).
 2. **Design dimensions + tradeoffs** — e.g. verbosity vs context budget, strictness vs solvability, explicitness vs boilerplate errors; with guidance on where the sweet spot measured out.
 3. **Top 10 highest-ROI requirements** ranked by evidence strength, each with falsifiable acceptance check (what experiment would prove/disprove it).
-4. **Gaps in my thesis** — requirements others found important that ai-lang currently ignores, and ai-lang bets with no outside support.
+4. **Gaps in my thesis** — requirements others found important that can-lang currently ignores, and can-lang bets with no outside support.
 5. **Source list** — full links, grouped by type (papers / benchmarks / postmortems / proposals), newest first within groups.
 6. **Unresolved** — questions the sources don't answer, stated as open items, not silently dropped.
 

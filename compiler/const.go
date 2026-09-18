@@ -40,13 +40,13 @@ func constLiteral(sort string, s *Small) bool {
 }
 
 // checkConstDecls validates constant declarations in one module:
-// admitted sort plus a matching literal initializer (AIL6016).
+// admitted sort plus a matching literal initializer (CAN6016).
 // Scalars keep the V1 shape rule; composite sorts (records,
 // non-nested sequences, brands per design3) check the literal
 // tree against the declared sort with the shared type checker,
 // so constructor fields get the same unknown/missing-field
 // rules as handwritten rows. Duplicates are reported at world
-// build (AIL2205).
+// build (CAN2205).
 func checkConstDecls(m *Module, prog *Program, text string) []Diag {
 	var out []Diag
 	for _, d := range m.Decls {
@@ -161,7 +161,7 @@ type constScope map[string]bool
 
 // checkConstRefs validates constant references in execution
 // positions (body, tests, given): SCREAMING references must
-// resolve (AIL2104), foreign ones need a uses pin (AIL2105).
+// resolve (CAN2104), foreign ones need a uses pin (CAN2105).
 // Contracts are excluded: admission classifies unknown names
 // there, and pins govern execution linkage. Binder tracking
 // keeps params, test args, and call binders out of the way.
@@ -321,7 +321,7 @@ func usedConsts(fn *FnDecl) map[string]bool {
 // admits integer patterns); undeclared names fall back to variant
 // treatment (preserving the old "variant pattern on a non-call
 // match" behavior for genuinely unknown names); dec constants
-// are AIL6016 with the arm neutralized to wild so the prover
+// are CAN6016 with the arm neutralized to wild so the prover
 // reports no extra noise. Idempotent: rewritten patterns are
 // never Kind "const".
 func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
@@ -338,7 +338,7 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 	}
 	pinCheck := func(fn *FnDecl, line int, name string) {
 		// A foreign constant in a pattern needs its rev pin
-		// like any other reference (AIL2105, once per name):
+		// like any other reference (CAN2105, once per name):
 		// patterns resolve through the same program table
 		// as bodies.
 		if prog.ConstFile[name] != open.ID && !prog.Uses[name] && !pinned[name] {
@@ -362,9 +362,9 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 					case "or":
 						// Slice 4: alternatives elaborate like
 						// lone slot patterns. A written `_`
-						// is AIL4112 here (not in the proof),
+						// is CAN4112 here (not in the proof),
 						// so dec-constant fallthrough below
-						// keeps its own AIL6016 without noise.
+						// keeps its own CAN6016 without noise.
 						for oi := range p.Alts {
 							alt := &p.Alts[oi]
 							if alt.Kind == "wild" {

@@ -153,7 +153,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			// clash purely between siblings points at line 1 and names
 			// the file, since the editor can only squiggle the open doc.
 			// Externs share the function namespace: a foreign import
-			// shadowing an ail function (or vice versa) is the same
+			// shadowing an can function (or vice versa) is the same
 			// double definition, or calls could not resolve.
 			_, isFn := d.(*FnDecl)
 			_, isEx := d.(*ExternDecl)
@@ -719,7 +719,7 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 // calleeUnknown reports whether fname resolves to nothing the
 // checker can reason about: no function body, no extern
 // declaration in any module, and no builtin op. checkCalls owns
-// the AIL3001 for these; given, proof, and execution stay
+// the CAN3001 for these; given, proof, and execution stay
 // silent downstream so one root cause yields one diagnostic.
 // Declared externs (module-local or otherwise) keep full
 // checking: their emits make given/proof meaningful.
@@ -738,7 +738,7 @@ func calleeUnknown(prog *Program, fname string) bool {
 
 // UnknownCallError marks a row failure caused solely by calling
 // a function that resolves nowhere. checkSem suppresses the
-// AIL4200 for it (checkCalls already reported the AIL3001) but
+// CAN4200 for it (checkCalls already reported the CAN3001) but
 // still marks the function failed so coverage stays silent.
 type UnknownCallError struct {
 	Owner string
@@ -1267,7 +1267,7 @@ func checkRecordCycles(mods []*Module, texts map[string]string) []Diag {
 // checkGlobalCycles bans recursion across files (a11): the sandbox
 // stubs foreign calls, so a cross-file cycle passes every per-file
 // check and every test, then links into an unproved recursive cycle
-// in production. Every ail-to-ail edge counts — same-file and
+// in production. Every can-to-can edge counts — same-file and
 // cross-file — but cycles lying entirely in one file belong to the
 // local check (one mistake, one diagnostic), so only cycles touching
 // two or more files report here. Externs are host code outside the

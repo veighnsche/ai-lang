@@ -43,8 +43,8 @@ to value matches.
 - No change to single-match behavior: existing goldens byte-identical;
   `go test ./...`, `go run ./tools/modcheck`, `go run ./tools/gramcheck`
   all green, plus new committed goldens for the tuple shapes.
-- No new diagnostic code: arity misuse reuses `AIL4105`, coverage gaps reuse
-  `AIL4101`/`AIL4104` with tuple rendering.
+- No new diagnostic code: arity misuse reuses `CAN4105`, coverage gaps reuse
+  `CAN4101`/`CAN4104` with tuple rendering.
 
 ## Context And Current Facts
 
@@ -61,9 +61,9 @@ to value matches.
   (store/decparts/helper/foreign+`given`) or `evSmall` for values, then
   first-matching arm wins with `markTaken` coverage (`compiler/eval.go:783`).
 - Exhaustiveness: `verifyExhaustiveAll` (`compiler/eval.go:1139`) has two
-  branches — call matches (want `ok` + emits, `AIL4101`/`AIL4102`) and value
-  matches (bool must be exactly `true`+`false` per `AIL4103`; `str` without
-  `_` fails per `AIL4104`; variant on value fails per `AIL4106`).
+  branches — call matches (want `ok` + emits, `CAN4101`/`CAN4102`) and value
+  matches (bool must be exactly `true`+`false` per `CAN4103`; `str` without
+  `_` fails per `CAN4104`; variant on value fails per `CAN4106`).
 - Types: `tycker.node` (`compiler/types.go:754`) values the scrutinee, then
   threads bindings only for call-match `variant` arms; value arms add no
   bindings.
@@ -72,8 +72,8 @@ to value matches.
   (`boolTotal` last arm becomes bare `else`; `wild` arm emits trailing
   lines and returns).
 - Codes: registry + uniqueness test in `compiler/code.go`
-  (`AIL4101` missing arm, `AIL4103` bool arms, `AIL4104` value-no-wild,
-  `AIL4105` bad arm kind, `AIL4106` variant-on-value, `AIL4107` arm untaken).
+  (`CAN4101` missing arm, `CAN4103` bool arms, `CAN4104` value-no-wild,
+  `CAN4105` bad arm kind, `CAN4106` variant-on-value, `CAN4107` arm untaken).
 - Precedent docs: `docs/a03-branch-coverage.md` (test-per-arm law),
   `docs/a05-expressiveness.md` (proof-cost sequencing rule).
 
@@ -90,17 +90,17 @@ to value matches.
   parse error; the proposal syntax is `match x, y`.
 - No nested tuples, no per-slot variant patterns in v1 (variant arms are only
   legal on call matches anyway — multi has no calls, so they keep failing
-  under the existing `AIL4106` family).
+  under the existing `CAN4106` family).
 - No static overlap/duplicate-arm error in v1: later duplicates are dead by
   first-match-wins and get caught by the existing test-per-arm law
-  (`AIL4107`), same as unreachable single arms today.
+  (`CAN4107`), same as unreachable single arms today.
 - No `REQUIREMENTS.md` edit in v1: this doc is the proposal; the amendment
   lands only if the design is accepted.
 
 ## Key Decisions
 
 1. Syntax `match x, y` / arms `p1, p2 => rhs`, no colon. The user's sketch
-   uses `match x, y:`; rejected because ail match lines never take a
+   uses `match x, y:`; rejected because can match lines never take a
    terminator — `=>` + indentation already delimit. The optional `on` arm
    prefix keeps working uniformly (`on true, false => ...`).
 2. Value-only multi. Rejected alternative: allow `match call f(), y` or
@@ -118,11 +118,11 @@ to value matches.
    `lsp.go:400`, `catalog.go:90`, `walkCalls`) branches on one shape either
    way; one list is the smaller, uniform diff. Single-match code paths read
    `Scruts[0]`.
-5. No new `AIL` codes. Arity mismatch (wrong comma count, empty slot, bad
-   per-slot spelling) reuses `AIL4105` (arm shape doesn't fit the match);
-   uncovered boolean tuples reuse `AIL4101` rendered as tuples
+5. No new `CAN` codes. Arity mismatch (wrong comma count, empty slot, bad
+   per-slot spelling) reuses `CAN4105` (arm shape doesn't fit the match);
+   uncovered boolean tuples reuse `CAN4101` rendered as tuples
    (`missing (false, true)`); `str`-slot tables without `_` coverage reuse
-   `AIL4104`. Rationale: one rule one code, and the golden JSON-diag suite
+   `CAN4104`. Rationale: one rule one code, and the golden JSON-diag suite
    freezes every code (`compiler/code.go`), so reuse avoids registry churn.
 6. Symbolic product-space subtraction, not Cartesian expansion. Each arm
    denotes a product space (`true` = `{true}`, `_` = whole slot domain);
@@ -134,7 +134,7 @@ to value matches.
    Maranget usefulness (OCaml/Rust) and Liu-style space algebra
    (Scala/Swift SpaceEngine), miniaturized to bool/str slots. v1 uses the
    op for exhaustiveness only; unreachable arms keep surfacing via the
-   existing dynamic test-per-arm law (`AIL4107`), matching single-match
+   existing dynamic test-per-arm law (`CAN4107`), matching single-match
    behavior where duplicate value arms also collapse silently at check
    time. No GHC-style model cap and no Swift-style "unable to check"
    escape hatch in v1 — the slot fragment is too small to need one.
@@ -143,7 +143,7 @@ to value matches.
    residual dimensions may generalize (`missing (false, _)`). `OTHER_STRING`
    is never rendered as `_` (that would falsely imply all strings missing):
    the witness generator picks a concrete string literal not consumed by the
-   table. Cap witnesses at three; reuse `AIL4101`/`AIL4104`, no new codes.
+   table. Cap witnesses at three; reuse `CAN4101`/`CAN4104`, no new codes.
 8. Emit as simplified conjunction chains over temporaries. Scrutinees lower
    to `const $m0 = x; const $m1 = y; …`, then each arm is
    `if (c1 && c2 && ...)` with per-slot conditions (`$m` / `!($m)` for bool,
@@ -177,7 +177,7 @@ checker re-asserts it so hand-built ASTs can't slip through.
 2. P1 — Parse + AST. `Node.Scrut *Small` → `Scruts []*Small`; `match` line
    splits scrutinees with `splitTop(s, ',')` (each via `parseSmall`); arm
    LHS splits the same way (each via `parsePattern`); arity + value-only
-   (`call` in multi, `given` on multi) rejected at parse with `AIL4105`-
+   (`call` in multi, `given` on multi) rejected at parse with `CAN4105`-
    class errors. Migrate all `Scrut` readers to `Scruts[0]` for `len == 1`.
    Nested `match` in RHS (`parseExprBlock`, `parseMatchArms` sub-branch)
    gains multi automatically. Surfaces: `compiler/parse.go`,
@@ -188,7 +188,7 @@ checker re-asserts it so hand-built ASTs can't slip through.
    true/false/any plus str literal/any over the literals-mentioned-plus-
    `OTHER` partition; per arm compute `useful = arm − covered`, accumulate
    `covered`, then report `total − covered` as up-to-three concrete tuple
-   witnesses (`AIL4101`; `AIL4104` when a `str` slot's remainder is uncovered).
+   witnesses (`CAN4101`; `CAN4104` when a `str` slot's remainder is uncovered).
    Per-slot variant kinds → existing variant-on-value error. Keep the call
    branch single-only (multi never reaches it post-P1). Add LSP anchoring
    for the tuple rendering next to the existing
@@ -224,7 +224,7 @@ checker re-asserts it so hand-built ASTs can't slip through.
 - P6 adds committed golden tests (sketch + emit + decision-table run);
   multi-vs-nested equivalence test evaluates both spellings over the full
   input product and diffs outcomes.
-- Manual: compile the Goal snippet through `ailc` to TS and eyeball the
+- Manual: compile the Goal snippet through `canlc` to TS and eyeball the
   `if (… && …) / else` chain once.
 
 ## Risks / Rollback
@@ -239,7 +239,7 @@ checker re-asserts it so hand-built ASTs can't slip through.
   an arity guideline. Never weaken to "trust the `_`" — partial `_`
   coverage is exactly what P2 computes.
 - Overlap silently favors the first arm. Accepted (matches nested-`if`
-  semantics); the backstop is `AIL4107` test-per-arm, not a new static rule.
+  semantics); the backstop is `CAN4107` test-per-arm, not a new static rule.
 - Rollback: each slice is independently revertible; P1 without P2+ is
   unreachable code behind the value-only gate (parser rejects multi until
   P2 lands — sequence P1+P2 together if a lone-P1 tree is unwanted).

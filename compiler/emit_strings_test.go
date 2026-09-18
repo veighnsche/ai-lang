@@ -8,7 +8,7 @@ import (
 )
 
 // One literal encoder (normStr) for values and patterns, and one
-// target ordering (UTF-8 byte order via $ailStr helpers) matching Go.
+// target ordering (UTF-8 byte order via $canStr helpers) matching Go.
 
 const strSemFixture = `mod str
   provides [str__match, str__order, str__len, str__at, str__slice, Str__Value, Int__Value]
@@ -85,22 +85,22 @@ func TestStrSemanticsEvaluate(t *testing.T) {
 	if !strings.Contains(strSemFixture, "\uE000") || !strings.Contains(strSemFixture, "\U00010000") {
 		t.Fatal("fixture lost its U+E000/U+10000 literals")
 	}
-	dir := writeLSPDir(t, map[string]string{"str.ail": strSemFixture})
+	dir := writeLSPDir(t, map[string]string{"str.can": strSemFixture})
 	// Every expectation above is the source semantics: backslash and
 	// quote literals match by raw content, and U+E000 orders below
 	// U+10000 in byte order.
-	if diags := diagnose(dir, "str.ail", strSemFixture); len(diags) != 0 {
+	if diags := diagnose(dir, "str.can", strSemFixture); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestStrSemanticsEmit(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "str.ail"), []byte(strSemFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "str.can"), []byte(strSemFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "str.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "str.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "str.ts"))
@@ -113,14 +113,14 @@ func TestStrSemanticsEmit(t *testing.T) {
 	for _, want := range []string{
 		`(v === "a\\nb")`,
 		`(v === "say \\\"hi\\\"")`,
-		"$ailStrGe(left, right)",
+		"$canStrGe(left, right)",
 		"(BigInt([...v].length))",
-		"$ailStrAt(v, i)",
-		"$ailStrSlice(v, a, b)",
-		"function $ailStrCmp",
-		"function $ailStrGe",
-		"function $ailStrAt",
-		"function $ailStrSlice",
+		"$canStrAt(v, i)",
+		"$canStrSlice(v, a, b)",
+		"function $canStrCmp",
+		"function $canStrGe",
+		"function $canStrAt",
+		"function $canStrSlice",
 		"TextEncoder",
 	} {
 		if !strings.Contains(src, want) {
@@ -134,8 +134,8 @@ func TestStrSemanticsEmit(t *testing.T) {
 			t.Errorf("emit contains %q\n--- emit ---\n%s", banned, src)
 		}
 	}
-	if strings.Contains(src, "function $ailStrLe") {
-		t.Errorf("emit contains unused $ailStrLe helper\n--- emit ---\n%s", src)
+	if strings.Contains(src, "function $canStrLe") {
+		t.Errorf("emit contains unused $canStrLe helper\n--- emit ---\n%s", src)
 	}
 }
 
@@ -172,11 +172,11 @@ fn fault__slice(v: str, a: int, b: int) -> Fault__Str rev 1
   Ok(value = v[a:b])
 `
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "fault.ail"), []byte(faultFixture), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "fault.can"), []byte(faultFixture), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := t.TempDir()
-	if err := compile(out, []string{filepath.Join(dir, "fault.ail")}); err != nil {
+	if err := compile(out, []string{filepath.Join(dir, "fault.can")}); err != nil {
 		t.Fatalf("compile: %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(out, "fault.ts"))

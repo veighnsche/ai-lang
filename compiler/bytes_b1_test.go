@@ -32,13 +32,13 @@ fn m__go() -> M__Out rev 1
 
 // V0: empty is a value, not a failure.
 func TestBytesV0Empty(t *testing.T) {
-	seqClean(t, map[string]string{"m.ail": bytesV0}, "m.ail")
+	seqClean(t, map[string]string{"m.can": bytesV0}, "m.can")
 }
 
 // V1: nonempty ordered contents with repeats are observably exact.
 func TestBytesV1Ordered(t *testing.T) {
 	body := strings.ReplaceAll(bytesV0, `Bytes(Seq<int>[])`, `Bytes(Seq<int>[0, 127, 128, 255, 255, 0])`)
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }
 
 // V2: construction is admitted in every value position: params, test
@@ -68,7 +68,7 @@ fn m__go() -> M__Out rev 1
   match call m__id(Bytes(Seq<int>[2]))
     on Ok r => Ok(vals = r.vals)
 `
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }
 
 // V3: Seq<Bytes> follows the uniform element rule: construction,
@@ -97,7 +97,7 @@ fn m__go() -> B__Out rev 1
 =
   Ok(vals = Seq<Bytes>[Bytes(Seq<int>[0])] + Bytes(Seq<int>[1]))
 `
-	seqClean(t, map[string]string{"m.ail": body}, "m.ail")
+	seqClean(t, map[string]string{"m.can": body}, "m.can")
 }
 
 func TestBytesV3SeqBytesMismatch(t *testing.T) {
@@ -136,7 +136,7 @@ fn m__go() -> B__Out rev 1
 `, "Seq<Bytes>"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			seqCode(t, map[string]string{"m.ail": c.body}, "m.ail",
+			seqCode(t, map[string]string{"m.can": c.body}, "m.can",
 				CodeTypeMismatch, c.sub)
 		})
 	}
@@ -162,7 +162,7 @@ fn m__go() -> M__Pair rev 1
 =
   Ok(a = Bytes(Seq<int>[0, 255]), b = Bytes(Seq<int>[1]))
 `
-	seqClean(t, map[string]string{"m.ail": rec}, "m.ail")
+	seqClean(t, map[string]string{"m.can": rec}, "m.can")
 	nested := `mod m
   provides [m__go, M__Inner, M__Outer]
   uses []
@@ -184,7 +184,7 @@ fn m__go() -> M__Outer rev 1
 =
   Ok(inner = M__Inner(vals = Bytes(Seq<int>[7])), tag = "t")
 `
-	seqClean(t, map[string]string{"m.ail": nested}, "m.ail")
+	seqClean(t, map[string]string{"m.can": nested}, "m.can")
 	payload := `mod m
   provides [m__go, M__Out]
   uses []
@@ -206,12 +206,12 @@ fn m__go(flag: bool) -> M__Out rev 1
     true => m.boom(value = Bytes(Seq<int>[9]))
     false => Ok(vals = Bytes(Seq<int>[]))
 `
-	seqClean(t, map[string]string{"m.ail": payload}, "m.ail")
+	seqClean(t, map[string]string{"m.can": payload}, "m.can")
 }
 
 // V5: linkage and expectation evidence. A provider computing different
-// bytes than the script claims must contradict (AIL3110), never trust;
-// a directly wrong expectation fails the run (AIL4200).
+// bytes than the script claims must contradict (CAN3110), never trust;
+// a directly wrong expectation fails the run (CAN4200).
 const bytesLib = `mod lib
   provides [lib__byte, L__Out]
   uses []
@@ -250,8 +250,8 @@ fn app__go(flag: bool) -> A__Out rev 1
 `
 
 func TestBytesV5LinkageContradiction(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"lib.ail": bytesLib, "app.ail": bytesAppLie})
-	diags := diagnose(dir, "app.ail", bytesAppLie)
+	dir := writeLSPDir(t, map[string]string{"lib.can": bytesLib, "app.can": bytesAppLie})
+	diags := diagnose(dir, "app.can", bytesAppLie)
 	found := false
 	for _, d := range diags {
 		if d.Sev == "error" && d.Code == CodeInconsistentScript {
@@ -259,7 +259,7 @@ func TestBytesV5LinkageContradiction(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected AIL3110 contradiction, got %v", diags)
+		t.Fatalf("expected CAN3110 contradiction, got %v", diags)
 	}
 	if !hasDiag(diags, "error", "contradicts lib__byte") {
 		t.Fatalf("expected contradiction message, got %v", diags)
@@ -270,8 +270,8 @@ func TestBytesV5WrongExpectation(t *testing.T) {
 	body := strings.Replace(bytesV0,
 		"=\n  Ok(vals = Bytes(Seq<int>[]))",
 		"=\n  Ok(vals = Bytes(Seq<int>[0, 255]))", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": body})
-	diags := diagnose(dir, "m.ail", body)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
 	found := false
 	for _, d := range diags {
 		if d.Sev == "error" && d.Code == CodeTestFailed {
@@ -279,7 +279,7 @@ func TestBytesV5WrongExpectation(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected AIL4200 test failure, got %v", diags)
+		t.Fatalf("expected CAN4200 test failure, got %v", diags)
 	}
 }
 
@@ -295,7 +295,7 @@ func TestBytesV6EmitPins(t *testing.T) {
 	if strings.Contains(ts, "255n") {
 		t.Fatalf("emit leaked bigint into bytes:\n%s", ts)
 	}
-	if strings.Contains(ts, "$ailEqVal") {
+	if strings.Contains(ts, "$canEqVal") {
 		t.Fatalf("emit inserted unused equality runtime:\n%s", ts)
 	}
 }
@@ -330,10 +330,10 @@ fn m__eq2(p: M__Pair, q: M__Pair) -> M__Flag rev 1
   Ok(flag = (p == q))
 `
 	ts := compileEmit(t, body)
-	if got := strings.Count(ts, "function $ailEqBytes"); got != 1 {
-		t.Fatalf("expected one $ailEqBytes helper, got %d:\n%s", got, ts)
+	if got := strings.Count(ts, "function $canEqBytes"); got != 1 {
+		t.Fatalf("expected one $canEqBytes helper, got %d:\n%s", got, ts)
 	}
-	if !strings.Contains(ts, "$ailEqVal") {
+	if !strings.Contains(ts, "$canEqVal") {
 		t.Fatalf("emit missing structural equality runtime:\n%s", ts)
 	}
 }
@@ -350,7 +350,7 @@ func TestBytesT0ElementRange(t *testing.T) {
 			body := strings.Replace(bytesV0,
 				"=\n  Ok(vals = Bytes(Seq<int>[]))",
 				"=\n  Ok(vals = "+c.frag+")", 1)
-			seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+			seqCode(t, map[string]string{"m.can": body}, "m.can",
 				CodeBytesElementRange, c.sub)
 		})
 	}
@@ -375,7 +375,7 @@ fn m__go(x: int) -> M__Out rev 1
 =
   Ok(vals = Bytes(Seq<int>[x]))
 `
-	seqCode(t, map[string]string{"m.ail": runtimeMember}, "m.ail",
+	seqCode(t, map[string]string{"m.can": runtimeMember}, "m.can",
 		CodeBytesLiteral, "not an integer literal")
 	runtimeSeq := `mod m
   provides [m__go, M__Out]
@@ -393,7 +393,7 @@ fn m__go(xs: Seq<int>) -> M__Out rev 1
 =
   Ok(vals = Bytes(xs))
 `
-	seqCode(t, map[string]string{"m.ail": runtimeSeq}, "m.ail",
+	seqCode(t, map[string]string{"m.can": runtimeSeq}, "m.can",
 		CodeBytesLiteral, "Seq<int> literal")
 }
 
@@ -403,7 +403,7 @@ func TestBytesT2Positions(t *testing.T) {
 	bareList := strings.Replace(bytesV0,
 		"=\n  Ok(vals = Bytes(Seq<int>[]))",
 		"=\n  Ok(vals = Bytes([0, 1]))", 1)
-	seqCode(t, map[string]string{"m.ail": bareList}, "m.ail",
+	seqCode(t, map[string]string{"m.can": bareList}, "m.can",
 		CodeSeqLiteral, "Seq<T>")
 	bareAnnot := `mod m
   provides [m__go, M__Out]
@@ -421,12 +421,12 @@ fn m__go(x: Seq) -> M__Out rev 1
 =
   Ok(vals = Bytes(Seq<int>[]))
 `
-	seqCode(t, map[string]string{"m.ail": bareAnnot}, "m.ail",
+	seqCode(t, map[string]string{"m.can": bareAnnot}, "m.can",
 		CodeUnknownType, "Seq")
 	unbound := strings.Replace(bytesV0,
 		"=\n  Ok(vals = Bytes(Seq<int>[]))",
 		"=\n  Ok(vals = Bytes(Seq))", 1)
-	seqCode(t, map[string]string{"m.ail": unbound}, "m.ail",
+	seqCode(t, map[string]string{"m.can": unbound}, "m.can",
 		CodeTypeMismatch, "unbound name Seq")
 }
 
@@ -438,8 +438,8 @@ func TestBytesT2ParseShapes(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			body := strings.Replace(bytesV0, `Bytes(Seq<int>[])`, `Bytes(`+c.frag+`)`, -1)
-			dir := writeLSPDir(t, map[string]string{"m.ail": body})
-			diags := diagnose(dir, "m.ail", body)
+			dir := writeLSPDir(t, map[string]string{"m.can": body})
+			diags := diagnose(dir, "m.can", body)
 			found := false
 			for _, d := range diags {
 				if d.Sev == "error" && d.Code == CodeParse {
@@ -478,7 +478,7 @@ fn m__go() -> M__Flag rev 1
 =
   Ok(flag = (Bytes(Seq<int>[0]) OP Bytes(Seq<int>[0])))
 `, "OP", c.op, 1)
-			seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+			seqCode(t, map[string]string{"m.can": body}, "m.can",
 				CodeTypeMismatch, "Bytes comparison")
 		})
 	}
@@ -498,14 +498,14 @@ fn m__go() -> Bytes rev 1
 =
   Ok(vals = Bytes(Seq<int>[]))
 `
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeTypeMismatch, "bare-Bytes")
 }
 
 func TestBytesT4NoBytesState(t *testing.T) {
 	body := strings.Replace(bytesV0, `type M__Out rev 1 (`,
 		"state M__C: Bytes = Bytes(Seq<int>[])\n\ntype M__Out rev 1 (", 1)
-	seqCode(t, map[string]string{"m.ail": body}, "m.ail",
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
 		CodeUnknownType, "cells hold")
 }
 
@@ -518,22 +518,22 @@ func TestBytesT5NoShadow(t *testing.T) {
 
 type M__Out rev 1 (`, 1)
 	rec = strings.Replace(rec, "provides [m__go, M__Out]", "provides [m__go, M__Out, Bytes]", 1)
-	// The shadow name also breaks the Domain__Name rule (AIL2002);
+	// The shadow name also breaks the Domain__Name rule (CAN2002);
 	// both fire, each owning its rule, so pin presence rather than
 	// the single-primary shape.
-	dir := writeLSPDir(t, map[string]string{"m.ail": rec})
-	diags := diagnose(dir, "m.ail", rec)
+	dir := writeLSPDir(t, map[string]string{"m.can": rec})
+	diags := diagnose(dir, "m.can", rec)
 	if !hasDiag(diags, "error", "shadows the Bytes primitive") {
-		t.Fatalf("expected AIL6012 shadow rejection, got %v", diags)
+		t.Fatalf("expected CAN6012 shadow rejection, got %v", diags)
 	}
 	brand := strings.Replace(bytesV0, `type M__Out rev 1 (`, `brand Bytes is str rev 1
 
 type M__Out rev 1 (`, 1)
 	brand = strings.Replace(brand, "provides [m__go, M__Out]", "provides [m__go, M__Out, Bytes]", 1)
-	// Companion AIL2002 as above: presence, not single-primary.
-	bdir := writeLSPDir(t, map[string]string{"m.ail": brand})
-	bdiags := diagnose(bdir, "m.ail", brand)
+	// Companion CAN2002 as above: presence, not single-primary.
+	bdir := writeLSPDir(t, map[string]string{"m.can": brand})
+	bdiags := diagnose(bdir, "m.can", brand)
 	if !hasDiag(bdiags, "error", "shadows the Bytes primitive") {
-		t.Fatalf("expected AIL6012 shadow rejection, got %v", bdiags)
+		t.Fatalf("expected CAN6012 shadow rejection, got %v", bdiags)
 	}
 }

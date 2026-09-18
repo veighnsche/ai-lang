@@ -5,9 +5,9 @@ import (
 )
 
 // a62: a match-call on a function that resolves nowhere must
-// report exactly one diagnostic (AIL3001, the cause). The
+// report exactly one diagnostic (CAN3001, the cause). The
 // given/proof/execution rungs that vanish with the fix are
-// noise: AIL3101, AIL3103, AIL4101, AIL4102, AIL4200, AIL4107.
+// noise: CAN3101, CAN3103, CAN4101, CAN4102, CAN4200, CAN4107.
 
 func diagCodes(diags []Diag) map[string]bool {
 	out := map[string]bool{}
@@ -38,11 +38,11 @@ fn client__go(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
-	dir := writeLSPDir(t, map[string]string{"client.ail": client})
-	diags := diagnose(dir, "client.ail", client)
+	dir := writeLSPDir(t, map[string]string{"client.can": client})
+	diags := diagnose(dir, "client.can", client)
 	codes := diagCodes(diags)
 	if !codes[CodeUnknownCall] {
-		t.Fatalf("expected AIL3001, got %v", diags)
+		t.Fatalf("expected CAN3001, got %v", diags)
 	}
 	for _, c := range []string{CodeNoGiven, CodeStubNotInEmit, CodeMissingArm, CodeStaleArm, CodeTestFailed, CodeArmUntaken} {
 		if codes[c] {
@@ -68,11 +68,11 @@ fn client__bare(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
-	dir := writeLSPDir(t, map[string]string{"client.ail": client})
-	diags := diagnose(dir, "client.ail", client)
+	dir := writeLSPDir(t, map[string]string{"client.can": client})
+	diags := diagnose(dir, "client.can", client)
 	codes := diagCodes(diags)
 	if !codes[CodeUnknownCall] {
-		t.Fatalf("expected AIL3001, got %v", diags)
+		t.Fatalf("expected CAN3001, got %v", diags)
 	}
 	for _, c := range []string{CodeNoGiven, CodeStubNotInEmit, CodeMissingArm, CodeStaleArm, CodeTestFailed, CodeArmUntaken} {
 		if codes[c] {

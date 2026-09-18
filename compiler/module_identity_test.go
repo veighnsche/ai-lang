@@ -10,7 +10,7 @@ import (
 // Module identity is the cleaned input path: two inputs with different
 // identities are different modules even when their basenames match.
 // Output stems stay bare while unique, then disambiguate injectively;
-// the same identity twice is an AIL5007 collision.
+// the same identity twice is an CAN5007 collision.
 
 const identProvider = `mod alpha
   provides [alpha__get, Alpha__Data, Alpha__Seal]
@@ -60,8 +60,8 @@ func writeSameBasename(t *testing.T, consumer string) (dir, a, b string) {
 	if err := os.MkdirAll(filepath.Join(dir, "b"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	a = filepath.Join(dir, "a", "same.ail")
-	b = filepath.Join(dir, "b", "same.ail")
+	a = filepath.Join(dir, "a", "same.can")
+	b = filepath.Join(dir, "b", "same.can")
 	if err := os.WriteFile(a, []byte(identProvider), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -158,9 +158,9 @@ fn beta__forge() -> Beta__Out rev 1
 	}
 }
 
-func TestDuplicateIdentityIsAIL5007(t *testing.T) {
+func TestDuplicateIdentityIsCAN5007(t *testing.T) {
 	dir := t.TempDir()
-	f := filepath.Join(dir, "m.ail")
+	f := filepath.Join(dir, "m.can")
 	if err := os.WriteFile(f, []byte(identProvider), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -168,8 +168,8 @@ func TestDuplicateIdentityIsAIL5007(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !hasCode(collected, "AIL5007") {
-		t.Fatalf("expected AIL5007, got %v", collected)
+	if !hasCode(collected, "CAN5007") {
+		t.Fatalf("expected CAN5007, got %v", collected)
 	}
 	out := t.TempDir()
 	if err := compile(out, []string{f, f}); err == nil {
@@ -197,14 +197,14 @@ func TestAssignStems(t *testing.T) {
 		return m
 	}
 	t.Run("distinct keeps bare stems", func(t *testing.T) {
-		mods := []*Module{mk("a/x.ail"), mk("b/y.ail")}
+		mods := []*Module{mk("a/x.can"), mk("b/y.can")}
 		assignStems(mods)
 		if mods[0].Stem != "x" || mods[1].Stem != "y" {
 			t.Fatalf("stems = %q, %q", mods[0].Stem, mods[1].Stem)
 		}
 	})
 	t.Run("shared basename disambiguates", func(t *testing.T) {
-		mods := []*Module{mk("b/same.ail"), mk("a/same.ail")}
+		mods := []*Module{mk("b/same.can"), mk("a/same.can")}
 		assignStems(mods)
 		got := map[string]bool{mods[0].Stem: true, mods[1].Stem: true}
 		if len(got) != 2 {
@@ -212,7 +212,7 @@ func TestAssignStems(t *testing.T) {
 		}
 	})
 	t.Run("sanitize tie breaks with suffix", func(t *testing.T) {
-		mods := []*Module{mk("a_b.ail"), mk("p/a_b.ail"), mk("p_a_b.ail")}
+		mods := []*Module{mk("a_b.can"), mk("p/a_b.can"), mk("p_a_b.can")}
 		assignStems(mods)
 		got := map[string]bool{}
 		for _, m := range mods {

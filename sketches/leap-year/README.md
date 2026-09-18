@@ -1,6 +1,6 @@
 # leap-year — Gregorian rule as one flat match
 
-- `leap.ail` — `mod leap`: a three-slot match (a28) on divisibility
+- `leap.can` — `mod leap`: a three-slot match (a28) on divisibility
   by 400, 100, and 4. The century exception reads top to bottom;
   wildcards keep four arms exhaustive, each witnessed by its own
   table row (a03). Naming follows the std `is_*` predicates
@@ -8,7 +8,7 @@
 - `leap.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped).
   Regenerate: `go run ./compiler --out <dir>
-  sketches/leap-year/leap.ail`; verify: `go test ./...`.
+  sketches/leap-year/leap.can`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Proof: `docs/a28-multi-scrutinee-match.md`,
 `docs/a03-branch-coverage.md`.

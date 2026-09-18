@@ -1,4 +1,4 @@
-// leap-year/leap.ail — Gregorian leap-year rule as one flat
+// leap-year/leap.can — Gregorian leap-year rule as one flat
 // three-slot match (a28): divisibility by 400, 100, and 4. The
 // century exception reads top to bottom: 400 wins, 100 loses,
 // 4 wins, else loses. Wildcards keep four arms exhaustive, each

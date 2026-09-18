@@ -24,7 +24,7 @@ Failure injection is the point, not a limitation.
 
 ### 1.2 Arm coverage: kept
 
-AIL4107 stays exactly as is (verdict C, pinned by
+CAN4107 stays exactly as is (verdict C, pinned by
 `compiler/diag_4107_test.go`): taken-ness is execution of
 the particular arm under a passing test, or the existing
 local identity-relay certificate. Script presence is not
@@ -36,14 +36,14 @@ calls never qualify.
 Adopt verdict B's `runLinkedPure` contract unchanged:
 
 - Explicitly selected by committed Go tests only. No new
-  `.ail` call syntax; `checkGiven` default untouched.
+  `.can` call syntax; `checkGiven` default untouched.
 - Inputs: explicit module set, root function + revision,
   signature-checked args. Module presence never implies
   execution (verdict's core objection to presence-based
   admission).
 - Precondition: ordinary whole-program checks, tables,
   revisions, export certification green first.
-- Reachable graph: checked pure AIL or deterministic
+- Reachable graph: checked pure CAN or deterministic
   kernels only, all branches inspected. Reachable
   externs, state ops, effects, unresolved calls, or
   cycles refuse. Cross-module cycles stay rejected;
@@ -53,7 +53,7 @@ Adopt verdict B's `runLinkedPure` contract unchanged:
 - Identity preserved (`Module.ID`, ownership,
   certificates); fresh context per vector.
 - Failure fails; nothing is "trusted". Traces stay
-  separate and never satisfy AIL4107.
+  separate and never satisfy CAN4107.
 - Falsifier (verdict): `runLinkedPure(middle__copy@1,
   "A")` returns `""` against `"A"`, order-reversed,
   plus a correct-leaf positive control.
@@ -120,7 +120,7 @@ Validator pilot, completed against the existing
 `std__validate__int_range` (which declares both
 `validation.invalid_bounds` and
 `validation.out_of_range`, see
-`std/quota/quota.ail`): the parent excerpt's `Ok` +
+`std/quota/quota.can`): the parent excerpt's `Ok` +
 `invalid_bounds` alone is an incomplete outcome
 contract (e.g. value `-1` in `[0,1]` satisfies
 neither), so the pilot specifies all three outcomes
@@ -194,7 +194,7 @@ untrusted input into declared errors.
 Concrete admitted test inputs are still required for
 executable functions (borrow-doc acceptance test):
 contracts quantify universally, tables witness
-concretely. AIL3110 (scripted-Ok contradiction) stays
+concretely. CAN3110 (scripted-Ok contradiction) stays
 as the linkage check between the two. Precise rule:
 every executable function retains its mandatory
 decision table; every ordinary input row must satisfy
@@ -216,12 +216,12 @@ why §2.3's revision mechanism is separate.
 ### 2.5 Three complementary obligations (revised per verdict)
 
 Three complementary obligations, with overlapping
-defect detection. AIL3110 rejects a scripted success
+defect detection. CAN3110 rejects a scripted success
 contradicted by a successfully modeled provider
 execution; absence of a contradiction does not
 establish agreement when the provider could not be
 modeled (scripted errors are deliberately trusted,
-and "not contradicted" is not agreement). AIL4107
+and "not contradicted" is not agreement). CAN4107
 requires execution evidence for each source arm under
 passing tests, subject only to the existing
 authorized identity-relay exception (no "proved
@@ -282,7 +282,7 @@ verifier implementation.
    (parse and store; proves nothing).
 3. a73–a76: closed tagged unions (borrow #3) — shipped.
 4. a77: revision identity enforcement (§2.3) — shipped
-   (AIL6013; proof caching explicitly out of scope).
+   (CAN6013; proof caching explicitly out of scope).
 5. Verifier core (§2.2 logic), now unblocked, sliced
    probe-first per the §2.2 verdict: a80 admission /
    well-formedness (no solver), a81 obligation
@@ -294,7 +294,7 @@ verifier implementation.
    proves them; unsupported contract-bearing
    interfaces do not ship as accepted source.
 
-Each slice: failing probes first, existing `.ail`
+Each slice: failing probes first, existing `.can`
 untouched except additive rows, committed
 docs/generated, `go test -count=1 ./...` +
 `modcheck` + `gramcheck` green.

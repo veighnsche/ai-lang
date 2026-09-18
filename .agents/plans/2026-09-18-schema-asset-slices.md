@@ -31,15 +31,15 @@ decision; the plan turns each ruling into buildable, testable work.
   (per-program handle), registry (externally accepted snapshot), and the two
   builders.
 - No `std/schema/` exists today. The std module convention (per
-  `std/quota/`, `std/text/`) is `schema.ail` + `errors.json` + `schema.ts`
+  `std/quota/`, `std/text/`) is `schema.can` + `errors.json` + `schema.ts`
   (committed golden TS prod emit, regenerated via
-  `go run ./compiler --out std/schema std/schema/schema.ail`) + `README.md`.
-- Brand forgery is closed by `docs/a15-brands.md` (AIL6004): a function body
+  `go run ./compiler --out std/schema std/schema/schema.can`) + `README.md`.
+- Brand forgery is closed by `docs/a15-brands.md` (CAN6004): a function body
   may `seal` only its own file's brands; test expectations, arguments, and
-  `given` rows may seal any declared brand. So only `schema.ail` bodies can
-  mint `ApprovedAsset`, and only `html.ail` bodies can mint `Html__Safe`.
+  `given` rows may seal any declared brand. So only `schema.can` bodies can
+  mint `ApprovedAsset`, and only `html.can` bodies can mint `Html__Safe`.
 - Brands flow opaquely: there is no brand-to-string inspection
-  (`std/html/html.ail:1-12`). A cross-module witness therefore cannot be
+  (`std/html/html.can:1-12`). A cross-module witness therefore cannot be
   consumed by ordinary calls — the Schema→HTML handoff needs an explicit
   compiler-authorized bridge, not a helper.
 - Template for that bridge is Bytes B2 (`docs/bytes-plan.md` §1):
@@ -84,14 +84,14 @@ decision; the plan turns each ruling into buildable, testable work.
 
 ## Key Decisions
 
-- **D1 — Approval semantics in pure `.ail`, no compiler change.** Exact-match
+- **D1 — Approval semantics in pure `.can`, no compiler change.** Exact-match
   lookup over explicit snapshot values (records + `Seq`, string/int equality)
   is fully expressible. Keeps the security logic reviewable in source and the
   compiler out of policy. Rejected: native registry type or builtin
   verification (hides policy in the compiler, untestable as decision tables).
 - **D2 — Two-owner bridge as a B2-shaped compiler grant.** Neither
   `html`-side raw-URL params (wall-smuggling, breaks the consumer contract)
-  nor `schema`-side `Html__Safe` seals (cross-module seal, AIL6004) nor a
+  nor `schema`-side `Html__Safe` seals (cross-module seal, CAN6004) nor a
   generic `extern` declassifier (violates the nominal-projection caution:
   numeric projection must never become generic declassification) is
   acceptable. New declaration form (working name `asset_bridge`, spelling is
@@ -116,14 +116,14 @@ decision; the plan turns each ruling into buildable, testable work.
   expired); `asset` carries the original request unchanged. Builder-level
   `html.asset_stylesheet_rejected` / `html.asset_script_rejected` carry the
   supplied witness unchanged. `AssetRegistryChangeRejected` is an
-  administrative workflow result, never a callable `.ail` API.
+  administrative workflow result, never a callable `.can` API.
   `SchemaAuthorityInvalid` is a compiler/acceptance diagnostic, never an
   `emits` outcome.
 - **D6 — Builders emit fixed SRI output.** The granted builders carry the
   approved URL + exact integrity metadata into the element (stylesheet:
   `link` with integrity + `crossorigin`; script: `script` with integrity +
   `crossorigin`), with no caller overrides. Redirects, downgrade, and
-  fallback behavior are documented retrieval obligations, not `.ail` rows.
+  fallback behavior are documented retrieval obligations, not `.can` rows.
 - **D7 — Pure-first slice order.** Value model and lookup rows land before
   any compiler change, so the riskiest piece (D2 grant) is validated against
   frozen semantics rather than co-designed with them.
@@ -141,7 +141,7 @@ S4 (certificates/diagnostics).
 ## Work Plan
 
 - **S1 — Schema value model + construction-time lookup (no compiler
-  change).** New `std/schema/schema.ail`: `AssetRequest` record (identifier,
+  change).** New `std/schema/schema.can`: `AssetRequest` record (identifier,
   revision, absolute URL, claimed SHA-384 SRI digest, requested role);
   `ApprovedAsset` + `AssetPolicy` opaque brands (sealed only in schema
   bodies); `RegistrySnapshot` record (sequence number, entries, retained
@@ -171,7 +171,7 @@ S4 (certificates/diagnostics).
   as the single pinned sink, emitting the fixed `link` element with
   integrity + `crossorigin`. `runLinkedPure` vectors spanning
   schema+html files both module orders. Negative controls: ungranted sink
-  body rejected at check; forged body seal still AIL6004. Depends on: S1
+  body rejected at check; forged body seal still CAN6004. Depends on: S1
   types. Proves: D2, D6 (stylesheet half). Highest-risk validation in the
   plan.
 - **S3 — `script` builder + role disjointness + non-transitivity rows.**
@@ -222,7 +222,7 @@ S4 (certificates/diagnostics).
   same kind/shape (membership-oracle check by kind comparison).
 - S2: `TestAssetBridge`-style falsifier — granted stylesheet construction
   succeeds; sink without grant fails the build; foreign body seal fails
-  AIL6004 (negative control reusing the `sketches/broken-login` pattern);
+  CAN6004 (negative control reusing the `sketches/broken-login` pattern);
   `runLinkedPure` schema+html vectors pass in both module orders;
   `modcheck`, `gramcheck`, golden `schema.ts`/`html.ts` byte-stable except
   intended additions.

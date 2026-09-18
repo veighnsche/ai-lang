@@ -11,7 +11,7 @@ dispatch needed correction. All folded below. No B6 gates run.
 
 ## Contract (Q1, Q2 resolved: compiler-owned)
 
-```ail
+```can
 type Encoding__Text rev 1 (
   value: str
 )
@@ -21,7 +21,7 @@ error encoding.invalid_utf8(value: Bytes)
 
 Both live in the compiler contract registry alongside
 `Bytes__Value`/`bytesKernels` — NOT in a new
-`std/encoding/encoding.ail`, NOT in caller `provides`/`uses`.
+`std/encoding/encoding.can`, NOT in caller `provides`/`uses`.
 Bytes-typed error fields are already supported (B1
 `TestBytesV4StructuralEq` proves `error m.boom(value: Bytes)`
 end-to-end); B6 newly proves it through the COMPILER-OWNED
@@ -90,8 +90,8 @@ decoder descriptor alone would misroute today.
   (`Kind "err"`, `ErrKind "encoding.invalid_utf8"`,
   `Dict["value"]` = ORIGINAL Bytes) with NIL Go error.
   Only after `utf8.Valid` succeeds, construct the string.
-- TS result: `{ $ail_kind: "ok"; value: string } |
-  { $ail_kind: "encoding.invalid_utf8"; value: Uint8Array }`.
+- TS result: `{ $can_kind: "ok"; value: string } |
+  { $can_kind: "encoding.invalid_utf8"; value: Uint8Array }`.
 - Strategy: retain operand once, validate the complete
   grammar, invalid → error(original), valid → decode with
   `fatal: true, ignoreBOM: true` (verdict Q3 fix — default
@@ -108,12 +108,12 @@ decoder descriptor alone would misroute today.
 `contradictScriptOk` treats provider Go-errors as "not
 contradicted" — so a Go-error implementation would let a
 false scripted success pass. Required scenario, both module
-orders, diagnostic AIL3110:
+orders, diagnostic CAN3110:
 
 ```text
 provider input:  Bytes(Seq<int>[65, 226, 130])
 provider result: encoding.invalid_utf8(same bytes)
-false script:    Ok(value = "A")  → must fail AIL3110
+false script:    Ok(value = "A")  → must fail CAN3110
 ```
 
 Provider needs its own valid + invalid direct rows. Invalid
@@ -132,7 +132,7 @@ UTF-8 is a computed comparable result, not a modeling gap.
   arm, missing Ok arm, stale arm (declared unrelated
   error), forbidden `given`, strict admission, wrong
   field type, shadow redeclaration rejection.
-- Linkage: AIL3110 false-success scenario both orders.
+- Linkage: CAN3110 false-success scenario both orders.
 - Execution parity: actual emitted fixture, both outcomes;
   tags + text + full error bytes; independent success
   after a failure; re-encode comparison (never Go bytes

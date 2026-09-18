@@ -34,7 +34,7 @@ fn acc__f(n: int) -> Acc__V rev 1
 
 func acceptanceTests(t *testing.T, src string) []Test {
 	t.Helper()
-	m, err := parseModuleText("acc.ail", src)
+	m, err := parseModuleText("acc.can", src)
 	if err != nil {
 		t.Fatalf("parse failed: %v", err)
 	}
@@ -65,8 +65,8 @@ func TestPinnedRowSetsFlag(t *testing.T) {
 func TestPinnedRowDiagnosesClean(t *testing.T) {
 	// The marker is behavior-free in slice 1: a pinned file gates
 	// exactly like its unpinned twin.
-	dir := writeLSPDir(t, map[string]string{"acc.ail": acceptanceSrc})
-	if diags := diagnose(dir, "acc.ail", acceptanceSrc); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"acc.can": acceptanceSrc})
+	if diags := diagnose(dir, "acc.can", acceptanceSrc); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -107,8 +107,8 @@ func acceptanceBase(t *testing.T, prog *Program) *RevisionBaseline {
 
 func acceptanceReprog(t *testing.T, src string) (*Program, map[string]string) {
 	t.Helper()
-	files := map[string]string{"acc.ail": src}
-	return revisionProg(t, files, []string{"acc.ail"})
+	files := map[string]string{"acc.can": src}
+	return revisionProg(t, files, []string{"acc.can"})
 }
 
 func TestPinnedWeakeningWarns(t *testing.T) {
@@ -120,8 +120,8 @@ func TestPinnedWeakeningWarns(t *testing.T) {
 	moved = strings.Replace(moved, "true => Ok(value = 5,", "true => Ok(value = 6,", 1)
 	prog2, texts2 := acceptanceReprog(t, moved)
 	diags := CheckPinnedRows(prog2, texts2, base)
-	if !hasCode(diags, "AIL6017") {
-		t.Fatalf("expected AIL6017 weakening warning, got %v", diags)
+	if !hasCode(diags, "CAN6017") {
+		t.Fatalf("expected CAN6017 weakening warning, got %v", diags)
 	}
 	if !hasFound(diags, "keep") {
 		t.Fatalf("expected row name in diagnostic, got %v", diags)
@@ -181,8 +181,8 @@ func TestPinnedRemovedWarns(t *testing.T) {
 	}
 	prog2, texts2 := acceptanceReprog(t, strings.Join(kept, "\n"))
 	diags := CheckPinnedRows(prog2, texts2, base)
-	if !hasCode(diags, "AIL6017") || !hasFound(diags, "removed") {
-		t.Fatalf("expected AIL6017 removal warning, got %v", diags)
+	if !hasCode(diags, "CAN6017") || !hasFound(diags, "removed") {
+		t.Fatalf("expected CAN6017 removal warning, got %v", diags)
 	}
 }
 
@@ -192,8 +192,8 @@ func TestPinnedDemoteWarns(t *testing.T) {
 	demoted := strings.Replace(acceptanceBehav, `) pinned`, `)`, 1)
 	prog2, texts2 := acceptanceReprog(t, demoted)
 	diags := CheckPinnedRows(prog2, texts2, base)
-	if !hasCode(diags, "AIL6017") || !hasFound(diags, "demoted") {
-		t.Fatalf("expected AIL6017 demotion warning, got %v", diags)
+	if !hasCode(diags, "CAN6017") || !hasFound(diags, "demoted") {
+		t.Fatalf("expected CAN6017 demotion warning, got %v", diags)
 	}
 }
 

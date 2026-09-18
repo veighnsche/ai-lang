@@ -94,9 +94,9 @@ func isContracted(fn *FnDecl) bool {
 }
 
 // CheckContractAdmission classifies every contracted function in the
-// program: malformed contracts (AIL4301), fragment-external sorts,
-// operators, and body dependencies (AIL4302), and reliance on
-// callee summaries no proving run has established (AIL4303).
+// program: malformed contracts (CAN4301), fragment-external sorts,
+// operators, and body dependencies (CAN4302), and reliance on
+// callee summaries no proving run has established (CAN4303).
 func CheckContractAdmission(prog *Program, texts map[string]string) []Diag {
 	a := indexAdmission(prog, texts)
 	for _, m := range prog.Modules {
@@ -255,7 +255,7 @@ func (a *admission) projection(s *Small, scope map[string]admitSort) admitTerm {
 		// Slice 1: a constant reference classifies exactly
 		// like its literal (int/bool admit as scalar sorts;
 		// str/dec are outside like their literals). Unknown
-		// names stay unknown: contracts never raise AIL2104.
+		// names stay unknown: contracts never raise CAN2104.
 		if len(s.Ref) == 1 && constNameRe.MatchString(s.Ref[0]) {
 			if decl, found := lookupConst(a.prog, s.Ref[0]); found && decl.Value != nil {
 				return a.term(decl.Value, scope)

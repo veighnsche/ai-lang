@@ -17,7 +17,7 @@ three gaps where Rust is ahead, in agent-ROI order.
   `anyhow`-style untyped escape hatch. An agent cannot write
   the lazy path; that is the point.
 - `emits [...]` stays the declared per-function error set
-  (checked-error precision Rust never got). `AIL4001`
+  (checked-error precision Rust never got). `CAN4001`
   stands.
 - Deny-by-default diagnostics. A warning an agent can ignore
   is noise: every diagnostic is either an error or deleted.
@@ -28,7 +28,7 @@ three gaps where Rust is ahead, in agent-ROI order.
 
 ## Item 1: structured diagnostic fixes + explain (first)
 
-Problem: ailc diagnostics point but never suggest. There is
+Problem: canlc diagnostics point but never suggest. There is
 no fix/suggestion path in the LSP or CLI; rustc ships
 "did you mean", "consider adding", and rustfix. Agents act
 on structured edits far more reliably than on prose, so
@@ -40,16 +40,16 @@ Proposal:
 - High-frequency codes carry machine-actionable payloads:
   `expected` / `found`, the candidate token where one
   exists, and a suggested edit expressed as (span,
-  replacement text). First codes: `AIL4001` (raise
+  replacement text). First codes: `CAN4001` (raise
   outside emits: suggest the declared kind or the emits
-  entry), `AIL3204` (bare kind: suggest the complete
-  construction), `AIL3105` (dangling test: suggest the
-  missing script row shape), `AIL4101` (missing arm:
+  entry), `CAN3204` (bare kind: suggest the complete
+  construction), `CAN3105` (dangling test: suggest the
+  missing script row shape), `CAN4101` (missing arm:
   list the missing patterns — rustc already does this
   for non-exhaustive matches).
 - Payloads ride the existing JSON diagnostic lines, so
   CLI and editor share them like every other squiggle.
-- `ailc explain AILxxxx` prints the per-code doc: the
+- `canlc explain CANxxxx` prints the per-code doc: the
   rule, a minimal violation, the legal fix. Codes stay
   frozen; explain text is documentation, versioned with
   the compiler.
@@ -73,7 +73,7 @@ on auth.login_failed e => forward e
 Rules, all checkable:
 
 - The arm still exists. Coverage law and test-per-arm
-  (`AIL4107`) apply unchanged: `forward` is a body shape,
+  (`CAN4107`) apply unchanged: `forward` is a body shape,
   not an arm exemption.
 - The compiler checks the forwarded kind is in the
   function's `emits` and the payload is complete — the
@@ -90,7 +90,7 @@ Rules, all checkable:
 Problem: mapping drops provenance. When `auth__verify`
 maps `auth.mismatch` to `auth.login_failed`, the original
 value dies at `_`. Rust has `source()` chains and
-`.context()`; ailc has neither. For an agent debugging a
+`.context()`; canlc has neither. For an agent debugging a
 failing test, "which hops did this error pass through" is
 the missing datum.
 
@@ -99,10 +99,10 @@ Proposal, two parts:
 - `cause` payload convention: a mapped error may carry the
   consumed error value as a declared field, constructed
   explicitly like any other payload (complete-construction
-  rule unchanged — `AIL3204` still rejects bare kinds).
+  rule unchanged — `CAN3204` still rejects bare kinds).
   Convention first, compiler support only if a consumer
   needs it.
-- Structured `AIL4200`: today the most-read diagnostic in
+- Structured `CAN4200`: today the most-read diagnostic in
   the language renders as one flat string (`test X fails:
   ...`). It should carry a field-level diff (which field
   differed, expected vs got — tag-alone comparison already
@@ -156,7 +156,7 @@ sorted; new keys only, no shape break beyond addition.
    change; goldens + `go test ./...` + LSP parity.
 2. Item 2 (forward arms). Grammar, eval, emit, goldens;
    auth-login relay arms are the migration proof.
-3. Item 3 (cause + AIL4200 structure). Evaluator +
+3. Item 3 (cause + CAN4200 structure). Evaluator +
    diagnostics; failing-test fixtures pin the diff.
 4. Item 4 (fault payloads). Evaluator only.
 5. Item 5 (catalog edges). Additive keys; regen goldens.

@@ -79,7 +79,7 @@ func TestRepoPasses(t *testing.T) {
 }
 
 func TestGoodPair(t *testing.T) {
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": goodAuth})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": goodAuth})
 	_, _, _, errs := check([]string{dir})
 	if len(errs) > 0 {
 		t.Fatalf("expected pass, got %v", errs)
@@ -88,7 +88,7 @@ func TestGoodPair(t *testing.T) {
 
 func TestUnpinnedUses(t *testing.T) {
 	bad := strings.Replace(goodAuth, "db__get@1", "db__get", 1)
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "must pin a rev") {
 		t.Fatalf("expected pin error, got %v", errs)
@@ -97,7 +97,7 @@ func TestUnpinnedUses(t *testing.T) {
 
 func TestUnresolvableUses(t *testing.T) {
 	bad := strings.Replace(goodAuth, "db__get@1", "ghost@9", 1)
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "resolves nowhere") {
 		t.Fatalf("expected resolve error, got %v", errs)
@@ -110,13 +110,13 @@ func TestUnresolvableUses(t *testing.T) {
 func TestSharedRootUses(t *testing.T) {
 	lib := "mod lib\n  provides [lib__K]\n  uses []\n  emits []\n\nconst lib__K: int rev 1 = 7\n"
 	app := "mod app\n  provides [app__go]\n  uses [lib__K@1]\n  emits []\n"
-	dir := writeFixtures(t, map[string]string{"lib/lib.ail": lib, "app/app.ail": app})
+	dir := writeFixtures(t, map[string]string{"lib/lib.can": lib, "app/app.can": app})
 	_, _, _, errs := check([]string{dir})
 	if len(errs) != 0 {
 		t.Fatalf("expected shared-root resolve, got %v", errs)
 	}
 	self := "mod self\n  provides [self__K]\n  uses [self__K@1]\n  emits []\n"
-	dir2 := writeFixtures(t, map[string]string{"self/self.ail": self})
+	dir2 := writeFixtures(t, map[string]string{"self/self.can": self})
 	_, _, _, errs2 := check([]string{dir2})
 	if !contains(errs2, "resolves nowhere") {
 		t.Fatalf("expected self-uses resolve error, got %v", errs2)
@@ -125,7 +125,7 @@ func TestSharedRootUses(t *testing.T) {
 
 func TestExternRedeclare(t *testing.T) {
 	bad := "extern fn db__get(id: str) -> Db__U\n" + goodAuth
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "re-declares") {
 		t.Fatalf("expected re-declare error, got %v", errs)
@@ -134,7 +134,7 @@ func TestExternRedeclare(t *testing.T) {
 
 func TestBracesBanned(t *testing.T) {
 	bad := goodDB + "// { stray brace }\n"
-	dir := writeFixtures(t, map[string]string{"db.ail": bad, "auth.ail": goodAuth})
+	dir := writeFixtures(t, map[string]string{"db.can": bad, "auth.can": goodAuth})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "curly braces are banned") {
 		t.Fatalf("expected braces error, got %v", errs)
@@ -147,12 +147,12 @@ func TestBracesInStringsAllowed(t *testing.T) {
 	withBraces := strings.Replace(goodDB,
 		"    ok(id = \"u\") => Ok(id = \"u\")\n",
 		"    ok(id = \"u\") => Ok(id = \"u\")\n    braced(id = \"{u}\") => db.down()\n", 1)
-	dir := writeFixtures(t, map[string]string{"db.ail": withBraces, "auth.ail": goodAuth})
+	dir := writeFixtures(t, map[string]string{"db.can": withBraces, "auth.can": goodAuth})
 	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
 		t.Fatalf("expected braces in strings to pass, got %v", errs)
 	}
 	bad := withBraces + "  { stray }\n"
-	dir = writeFixtures(t, map[string]string{"db.ail": bad, "auth.ail": goodAuth})
+	dir = writeFixtures(t, map[string]string{"db.can": bad, "auth.can": goodAuth})
 	if _, _, _, errs := check([]string{dir}); !contains(errs, "curly braces are banned") {
 		t.Fatalf("expected braces error, got %v", errs)
 	}
@@ -160,7 +160,7 @@ func TestBracesInStringsAllowed(t *testing.T) {
 
 func TestExternSectionGone(t *testing.T) {
 	bad := strings.Replace(goodAuth, "  tests", "  externals:\n  tests", 1)
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "externals section is gone") {
 		t.Fatalf("expected externals error, got %v", errs)
@@ -169,7 +169,7 @@ func TestExternSectionGone(t *testing.T) {
 
 func TestGivenMustBeTotal(t *testing.T) {
 	bad := strings.Replace(goodAuth, "      down => [db.down()]\n", "", 1)
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": bad})
 	_, _, _, errs := check([]string{dir})
 	if !contains(errs, "given table") {
 		t.Fatalf("expected given-table error, got %v", errs)
@@ -178,7 +178,7 @@ func TestGivenMustBeTotal(t *testing.T) {
 
 func TestLegacySkipped(t *testing.T) {
 	old := goodAuth + "\n// SUPERSEDED-BY: whatever\n"
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": old})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": old})
 	current, skipped, _, errs := check([]string{dir})
 	if len(errs) > 0 {
 		t.Fatalf("expected pass, got %v", errs)
@@ -200,17 +200,17 @@ func contains(errs []string, sub string) bool {
 func TestDemoExpects(t *testing.T) {
 	partial := strings.Replace(goodAuth, "      down => [db.down()]\n", "", 1)
 	marker := "// DEMO-EXPECTS: given table [ok] != tests [down ok]\n"
-	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": marker + partial})
+	dir := writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": marker + partial})
 	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
 		t.Fatalf("expected declared demo violation to pass, got %v", errs)
 	}
 	healed := strings.Replace(partial, "      ok => [Ok(id = \"u\")]\n", "      ok => [Ok(id = \"u\")]\n      down => [db.down()]\n", 1)
-	dir = writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": marker + healed})
+	dir = writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": marker + healed})
 	if _, _, _, errs := check([]string{dir}); !contains(errs, "demo expects") {
 		t.Fatalf("expected healed-demo error, got %v", errs)
 	}
 	rotted := marker + partial + "// { stray brace }\n"
-	dir = writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": rotted})
+	dir = writeFixtures(t, map[string]string{"db.can": goodDB, "auth.can": rotted})
 	if _, _, _, errs := check([]string{dir}); !contains(errs, "curly braces are banned") {
 		t.Fatalf("expected extra-violation error, got %v", errs)
 	}
@@ -223,7 +223,7 @@ func TestNewDeclShapes(t *testing.T) {
 	auth = strings.Replace(auth, "uses [db__get@1]", "uses [db__get@1, Db__Hash@1]", 1)
 	auth += "\nbrand Auth__Pw is str rev 1\n\nextern m__use(pw: Auth__Pw) -> Auth__S rev 1\n  emits [auth.bad]\n"
 	auth = strings.Replace(auth, "ok(id = \"u\") => Ok(id = \"u\")", "ok(id = \"u\") => Ok(id = d\"1.5\")", 1)
-	dir := writeFixtures(t, map[string]string{"db.ail": db, "auth.ail": auth})
+	dir := writeFixtures(t, map[string]string{"db.can": db, "auth.can": auth})
 	_, _, _, errs := check([]string{dir})
 	if len(errs) > 0 {
 		t.Fatalf("expected pass, got %v", errs)

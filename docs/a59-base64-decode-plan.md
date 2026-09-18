@@ -24,7 +24,7 @@ bytes__base64__decode
   restricted: false
 ```
 
-```ail
+```can
 error encoding.invalid_base64(value: str)
 ```
 
@@ -118,10 +118,10 @@ never normalize, including in payloads.
   neighbor nibbles, both-mask matrix with positives.
 - Proof rules with diagnostics: missing arms both,
   stale arm, forbidden `given`, admission (Bytes/int/
-  valid-brand/malformed-brand -> AIL6003 `want str`,
+  valid-brand/malformed-brand -> CAN6003 `want str`,
   error-arm leak covered), wrong field type, shadow,
-  wrong-payload AIL4200.
-- Linkage, PER-LIE AIL3110 both orders (verdict: no
+  wrong-payload CAN4200.
+- Linkage, PER-LIE CAN3110 both orders (verdict: no
   aggregate check — B10's X9 aggregate stays as
   shipped, B14 asserts each lie): prefix-attack
   `"41zz42"`-analog `"QUJD!!!"` as `Ok`, plus
@@ -132,7 +132,7 @@ never normalize, including in payloads.
   `"QQ=="`->`"A"`, `"/w=="`->`invalid_utf8([255])`,
   `"41zz42"`-analog, `"00ffa"`-analog; exact per-call
   unions; emitted execution of every arm; foreign
-  false-script of the strict lie, AIL3110 both orders.
+  false-script of the strict lie, CAN3110 both orders.
 - Execution parity: emitted fixtures both outcomes;
   node vectors exhaustive over short malformed shapes
   vs Go (NEVER bare `StdEncoding` as oracle — it is

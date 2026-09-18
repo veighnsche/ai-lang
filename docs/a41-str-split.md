@@ -10,12 +10,12 @@ deviations.
 
 Split a string on a separator into ordered fields, retaining
 empty fields: `std__str__split(value: str, separator: str)` with
-`text.empty_separator` on empty separators. Second `.ail`
+`text.empty_separator` on empty separators. Second `.can`
 customer; no new compiler surface.
 
 ## Success Criteria
 
-- Decision rows below green in `std/text/text.ail`, including
+- Decision rows below green in `std/text/text.can`, including
   the leftmost-overlap policy row and the empty-input rows.
 - Round trip with join by paired fixtures (see decision 4).
 - Goldens regenerated (`text.ts` extended; `errors.json` gains
@@ -30,7 +30,7 @@ customer; no new compiler surface.
   precedent; split consumes the head the same way.
 - Catalogue: split retains empty fields, no implicit cleanup;
   Text + Collections (`docs/ASTRA_STDLIB.md:226`).
-- House wrapper convention: `.ail` signatures return records
+- House wrapper convention: `.can` signatures return records
   (`length_scalars -> Int__Value` for catalogue `int`), so
   split returns a wrapper record, not a bare `Seq` (S1 T8
   stands). Join already takes bare `Seq<str>` params — params
@@ -77,7 +77,7 @@ customer; no new compiler surface.
 
 1. P0 — Proposal (this file). No code.
 2. P1 — Append worker + entry + `Split__Result` with rows to
-   `std/text/text.ail`; extend `provides`.
+   `std/text/text.can`; extend `provides`.
 3. P2 — Regen goldens; update `std/text/README.md`.
 4. P3 — Gates; commit with generated files.
 

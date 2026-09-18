@@ -319,7 +319,7 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			return t, true
 		}
 		// A variable of undeclared type is unchecked here: the
-		// param/field declaration owns the AIL6002, and comparing
+		// param/field declaration owns the CAN6002, and comparing
 		// through it would cascade one typo into many.
 		if !c.knownType(t) {
 			// a75: a case binder carries its qualified case as
@@ -531,7 +531,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if got, ok := c.typeOf(s.Args[0].V, env); ok && c.brands[got] {
 			// a26: explicitly authorized one-way promotion. The
 			// destination's seals_from names the admitted source
-			// brands; unlisted sources stay AIL6003, and there is
+			// brands; unlisted sources stay CAN6003, and there is
 			// no reverse, transitive, or inferred promotion.
 			if !slices.Contains(c.brandSeals[s.Seal], got) {
 				c.out = append(c.out, spanDiag(c.text, line, "error",
@@ -560,7 +560,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if !ok {
 			// Slice 1: a constant reference carries its
 			// declared sort: existence is checkConstRefs'
-			// job (AIL2104), so the type checker
+			// job (CAN2104), so the type checker
 			// substitutes instead of reporting unbound.
 			if len(s.Ref) > 0 && constNameRe.MatchString(s.Ref[0]) {
 				if decl, found := lookupConst(c.prog, s.Ref[0]); found {
@@ -607,8 +607,8 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 	switch s.Kind {
 	case "not":
 		// Slice 5: prefix negation over one bool operand, no
-		// calls inside (those stay AIL3003 outside a match
-		// scrutinee), no truthiness: AIL6003 names the type.
+		// calls inside (those stay CAN3003 outside a match
+		// scrutinee), no truthiness: CAN6003 names the type.
 		s.T = "bool"
 		c.value(s.L, "", line, env, "not")
 		t, ok := c.typeOf(s.L, env)
@@ -622,8 +622,8 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		return
 	case "neg":
 		// Slice 6: prefix minus over exact int or dec. Calls
-		// inside stay AIL3003 outside a match scrutinee;
-		// anything else is AIL6003. The result carries the
+		// inside stay CAN3003 outside a match scrutinee;
+		// anything else is CAN6003. The result carries the
 		// operand type for emit's typed dispatch.
 		c.value(s.L, "", line, env, "negate")
 		t, ok := c.typeOf(s.L, env)
@@ -644,9 +644,9 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 		if s.Op == "and" || s.Op == "or" {
 			// Slice 5: eager combinators over two bool
-			// operands. Calls inside stay AIL3003 (outside
+			// operands. Calls inside stay CAN3003 (outside
 			// a match scrutinee); mistyped sides are
-			// AIL6003; the result is always bool.
+			// CAN6003; the result is always bool.
 			s.T = "bool"
 			where = s.Op
 			c.value(s.L, "", line, env, where)
@@ -866,7 +866,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		// boundary. Every member checks against the written element
 		// type with no inference and no emptiness waiver; exec is
 		// untouched, so seals inside executable literals keep the
-		// a15 file-ownership rule (AIL6004) while test and script
+		// a15 file-ownership rule (CAN6004) while test and script
 		// data keep naming any declared brand.
 		if _, nested := seqElemName(s.Elem); nested || !c.knownType(s.Elem) {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
@@ -942,7 +942,7 @@ func (c *tycker) checkStoreOp(s *Small, line int, env map[string]string) {
 
 // checkDecParts validates the decimal observation kernel: positional
 // args only (one spelling), exactly one arg, and a dec operand.
-// Anything else is AIL6003, the operand-rule family.
+// Anything else is CAN6003, the operand-rule family.
 func (c *tycker) checkDecParts(s *Small, line int, env map[string]string) {
 	for _, a := range s.Args {
 		if a.HasName {

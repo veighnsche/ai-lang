@@ -80,7 +80,7 @@ customer on its own.
 
 Each length row is a tested function returning a record with an
 `int` field (`test ... => Ok(n = #...)`); a miscount fails the
-test run (AIL4200), so clean means computed.
+test run (CAN4200), so clean means computed.
 
 ## Risks / Rollback
 

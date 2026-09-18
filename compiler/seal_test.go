@@ -7,7 +7,7 @@ import (
 // a15: executable code mints only its own module's brands. The
 // declaring file owns every executable seal site; tests and given
 // rows may name any declared brand because they are checked data.
-// A forged brand in a body is AIL6004; the same seal in a test or
+// A forged brand in a body is CAN6004; the same seal in a test or
 // script row is clean.
 
 const sealOwnBody = `mod m
@@ -52,15 +52,15 @@ fn lib__get() -> Lib__Out rev 1
 `
 
 func TestSealOwnBrandInBody(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealOwnBody})
-	if diags := diagnose(dir, "m.ail", sealOwnBody); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": sealOwnBody})
+	if diags := diagnose(dir, "m.can", sealOwnBody); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestSealLibOwnBrand(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"lib.ail": sealLib})
-	if diags := diagnose(dir, "lib.ail", sealLib); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"lib.can": sealLib})
+	if diags := diagnose(dir, "lib.can", sealLib); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -85,10 +85,10 @@ fn app__forge() -> App__Out rev 1
       go => [exchange args () outcome Ok(echo = "x")]
     on Ok got => Ok(echo = seal Lib__B("minted"))
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": sealLib, "app.ail": forge})
-	diags := diagnose(dir, "app.ail", forge)
+	dir := writeLSPDir(t, map[string]string{"lib.can": sealLib, "app.can": forge})
+	diags := diagnose(dir, "app.can", forge)
 	if !hasDiag(diags, "error", "bodies seal only their own module's brands") {
-		t.Fatalf("expected AIL6004 foreign-seal error, got %v", diags)
+		t.Fatalf("expected CAN6004 foreign-seal error, got %v", diags)
 	}
 }
 
@@ -114,8 +114,8 @@ fn app__pass() -> App__Out rev 1
       go => [exchange args () outcome Ok(echo = seal Lib__B("x"))]
     on Ok got => Ok(echo = got.echo)
 `
-	dir := writeLSPDir(t, map[string]string{"lib.ail": sealLib, "app.ail": uses})
-	if diags := diagnose(dir, "app.ail", uses); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"lib.can": sealLib, "app.can": uses})
+	if diags := diagnose(dir, "app.can", uses); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -149,8 +149,8 @@ fn m__node(text: M__Text) -> M__SafeResult rev 1
 `
 
 func TestSealPromotionAuthorized(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealPromoteOk})
-	if diags := diagnose(dir, "m.ail", sealPromoteOk); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": sealPromoteOk})
+	if diags := diagnose(dir, "m.can", sealPromoteOk); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -177,8 +177,8 @@ fn m__node(text: M__Text) -> M__SafeResult rev 1
 `
 
 func TestSealPromotionUnauthorized(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealPromoteDenied})
-	diags := diagnose(dir, "m.ail", sealPromoteDenied)
+	dir := writeLSPDir(t, map[string]string{"m.can": sealPromoteDenied})
+	diags := diagnose(dir, "m.can", sealPromoteDenied)
 	if !hasDiag(diags, "error", "seal M__Safe cannot promote M__Text") {
 		t.Fatalf("expected unauthorized-promotion error, got %v", diags)
 	}
@@ -206,8 +206,8 @@ fn m__back(frag: M__Safe) -> M__BackResult rev 1
 `
 
 func TestSealPromotionNoReverse(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealPromoteReverse})
-	diags := diagnose(dir, "m.ail", sealPromoteReverse)
+	dir := writeLSPDir(t, map[string]string{"m.can": sealPromoteReverse})
+	diags := diagnose(dir, "m.can", sealPromoteReverse)
 	if !hasDiag(diags, "error", "seal M__Text cannot promote M__Safe") {
 		t.Fatalf("expected no-reverse-promotion error, got %v", diags)
 	}
@@ -237,8 +237,8 @@ fn m__skip(start: M__A) -> M__CResult rev 1
 `
 
 func TestSealPromotionNoTransitive(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealPromoteTransit})
-	diags := diagnose(dir, "m.ail", sealPromoteTransit)
+	dir := writeLSPDir(t, map[string]string{"m.can": sealPromoteTransit})
+	diags := diagnose(dir, "m.can", sealPromoteTransit)
 	if !hasDiag(diags, "error", "seal M__C cannot promote M__A") {
 		t.Fatalf("expected no-transitive-promotion error, got %v", diags)
 	}
@@ -253,8 +253,8 @@ brand M__C is str rev 1 seals_from [M__Ghost]
 `
 
 func TestSealPromotionUnknownSource(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealPromoteUnknownSrc})
-	diags := diagnose(dir, "m.ail", sealPromoteUnknownSrc)
+	dir := writeLSPDir(t, map[string]string{"m.can": sealPromoteUnknownSrc})
+	diags := diagnose(dir, "m.can", sealPromoteUnknownSrc)
 	if !hasDiag(diags, "error", "seals_from unknown brand M__Ghost") {
 		t.Fatalf("expected unknown-source error, got %v", diags)
 	}
@@ -283,8 +283,8 @@ fn app__promote() -> App__Out rev 1
 `
 
 func TestSealPromotionCrossFile(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"lib.ail": sealLib, "app.ail": sealPromoteXFile})
-	diags := diagnose(dir, "app.ail", sealPromoteXFile)
+	dir := writeLSPDir(t, map[string]string{"lib.can": sealLib, "app.can": sealPromoteXFile})
+	diags := diagnose(dir, "app.can", sealPromoteXFile)
 	if !hasDiag(diags, "error", "promotions stay inside one module") {
 		t.Fatalf("expected cross-file promotion errors, got %v", diags)
 	}
@@ -306,8 +306,8 @@ fn m__bad(which: str) -> M__B rev 1
 `
 
 func TestFnBrandReturnRejected(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": sealBrandReturn})
-	diags := diagnose(dir, "m.ail", sealBrandReturn)
+	dir := writeLSPDir(t, map[string]string{"m.can": sealBrandReturn})
+	diags := diagnose(dir, "m.can", sealBrandReturn)
 	if !hasDiag(diags, "error", "bare-brand returns are unsupported") {
 		t.Fatalf("expected brand-return rejection, got %v", diags)
 	}

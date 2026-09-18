@@ -20,7 +20,7 @@ package main
 // buildWorld beside elaborateForwards) rewrites it into the nested
 // `match call` ladder the source abbreviates, with error arms per
 // emitted kind from the callee contract. Admission, the prover,
-// test runs, coverage, emit, and AIL4107 therefore see ordinary
+// test runs, coverage, emit, and CAN4107 therefore see ordinary
 // handwritten shape — including the test-per-arm law, which is how
 // every chain step's failure earns its selecting row with no new
 // enforcement mechanism.

@@ -6,7 +6,7 @@ stays explicitly deferred with its blocker named below.
 
 ## What landed
 
-- `std/quota/quota.ail` — row 1. Monomorphic scalar
+- `std/quota/quota.can` — row 1. Monomorphic scalar
   validators (`validate__require`, `validate__int_range`,
   `validate__int_nonnegative`, `validate__str_nonempty`,
   `validate__exclusive_pair`) plus a quota counter
@@ -14,7 +14,7 @@ stays explicitly deferred with its blocker named below.
   every boundary and complete error payload is a decision-table
   row (24 tests), and the counter consumes through the validators,
   so over-quota, negative, and reversed-bound inputs fail closed.
-- `std/scalars/scalars.ail` — row 2 NOW slice. Boolean
+- `std/scalars/scalars.can` — row 2 NOW slice. Boolean
   logic, three-way comparisons, selection, int/dec predicates,
   int/dec fundamentals, bounded arithmetic, exact power and
   recurrence helpers, the six pure NOW conversions, and a bounded
@@ -26,7 +26,7 @@ stays explicitly deferred with its blocker named below.
 
 ## Order 0 decision: linkage (decision, not mechanism)
 
-Cross-file `.ail` calls stay scripted. Until a linkage amendment
+Cross-file `.can` calls stay scripted. Until a linkage amendment
 lands, standard helpers ship as same-file locals in the program
 that uses them, and each file carries its own decision tables. A
 caller's script for a cross-file helper is not evaluation of that
@@ -36,7 +36,7 @@ Acceptance test for the future amendment: a deliberately
 incorrect scripted result for a verified pure helper must fail the
 build. Today it passes. The amendment flips that test and must
 say how scripts, rev pins, and per-test stores interact with
-evaluated imports. The flagship (`auth.ail` scripting `db.down()`,
+evaluated imports. The flagship (`auth.can` scripting `db.down()`,
 an outcome its provider body can never produce) is the reason
 this cannot be a silent default: evaluated imports would forbid
 exactly the stub the flagship relies on.
@@ -107,7 +107,7 @@ Pinned by `TestMultiShapeEmit` and
   indexing wait on the scalar-access surface decision recorded
   there. Issue 3 stays open.
 - Constructor-controlled brands: landed as `docs/a15-brands.md`.
-  Bodies seal only their own module's brands (AIL6004); tests and
+  Bodies seal only their own module's brands (CAN6004); tests and
   scripts may name any declared brand. `Html__Safe` and its sibling
   brands will arrive under this rule, unforgable by consumers.
 - HTML rendering: needs Text, Collections, and the brand change

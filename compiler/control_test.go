@@ -30,7 +30,7 @@ func TestControlBytesRoundTrip(t *testing.T) {
 		"=\n" +
 		"  Ok(value = \"a\x00b\x01c\x7fd\")\n"
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "probe.ail")
+	srcPath := filepath.Join(dir, "probe.can")
 	if err := os.WriteFile(srcPath, []byte(src), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestControlBytesRoundTrip(t *testing.T) {
 func TestMalformedSourceRefused(t *testing.T) {
 	bad := "mod probe\n  provides [probe__go]\n  uses []\n  emits []\n\nfn probe__go() -> Probe__Out rev 1\n  emits []\n  tests\n    go() => Ok(value = \"a\xff\xfeb\")\n=\n  Ok(value = \"a\xff\xfeb\")\n"
 	dir := t.TempDir()
-	srcPath := filepath.Join(dir, "probe.ail")
+	srcPath := filepath.Join(dir, "probe.can")
 	if err := os.WriteFile(srcPath, []byte(bad), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -74,8 +74,8 @@ func TestMalformedSourceRefused(t *testing.T) {
 	if !found {
 		t.Fatalf("CLI path must refuse malformed source, got %v", collected)
 	}
-	wdir := writeLSPDir(t, map[string]string{"probe.ail": bad})
-	diags := diagnose(wdir, "probe.ail", bad)
+	wdir := writeLSPDir(t, map[string]string{"probe.can": bad})
+	diags := diagnose(wdir, "probe.can", bad)
 	if !hasDiag(diags, "error", "not valid UTF-8") {
 		t.Fatalf("editor path must refuse malformed source, got %v", diags)
 	}

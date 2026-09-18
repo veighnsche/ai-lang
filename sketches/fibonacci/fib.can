@@ -1,4 +1,4 @@
-// fibonacci/fib.ail — Fibonacci without a loop: fib__at guards the
+// fibonacci/fib.can — Fibonacci without a loop: fib__at guards the
 // domain (negatives are a declared error, not a hang) and fib__from
 // walks down one proven self-call per step, carrying both accumulators
 // so the decreases proof is a single unit step on n (a11). Same-file

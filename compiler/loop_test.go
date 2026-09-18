@@ -35,8 +35,8 @@ fn m__poll(n: int) -> M__S rev 1
 `
 
 func TestLoopClean(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": loopPoll})
-	if diags := diagnose(dir, "m.ail", loopPoll); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": loopPoll})
+	if diags := diagnose(dir, "m.can", loopPoll); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -44,16 +44,16 @@ func TestLoopClean(t *testing.T) {
 func TestLoopNamedDecreaseClean(t *testing.T) {
 	named := strings.Replace(loopPoll,
 		"match call m__poll(n - 1)", "match call m__poll(n = n - 1)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": named})
-	if diags := diagnose(dir, "m.ail", named); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": named})
+	if diags := diagnose(dir, "m.can", named); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
 
 func TestLoopBadName(t *testing.T) {
 	bad := strings.Replace(loopPoll, "decreases n", "decreases nosuch", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "decreases nosuch: no such param") {
 		t.Fatalf("expected bad-decreases error, got %v", diags)
 	}
@@ -63,8 +63,8 @@ func TestLoopNonInt(t *testing.T) {
 	bad := strings.Replace(loopPoll,
 		"fn m__poll(n: int) -> M__S rev 1\n  decreases n",
 		"fn m__poll(n: str) -> M__S rev 1\n  decreases n", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "must be an int param, got str") {
 		t.Fatalf("expected non-int decreases error, got %v", diags)
 	}
@@ -74,8 +74,8 @@ func TestLoopStale(t *testing.T) {
 	stale := strings.Replace(loopPoll,
 		"    false => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)",
 		"    false => Ok(n = 0)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": stale})
-	diags := diagnose(dir, "m.ail", stale)
+	dir := writeLSPDir(t, map[string]string{"m.can": stale})
+	diags := diagnose(dir, "m.can", stale)
 	if !hasDiag(diags, "error", "decreases n but never calls itself") {
 		t.Fatalf("expected stale-decreases error, got %v", diags)
 	}
@@ -91,8 +91,8 @@ func TestLoopNoDecreaseShapes(t *testing.T) {
 	}
 	for name, site := range cases {
 		bad := strings.Replace(loopPoll, "match call m__poll(n - 1)", site, 1)
-		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-		diags := diagnose(dir, "m.ail", bad)
+		dir := writeLSPDir(t, map[string]string{"m.can": bad})
+		diags := diagnose(dir, "m.can", bad)
 		if !hasDiag(diags, "error", "without decreasing n by one: pass n - 1") {
 			t.Fatalf("%s: expected no-decrease error, got %v", name, diags)
 		}
@@ -104,8 +104,8 @@ func TestLoopNoDecreaseShapes(t *testing.T) {
 func TestLoopLargerStepRefused(t *testing.T) {
 	for _, site := range []string{"match call m__poll(n - 2)", "match call m__poll(n = n - 3)"} {
 		bad := strings.Replace(loopPoll, "match call m__poll(n - 1)", site, 1)
-		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-		diags := diagnose(dir, "m.ail", bad)
+		dir := writeLSPDir(t, map[string]string{"m.can": bad})
+		diags := diagnose(dir, "m.can", bad)
 		if !hasDiag(diags, "error", "without decreasing n by one: pass n - 1") {
 			t.Fatalf("%s: expected unit-step error, got %v", site, diags)
 		}
@@ -114,13 +114,13 @@ func TestLoopLargerStepRefused(t *testing.T) {
 
 // Unguarded self-calls are refused even with a unit step: a site in
 // the true arm diverges (each entry steps further negative), and a
-// site with no bound guard at all proves nothing (a11, AIL3009).
+// site with no bound guard at all proves nothing (a11, CAN3009).
 func TestLoopUnguardedRefused(t *testing.T) {
 	trueArm := strings.Replace(loopPoll,
 		"    true => Ok(n = 0)\n    false => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)",
 		"    true => match call m__poll(n - 1)\n      on Ok s => Ok(n = s.n)\n    false => Ok(n = 0)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": trueArm})
-	diags := diagnose(dir, "m.ail", trueArm)
+	dir := writeLSPDir(t, map[string]string{"m.can": trueArm})
+	diags := diagnose(dir, "m.can", trueArm)
 	if !hasDiag(diags, "error", "outside the positive branch") {
 		t.Fatalf("expected unguarded-recursion error, got %v", diags)
 	}
@@ -131,8 +131,8 @@ func TestLoopUnguardedRefused(t *testing.T) {
       on Ok s => Ok(n = s.n)`,
 		`  match call m__poll(n - 1)
     on Ok s => Ok(n = s.n)`, 1)
-	dir = writeLSPDir(t, map[string]string{"m.ail": bare})
-	diags = diagnose(dir, "m.ail", bare)
+	dir = writeLSPDir(t, map[string]string{"m.can": bare})
+	diags = diagnose(dir, "m.can", bare)
 	if !hasDiag(diags, "error", "outside the positive branch") {
 		t.Fatalf("expected unguarded-recursion error, got %v", diags)
 	}
@@ -144,8 +144,8 @@ func TestLoopUnguardedRefused(t *testing.T) {
 func TestLoopStrictGuardRefused(t *testing.T) {
 	for _, guard := range []string{"match n > 0", "match n < 1"} {
 		bad := strings.Replace(loopPoll, "match n <= 0", guard, 1)
-		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-		diags := diagnose(dir, "m.ail", bad)
+		dir := writeLSPDir(t, map[string]string{"m.can": bad})
+		diags := diagnose(dir, "m.can", bad)
 		if !hasDiag(diags, "error", "outside the positive branch") {
 			t.Fatalf("%s: expected guard-shape error, got %v", guard, diags)
 		}
@@ -182,8 +182,8 @@ fn m__gcd(a: int, b: int) -> M__S rev 1
 func TestLoopEuclidClean(t *testing.T) {
 	for _, line := range []string{"decreases a, b by euclid", "decreases a,b by euclid", "decreases a , b by euclid"} {
 		variant := strings.Replace(loopEuclid, "decreases a, b by euclid", line, 1)
-		dir := writeLSPDir(t, map[string]string{"m.ail": variant})
-		if diags := diagnose(dir, "m.ail", variant); len(diags) != 0 {
+		dir := writeLSPDir(t, map[string]string{"m.can": variant})
+		if diags := diagnose(dir, "m.can", variant); len(diags) != 0 {
 			t.Fatalf("%s: expected no diagnostics, got %v", line, diags)
 		}
 	}
@@ -192,8 +192,8 @@ func TestLoopEuclidClean(t *testing.T) {
 func TestLoopEuclidBadStep(t *testing.T) {
 	for _, site := range []string{"match call m__gcd(a - 1, b)", "match call m__gcd(b, a - b)"} {
 		bad := strings.Replace(loopEuclid, "match call m__gcd(b, a % b)", site, 1)
-		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-		diags := diagnose(dir, "m.ail", bad)
+		dir := writeLSPDir(t, map[string]string{"m.can": bad})
+		diags := diagnose(dir, "m.can", bad)
 		if !hasDiag(diags, "error", "without a euclid step") {
 			t.Fatalf("%s: expected euclid-step error, got %v", site, diags)
 		}
@@ -204,8 +204,8 @@ func TestLoopEuclidUnguarded(t *testing.T) {
 	trueArm := strings.Replace(loopEuclid,
 		"    true => Ok(n = a)\n    false => match call m__gcd(b, a % b)\n      on Ok r => Ok(n = r.n)",
 		"    true => match call m__gcd(b, a % b)\n      on Ok r => Ok(n = r.n)\n    false => Ok(n = a)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": trueArm})
-	diags := diagnose(dir, "m.ail", trueArm)
+	dir := writeLSPDir(t, map[string]string{"m.can": trueArm})
+	diags := diagnose(dir, "m.can", trueArm)
 	if !hasDiag(diags, "error", "must sit under the false arm of b <= 0") {
 		t.Fatalf("expected euclid-guard error, got %v", diags)
 	}
@@ -238,8 +238,8 @@ fn m__sqrt(value: int, lo: int, hi: int) -> M__S rev 1
 `
 
 func TestLoopNarrowingClean(t *testing.T) {
-	dir := writeLSPDir(t, map[string]string{"m.ail": loopNarrow})
-	if diags := diagnose(dir, "m.ail", loopNarrow); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": loopNarrow})
+	if diags := diagnose(dir, "m.can", loopNarrow); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -248,8 +248,8 @@ func TestLoopNarrowingBadStep(t *testing.T) {
 	bad := strings.Replace(loopNarrow,
 		"match call m__sqrt(value, (lo + hi) / 2, hi)",
 		"match call m__sqrt(value, lo, hi - 1)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "without a narrowing step") {
 		t.Fatalf("expected narrowing-step error, got %v", diags)
 	}
@@ -257,8 +257,8 @@ func TestLoopNarrowingBadStep(t *testing.T) {
 
 func TestLoopNarrowingBadGuard(t *testing.T) {
 	bad := strings.Replace(loopNarrow, "match (hi - lo) <= 1", "match hi <= lo", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "must sit under the false arm of (hi - lo) <= 1") {
 		t.Fatalf("expected narrowing-guard error, got %v", diags)
 	}
@@ -267,8 +267,8 @@ func TestLoopNarrowingBadGuard(t *testing.T) {
 func TestLoopBadSchemaLine(t *testing.T) {
 	for _, line := range []string{"decreases a, b by half", "decreases a by euclid", "decreases a, b, c by euclid"} {
 		bad := strings.Replace(loopEuclid, "decreases a, b by euclid", line, 1)
-		dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-		diags := diagnose(dir, "m.ail", bad)
+		dir := writeLSPDir(t, map[string]string{"m.can": bad})
+		diags := diagnose(dir, "m.can", bad)
 		if !hasDiag(diags, "error", "bad decreases line") {
 			t.Fatalf("%s: expected bad-line error, got %v", line, diags)
 		}
@@ -277,8 +277,8 @@ func TestLoopBadSchemaLine(t *testing.T) {
 
 func TestLoopSchemaNonInt(t *testing.T) {
 	bad := strings.Replace(loopEuclid, "fn m__gcd(a: int, b: int)", "fn m__gcd(a: int, b: str)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "must be an int param") {
 		t.Fatalf("expected int-param error, got %v", diags)
 	}
@@ -287,8 +287,8 @@ func TestLoopSchemaNonInt(t *testing.T) {
 func TestLoopNamedNoDecrease(t *testing.T) {
 	bad := strings.Replace(loopPoll,
 		"match call m__poll(n - 1)", "match call m__poll(n = n)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": bad})
-	diags := diagnose(dir, "m.ail", bad)
+	dir := writeLSPDir(t, map[string]string{"m.can": bad})
+	diags := diagnose(dir, "m.can", bad)
 	if !hasDiag(diags, "error", "without decreasing n by one: pass n - 1") {
 		t.Fatalf("expected no-decrease error, got %v", diags)
 	}
@@ -326,8 +326,8 @@ fn m__b(n: int) -> M__S rev 1
     false => match call m__a(n - 1)
       on Ok s => Ok(n = s.n)
 `
-	dir := writeLSPDir(t, map[string]string{"m.ail": pair})
-	diags := diagnose(dir, "m.ail", pair)
+	dir := writeLSPDir(t, map[string]string{"m.can": pair})
+	diags := diagnose(dir, "m.can", pair)
 	if !hasDiag(diags, "error", "local call cycle") {
 		t.Fatalf("expected mutual-cycle error, got %v", diags)
 	}
@@ -340,8 +340,8 @@ func TestLoopNegativeEntryTakesBase(t *testing.T) {
 	neg := strings.Replace(loopPoll,
 		"    later(n = 2) => Ok(n = 0)",
 		"    later(n = 2) => Ok(n = 0)\n    neg(n = -1) => Ok(n = 0)", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": neg})
-	if diags := diagnose(dir, "m.ail", neg); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"m.can": neg})
+	if diags := diagnose(dir, "m.can", neg); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -349,8 +349,8 @@ func TestLoopNegativeEntryTakesBase(t *testing.T) {
 func TestLoopDupDecreases(t *testing.T) {
 	dup := strings.Replace(loopPoll,
 		"  decreases n", "  decreases n\n  decreases n", 1)
-	dir := writeLSPDir(t, map[string]string{"m.ail": dup})
-	diags := diagnose(dir, "m.ail", dup)
+	dir := writeLSPDir(t, map[string]string{"m.can": dup})
+	diags := diagnose(dir, "m.can", dup)
 	if !hasDiag(diags, "error", "duplicate decreases line") {
 		t.Fatalf("expected duplicate-decreases parse error, got %v", diags)
 	}
@@ -400,8 +400,8 @@ fn beta__run(n: int) -> Beta__Value rev 1
       sample => [exchange args (n = 0) outcome Ok(value = 0)]
     on Ok result => Ok(value = result.value)
 `
-	files := map[string]string{"alpha.ail": alpha, "beta.ail": beta}
-	for _, open := range []string{"alpha.ail", "beta.ail"} {
+	files := map[string]string{"alpha.can": alpha, "beta.can": beta}
+	for _, open := range []string{"alpha.can", "beta.can"} {
 		dir := writeLSPDir(t, files)
 		diags := diagnose(dir, open, files[open])
 		if !hasDiag(diags, "error", "call cycle alpha__run -> beta__run -> alpha__run") {
@@ -412,12 +412,12 @@ fn beta__run(n: int) -> Beta__Value rev 1
 		}
 		var attributed bool
 		for _, d := range diags {
-			if d.Code == CodeLocalCycle && d.File == "beta.ail" {
+			if d.Code == CodeLocalCycle && d.File == "beta.can" {
 				attributed = true
 			}
 		}
 		if !attributed {
-			t.Fatalf("%s: cycle must attribute to the closing call site in beta.ail, got %v", open, diags)
+			t.Fatalf("%s: cycle must attribute to the closing call site in beta.can, got %v", open, diags)
 		}
 	}
 }
@@ -429,7 +429,7 @@ fn beta__run(n: int) -> Beta__Value rev 1
 // fuel shape terminates either way, and the error says exactly that
 // the proof is missing — not that the build would hang.
 func TestLoopSketchMinusDecreasesRefused(t *testing.T) {
-	raw, err := os.ReadFile("../sketches/retry-loop/retry.ail")
+	raw, err := os.ReadFile("../sketches/retry-loop/retry.can")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,8 +437,8 @@ func TestLoopSketchMinusDecreasesRefused(t *testing.T) {
 	if stripped == string(raw) {
 		t.Fatal("sketch has no decreases line to strip")
 	}
-	dir := writeLSPDir(t, map[string]string{"retry.ail": stripped})
-	diags := diagnose(dir, "retry.ail", stripped)
+	dir := writeLSPDir(t, map[string]string{"retry.can": stripped})
+	diags := diagnose(dir, "retry.can", stripped)
 	if !hasDiag(diags, "error", "local call cycle retry__fetch -> retry__fetch") {
 		t.Fatalf("expected cycle error, got %v", diags)
 	}

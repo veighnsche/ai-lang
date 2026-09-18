@@ -70,7 +70,7 @@ not event-handler, not style" an incomplete definition.
   the emit side; `errors.json` is generated with complete
   `hit_by_tests`.
 - Consumer forgery stays refused under the existing ownership
-  rule (no new test needed — AIL6004 machinery unchanged).
+  rule (no new test needed — CAN6004 machinery unchanged).
 
 ## Still scheduled (not silently dropped)
 

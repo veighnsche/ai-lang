@@ -34,7 +34,7 @@ fourth spelling for the same programs.
 
 `#` needs `str` and yields `int`; `[]` needs `str` and `int` and
 yields `int`; `[:]` needs `str`, `int`, `int` and yields `str`.
-Anything else is `AIL6003` with an operator-naming message
+Anything else is `CAN6003` with an operator-naming message
 (`cannot count scalars of`, `cannot index into/with`,
 `cannot slice/slice with`). Result types are annotated for emit
 dispatch like every other operator.
@@ -86,7 +86,7 @@ what literals, concat, and slices can produce.
   single cross-file call, which is why the operators choice
   dissolves the Order-0 problem for text.
 - TS emit: `#` is inline `BigInt([...s].length)`; `[]` and `[:]`
-  ride exact `$ailStrAt`/`$ailStrSlice` helpers with explicit
+  ride exact `$canStrAt`/`$canStrSlice` helpers with explicit
   bounds throws (bigint indices convert through a safe-integer
   gate, never silently).
 
@@ -101,6 +101,6 @@ what literals, concat, and slices can produce.
 - `eval.go`: Go-rune semantics with loud faults.
 - `emit.go`: inline length, two helpers, `childType` dispatch.
 - Tests: `TestTextOpsEval` (values incl. astral, five loud
-  shapes), `TestDiagnoseTextOpsMismatch` (four AIL6003 messages),
+  shapes), `TestDiagnoseTextOpsMismatch` (four CAN6003 messages),
   `str__len`/`str__at`/`str__slice` fixture fns (proof tables plus
   helper-presence emit pins).

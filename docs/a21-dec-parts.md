@@ -33,7 +33,7 @@ spelling per meaning, same as ever.
 
 The kernel bypasses callee resolution with a dedicated rule
 (`checkDecParts`): positional args only, exactly one arg, `dec`
-operand. Anything else is `AIL6003`, the operand-rule family. The
+operand. Anything else is `CAN6003`, the operand-rule family. The
 `Ok` arm binds a synthetic `parts` shape whose only fields are int
 `coefficient` and `scale` — fixed by the kernel, never inferred, so
 no declared record is consulted and no stdlib type name leaks into
@@ -49,7 +49,7 @@ input plus the terminating digit-reading algorithm; the
 exhaustiveness gate proves consumers handle the declared outcome
 mechanically — a kernel match wants exactly `{ok}`, so an error
 arm is stale and an error-only match misses `ok` (both pinned). Static
-misuse is `AIL6003`; past the gate the evaluator never fails. The
+misuse is `CAN6003`; past the gate the evaluator never fails. The
 `from_parts` round trip holds by the digit reading: `from_parts`
 of observed parts rebuilds the same canonical digits, which is why
 the reading is the canonical digits rather than a minimal scale
@@ -69,7 +69,7 @@ not establish it.
 ## Parity boundary
 
 Both runtimes read stored digits: Go through `parseDecParts`, TS
-through `$ailDecParts` over `$ailDecSplit` / `$ailDecMant` (shared
+through `$canDecParts` over `$canDecSplit` / `$canDecMant` (shared
 plumbing, no new semantics). Canonical inputs — the only values the
 language can produce — agree exactly, including negatives, zero,
 and large scales. Executing the emitted helper against the contract
@@ -84,7 +84,7 @@ until then parity rests on the mirrored code path plus the golden.
   store ops, so every file uses it same-file with no `uses` pin.
 - No effects: observation reads a value, not a cell, so no
   capability is declared or threaded.
-- TS emit: one `$ailDecParts` helper, emitted only when used,
+- TS emit: one `$canDecParts` helper, emitted only when used,
   beside the existing dec runtime.
 
 ## Implementation
@@ -99,7 +99,7 @@ until then parity rests on the mirrored code path plus the golden.
 - Tests: `TestDecPartsKernel` (vectors incl. zero, negatives,
   trailing digits, big values), `TestDecPartsKernelStoredDigits`
   (stored-digit reading), `TestDecPartsKernelLoud` (direct-caller
-  faults), `TestDiagnoseDecPartsMisuse` (four `AIL6003`/given
+  faults), `TestDiagnoseDecPartsMisuse` (four `CAN6003`/given
   shapes), `TestDiagnoseDecPartsTotal` (stale arm, missing `ok`),
   `TestDecPartsEmitHelper` (helper present iff used), and the
   eight-row `std__dec__parts` decision table in `std/scalars/`.

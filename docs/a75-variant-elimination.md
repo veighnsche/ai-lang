@@ -13,7 +13,7 @@ declaration. The binder names the whole case value; payload
 projects through field access. `_` discards a payload but never
 stands in for a case.
 
-```ail
+```can
 match state
   on Login__Anonymous _ => Ok(message = "Sign in")
   on Login__Authenticated a => Ok(message = a.session.user_id)
@@ -26,16 +26,16 @@ match state
   (param, field path, binder, or constructed value). Anything
   else keeps today's bool/str/wild rules untouched.
 - Case arms only: bool, str, and `_` arms in a variant match
-  are rejected (AIL4105). A second scrutinee alongside a
-  variant is rejected even for `_` (AIL4105).
+  are rejected (CAN4105). A second scrutinee alongside a
+  variant is rejected even for `_` (CAN4105).
 - Membership: every arm names a case of the scrutinee's union.
   Unknown cases, `Ok`, dotted errors, and cases of another
-  union are stale arms (AIL4102), mirroring call matches.
-- Duplicates rejected (AIL4105). Missing cases rejected one
-  diagnostic per case (AIL4101), mirroring the call-match
+  union are stale arms (CAN4102), mirroring call matches.
+- Duplicates rejected (CAN4105). Missing cases rejected one
+  diagnostic per case (CAN4101), mirroring the call-match
   missing-outcome shape.
 - Case-shaped patterns against a non-variant scrutinee are
-  rejected (AIL4106), mirroring the proof's non-call-match rule.
+  rejected (CAN4106), mirroring the proof's non-call-match rule.
 - Binder env: the binder is typed as the qualified case, so
   projection resolves through the case's own fields and a
   same-named field of a sibling case does not leak across
@@ -52,7 +52,7 @@ match state
   proves nothing about them: the checker above owns every
   variant-match diagnostic, so the proof never contradicts it
   with a legacy bool/str verdict.
-- AIL4107 walks every match node generically: each case arm
+- CAN4107 walks every match node generically: each case arm
   must execute across the decision table. Data-case arms never
   qualify for the error-relay exception (MatchCall-only by
   construction; relay also requires a dotted error identity).
@@ -64,7 +64,7 @@ match state
 - Eval dispatches on the carrier tag and binds the case value;
   a miss is unreachable past the checker and fails closed.
 - TS lowers to a switch on a generated temporary's
-  `$ail_kind` (evaluate once), `const binder = tmp` per
+  `$can_kind` (evaluate once), `const binder = tmp` per
   payload arm, narrowing the same temporary for fields, and a
   defensive default that throws — the call-match shape,
   which strict tsc already narrows through.

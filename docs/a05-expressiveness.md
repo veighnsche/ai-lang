@@ -14,7 +14,7 @@ loops, no mutation, no arithmetic, no async. Bodies are single
 expressions, calls work only as match scrutinees, bool-returning calls
 are unscriptable, `seal` takes literals only, externs are module-local.
 The flagship carries the evidence visibly: the retry arms duplicate
-the password check twice (open question 3, NOTE in `auth.ail`), and
+the password check twice (open question 3, NOTE in `auth.can`), and
 there is no way to say "try three times" without copying the arm a
 third time.
 
@@ -73,7 +73,7 @@ anything runs or emits, same gate as exhaustiveness.
 - No v0.5 build starts without its own spec doc in this series. The
   panel rated the direction, not a design; ratings are not specs.
 - The flagship stays the demo vehicle: arithmetic must earn its place
-  in a decision table, helpers must visibly shrink `auth.ail`, loops
+  in a decision table, helpers must visibly shrink `auth.can`, loops
   must arrive with a program that would hang without the proof.
   Amendment (a11): the "would hang" requirement produced a false
   demonstration — the retry trace is finite either way. The standing

@@ -9,7 +9,7 @@ import (
 // a60 B15: std__base64__decode is the public stdlib face of the
 // B14 kernel, and this slice closes the workstream with wrapper-
 // level compositions through real bodies. The foreign-caller
-// probe pins §6 callability against the REAL text.ail; the
+// probe pins §6 callability against the REAL text.can; the
 // round-trip probe appends composition fns to a TEMP COPY and
 // executes them (utf8: decode(encode(t)); hex and b64:
 // encode(decode(s)); plus a hex-of-base64 cross check), so
@@ -18,9 +18,9 @@ import (
 // TestBytesB15ForeignCaller pins cross-module callability,
 // both arms, the NUL byte, and non-ASCII malformed input.
 func TestBytesB15ForeignCaller(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	client := `mod client
   provides [client__go]
@@ -50,9 +50,9 @@ fn client__go(value: str) -> Bytes__Value rev 1
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
 `
-	files := map[string]string{"text.ail": string(raw), "client.ail": client}
+	files := map[string]string{"text.can": string(raw), "client.can": client}
 	dir := writeLSPDir(t, files)
-	if diags := diagnose(dir, "client.ail", client); len(diags) != 0 {
+	if diags := diagnose(dir, "client.can", client); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
@@ -62,9 +62,9 @@ fn client__go(value: str) -> Bytes__Value rev 1
 // encode(decode(s)) for hex and base64, plus
 // hex-of-b64-decoded-bytes as the cross check.
 func TestBytesB15RoundTrip(t *testing.T) {
-	raw, err := os.ReadFile("../std/text/text.ail")
+	raw, err := os.ReadFile("../std/text/text.can")
 	if err != nil {
-		t.Fatalf("read text.ail: %v", err)
+		t.Fatalf("read text.can: %v", err)
 	}
 	probes := `
 fn text__probe__rt_utf8(value: str) -> Encoding__Text rev 1
@@ -111,9 +111,9 @@ fn text__probe__cross(value: str) -> Encoding__Text rev 1
 		"Split__Result]",
 		"Split__Result, text__probe__rt_utf8, text__probe__rt_hex, text__probe__rt_b64, text__probe__cross]",
 		1) + probes
-	files := map[string]string{"text.ail": copy}
+	files := map[string]string{"text.can": copy}
 	dir := writeLSPDir(t, files)
-	if diags := diagnose(dir, "text.ail", copy); len(diags) != 0 {
+	if diags := diagnose(dir, "text.can", copy); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 	if !strings.Contains(copy, "text__probe__rt_b64") {

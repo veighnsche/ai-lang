@@ -17,10 +17,10 @@ import (
 // resolveRangePattern finishes one parsed range in place: symbolic
 // bounds (const names, anything the parser deferred) resolve to
 // arbitrary-precision integers, foreign bound constants take
-// AIL2105 with used-marking like every other pattern reference,
-// and the strict lower-under-upper gap is enforced (AIL4110).
+// CAN2105 with used-marking like every other pattern reference,
+// and the strict lower-under-upper gap is enforced (CAN4110).
 // Literal-resolved ranges still pass through the gap check.
-// Unknown const names are AIL2104, never malformed bounds.
+// Unknown const names are CAN2104, never malformed bounds.
 // Idempotent: resolved ranges carry Num/Hi with empty LoS/HiS.
 func resolveRangePattern(open *Module, prog *Program, text, fnName string, line int, p *Pattern) []Diag {
 	var out []Diag
@@ -65,7 +65,7 @@ func resolveRangePattern(open *Module, prog *Program, text, fnName string, line 
 		return out
 	}
 	// Resolved bound constants mark their pins used and take
-	// AIL2105 when foreign: bounds are references, and a bound
+	// CAN2105 when foreign: bounds are references, and a bound
 	// used nowhere else must still pin its provider.
 	for _, side := range []string{p.LoS, p.HiS} {
 		if constNameRe.MatchString(side) {
@@ -110,8 +110,8 @@ func resolveRangeBound(prog *Program, s string) (*big.Int, bool) {
 }
 
 // rangeBoundDiag classifies one unresolvable bound side: unknown
-// const names are AIL2104 (with used-marking, so no unused-pin
-// noise joins it); everything else is AIL4110.
+// const names are CAN2104 (with used-marking, so no unused-pin
+// noise joins it); everything else is CAN4110.
 func rangeBoundDiag(open *Module, prog *Program, text, fnName string, line int, side string, need func(string)) []Diag {
 	if constNameRe.MatchString(side) {
 		if _, ok := lookupConst(prog, side); !ok {
@@ -343,7 +343,7 @@ func witnessSearchIn(live []armCover, nslot int, domains [][]valueAtom, allowed 
 // domains reuse the legacy atom machinery with int slots cut at
 // span bounds; messages mirror the legacy multi-slot shapes so
 // mixed tables read uniformly. Usefulness is static and scoped:
-// an integer arm earlier arms fully cover is AIL4111 even before
+// an integer arm earlier arms fully cover is CAN4111 even before
 // any test runs, while legacy arms keep the execution-law path.
 func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits [][]string, intSpans [][][2]*big.Int) []error {
 	nslot := len(n.Scruts)

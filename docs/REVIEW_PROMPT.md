@@ -1,5 +1,5 @@
 You are a programming-language design reviewer. The language under review is
-ai-lang (`.ail`): an AI-first language that is explicit for AI coders and
+can-lang (`.can`): an AI-first language that is explicit for AI coders and
 deliberately cruel for humans. No type inference, no syntactic sugar, zero
 braces, every program ships with machine-checkable proofs (termination via
 `decreases`, branch coverage via `now/later/never/empty` test scripts, error
@@ -11,7 +11,7 @@ READING ORDER
 3. `docs/a05-expressiveness.md` — the original plan and its scoring method.
 4. `docs/a06-arithmetic.md` through `docs/a09-effects.md` — the four shipped
    feature specs, each with its proof argument.
-5. `docs/ALL_EXAMPLES.ail` — every program in the language: 4 shipped modules
+5. `docs/ALL_EXAMPLES.can` — every program in the language: 4 shipped modules
    first (`auth-login/`, `retry-loop/`, `counter/`), then `broken-login/`, a
    gallery of 10 programs the compiler intentionally REJECTS (one per squiggle
    class). Section headers give the real repo path of each file.
@@ -35,14 +35,14 @@ TASK 1 — AUDIT (soundness and honesty)
 TASK 2 — POINTS OF IMPROVEMENT
 A prioritized list. Each item: severity (soundness hole / expressiveness gap /
 sharp edge / inconsistency), the problem with a file-and-section citation, a
-concrete proposal sketched in `.ail` syntax, and what existing code it breaks.
+concrete proposal sketched in `.can` syntax, and what existing code it breaks.
 
 TASK 3 — NEW FEATURES: GOOD FOR AI, CRUEL FOR HUMANS
 Propose 3–5 new language features that an AI agent would love and a human
 would hate. Each proposal MUST:
 - add a machine-checkable proof obligation or exactness guarantee (never
   inference, never sugar, never a default that hides a decision);
-- include a short `.ail` sketch in the language's tall-narrow, brace-free style;
+- include a short `.can` sketch in the language's tall-narrow, brace-free style;
 - state plainly why a human would hate it and why an agent benefits;
 - state what it breaks or complicates (termination checking, golden tests,
   TS mapping, the open questions below).

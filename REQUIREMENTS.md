@@ -1,9 +1,9 @@
-# ai-lang — Requirements (v0.1 freeze)
+# can-lang — Requirements (v0.1 freeze)
 
 Status: living — v0.1 freeze plus ratified amendments, each tagged
 with its version (a04–a09). Rules are never rewritten silently.
-Live shape: `sketches/auth-login/` + `sketches/retry-loop/retry.ail` +
-`sketches/counter/counter.ail`. Map + reading order: `docs/README.md`.
+Live shape: `sketches/auth-login/` + `sketches/retry-loop/retry.can` +
+`sketches/counter/counter.can`. Map + reading order: `docs/README.md`.
 
 ## Goal
 
@@ -20,7 +20,7 @@ A decision table anchors intended behavior but cannot constrain all admitted
 behavior: a weak table is satisfied by a wrong implementation, so the
 specification must rule out the constant function, not merely bless examples.
 Amendment (a87): within one table, rows differ in authority — `pinned`
-rows are acceptance and report weakening loudly (`AIL6017`); unmarked
+rows are acceptance and report weakening loudly (`CAN6017`); unmarked
 rows are proposed evidence.
 
 ## Non-goals (explicit outs)
@@ -57,13 +57,13 @@ rows are proposed evidence.
 
 - Every file opens with
   `mod <domain> provides [...] uses [...] emits [...]`.
-- `provides` names what the file defines; `uses` names external ail items;
+- `provides` names what the file defines; `uses` names external can items;
   `emits` is the union of errors the module can produce.
 - Every `uses` entry must resolve to exactly one provider module. Unresolved
   or double-provided = compile error. (`go run ./tools/modcheck` enforces
   this over sketches today.)
-- ail-to-ail dependencies are never re-declared in the consumer. `extern`
-  is reserved for true foreign (non-ail) imports, which are otherwise
+- can-to-can dependencies are never re-declared in the consumer. `extern`
+  is reserved for true foreign (non-can) imports, which are otherwise
   unsketched.
 - Shared types are provided/used like functions.
 - `state` cells (`state Name: T = lit`, a09) are module-private storage
@@ -135,10 +135,10 @@ rows are proposed evidence.
   (no network, clock, random except via stubs). Any failure fails the build.
 - Iteration must provably halt before anything runs or emits (a08,
   a11): direct self-recursion only, program-wide — same-file and
-  cross-file cycles are refused (`AIL3005`). Admitted recursion
+  cross-file cycles are refused (`CAN3005`). Admitted recursion
   declares `decreases p` over an `int` param, sits under the false
-  arm of the canonical `p <= 0` guard (`AIL3009` otherwise), and
-  passes `p - 1` at every self site (`AIL3008` otherwise). Cycles,
+  arm of the canonical `p <= 0` guard (`CAN3009` otherwise), and
+  passes `p - 1` at every self site (`CAN3008` otherwise). Cycles,
   unguarded recursion, and unproven decreases block execution;
   negative entries take the base arm and return a declared outcome.
 - Each test evaluates with a fresh store built from `state` inits (a09);
@@ -147,7 +147,7 @@ rows are proposed evidence.
 - Amendment (a87): a row suffixed `pinned` is trusted acceptance;
   unmarked rows are proposed evidence and churn freely. The accepted
   baseline records pinned expectations; weakening, removing, or demoting
-  one warns (`AIL6017`) after the clean gate, never blocking emit.
+  one warns (`CAN6017`) after the clean gate, never blocking emit.
   Table-level pinning is refused: authority is per-row.
 
 ## R8 — External stubs (call-site `given`)
@@ -158,7 +158,7 @@ rows are proposed evidence.
 - Every row is an exchange binding expected call args to one permitted
   outcome (a12): the table proves "this request received this permitted
   response", not merely the next response. Outcome-only rows are errors
-  (`AIL3109`). Arg names resolve through the callee signature (positional
+  (`CAN3109`). Arg names resolve through the callee signature (positional
   call args included); every expected arg must arrive equal and the call
   must supply nothing unexpected, else the test fails.
 - Error expectations are complete constructions
@@ -172,7 +172,7 @@ rows are proposed evidence.
   through `uses` -> provider file. Invented outcomes = error.
 - Same extern called twice = two tables (retries, sequences). Same site hit
   twice (loops) = multi-element list of exchanges.
-- Three callee kinds (a07, a09): foreign calls (ail via `uses`, externs)
+- Three callee kinds (a07, a09): foreign calls (can via `uses`, externs)
   are stubbed through `given`; same-file helpers execute with no table;
   `state__get` / `state__put` execute against the test's store, also with
   no table. All three are deterministic per test; totality and `-` apply
@@ -196,18 +196,18 @@ rows are proposed evidence.
   (today: `tools/modcheck`, `tools/gramcheck`, `go test ./...`).
 - Real parser with source positions lives in `compiler/` (AST carries
   1-based lines on every decl, test, arm, and match).
-- `ailc lsp` serves editor squiggles over stdio. Every keystroke
+- `canlc lsp` serves editor squiggles over stdio. Every keystroke
   re-runs: parse, naming (R3), rev pins (R4), provides/uses integrity (R2:
   provides names exactly what the file defines, unused uses warn),
   decision-table shapes (duplicate test names, unknown/missing args),
   call resolution (unknown callee, not-in-uses, calls outside a match
-  scrutinee, proven self-recursion via `decreases` (`AIL3006`–`AIL3008`),
-  local-cycle refusal (`AIL3005`)), given/test cross-checks (R8: missing
+  scrutinee, proven self-recursion via `decreases` (`CAN3006`–`CAN3008`),
+  local-cycle refusal (`CAN3005`)), given/test cross-checks (R8: missing
   given table, test with no script, script no test selects, stub outside
-  callee emits, no table on deterministic calls (`AIL3106`)),
+  callee emits, no table on deterministic calls (`CAN3106`)),
   emits integrity (R5: raising outside emits, unknown error kinds,
-  undeclared emits entries), store authority (a09: undeclared `AIL3107`, stale
-  `AIL3108`, unknown cell `AIL3001`), exhaustiveness proof (every
+  undeclared emits entries), store authority (a09: undeclared `CAN3107`, stale
+  `CAN3108`, unknown cell `CAN3001`), exhaustiveness proof (every
   violation, not the first), test runs, missing-tests warnings,
   unused params. World errors
   (bad uses, double definitions) report per-line and suppress only the
@@ -215,31 +215,31 @@ rows are proposed evidence.
   Each squiggle spans its exact token (callee name, test name, given key,
   emits entry, offending kind) in UTF-16 columns, not the whole line;
   only parser failures stay line-wide. Every squiggle carries a stable
-  `AILnnnn` code (`compiler/code.go`); `ailc --format json` prints the
+  `CANnnnn` code (`compiler/code.go`); `canlc --format json` prints the
   same diagnostics as JSON lines, and the CLI enforces the full suite,
-  so "no squiggles" and "compiles" are one gate. `ailc normalize` prints
+  so "no squiggles" and "compiles" are one gate. `canlc normalize` prints
   every decision-table outcome in canonical form, one sorted
   `mod.fn/test => value` line per test. Every build writes
   `errors.json` beside the emit: each kind with its fields, raisers,
   handling arms, and hitting tests. Test-per-arm law: every match arm
-  must execute across the decision-table run (`AIL4107`) or carry the
+  must execute across the decision-table run (`CAN4107`) or carry the
   authorized structural certificate (certified identity relay);
   reporting distinguishes executed, certified, and uncovered —
   certified is never reported as taken or reachable. `emits` is a
   conservative upper bound, so unrealized entries are allowed (a12);
-  coverage is assessed over green tables only. Type discipline (`AIL6xxx`): floats are ungrammatical
-  (`AIL6001`, write `d"12.34"`); `dec` compares exactly in proofs;
+  coverage is assessed over green tables only. Type discipline (`CAN6xxx`): floats are ungrammatical
+  (`CAN6001`, write `d"12.34"`); `dec` compares exactly in proofs;
   brands (`brand B is str`) are nominal with one gate in
   (`seal B("lit")`) and no way out except declared `extern`
   declassifiers, which are module-local, scripted through `given`
-  like ail calls, and imported by the TS emit from
-  `./<stem>.externs`. Unknown types are `AIL6002`, any other mismatch
-  `AIL6003`. Arithmetic (`+`, `-`, `*`, same-type operands only, exact
+  like can calls, and imported by the TS emit from
+  `./<stem>.externs`. Unknown types are `CAN6002`, any other mismatch
+  `CAN6003`. Arithmetic (`+`, `-`, `*`, same-type operands only, exact
   (a10: unbounded ints, no overflow mode), no division) extends the
-  `AIL6003` rule and yields the operand type. The checker runs in `checkSem` before test execution,
+  `CAN6003` rule and yields the operand type. The checker runs in `checkSem` before test execution,
   so CLI and editor share it.
   The Cursor/VSCode client in `editors/vscode/` (`client/` + bundled
-  `bin/ailc`) shows them; demo files live in `sketches/broken-login/`.
+  `bin/canlc`) shows them; demo files live in `sketches/broken-login/`.
   TextMate regex remains for coloring only; semantic tokens are future.
 
 ## R11 — Compilation target: TypeScript (v0.1, decided)
@@ -251,10 +251,10 @@ rows are proposed evidence.
   code is pure business logic); externs -> typed TS imports; `state` cells
   -> module-scope `let`s with synthetic ok-unions at access sites (a09);
   numerics -> `bigint` ints and canonical-digit-string decs with exact
-  `$ailDec` helpers emitted inline only where used (a10: no imports,
+  `$canDec` helpers emitted inline only where used (a10: no imports,
   needs BigInt/ES2020; host `bigint` handling is an adapter contract).
   Exhaustiveness
-  is proven by ailc's verify phase before anything runs or emits; `tsc`
+  is proven by canlc's verify phase before anything runs or emits; `tsc`
   re-checks types and contracts, not coverage.
 - Compile-time test evaluation stays inside the compiler (Python today),
   hermetic; prod emit strips `tests` + `given`. Reference implementation:

@@ -8,7 +8,7 @@ import (
 )
 
 func TestRepoGrammar(t *testing.T) {
-	if _, err := os.Stat("../../editors/vscode/syntaxes/ail.tmGrammar.json"); err != nil {
+	if _, err := os.Stat("../../editors/vscode/syntaxes/can.tmGrammar.json"); err != nil {
 		t.Skip("not in repo checkout")
 	}
 	if errs := check("../../editors/vscode"); len(errs) > 0 {
@@ -22,7 +22,7 @@ func writeGrammar(t *testing.T, patterns string) string {
 	files := map[string]string{
 		"package.json":                `{"name": "x"}`,
 		"language-configuration.json": `{}`,
-		"syntaxes/ail.tmGrammar.json": `{"scopeName": "source.ail", "patterns": [` + patterns + `]}`,
+		"syntaxes/can.tmGrammar.json": `{"scopeName": "source.can", "patterns": [` + patterns + `]}`,
 	}
 	for name, body := range files {
 		p := filepath.Join(dir, name)
@@ -36,8 +36,8 @@ func writeGrammar(t *testing.T, patterns string) string {
 	return dir
 }
 
-const errorRule = `{"match": "\\berror\\b", "name": "keyword.declaration.error.ail"}`
-const keywordRule = `{"match": "\\b(fn|on|rev)\\b", "name": "keyword.control.ail"}`
+const errorRule = `{"match": "\\berror\\b", "name": "keyword.declaration.error.can"}`
+const keywordRule = `{"match": "\\b(fn|on|rev)\\b", "name": "keyword.control.can"}`
 
 func TestMissingErrorRule(t *testing.T) {
 	dir := writeGrammar(t, keywordRule)
@@ -47,8 +47,8 @@ func TestMissingErrorRule(t *testing.T) {
 }
 
 func TestMissingRevKeyword(t *testing.T) {
-	noRev := `{"match": "\\b(fn|on)\\b", "name": "keyword.control.ail"}`
-	pin := `{"match": "@[0-9]+", "name": "constant.numeric.version.ail"}`
+	noRev := `{"match": "\\b(fn|on)\\b", "name": "keyword.control.can"}`
+	pin := `{"match": "@[0-9]+", "name": "constant.numeric.version.can"}`
 	dir := writeGrammar(t, errorRule+","+noRev+","+pin)
 	if errs := check(dir); !contains(errs, "rev must be a keyword") {
 		t.Fatalf("expected rev violation, got %v", errs)
@@ -57,7 +57,7 @@ func TestMissingRevKeyword(t *testing.T) {
 
 func TestBadJSON(t *testing.T) {
 	dir := writeGrammar(t, keywordRule)
-	bad := filepath.Join(dir, "syntaxes", "ail.tmGrammar.json")
+	bad := filepath.Join(dir, "syntaxes", "can.tmGrammar.json")
 	if err := os.WriteFile(bad, []byte(`{not json`), 0o644); err != nil {
 		t.Fatal(err)
 	}

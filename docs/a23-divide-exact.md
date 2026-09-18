@@ -61,7 +61,7 @@ raised with complete payloads and hit by named rows.
   matches deep under the fuel guard (accepted: guardedness carries
   through nesting).
 - No linkage interaction, no effects, no kernel changes, no TS
-  helpers (the worker rides `$ailDivMod`).
+  helpers (the worker rides `$canDivMod`).
 
 ## Implementation
 

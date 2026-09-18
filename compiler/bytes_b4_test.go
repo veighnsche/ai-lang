@@ -8,30 +8,30 @@ import (
 
 // a48 B4: html__render__utf8 is the first real Bytes consumer. The
 // probe below appends a composition function to a TEMPORARY copy of
-// the real html.ail, so the NUL chain exercises real bodies:
+// the real html.can, so the NUL chain exercises real bodies:
 // node("A<NUL>&amp;B") -> render -> exactly eight bytes, NUL
 // preserved and the entity spelling undecoded.
 
 // TestBytesB4NulChainProbe pins the frozen B4 acceptance row: the
 // sealed text A<NUL>&amp;B renders to [65, 0, 38, 97, 109, 112, 59,
 // 66]. The probe input carries a REAL NUL byte (Go halves glued
-// around "\x00"), the only .ail spelling.
+// around "\x00"), the only .can spelling.
 func TestBytesB4NulChainProbe(t *testing.T) {
-	raw, err := os.ReadFile("../std/html/html.ail")
+	raw, err := os.ReadFile("../std/html/html.can")
 	if err != nil {
-		t.Fatalf("read html.ail: %v", err)
+		t.Fatalf("read html.can: %v", err)
 	}
-	// Slice 1: html.ail pins ascii consts, so the temp copy needs
+	// Slice 1: html.can pins ascii consts, so the temp copy needs
 	// the provider beside it.
-	asciiRaw, err := os.ReadFile("../std/ascii/ascii.ail")
+	asciiRaw, err := os.ReadFile("../std/ascii/ascii.can")
 	if err != nil {
-		t.Fatalf("read ascii.ail: %v", err)
+		t.Fatalf("read ascii.can: %v", err)
 	}
 	// Slice 5: ascii pins Bool__Value, so the temp copy needs
 	// the scalars provider beside it.
-	scalarsRaw, err := os.ReadFile("../std/scalars/scalars.ail")
+	scalarsRaw, err := os.ReadFile("../std/scalars/scalars.can")
 	if err != nil {
-		t.Fatalf("read scalars.ail: %v", err)
+		t.Fatalf("read scalars.can: %v", err)
 	}
 	probe := "\nfn html__probe__nul_chain() -> Bytes__Value rev 1\n" +
 		"  emits []\n" +
@@ -45,8 +45,8 @@ func TestBytesB4NulChainProbe(t *testing.T) {
 	// The probe fn lives in the temp copy only; provide it there so
 	// the copy stays well-formed under the provides rule.
 	body = strings.Replace(body, ", html__asset__script]", ", html__asset__script, html__probe__nul_chain]", 1)
-	dir := writeLSPDir(t, map[string]string{"probe.ail": body, "ascii.ail": string(asciiRaw), "scalars.ail": string(scalarsRaw)})
-	if diags := diagnose(dir, "probe.ail", body); len(diags) != 0 {
+	dir := writeLSPDir(t, map[string]string{"probe.can": body, "ascii.can": string(asciiRaw), "scalars.can": string(scalarsRaw)})
+	if diags := diagnose(dir, "probe.can", body); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }

@@ -52,7 +52,7 @@ type bridgeGrantSite struct {
 
 // certifyAssetBridge validates every asset_bridge grant in the program
 // and annotates each exact permitted call site. Authority failures are
-// AIL6014, sink-shape failures AIL6015. A grant that names a sink
+// CAN6014, sink-shape failures CAN6015. A grant that names a sink
 // function (even invalidly) owns that function's diagnostics: the
 // uncertified-call rule fires only where no grant names the sink, so
 // one problem reports once.
@@ -131,7 +131,7 @@ func certifyAssetBridge(mods []*Module, prog *Program, texts map[string]string) 
 		if !ok {
 			if prog.Externs[g.Function] != nil {
 				emit(gs.m, spanDiag(text, g.Line, "error",
-					fmt.Sprintf("asset_bridge grant names extern %s: sinks are ail functions", g.Function), g.Function, CodeAssetBridgeAuthority))
+					fmt.Sprintf("asset_bridge grant names extern %s: sinks are can functions", g.Function), g.Function, CodeAssetBridgeAuthority))
 				continue
 			}
 			emit(gs.m, spanDiag(text, g.Line, "error",
