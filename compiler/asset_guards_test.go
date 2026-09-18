@@ -122,11 +122,17 @@ func TestAssetHostileSet(t *testing.T) {
 		{"schema__asset__approve", "approve_stale_sequence"},
 		{"schema__asset__approve", "approve_no_transitive"},
 		{"schema__asset__approve", "approve_conflict"},
+		{"schema__asset__approve", "approve_quote_url"},
+		{"schema__asset__approve", "approve_control_url"},
+		{"schema__asset__approve", "approve_lower_edge"},
+		{"schema__asset__approve", "approve_inner_upper"},
 		{"schema__asset__recheck", "recheck_tampered"},
 		{"schema__asset__recheck", "recheck_mixed_policy"},
 		{"html__asset__stylesheet", "stylesheet_role_mismatch"},
 		{"html__asset__script", "script_role_mismatch"},
 		{"html__asset__script", "script_module_unsupported"},
+		{"html__asset__script", "script_worker_unsupported"},
+		{"html__asset__script", "script_preload_unsupported"},
 	}
 	for _, w := range want {
 		if !has(w[0], w[1]) {

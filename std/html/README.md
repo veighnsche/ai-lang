@@ -72,8 +72,8 @@
   classic scripts only: `asset_bridge ... for script`, fixed `script`
   element with `src` + integrity + `crossorigin='anonymous'`. Witnesses
   approved as `stylesheet` fail as `html.asset_script_rejected`, and
-  `module`/`worker`/`preload` spends have no builder (a `module`
-  witness row pins the rejection). Approving an entry never approves
+  `module`/`worker`/`preload` spends have no builder (a witness row
+  per mode pins the rejection). Approving an entry never approves
   its dependencies: each URL needs its own entry (schema row
   `approve_no_transitive`).
 - `html.ts` + `errors.json` — committed golden TS prod emit

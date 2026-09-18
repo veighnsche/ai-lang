@@ -43,7 +43,9 @@
     "handled_by": [],
     "hit_by_tests": [
       "html.html__asset__script/script_module_unsupported",
-      "html.html__asset__script/script_role_mismatch"
+      "html.html__asset__script/script_preload_unsupported",
+      "html.html__asset__script/script_role_mismatch",
+      "html.html__asset__script/script_worker_unsupported"
     ]
   },
   {

@@ -11,10 +11,12 @@
   the deployment acceptance workflow's job (S4), not this file's.
 - Checks, cheapest first (all failures collapse to the one kind below):
   closed role gate (`stylesheet` | `script`), absolute-`https` prefix,
-  tail scan (no NUL, fragment, backslash, whitespace, or userinfo),
-  single-SHA-384 SRI form (`sha384-` + 64 base64 scalars), policy-handle
-  agreement, program agreement, head-sequence currency, exactly-one entry
-  match, revocation walk, validity interval (upper bound exclusive).
+  tail scan (no NUL/C0/DEL, fragment, backslash, whitespace, userinfo,
+  or quote/angle characters — the last for the fixed single-quoted sink
+  embedding), single-SHA-384 SRI form (`sha384-` + 64 base64 scalars),
+  policy-handle agreement, program agreement, head-sequence currency,
+  exactly-one entry match, revocation walk, validity interval (upper
+  bound exclusive; lower-edge and inner-upper rows pin both edges).
 - `error schema.asset_not_approved(asset: Schema__AssetRequest)` is the
   only lookup failure: unknown asset, wrong digest, wrong role/site,
   wrong policy, revoked, expired, stale, and conflicting snapshots all
@@ -42,7 +44,8 @@
 - Hostile set (pinned by `TestAssetHostileSet`, each with its row):
   unapproved URL, wrong digest, policy mismatch, revocation,
   role swap, expiry, stale sequence, conflicting snapshot,
-  non-transitive dependency URL, tampered witness, mixed policy
+  non-transitive dependency URL, quote/control-char URL (shape
+  rejects even on exact entry match), tampered witness, mixed policy
   context — all rejected as `schema.asset_not_approved` carrying
   the original request unchanged; cross-role spends rejected by
   the builders with the witness preserved. No rejection kind
