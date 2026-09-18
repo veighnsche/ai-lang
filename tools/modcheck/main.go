@@ -25,13 +25,19 @@ import (
 var examples = []string{}
 
 var (
-	modRe      = regexp.MustCompile(`(?s)mod\s+(\w+)\s+provides\s*\[(.*?)\]\s+uses\s*\[(.*?)\]`)
-	externRe   = regexp.MustCompile(`extern\s+fn\s+(\w+)`)
-	pinRe      = regexp.MustCompile(`@\d+$`)
-	externsRe  = regexp.MustCompile(`(?m)^\s*externals\s*:`)
-	testsRe    = regexp.MustCompile(`(?m)^\s*tests\s*$`)
-	eqRe       = regexp.MustCompile(`^=\s*$`)
-	caseRe     = regexp.MustCompile(`^\s*(\w+)\(`)
+	modRe     = regexp.MustCompile(`(?s)mod\s+(\w+)\s+provides\s*\[(.*?)\]\s+uses\s*\[(.*?)\]`)
+	externRe  = regexp.MustCompile(`extern\s+fn\s+(\w+)`)
+	pinRe     = regexp.MustCompile(`@\d+$`)
+	externsRe = regexp.MustCompile(`(?m)^\s*externals\s*:`)
+	testsRe   = regexp.MustCompile(`(?m)^\s*tests\s*$`)
+	eqRe      = regexp.MustCompile(`^=\s*$`)
+	// G1 generics: rows pin instantiations (`pick<T=str>(...)`),
+	// so the name capture tolerates one bind group before the
+	// args. Given keys stay plain test names (reGiven is \w+),
+	// and provides/uses keep base names in source, so no other
+	// pattern changes: text-level resolution already agrees
+	// with the compiler's base-name pins.
+	caseRe     = regexp.MustCompile(`^\s*(\w+)(?:<.*?>)?\(`)
 	givenRe    = regexp.MustCompile(`(?m)^\s*given\s*$`)
 	givenKeyRe = regexp.MustCompile(`(?m)^\s*(\w+)\s*=>`)
 	demoRe     = regexp.MustCompile(`(?m)^\s*//\s*DEMO-EXPECTS:\s*(.+?)\s*$`)

@@ -314,6 +314,47 @@ func TestDemoExpects(t *testing.T) {
 	}
 }
 
+// G1 generics: bound rows (`pick<T=str>(...)`) join the
+// test-name set so given tables keying them compare equal,
+// and base-name provides/uses resolve exactly like
+// monomorphic pins (mangled stamps never appear in source).
+const genericLib = `mod lib
+  provides [lib__sel]
+  uses []
+  emits []
+
+fn lib__sel<T>(condition: bool, when_true: T, when_false: T) -> T rev 1
+  emits []
+  tests
+    pick_str_true<T=str>(true, "a", "b") => Ok("a")
+    pick_int_true<T=int>(true, 1, 2) => Ok(1)
+  match condition
+    true => Ok(when_true)
+    false => Ok(when_false)
+`
+
+const genericUser = `mod user
+  provides [user__go]
+  uses [lib__sel@1]
+  emits []
+
+fn user__go<T>(flag: bool, x: T) -> T rev 1
+  emits []
+  tests
+    go_str<T=str>(true, "a") => Ok("a")
+  match call lib__sel<str>(flag, "a", "b")
+    given
+      go_str => [Ok("a")]
+    on Ok v => Ok(v)
+`
+
+func TestGenericRowsAndBasePins(t *testing.T) {
+	dir := writeFixtures(t, map[string]string{"lib.can": genericLib, "user.can": genericUser})
+	if _, _, _, errs := check([]string{dir}); len(errs) > 0 {
+		t.Fatalf("expected generic pair to pass, got %v", errs)
+	}
+}
+
 func TestNewDeclShapes(t *testing.T) {
 	db := strings.Replace(goodDB, "type Db__U rev 1 (\n  id: str\n)", "brand Db__Hash is str rev 1\n\ntype Db__U rev 1 (\n  id: str\n  pw_hash: Db__Hash\n)", 1)
 	db = strings.Replace(db, "provides [db__get]", "provides [db__get, Db__Hash]", 1)

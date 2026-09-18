@@ -222,3 +222,56 @@ func TestDiagnoseUsesFallbackSkipsUnparseable(t *testing.T) {
 		t.Fatalf("expected nowhere-uses error past unparseable provider, got %v", diags)
 	}
 }
+
+// G1 generics: fallback selection is by base name — a pin on
+// a generic base loads the provider file, and expansion
+// stamps the called instance before checking, so the open
+// consumer diagnoses clean.
+func TestDiagnoseUsesFallbackGenericBase(t *testing.T) {
+	lib := `mod lib
+  provides [lib__cmp, Lib__I]
+  uses []
+  emits []
+
+type Lib__I rev 1 (
+  value: int
+)
+
+fn lib__cmp<T>(left: T, right: T) -> Lib__I rev 1
+  emits []
+  tests
+    lt_str<T=str>("a", "b") => Ok(-1)
+    eq_str<T=str>("a", "a") => Ok(0)
+    gt_str<T=str>("b", "a") => Ok(1)
+  match left < right, left == right
+    true, _ => Ok(-1)
+    _, true => Ok(0)
+    false, false => Ok(1)
+`
+	user := `mod user
+  provides [user__go, User__O]
+  uses [lib__cmp@1]
+  emits []
+
+type User__O rev 1 (
+  value: int
+)
+
+fn user__go(a: str, b: str) -> User__O rev 1
+  emits []
+  tests
+    one("a", "b") => Ok(-1)
+  match call lib__cmp<str>(a, b)
+    given
+      one => [exchange args (left = "a", right = "b") outcome Ok(-1)]
+    on Ok v => Ok(v.value)
+`
+	root := writeFallbackTree(t, map[string]string{
+		"go.mod":     "module fallbacktest\n",
+		"a/user.can": user,
+		"b/lib.can":  lib,
+	})
+	if diags := diagnoseTreeFile(t, root, "a", "user.can"); len(diags) != 0 {
+		t.Fatalf("expected clean cross-dir generic diagnosis, got %v", diags)
+	}
+}

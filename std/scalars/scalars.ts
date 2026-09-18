@@ -215,20 +215,7 @@ export function std__bool__equivalent(left: boolean, right: boolean): { $can_kin
     return { $can_kind: "ok", value: true };
   }
 }
-export function std__compare__int(left: bigint, right: bigint): { $can_kind: "ok"; value: bigint } {
-  const $can_m1 = (left === right);
-  const $can_m2 = (left >= right);
-  if ($can_m1) {
-    return { $can_kind: "ok", value: 0n };
-  }
-  else if ($can_m2) {
-    return { $can_kind: "ok", value: 1n };
-  }
-  else {
-    return { $can_kind: "ok", value: -1n };
-  }
-}
-export function std__compare__dec(left: string, right: string): { $can_kind: "ok"; value: bigint } {
+export function std__compare$T$dec(left: string, right: string): { $can_kind: "ok"; value: bigint } {
   const $can_m1 = (left === right);
   const $can_m2 = $canDecGe(left, right);
   if ($can_m1) {
@@ -241,7 +228,20 @@ export function std__compare__dec(left: string, right: string): { $can_kind: "ok
     return { $can_kind: "ok", value: -1n };
   }
 }
-export function std__compare__str(left: string, right: string): { $can_kind: "ok"; value: bigint } {
+export function std__compare$T$int(left: bigint, right: bigint): { $can_kind: "ok"; value: bigint } {
+  const $can_m1 = (left === right);
+  const $can_m2 = (left >= right);
+  if ($can_m1) {
+    return { $can_kind: "ok", value: 0n };
+  }
+  else if ($can_m2) {
+    return { $can_kind: "ok", value: 1n };
+  }
+  else {
+    return { $can_kind: "ok", value: -1n };
+  }
+}
+export function std__compare$T$str(left: string, right: string): { $can_kind: "ok"; value: bigint } {
   const $can_m1 = (left === right);
   const $can_m2 = $canStrGe(left, right);
   if ($can_m1) {

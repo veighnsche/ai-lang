@@ -12,7 +12,7 @@
 // All calls are same-file locals and execute. No externs, no state.
 
 mod scalars
-  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare__int, std__compare__dec, std__compare__str, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__dec__strip_from, std__dec__truncate, std__dec__floor, std__dec__ceil, std__dec__strip257_from, std__dec__divide_exact, std__dec__divide_round_half_even_result, std__dec__divide_round_half_even, std__dec__round_half_even, std__convert__dec_to_str, std__convert__dec_to_int_exact, std__dec__sqrt_exact, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts, Dec__Strip, Dec__Factors, Dec__Rounded, Dec__RoundedQuotient]
+  provides [std__bool__not, std__bool__and, std__bool__or, std__bool__xor, std__bool__implies, std__bool__equivalent, std__compare, std__compare__bool, std__select__int, std__select__bool, std__select__str, std__select__dec, std__int__is_zero, std__int__is_positive, std__int__is_negative, std__int__in_closed_range, std__int__in_open_range, std__dec__is_zero, std__dec__is_positive, std__dec__is_negative, std__dec__in_closed_range, std__dec__in_open_range, std__int__abs, std__int__negate, std__int__sign, std__int__min, std__int__max, std__int__clamp, std__int__distance, std__int__square, std__int__pow_from, std__int__pow, std__int__add_bounded, std__int__subtract_bounded, std__int__multiply_bounded, std__int__factorial_from, std__int__factorial, std__int__sum_from, std__int__sum_to, std__dec__abs, std__dec__negate, std__dec__sign, std__dec__min, std__dec__max, std__dec__clamp, std__dec__distance, std__dec__square, std__dec__pow_from, std__dec__pow, std__dec__lerp, std__convert__bool_to_str, std__convert__str_to_bool, std__convert__bool_to_int, std__convert__int_to_bool, std__convert__bool_to_dec, std__convert__dec_to_bool, std__convert__int_to_str_from, std__convert__int_to_str, std__convert__str_to_int_from, std__convert__str_to_int, std__convert__str_to_dec_from, std__convert__str_to_dec, std__convert__int_to_dec, std__convert__int_to_dec_from, std__dec__scale_by_power_of_ten, std__dec__scale_by_power_of_ten_from, std__dec__from_parts, std__dec__parts, std__dec__strip_from, std__dec__truncate, std__dec__floor, std__dec__ceil, std__dec__strip257_from, std__dec__divide_exact, std__dec__divide_round_half_even_result, std__dec__divide_round_half_even, std__dec__round_half_even, std__convert__dec_to_str, std__convert__dec_to_int_exact, std__dec__sqrt_exact, std__int__binomial, std__int__binomial_from, std__int__is_prime, std__int__is_prime_from, std__int__next_power_of_two, std__int__next_power_of_two_pow2, std__int__next_power_of_two_from, std__int__sqrt_floor, std__int__sqrt_floor_search, std__int__gcd, std__int__gcd_euclid, std__int__lcm, std__backoff__delay, Int__Value, Dec__Value, Str__Value, Bool__Value, Int__Root, Dec__Parts, Dec__Strip, Dec__Factors, Dec__Rounded, Dec__RoundedQuotient]
   uses []
   emits [math.invalid_bounds, math.out_of_range, math.dec_invalid_bounds, math.dec_out_of_range, math.negative_input, math.nonpositive_input, math.negative_exponent, math.invalid_count, math.negative_scale, math.dec_zero_divisor, math.nonterminating_decimal, math.dec_negative_input, math.nonrepresentable_result, convert.invalid_boolean, convert.fractional_value, convert.invalid_boolean_encoding, convert.invalid_dec_encoding, convert.invalid_integer, convert.invalid_decimal]
 
@@ -154,34 +154,22 @@ fn std__bool__equivalent(left: bool, right: bool) -> Bool__Value rev 1
     false, true => Ok(false)
     false, false => Ok(true)
 
-fn std__compare__int(left: int, right: int) -> Int__Value rev 1
+// G1 pilot (a93): one ordered-type body stamps the int,
+// dec, and str instances; rows pin one shape each. Bool
+// keeps its monomorphic fn below: >= refuses bool
+// operands, so no single body text serves all four.
+fn std__compare<T>(left: T, right: T) -> Int__Value rev 1
   emits []
   tests
-    cmp_int_eq(4, 4) => Ok(0)
-    cmp_int_gt(5, 4) => Ok(1)
-    cmp_int_lt(3, 4) => Ok(-1)
-  match left == right, left >= right
-    true, _ => Ok(0)
-    false, true => Ok(1)
-    false, false => Ok(-1)
-
-fn std__compare__dec(left: dec, right: dec) -> Int__Value rev 1
-  emits []
-  tests
-    cmp_dec_eq(d"1.5", d"1.5") => Ok(0)
-    cmp_dec_gt(d"1.6", d"1.5") => Ok(1)
-    cmp_dec_lt(d"1.4", d"1.5") => Ok(-1)
-  match left == right, left >= right
-    true, _ => Ok(0)
-    false, true => Ok(1)
-    false, false => Ok(-1)
-
-fn std__compare__str(left: str, right: str) -> Int__Value rev 1
-  emits []
-  tests
-    cmp_str_eq("a", "a") => Ok(0)
-    cmp_str_gt("b", "a") => Ok(1)
-    cmp_str_lt("a", "b") => Ok(-1)
+    cmp_int_eq<T=int>(4, 4) => Ok(0)
+    cmp_int_gt<T=int>(5, 4) => Ok(1)
+    cmp_int_lt<T=int>(3, 4) => Ok(-1)
+    cmp_dec_eq<T=dec>(d"1.5", d"1.5") => Ok(0)
+    cmp_dec_gt<T=dec>(d"1.6", d"1.5") => Ok(1)
+    cmp_dec_lt<T=dec>(d"1.4", d"1.5") => Ok(-1)
+    cmp_str_eq<T=str>("a", "a") => Ok(0)
+    cmp_str_gt<T=str>("b", "a") => Ok(1)
+    cmp_str_lt<T=str>("a", "b") => Ok(-1)
   match left == right, left >= right
     true, _ => Ok(0)
     false, true => Ok(1)
@@ -1418,6 +1406,6 @@ fn std__backoff__delay(attempt: int, base_ms: int, cap_ms: int) -> Int__Value re
 // 2. Recursion never hides an error arm. fallible recursion splits in
 //    two: a total helper with no emits under the guard, and a checked
 //    entry that rejects negatives before delegating.
-// 3. String order in std__compare__str is byte order on the wire encoding.
+// 3. String order in std__compare at str is byte order on the wire encoding.
 //    It is deterministic, not Unicode aware. Grapheme or collation
 //    aware comparison waits on the Text layer and pinned data.

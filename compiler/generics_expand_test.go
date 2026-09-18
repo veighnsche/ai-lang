@@ -162,6 +162,60 @@ func TestGenericStampsAndRouting(t *testing.T) {
 	}
 }
 
+// Two templates in one module stamp independently: the
+// splice locates each template by identity, so sibling
+// order (map iteration) cannot strand a template or drop a
+// stamp. Regression: a recorded index went stale once a
+// same-module sibling stamped first.
+func TestGenericTwoTemplatesOneModule(t *testing.T) {
+	lib := `mod m
+  provides [m__sel, m__neg]
+  uses []
+  emits []
+
+fn m__sel<T>(condition: bool, when_true: T, when_false: T) -> T rev 1
+  emits []
+  tests
+    pick_str_true<T=str>(true, "a", "b") => Ok("a")
+    pick_str_false<T=str>(false, "a", "b") => Ok("b")
+    pick_int_true<T=int>(true, 1, 2) => Ok(1)
+    pick_int_false<T=int>(false, 1, 2) => Ok(2)
+  match condition
+    true => Ok(when_true)
+    false => Ok(when_false)
+
+fn m__neg<U>(value: U) -> U rev 1
+  emits []
+  tests
+    neg_int<U=int>(1) => Ok(1)
+    neg_str<U=str>("a") => Ok("a")
+  match value
+    _ => Ok(value)
+`
+	prog, mods, collected := genericProgram(t, map[string]string{"m.can": lib})
+	if errs := genericErrs(collected); len(errs) != 0 {
+		t.Fatalf("two templates must be clean: %v", errs)
+	}
+	for _, stamp := range []string{"m__sel$T$str", "m__sel$T$int", "m__neg$T$int", "m__neg$T$str"} {
+		if _, ok := prog.Fns[stamp]; !ok {
+			t.Fatalf("stamp %s missing; fns: %v", stamp, fnNames(prog))
+		}
+	}
+	for _, base := range []string{"m__sel", "m__neg"} {
+		if _, ok := prog.Fns[base]; ok {
+			t.Fatalf("template %s survived expansion", base)
+		}
+	}
+	var provides []string
+	for _, m := range mods {
+		provides = append(provides, m.Hdr["provides"]...)
+	}
+	joined := strings.Join(provides, ",")
+	if !strings.Contains(joined, "m__sel$T$int,m__sel$T$str") || !strings.Contains(joined, "m__neg$T$int,m__neg$T$str") {
+		t.Fatalf("provides = %v, want both sorted stamp sets", provides)
+	}
+}
+
 func TestGenericCallerConcrete(t *testing.T) {
 	prog, _, collected := genericProgram(t, map[string]string{"m.can": genericCmpLib})
 	if errs := genericErrs(collected); len(errs) != 0 {

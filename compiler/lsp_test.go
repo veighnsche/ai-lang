@@ -1348,3 +1348,57 @@ func TestDiagnoseDivisionDeferred(t *testing.T) {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}
 }
+
+// G1 generics: the editor expands at the same pipeline
+// position as the CLI, so a clean generic program diagnoses
+// clean — no stamp leakage, no spurious squiggles.
+func TestDiagnoseGenericClean(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.can": genericCmpLib})
+	if diags := diagnose(dir, "m.can", genericCmpLib); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+const genericMissingArgs = `mod m
+  provides [m__cmp, m__go, M__I]
+  uses []
+  emits []
+
+type M__I rev 1 (
+  value: int
+)
+
+fn m__cmp<T>(left: T, right: T) -> M__I rev 1
+  emits []
+  tests
+    lt_str<T=str>("a", "b") => Ok(-1)
+  match left < right, left == right
+    true, _ => Ok(-1)
+    _, true => Ok(0)
+    false, false => Ok(1)
+
+fn m__go(a: str, b: str) -> M__I rev 1
+  emits []
+  tests
+    one("a", "b") => Ok(-1)
+  match call m__cmp(a, b)
+    on Ok v => Ok(v.value)
+`
+
+// G1 generics: expansion failures degrade to editor
+// diagnostics (same code as the CLI), never a panic or a
+// silent pass.
+func TestDiagnoseGenericErrorSurfaces(t *testing.T) {
+	dir := writeLSPDir(t, map[string]string{"m.can": genericMissingArgs})
+	diags := diagnose(dir, "m.can", genericMissingArgs)
+	found := false
+	for _, d := range diags {
+		if d.Sev == "error" && d.Code == CodeGenericExpand &&
+			strings.Contains(d.Msg, "needs explicit type arguments") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected CAN3014 missing-args error, got %v", diags)
+	}
+}

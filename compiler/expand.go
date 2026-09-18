@@ -34,7 +34,6 @@ func mangleInstance(base string, args []string) string {
 type genericInfo struct {
 	decl *FnDecl
 	mod  *Module
-	pos  int
 }
 
 // describeStamp renders a stamped name back into source terms
@@ -67,7 +66,7 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 	gens := map[string]*genericInfo{}
 	fnBase := map[string]*Module{}
 	for _, m := range mods {
-		for i, d := range m.Decls {
+		for _, d := range m.Decls {
 			fn, ok := d.(*FnDecl)
 			if !ok {
 				continue
@@ -81,7 +80,7 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 			}
 			fnBase[fn.Name] = m
 			if len(fn.TypeParams) > 0 {
-				gens[fn.Name] = &genericInfo{decl: fn, mod: m, pos: i}
+				gens[fn.Name] = &genericInfo{decl: fn, mod: m}
 			}
 		}
 	}
@@ -943,10 +942,25 @@ func stampGenerics(gens map[string]*genericInfo, known map[string][][]string, ty
 			stamps = append(stamps, st)
 		}
 		m := g.mod
+		// Identity splice: a recorded index goes stale the
+		// moment a same-module sibling stamps first (map
+		// order), so the template is located by pointer.
+		// Each iteration removes exactly its own template,
+		// so the end state is order-independent.
+		at := -1
+		for i, d := range m.Decls {
+			if d == Decl(g.decl) {
+				at = i
+				break
+			}
+		}
+		if at < 0 {
+			continue
+		}
 		decls := make([]Decl, 0, len(m.Decls)-1+len(stamps))
-		decls = append(decls, m.Decls[:g.pos]...)
+		decls = append(decls, m.Decls[:at]...)
 		decls = append(decls, stamps...)
-		decls = append(decls, m.Decls[g.pos+1:]...)
+		decls = append(decls, m.Decls[at+1:]...)
 		m.Decls = decls
 		if m.GenericBase == nil {
 			m.GenericBase = map[string]string{}

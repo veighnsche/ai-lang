@@ -1,4 +1,4 @@
-# a93: explicit generics — proposal (needs verdict on Q1–Q2)
+# a93: explicit generics — decided, G1 + compare pilot landed
 
 Status: decided 2026-09-18. Order-8 part 1 of 3 (this
 doc: generics; separate designs: function values,
@@ -6,6 +6,10 @@ first-class outcomes). Parent: `docs/ASTRA_STDLIB.md`
 §6 order 8 ("no inferred type or error parameters").
 Verdict (principal, same day): Q1a per-instance
 stamps, Q2b select+compare pilot (8→2). G1 implements.
+Pilot outcome (same day, amendments 6–8): compare
+3→1 (bool stays monomorphic), select reverted on the
+v0 bare-return emit limit — generic `-> T` waits on
+the outcomes design.
 
 ## 1. Ground facts (repo-verified)
 
@@ -190,3 +194,37 @@ the verdict unless noted:
    text-level tools. Dead base pins warn CAN3401 like
    dead monomorphic pins. Missing-pin errors name the
    base, never the stamp.
+
+## Pilot amendments (G1 gates + compare pilot, same day)
+
+Found while unifying `std__compare__*` in
+`std/scalars/scalars.can`; all within the verdict:
+
+6. **Identity splice.** Stamping located each template
+   by its pre-expansion decl index, which goes stale
+   the moment a same-module sibling stamps first (map
+   order) — stranding a template or dropping a stamp.
+   The splice now locates the template by pointer, so
+   the end state is order-independent; pinned by
+   `TestGenericTwoTemplatesOneModule`. Single-generic
+   modules never showed it.
+7. **Compare is 3→1, not 4→1.** `>=` refuses bool
+   operands (`cannot order bool with bool`), so no
+   single body text serves all four instances;
+   `std__compare__bool` keeps its monomorphic fn
+   (`match left == right, left`). The generic carries
+   the int/dec/str rows; golden + linked + parity pin
+   all three stamps plus the bool fn.
+8. **Select reverted (iff-green fails).** All four
+   select instances are bare (`-> T`), and emit
+   requires a declared record return
+   (`declaredOkShape`: `returns unknown type bool`).
+   A monomorphic `-> bool` fn fails identically, so
+   this is a pre-existing v0 emit limit, not a
+   generics defect; the checker accepts bare returns
+   (identity) but emit cannot shape them. The bare
+   wire shape belongs to the outcomes design (per
+   amendment 4); the four monomorphic select fns are
+   restored untouched. Consequence: generic `-> T`
+   pilots stay blocked until outcomes lands — only
+   concrete-record returns (`-> R`) unify today.
