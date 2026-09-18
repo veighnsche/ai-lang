@@ -1,8 +1,11 @@
 // Command gramcheck verifies the ai-lang TextMate grammar: every syntactic
 // class needs its own scope, and each scope's regex must fire on a
-// representative sample. Smoke test only — it does NOT verify rule
-// precedence (first-match-wins in TextMate), so keep specific rules before
-// general ones by hand when editing the grammar.
+// representative sample. Smoke test only — most rule precedence
+// (first-match-wins in TextMate) is still kept by hand, except the
+// interpreted-string rule, whose position before the plain-string rule is
+// pinned below: an interior \" in e"..." would otherwise flip string state
+// to the end of the block. Both string rules skip backslash pairs, mirroring
+// escClose in the compiler.
 //
 // Run from anywhere inside the repo: go run ./tools/gramcheck
 package main
@@ -127,6 +130,22 @@ func check(dir string) []string {
 		errs = append(errs, "expected one version-pin rule")
 	} else if ok, _ := regexp.MatchString(strOf(pinRules[0]["match"]), "db__get_user@3"); !ok {
 		errs = append(errs, "pin rule must match @N")
+	}
+	eIdx, plainIdx := -1, -1
+	for i, p := range patterns {
+		if strOf(p["name"]) != "string.quoted.double.ail" {
+			continue
+		}
+		if strings.Contains(strOf(p["begin"]), "e\"") {
+			eIdx = i
+		} else if strOf(p["begin"]) == `"` {
+			plainIdx = i
+		}
+	}
+	if eIdx < 0 {
+		errs = append(errs, "expected one interpreted-string rule")
+	} else if plainIdx >= 0 && eIdx > plainIdx {
+		errs = append(errs, "interpreted-string rule must precede the plain-string rule")
 	}
 
 	scopes := map[string][]string{}
