@@ -1022,12 +1022,10 @@ func contradictScriptOk(callee *FnDecl, item *Small, test string, prog *Program)
 			computed, scripted, bad = "", "", false
 		}
 	}()
-	sandbox := &Ctx{Prog: prog, Test: test, Scripts: map[*Node]map[string][]*Small{}}
-	store, err := freshStore(prog)
+	sandbox, err := freshExecCtx(prog, test, false)
 	if err != nil {
 		return "", "", false
 	}
-	sandbox.Store = store
 	argVals := map[string]*Value{}
 	for _, a := range item.Args {
 		v, err := evSmall(a.V, map[string]*Value{}, sandbox, callee.Name)

@@ -122,11 +122,10 @@ func runLinkedPure(t *testing.T, files map[string]string, order []string, root s
 		}
 		env[p[0]] = v
 	}
-	store, err := freshStore(prog)
+	ctx, err := freshExecCtx(prog, "linked", true)
 	if err != nil {
 		return err
 	}
-	ctx := &Ctx{Prog: prog, Test: "linked", Linked: true, Scripts: map[*Node]map[string][]*Small{}, Store: store}
 	got, err := evNode(fn.Body, env, ctx, fn.Name)
 	if err != nil {
 		return fmt.Errorf("linked execution of %s failed: %v", root, err)

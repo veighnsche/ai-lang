@@ -280,6 +280,18 @@ type Ctx struct {
 	Store map[string]*Value
 }
 
+// freshExecCtx returns a virgin execution context: fresh script
+// queues and a fresh per-test store. contradictScriptOk,
+// runLinkedPure, and every ordinary test run start here, so a
+// new execution mode is added once, not once per caller.
+func freshExecCtx(prog *Program, test string, linked bool) (*Ctx, error) {
+	store, err := freshStore(prog)
+	if err != nil {
+		return nil, err
+	}
+	return &Ctx{Prog: prog, Test: test, Linked: linked, Scripts: map[*Node]map[string][]*Small{}, Store: store}, nil
+}
+
 // markTaken records an arm selection for branch coverage: the arm counts
 // as taken when its pattern matches, even if its body later errors.
 func markTaken(ctx *Ctx, node *Node, i int) {
@@ -1386,6 +1398,82 @@ func b64val(c byte) int {
 	}
 }
 
+// evLinkedOutcome executes a foreign call against its real body
+// (a68 linked-pure execution): module identity preserved
+// (evLocalCall is file-agnostic; FnFile is never rewritten).
+// Given tables are not consulted and there is no script
+// fallback; admission (checkLinkedGraph) excluded externs,
+// state, effects, and unresolved calls beforehand.
+// The real result still eliminates through the caller's arms
+// below (a76). Returning it here would skip the match the root
+// was asked to execute — unobservable for pure relays, wrong
+// for any transforming arm.
+func evLinkedOutcome(prog *Program, fname string, scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if callee, ok := prog.Fns[fname]; ok {
+		return evLocalCall(callee, scrut, env, ctx, owner)
+	}
+	return nil, fmt.Errorf("%s: linked execution refused: %s resolves to no body", owner, fname)
+}
+
+// evScriptOutcome consumes a foreign call's scripted exchange:
+// the test's given row selects the outcome, args are checked
+// against the call, and error stubs must stay inside the
+// callee's declared emits. Failure injection point, not a
+// limitation: scripts may stub errors the provider never
+// produces (a67 §1.1).
+func evScriptOutcome(prog *Program, fname string, scrut *Small, node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if !prog.Uses[fname] && prog.Externs[fname] == nil {
+		return nil, fmt.Errorf("%s: %s not in uses", owner, fname)
+	}
+	entry, ok := node.Given[ctx.Test]
+	if !ok || entry == nil {
+		return nil, fmt.Errorf("%s/%s: no script for call %s", owner, ctx.Test, fname)
+	}
+	perTest, ok := ctx.Scripts[node]
+	if !ok {
+		perTest = map[string][]*Small{}
+		ctx.Scripts[node] = perTest
+	}
+	script, started := perTest[ctx.Test]
+	if !started {
+		if entry.Kind == "list" {
+			script = append([]*Small{}, entry.Items...)
+		} else {
+			script = []*Small{entry}
+		}
+		perTest[ctx.Test] = script
+	}
+	if len(script) == 0 {
+		return nil, fmt.Errorf("%s/%s: call %s script exhausted", owner, ctx.Test, fname)
+	}
+	item := script[0]
+	perTest[ctx.Test] = script[1:]
+	if item.Kind != "exchange" {
+		return nil, fmt.Errorf("%s/%s: script row must be an exchange with args and outcome", owner, ctx.Test)
+	}
+	if err := checkExchangeArgs(scrut, item, prog, env, ctx, owner); err != nil {
+		return nil, err
+	}
+	val, err := evSmall(item.Outcome, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	if val.Kind == "err" {
+		allowed := false
+		for _, e := range prog.EmitsOf[fname] {
+			if e == val.ErrKind {
+				allowed = true
+			}
+		}
+		if !allowed {
+			return nil, fmt.Errorf("%s/%s: stub %s not in %s emits", owner, ctx.Test, val.ErrKind, fname)
+		}
+	} else if val.Kind != "ok" {
+		return nil, fmt.Errorf("%s/%s: stub must be Ok(..) or an error", owner, ctx.Test)
+	}
+	return val, nil
+}
+
 func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	scrut := node.Scruts[0]
 	var v *Value
@@ -1455,78 +1543,18 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			if calleeUnknown(ctx.Prog, fname) {
 				return nil, &UnknownCallError{Owner: owner, Fname: fname}
 			}
+			// One call semantics, two outcome sources: linked runs
+			// execute real bodies, ordinary runs consume scripts.
 			if ctx.Linked {
-				// a68: linked-pure execution dispatches to the
-				// real body with module identity preserved
-				// (evLocalCall is file-agnostic; FnFile is
-				// never rewritten). Given tables are not
-				// consulted and there is no script fallback;
-				// admission (checkLinkedGraph) excluded
-				// externs, state, effects, and unresolved
-				// calls beforehand.
-				// a76: the real result still eliminates through
-				// the caller's arms below. Returning it here
-				// would skip the match the root was asked to
-				// execute — unobservable for pure relays, wrong
-				// for any transforming arm.
-				if callee, ok := ctx.Prog.Fns[fname]; ok {
-					val, err := evLocalCall(callee, scrut, env, ctx, owner)
-					if err != nil {
-						return nil, err
-					}
-					v = val
-				} else {
-					return nil, fmt.Errorf("%s: linked execution refused: %s resolves to no body", owner, fname)
-				}
-			} else {
-				if !ctx.Prog.Uses[fname] && ctx.Prog.Externs[fname] == nil {
-					return nil, fmt.Errorf("%s: %s not in uses", owner, fname)
-				}
-				entry, ok := node.Given[ctx.Test]
-				if !ok || entry == nil {
-					return nil, fmt.Errorf("%s/%s: no script for call %s", owner, ctx.Test, fname)
-				}
-				perTest, ok := ctx.Scripts[node]
-				if !ok {
-					perTest = map[string][]*Small{}
-					ctx.Scripts[node] = perTest
-				}
-				script, started := perTest[ctx.Test]
-				if !started {
-					if entry.Kind == "list" {
-						script = append([]*Small{}, entry.Items...)
-					} else {
-						script = []*Small{entry}
-					}
-					perTest[ctx.Test] = script
-				}
-				if len(script) == 0 {
-					return nil, fmt.Errorf("%s/%s: call %s script exhausted", owner, ctx.Test, fname)
-				}
-				item := script[0]
-				perTest[ctx.Test] = script[1:]
-				if item.Kind != "exchange" {
-					return nil, fmt.Errorf("%s/%s: script row must be an exchange with args and outcome", owner, ctx.Test)
-				}
-				if err := checkExchangeArgs(scrut, item, ctx.Prog, env, ctx, owner); err != nil {
-					return nil, err
-				}
-				val, err := evSmall(item.Outcome, env, ctx, owner)
+				val, err := evLinkedOutcome(ctx.Prog, fname, scrut, env, ctx, owner)
 				if err != nil {
 					return nil, err
 				}
-				if val.Kind == "err" {
-					allowed := false
-					for _, e := range ctx.Prog.EmitsOf[fname] {
-						if e == val.ErrKind {
-							allowed = true
-						}
-					}
-					if !allowed {
-						return nil, fmt.Errorf("%s/%s: stub %s not in %s emits", owner, ctx.Test, val.ErrKind, fname)
-					}
-				} else if val.Kind != "ok" {
-					return nil, fmt.Errorf("%s/%s: stub must be Ok(..) or an error", owner, ctx.Test)
+				v = val
+			} else {
+				val, err := evScriptOutcome(ctx.Prog, fname, scrut, node, env, ctx, owner)
+				if err != nil {
+					return nil, err
 				}
 				v = val
 			}
