@@ -329,7 +329,10 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				line = 1
 				spanText = texts[open.ID]
 			}
-			if !strings.Contains(u, "@") {
+			// The pin format is validated before resolution: an
+			// entry like t__f@x names no revision, so it is a
+			// pin error (name@N), never a "resolves nowhere".
+			if !strings.Contains(u, "@") || !pinRe.MatchString(u) {
 				emit(m, spanDiag(spanText, line, "error",
 					fmt.Sprintf("%s: uses %s must pin a rev (name@N)", m.File, u), u, CodeUsesPin))
 				continue
@@ -1615,7 +1618,7 @@ func isMid(v *Small, lo, hi string) bool {
 	if v == nil || v.Kind != "binop" || v.Op != "/" {
 		return false
 	}
-	if v.R.Kind != "int" || v.R.Num.Cmp(big.NewInt(2)) != 0 {
+	if v.R == nil || v.R.Kind != "int" || v.R.Num == nil || v.R.Num.Cmp(big.NewInt(2)) != 0 {
 		return false
 	}
 	s := v.L
@@ -1696,7 +1699,7 @@ func storeCellName(scrut *Small) (string, bool) {
 		return "", false
 	}
 	a := scrut.Args[0]
-	if a.HasName || a.V.Kind != "ref" || len(a.V.Ref) != 1 {
+	if a.HasName || a.V == nil || a.V.Kind != "ref" || len(a.V.Ref) != 1 {
 		return "", false
 	}
 	return a.V.Ref[0], true

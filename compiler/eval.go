@@ -518,6 +518,16 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			eq, err := vEq(lv, rv)
 			return &Value{Kind: "bool", B: eq}, err
 		}
+		if node.Op == "!=" {
+			// != is the negation of == over the same
+			// structural equality: bools, records, and every
+			// vEq shape compare here, exactly as the checker
+			// and the prover (not-eq) already assume. Falling
+			// through to the int/str/dec gate below would
+			// reject what == accepts.
+			eq, err := vEq(lv, rv)
+			return &Value{Kind: "bool", B: !eq}, err
+		}
 		switch node.Op {
 		case "+", "-", "*", "/", "%":
 			return evArith(node.Op, lv, rv)

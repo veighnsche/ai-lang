@@ -38,7 +38,8 @@ type Small struct {
 	// Dec holds canonical decimal digits for Kind dec: -?\d+\.\d+ with
 	// no trailing fractional zeros (d"1.50" parses to "1.5").
 	Dec string
-	// Seal holds the brand name for Kind seal; Str holds the literal.
+	// Seal holds the brand name for Kind seal; the sealed value
+	// rides in Args[0].V (Str stays empty).
 	Seal string
 	// Elem holds the element type name for Kind seqlit
 	// (a36 S1: typed sequence literals Seq<T>[...]).
@@ -1540,6 +1541,22 @@ func parseFields(s, what string) ([][2]string, error) {
 	return out, nil
 }
 
+// dupParam names the first repeated parameter in a fn/extern
+// signature, or "" when all are distinct. A repeated name
+// leaves binding ambiguous (the name map keeps one slot while
+// positional calls fill both), so the declaration fails here
+// instead of confusing every call site downstream.
+func dupParam(params [][2]string) string {
+	seen := make(map[string]bool, len(params))
+	for _, p := range params {
+		if seen[p[0]] {
+			return p[0]
+		}
+		seen[p[0]] = true
+	}
+	return ""
+}
+
 func parseModule(path string) (*Module, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -1773,6 +1790,9 @@ func parseModuleText(name, text string) (*Module, error) {
 			if err != nil {
 				return nil, at(declLine, err)
 			}
+			if dup := dupParam(params); dup != "" {
+				return nil, at(declLine, fmt.Errorf("duplicate param %s in extern %s", dup, m[1]))
+			}
 			ex := &ExternDecl{Name: m[1], Rev: rev, Params: params, Ret: m[3], Line: declLine}
 			i++
 			for i < len(rows) && rows[i].indent > 0 {
@@ -1796,6 +1816,9 @@ func parseModuleText(name, text string) (*Module, error) {
 			params, err := parseFields(m[2], "param")
 			if err != nil {
 				return nil, at(declLine, err)
+			}
+			if dup := dupParam(params); dup != "" {
+				return nil, at(declLine, fmt.Errorf("duplicate param %s in fn %s", dup, m[1]))
 			}
 			fn := &FnDecl{Name: m[1], Rev: rev, Params: params, Ret: m[3], Line: declLine}
 			i++
@@ -2027,6 +2050,12 @@ func parsePattern(s string) (Pattern, error) {
 	case s == "false":
 		return Pattern{Kind: "bool"}, nil
 	case strings.HasPrefix(s, `"`):
+		// Raw patterns validate like raw literals: a lone quote
+		// panics the slice below and an unterminated literal
+		// silently loses its last byte, so both fail here.
+		if len(s) < 2 || !strings.HasSuffix(s, `"`) {
+			return Pattern{}, fmt.Errorf("bad match pattern: %s", s)
+		}
 		return Pattern{Kind: "str", Str: s[1 : len(s)-1], Raw: s}, nil
 	case strings.HasPrefix(s, `e"`):
 		j := escClose(s[1:])
@@ -2190,7 +2219,7 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 		node.Arms = append(node.Arms, Arm{Pats: pats, Rhs: rhs, Line: aline})
 	}
 	if len(node.Arms) == 0 {
-		return nil, i, at(indent, fmt.Errorf("match with no arms"))
+		return nil, i, at(mline, fmt.Errorf("match with no arms"))
 	}
 	// Single non-call matches take no given table. Multi matches with a
 	// given table parse and fail in checkGiven with CodeGivenOnLocal, so

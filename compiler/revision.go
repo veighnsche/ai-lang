@@ -141,6 +141,13 @@ func canonSmall(s *Small) string {
 	case "ref":
 		return "ref(" + strings.Join(s.Ref, ".") + ")"
 	case "seal":
+		// The sealed value rides in Args, not Str (the parser
+		// leaves Str empty): canon from the operand, or every
+		// seal of one brand hashes identically and x->y drifts
+		// silently. Hand-built Str seals keep the old shape.
+		if len(s.Args) == 1 && s.Args[0].V != nil {
+			return "seal(" + s.Seal + ":" + canonSmall(s.Args[0].V) + ")"
+		}
 		return "seal(" + s.Seal + ":" + strconv.Quote(s.Str) + ")"
 	case "seqlit":
 		parts := make([]string, 0, len(s.Items))
@@ -190,6 +197,12 @@ func canonSmall(s *Small) string {
 		return "list[" + strings.Join(parts, ",") + "]"
 	case "wild":
 		return "wild"
+	case "not":
+		return "not(" + canonSmall(s.L) + ")"
+	case "neg":
+		return "neg(" + canonSmall(s.L) + ")"
+	case "forward":
+		return "forward(" + s.Str + ")"
 	default:
 		// Fail closed: an unserializable kind must never hash as
 		// a blank. New expression kinds force this function to

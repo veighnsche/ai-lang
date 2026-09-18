@@ -432,6 +432,13 @@ func isArith(op string) bool {
 	return op == "+" || op == "-" || op == "*" || op == "/" || op == "%"
 }
 
+// isOrdering reports the inequality comparisons: <, >, <=, >=.
+// Unlike ==/!= (structural over any same-type pair), ordering
+// needs an ordered domain.
+func isOrdering(op string) bool {
+	return op == "<" || op == ">" || op == "<=" || op == ">="
+}
+
 // arithVerb names the operator class for mismatch messages, so agents
 // do not file arithmetic mistakes under comparison.
 func arithVerb(op string) string {
@@ -760,6 +767,15 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// refusal covers them too.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: variant equality is not in v1", l, r), s.Op, CodeTypeMismatch))
+		} else if isOrdering(s.Op) && l != "int" && l != "str" && l != "dec" && !c.brands[l] {
+			// Ordering needs an ordered domain: records,
+			// bools, cells, and payloads compare for
+			// equality only. Without this gate a record <
+			// record sails through to a meaningless native
+			// comparison at emit. Brands erase to strings,
+			// so every brand orders as str.
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot order %s with %s: %s takes int, str, dec, or brand operands", l, r, s.Op), s.Op, CodeTypeMismatch))
 		}
 	case "strlen":
 		c.value(s.L, "", line, env, "length")

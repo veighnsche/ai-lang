@@ -605,6 +605,14 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 				return fmt.Sprintf("[...%s, %s]", l, r), nil
 			}
 		}
+		// Ordering past this point is ints only: dec, str, and
+		// str-backed brands returned through their helpers
+		// above, and anything else (records, bools, cells) has
+		// no native ordering — fail like == instead of
+		// emitting a meaningless object comparison.
+		if isOrdering(node.Op) && ot != "int" {
+			return "", fmt.Errorf("cannot emit %s over %s (%s)", node.Op, ot, CodeBadCompare)
+		}
 		ops := map[string]string{">=": ">=", "<=": "<=", ">": ">", "<": "<", "+": "+", "-": "-", "*": "*"}
 		op, ok := ops[node.Op]
 		if !ok {

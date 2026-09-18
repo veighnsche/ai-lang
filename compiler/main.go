@@ -382,10 +382,11 @@ func parsePaths(paths []string) (mods []*Module, texts map[string]string, collec
 
 // assignStems gives every module an injective output stem. The bare
 // stem (filename without extension) wins while unique, so single-file
-// and distinct-name inputs emit exactly as before; sharers after the
-// first (in sorted identity order) take the sanitized identity path,
-// with numeric suffixes breaking residual ties. Deterministic in the
-// input set, never silently merging two owners into one artifact.
+// and distinct-name inputs emit exactly as before; every sharer of a
+// basename takes the sanitized identity path instead (in sorted
+// identity order), with numeric suffixes breaking residual ties.
+// Deterministic in the input set, never silently merging two owners
+// into one artifact.
 func assignStems(mods []*Module) {
 	count := map[string]int{}
 	for _, m := range mods {

@@ -581,23 +581,25 @@ func (p *prover) genCall(node *Node, st *execState, req []*smt, out *[]obligatio
 		return false
 	}
 	// Actual arguments instantiate the callee formals, records
-	// included: bindings carry structure, not strings. Named and
-	// positional applications both occur; mixing is rejected by
-	// the checker, so one rule covers the call.
+	// included: bindings carry structure, not strings. Binding
+	// follows the one shared rule (bindSlots): positional args
+	// bind by source index, named args bind by name, and the two
+	// mix freely — judging the whole call from Args[0] alone
+	// misbinds out-of-order mixed calls (a later named arg would
+	// land in the wrong formal), proving obligations about the
+	// wrong values. A bind failure fails closed to inconclusive:
+	// the checker reports the malformed call itself.
 	formals := map[string]*symVal{}
-	named := len(call.Args) > 0 && call.Args[0].HasName
+	slots, berr := bindSlots(call.Fname, call.Args, callee.Params)
+	if berr != nil {
+		return false
+	}
+	bound := make([]*Small, len(callee.Params))
+	for i, a := range call.Args {
+		bound[slots[i]] = a.V
+	}
 	for i, pr := range callee.Params {
-		var arg *Small
-		if named {
-			for _, a := range call.Args {
-				if a.Name == pr[0] {
-					arg = a.V
-					break
-				}
-			}
-		} else if i < len(call.Args) {
-			arg = call.Args[i].V
-		}
+		arg := bound[i]
 		if arg == nil {
 			return false
 		}

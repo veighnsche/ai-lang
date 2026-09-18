@@ -438,12 +438,20 @@ func lintArmKey(lines []string, a Arm) (string, bool) {
 
 // lintPureSmall reports whether a scrutinee can fault at
 // runtime: no calls (kernels included), no index or slice
-// reads. Everything else — refs, literals, arithmetic, ctors,
-// strlen — is total. Unknown kinds default closed (impure): a
-// new faulting operator must opt into purity explicitly.
+// reads, no trapping division or remainder. Everything else —
+// refs, literals, total arithmetic, ctors, strlen — is total.
+// Unknown kinds default closed (impure): a new faulting
+// operator must opt into purity explicitly. The / and %
+// exemption mirrors firstTrappingOp exactly (a literal nonzero
+// divisor cannot fail), so same-outcome findings never advise
+// dropping a match whose scrutinee can fault.
 func lintPureSmall(s *Small) bool {
 	pure := true
 	walkSmallTrees(s, func(c *Small) {
+		if c.Kind == "binop" && (c.Op == "/" || c.Op == "%") && !isNonzeroIntLit(c.R) {
+			pure = false
+			return
+		}
 		switch c.Kind {
 		case "str", "int", "bool", "dec", "ref", "binop", "not", "neg",
 			"strlen", "ctor", "list", "seqlit", "seal", "forward":
