@@ -124,7 +124,7 @@
       },
       {
         "fn": "html.html__attributes__make_from",
-        "arm": "on html.duplicate_attribute e =\u003e html.duplicate_attribute(name = e.name)"
+        "arm": "on html.duplicate_attribute e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
@@ -308,7 +308,7 @@
       },
       {
         "fn": "html.html__url__authority",
-        "arm": "on html.invalid_url e =\u003e html.invalid_url(value = e.value)"
+        "arm": "on html.invalid_url e =\u003e forward e"
       },
       {
         "fn": "html.html__url__check",
@@ -431,7 +431,7 @@
       },
       {
         "fn": "html.html__attribute__value_from",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       },
       {
         "fn": "html.html__render__document",
@@ -443,7 +443,7 @@
       },
       {
         "fn": "html.html__text__escape_from",
-        "arm": "on html.nul_byte e =\u003e html.nul_byte(value = e.value)"
+        "arm": "on html.nul_byte e =\u003e forward e"
       }
     ],
     "hit_by_tests": [

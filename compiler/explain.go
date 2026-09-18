@@ -206,6 +206,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `db__get_user(id, extra) against a one-param signature.`,
 		fix:     "Match the callee's params exactly. The message names the offending arg; the signature is the contract.",
 	},
+	CodeBadForward: {
+		rule:    "forward is the entire RHS of its own call-outcome arm, and the operand is that arm's bound payload binder (AIL3011).",
+		violate: `on m.bad e => forward e.value, or forward x from an outer scope.`,
+		fix:     "Write forward with exactly the arm binder: on KIND binder => forward binder. Anything else (projections, outer names, constructors, value matches) is handwritten reconstruction.",
+	},
 	CodeUndeclaredEffect: {
 		rule:    "State authority is declared beside emits: effects [C.read, C.write], transitive through local calls, no inference (R6).",
 		violate: `touching Count__total with no effects line, or via a helper whose authority you did not declare.`,

@@ -20,7 +20,7 @@ type Arg struct {
 }
 
 type Small struct {
-	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit
+	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
 	// "this request received this permitted response" (a12).
@@ -1821,9 +1821,20 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 				return nil, i, err
 			}
 		case rest != "":
-			sm, err := parseSmall(rest)
-			if err != nil {
-				return nil, i, at(aline, err)
+			var sm *Small
+			if rest == "forward" || strings.HasPrefix(rest, "forward ") {
+				// Slice 2: `forward v` is an arm-RHS shape only.
+				// The operand rides raw in Str; the checker
+				// validates it strictly (AIL3011) and
+				// elaborates exact binders. Anywhere else
+				// `forward ...` stays a parse error.
+				sm = &Small{Kind: "forward", Str: strings.TrimSpace(strings.TrimPrefix(rest, "forward"))}
+			} else {
+				var err error
+				sm, err = parseSmall(rest)
+				if err != nil {
+					return nil, i, at(aline, err)
+				}
 			}
 			rhs = &Node{Small: sm, Line: aline}
 		default:

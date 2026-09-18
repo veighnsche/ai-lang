@@ -1,0 +1,385 @@
+package main
+
+import (
+	"os"
+	"strings"
+	"testing"
+)
+
+// Slice 2: forward arms. Probes first: check-time elaboration of
+// `forward v` into the complete constructor, AIL3011 rejections,
+// the AIL4107 certificate boundary, and the manual-trap guard.
+
+const forwardLib = `mod m
+  provides [m__go, m__work, M__Out, M__Work]
+  uses []
+  emits [m.bad]
+
+error m.bad(value: str)
+
+type M__Out rev 1 (
+  value: str
+)
+
+type M__Work rev 1 (
+  value: str
+)
+
+fn m__work(v: str) -> M__Work rev 1
+  emits [m.bad]
+  tests
+    w(v = "x") => Ok(value = "x")
+    u(v = "b") => m.bad(value = "b")
+=
+  match v == "b"
+    true => m.bad(value = v)
+    false => Ok(value = v)
+`
+
+const forwardGoHead = `
+fn m__go(x: str) -> M__Out rev 1
+  emits [m.bad]
+  tests
+    ok(x = "a") => Ok(value = "a")
+    bad(x = "b") => m.bad(value = "b")
+=
+  match call m__work(x)
+`
+
+// TestForwardErrorElaborates pins the core rewrite: an error arm
+// forwarding its binder behaves exactly like the handwritten
+// reconstruction.
+func TestForwardErrorElaborates(t *testing.T) {
+	src := forwardLib + forwardGoHead + `    on m.bad e => forward e
+    on Ok r => Ok(value = r.value)
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("forwarded error arm reported: %v", diags)
+	}
+}
+
+// TestForwardOkElaborates pins the Ok rewrite: same field set on
+// both records reconstructs explicitly.
+func TestForwardOkElaborates(t *testing.T) {
+	src := forwardLib + forwardGoHead + `    on m.bad e => m.bad(value = e.value)
+    on Ok r => forward r
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("forwarded Ok arm reported: %v", diags)
+	}
+}
+
+// TestForwardRejects pins AIL3011: only `forward <arm-binder>`
+// elaborates. Underscores, outer binders, projections,
+// bare forward, constructor operands, wild patterns, and value
+// matches are all rejected.
+func TestForwardRejects(t *testing.T) {
+	badArm := []string{
+		"on m.bad e => forward _",
+		"on m.bad e => forward x",
+		"on m.bad e => forward e.value",
+		"on m.bad e => forward",
+		"on m.bad e => forward m.bad(value = e.value)",
+		"on m.bad _ => forward _",
+	}
+	for _, arm := range badArm {
+		src := forwardLib + forwardGoHead + "    " + arm + "\n    on Ok r => Ok(value = r.value)\n"
+		dir := writeLSPDir(t, map[string]string{"m.ail": src})
+		if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL3011") {
+			t.Fatalf("%q reported no AIL3011: %v", arm, diags)
+		}
+	}
+	valueMatch := `mod m
+  provides [m__go, M__Out]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  value: str
+)
+
+fn m__go(x: int) -> M__Out rev 1
+  emits []
+  tests
+    one(x = 1) => Ok(value = "yes")
+    two(x = 2) => Ok(value = "no")
+=
+  match x <= 1
+    true => forward x
+    false => Ok(value = "no")
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": valueMatch})
+	if diags := diagnose(dir, "m.ail", valueMatch); !hasCode(diags, "AIL3011") {
+		t.Fatalf("value-match forward reported no AIL3011: %v", diags)
+	}
+}
+
+// TestForwardOkMismatch pins AIL3011 for shape drift: the source
+// payload must hold exactly the destination success fields.
+func TestForwardOkMismatch(t *testing.T) {
+	src := `mod m
+  provides [m__go, m__work, M__Out, M__Work]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  other: str
+)
+
+type M__Work rev 1 (
+  value: str
+)
+
+fn m__work(v: str) -> M__Work rev 1
+  emits []
+  tests
+    w(v = "x") => Ok(value = "x")
+=
+  Ok(value = v)
+
+fn m__go(x: str) -> M__Out rev 1
+  emits []
+  tests
+    ok(x = "a") => Ok(other = "a")
+=
+  match call m__work(x)
+    given
+      ok => [Ok(value = "a")]
+    on Ok r => forward r
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL3011") {
+		t.Fatalf("mismatched Ok forward reported no AIL3011: %v", diags)
+	}
+}
+
+// TestForwardUnknownCallee pins fail-closed elaboration: a forward
+// on a call nobody declares is AIL3011, never a downstream crash
+// on a missing shape.
+func TestForwardUnknownCallee(t *testing.T) {
+	src := `mod m
+  provides [m__go, M__Out]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  value: str
+)
+
+fn m__go(x: str) -> M__Out rev 1
+  emits []
+  tests
+    ok(x = "a") => Ok(value = "a")
+=
+  match call nope__missing(x)
+    on Ok r => forward r
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL3011") {
+		t.Fatalf("unknown-callee forward reported no AIL3011: %v", diags)
+	}
+}
+
+// TestForwardExternOk pins Ok forwarding across an extern
+// boundary: the callee's declared return record resolves the
+// same way as a local one.
+func TestForwardExternOk(t *testing.T) {
+	src := `mod m
+  provides [m__go, ex__work, M__Out, M__Work]
+  uses []
+  emits []
+
+extern ex__work(v: str) -> M__Work rev 1
+
+type M__Out rev 1 (
+  value: str
+)
+
+type M__Work rev 1 (
+  value: str
+)
+
+fn m__go(x: str) -> M__Out rev 1
+  emits []
+  tests
+    ok(x = "a") => Ok(value = "a")
+=
+  match call ex__work(x)
+    given
+      ok => [exchange args (v = "a") outcome Ok(value = "a")]
+    on Ok r => forward r
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("extern Ok forward reported: %v", diags)
+	}
+}
+
+// TestForwardSameEmitsCheck pins that elaborated arms face the
+// handwritten checks: a forwarded kind outside the caller's
+// emits is AIL4001, exactly like spelling the constructor out.
+func TestForwardSameEmitsCheck(t *testing.T) {
+	src := forwardLib + `
+fn m__go(x: str) -> M__Out rev 1
+  emits []
+  tests
+    ok(x = "a") => Ok(value = "a")
+    bad(x = "b") => m.bad(value = "b")
+=
+  match call m__work(x)
+    on m.bad e => forward e
+    on Ok r => Ok(value = r.value)
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4001") {
+		t.Fatalf("forward outside emits reported no AIL4001: %v", diags)
+	}
+}
+
+// TestForwardCertificate pins the unchanged AIL4107 boundary: an
+// untaken forwarded error arm of a local call carries the relay
+// certificate instead of an execution failure.
+func TestForwardCertificate(t *testing.T) {
+	src := forwardLib + `
+fn m__go(x: str) -> M__Out rev 1
+  emits [m.bad]
+  tests
+    ok(x = "a") => Ok(value = "a")
+=
+  match call m__work(x)
+    on m.bad e => forward e
+    on Ok r => Ok(value = r.value)
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("certified forward relay reported: %v", diags)
+	}
+}
+
+// TestForwardOkUntaken pins the execution law for Ok: a forwarded
+// Ok arm no test takes is AIL4107, never certified.
+func TestForwardOkUntaken(t *testing.T) {
+	src := forwardLib + `
+fn m__go(x: str) -> M__Out rev 1
+  emits [m.bad]
+  tests
+    bad(x = "b") => m.bad(value = "b")
+=
+  match call m__work(x)
+    on m.bad e => m.bad(value = e.value)
+    on Ok r => forward r
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); !hasCode(diags, "AIL4107") {
+		t.Fatalf("untaken Ok forward reported no AIL4107: %v", diags)
+	}
+}
+
+// TestForwardForeignNoCertificate pins the locality boundary: a
+// forwarded error arm of a foreign call acquires no certificate,
+// so untaken it is AIL4107.
+func TestForwardForeignNoCertificate(t *testing.T) {
+	lib := `mod lib
+  provides [lib__work, L__Work]
+  uses []
+  emits [lib.bad]
+
+error lib.bad(value: str)
+
+type L__Work rev 1 (
+  value: str
+)
+
+fn lib__work(v: str) -> L__Work rev 1
+  emits [lib.bad]
+  tests
+    w(v = "x") => Ok(value = "x")
+=
+  Ok(value = v)
+`
+	app := `mod app
+  provides [app__go, A__Out]
+  uses [lib__work@1]
+  emits [lib.bad]
+
+type A__Out rev 1 (
+  value: str
+)
+
+fn app__go(x: str) -> A__Out rev 1
+  emits [lib.bad]
+  tests
+    ok(x = "a") => Ok(value = "a")
+=
+  match call lib__work(x)
+    given
+      ok => [exchange args (v = "a") outcome Ok(value = "a")]
+    on lib.bad e => forward e
+    on Ok r => Ok(value = r.value)
+`
+	dir := writeLSPDir(t, map[string]string{"lib.ail": lib, "app.ail": app})
+	if diags := diagnose(dir, "app.ail", app); !hasCode(diags, "AIL4107") {
+		t.Fatalf("untaken foreign forward reported no AIL4107: %v", diags)
+	}
+}
+
+// TestForwardTrapStaysManual guards the migration trap:
+// html__attribute__id selects the enclosing input, not e.value,
+// so its nul_byte arm must remain handwritten, never forwarded.
+func TestForwardTrapStaysManual(t *testing.T) {
+	raw, err := os.ReadFile("../std/html/html.ail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "on html.nul_byte e => html.nul_byte(value = value)") {
+		t.Fatalf("trap arm left its manual shape")
+	}
+}
+
+// TestForwardTrapDistinctValues pins why the trap stays manual: a
+// reconstruction selecting the enclosing value passes exactly
+// because the two values differ — forwarding e would change the
+// verdict, and the rows prove it.
+func TestForwardTrapDistinctValues(t *testing.T) {
+	src := `mod m
+  provides [m__go, m__check, M__Out, M__Mid]
+  uses []
+  emits [m.dirty]
+
+error m.dirty(value: str)
+
+type M__Out rev 1 (
+  value: str
+)
+
+type M__Mid rev 1 (
+  clean: str
+)
+
+fn m__check(v: str, tag: str) -> M__Mid rev 1
+  emits [m.dirty]
+  tests
+    clean(v = "a", tag = "t") => Ok(clean = "a")
+    dirty(v = "a", tag = "bad") => m.dirty(value = "CALLEE")
+=
+  match tag == "bad"
+    true => m.dirty(value = "CALLEE")
+    false => Ok(clean = v)
+
+fn m__go(value: str, tag: str) -> M__Out rev 1
+  emits [m.dirty]
+  tests
+    hit(value = "a-b", tag = "bad") => m.dirty(value = "a-b")
+    pass(value = "a", tag = "t") => Ok(value = "a")
+=
+  match call m__check(value, tag)
+    on m.dirty e => m.dirty(value = value)
+    on Ok c => Ok(value = c.clean)
+`
+	dir := writeLSPDir(t, map[string]string{"m.ail": src})
+	if diags := diagnose(dir, "m.ail", src); hasError(diags) {
+		t.Fatalf("enclosing-value reconstruction reported: %v", diags)
+	}
+}

@@ -29,7 +29,7 @@ type sampleCase struct {
 }
 
 var cases = []sampleCase{
-	{"keyword.control.ail", []string{"on", "rev", "match", "given", "brand", "const", "extern", "seal", "seals_from", "decreases", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge"}},
+	{"keyword.control.ail", []string{"on", "rev", "match", "given", "brand", "const", "forward", "extern", "seal", "seals_from", "decreases", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge"}},
 	{"storage.type.primitive.ail", []string{"str", "int", "dec"}},
 	{"constant.numeric.integer.ail", []string{"42"}},
 	{"constant.numeric.decimal.ail", []string{`d"1.5"`}},
