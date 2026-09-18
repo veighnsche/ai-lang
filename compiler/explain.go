@@ -221,6 +221,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `a chain whose shared else cannot parse on some level.`,
 		fix:     "The else text parsed when the chain was read; report the chain, the step, and the else text as a compiler bug.",
 	},
+	CodeBadForwardCall: {
+		rule:    "forward call is the entire arm RHS relaying a same-file local call, spelled exactly as a match scrutinee (CAN3013).",
+		violate: `on Ok r => forward call db__get(r.id) to a uses-pinned callee, or forward call with a malformed call.`,
+		fix:     "Call same-file locals only (foreign calls need given tables, so they keep their match). Undeclared forwarded kinds report as CAN4001, like handwritten relays.",
+	},
 	CodeUndeclaredEffect: {
 		rule:    "State authority is declared beside emits: effects [C.read, C.write], transitive through local calls, no inference (R6).",
 		violate: `touching Count__total with no effects line, or via a helper whose authority you did not declare.`,
@@ -340,6 +345,11 @@ var explainDocs = map[string]explainEntry{
 		rule:    "Nested value matches over pure, pairwise-different scrutinees with plain outcomes fold into one multi-scrutinee table with don't-care slots (can-idioms C15).",
 		violate: `match a == 0 nesting under false into match b == 0, all arms plain.`,
 		fix:     "Fold into one match a == 0, b == 0 table (yielding arms take _ slots). Guarded, impure, identical-scrutinee, and call-carrying nests stay nested.",
+	},
+	CodeLintRelayCall: {
+		rule:    "A call match forwarding every outcome to its own binder rewrites as one forward call relay (can-idioms C16).",
+		violate: `match call f(x) with on Ok r => forward r beside on E e => forward e.`,
+		fix:     "Write the arm as forward call f(x). Matches with given tables, foreign callees, or rebuilding arms stay matches.",
 	},
 	CodeUnknownKind: {
 		rule:    "Every raised and declared error kind is declared somewhere: unknown kinds are rejected at both sites (R5).",

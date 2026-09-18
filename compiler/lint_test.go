@@ -797,6 +797,220 @@ func TestLintLadderKeptUntouched(t *testing.T) {
 	}
 }
 
+// a90 interplay: lint runs on parse, so forward-call sites read
+// as single-expression outcomes. A pure ladder with a
+// forward-call leaf still tabulates (bodies move verbatim);
+// identical forward calls or-fold and drop like any identical
+// outcomes. No lint rule needed edits for the shape.
+const lintForwardCallInterplay = `mod demo
+  provides [demo__ladder, demo__fold, demo__drop, demo__help, Demo__Out]
+  uses []
+  emits []
+
+type Demo__Out rev 1 (
+  value: str
+)
+
+fn demo__help(v: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("a") => Ok(value = "a")
+  Ok(value = v)
+
+fn demo__ladder(a: int, b: int) -> Demo__Out rev 1
+  emits []
+  tests
+    t(1, 2) => Ok(value = "x")
+  match a < 0
+    true => forward call demo__help("x")
+    false => match b < 0
+      true => Ok(value = "y")
+      false => Ok(value = "z")
+
+fn demo__fold(s: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("a") => Ok(value = "x")
+  match s
+    "a" => forward call demo__help("x")
+    "b" => forward call demo__help("x")
+    _ => Ok(value = "z")
+
+fn demo__drop(v: int) -> Demo__Out rev 1
+  emits []
+  tests
+    t(1) => Ok(value = "x")
+  match v < 0
+    true => forward call demo__help("x")
+    false => forward call demo__help("x")
+`
+
+func TestLintForwardCallInterplay(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintForwardCallInterplay})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	want := []string{
+		`demo.can:20: nested matches over 2 pure scrutinees; fold into a multi-scrutinee table`,
+		`demo.can:31: mergeable match arms [31 32] (identical outcomes); fold into one or-pattern arm, saves 1 lines`,
+		`demo.can:39: match always yields forward call demo__help("x"); drop the match`,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("findings = %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i].String() != want[i] {
+			t.Fatalf("finding %d = %q, want %q", i, got[i].String(), want[i])
+		}
+	}
+}
+
+// A two-arm relay and a one-arm infallible relay over
+// same-file locals: both rewrite as forward call.
+const lintRelayCall = `mod demo
+  provides [demo__go, demo__one, demo__work, demo__pure, Demo__Out, Demo__Work]
+  uses []
+  emits [demo.bad]
+
+error demo.bad(value: str)
+
+type Demo__Out rev 1 (
+  value: str
+)
+
+type Demo__Work rev 1 (
+  value: str
+)
+
+fn demo__work(v: str) -> Demo__Work rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  Ok(value = v)
+
+fn demo__pure(v: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("a") => Ok(value = "a")
+  Ok(value = v)
+
+fn demo__go(x: str) -> Demo__Out rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  match call demo__work(x)
+    on Ok r => forward r
+    on demo.bad e => forward e
+
+fn demo__one(x: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("a") => Ok(value = "a")
+  match call demo__pure(x)
+    on Ok r => forward r
+`
+
+func TestLintRelayCallable(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintRelayCall})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	want := []string{
+		`demo.can:32: relay match forwards every outcome; write forward call demo__work(x)`,
+		`demo.can:40: relay match forwards every outcome; write forward call demo__pure(x)`,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("findings = %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i].String() != want[i] {
+			t.Fatalf("finding %d = %q, want %q", i, got[i].String(), want[i])
+		}
+	}
+}
+
+// Matches that must not rewrite: a rebuilding arm breaks the
+// relay; given tables, uses-pinned callees, and externs cannot
+// convert (forward call carries no given); an already-relayed
+// arm is the fixed shape.
+const lintRelayCallKept = `mod demo
+  provides [demo__rebuild, demo__given, demo__foreign, demo__extern, demo__fixed, demo__work, ex__work, Demo__Out, Demo__Work]
+  uses [other__work@1]
+  emits [demo.bad]
+
+error demo.bad(value: str)
+
+extern ex__work(v: str) -> Demo__Work rev 1
+
+type Demo__Out rev 1 (
+  value: str
+)
+
+type Demo__Work rev 1 (
+  value: str
+)
+
+fn demo__work(v: str) -> Demo__Work rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  Ok(value = v)
+
+fn demo__rebuild(x: str) -> Demo__Out rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  match call demo__work(x)
+    on Ok r => Ok(value = r.value)
+    on demo.bad e => forward e
+
+fn demo__given(x: str) -> Demo__Out rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  match call other__work(x)
+    given
+      t => exchange args (x = "a") outcome Ok(value = "a")
+    on Ok r => forward r
+    on demo.bad e => forward e
+
+fn demo__foreign(x: str) -> Demo__Out rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  match call other__work(x)
+    on Ok r => forward r
+    on demo.bad e => forward e
+
+fn demo__extern(x: str) -> Demo__Out rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  match call ex__work(x)
+    on Ok r => forward r
+    on demo.bad e => forward e
+
+fn demo__fixed(x: str) -> Demo__Out rev 1
+  emits [demo.bad]
+  tests
+    t("a") => Ok(value = "a")
+  match x == "z"
+    true => Ok(value = "no")
+    false => forward call demo__work(x)
+`
+
+func TestLintRelayCallKeptUntouched(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintRelayCallKept})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	for _, f := range got {
+		if strings.Contains(f.msg, "write forward call") {
+			t.Fatalf("kept matches must not rewrite, got %v (full %v)", f, got)
+		}
+	}
+}
+
 // Two sequential calls that cannot fail share no failure outcome:
 // the router's divergent plain sides must not establish unity for
 // the run (regression: the rejected router leaked failures=true).
@@ -965,8 +1179,8 @@ func TestLintErrorFixtures(t *testing.T) {
 		}
 		files[e.Name()] = string(raw)
 	}
-	if len(files) != 9 {
-		t.Fatalf("want 9 proving fixtures, got %d: %v", len(files), files)
+	if len(files) != 10 {
+		t.Fatalf("want 10 proving fixtures, got %d: %v", len(files), files)
 	}
 	got, skipped := lintFiles(files)
 	if len(skipped) != 0 {
@@ -1007,6 +1221,9 @@ func TestLintErrorFixtures(t *testing.T) {
 		},
 		"ladder.can": {
 			`ladder.can:21: nested matches over 2 pure scrutinees; fold into a multi-scrutinee table`,
+		},
+		"relaycall.can": {
+			`relaycall.can:35: relay match forwards every outcome; write forward call relaycall__work(x)`,
 		},
 	}
 	for name, lines := range want {
@@ -1091,6 +1308,9 @@ func TestLintSpanPositions(t *testing.T) {
 		},
 		"ladder.can": {
 			{21, 2, 13, CodeLintLadder, "match a < 0"},
+		},
+		"relaycall.can": {
+			{35, 2, 31, CodeLintRelayCall, "match call relaycall__work(x)"},
 		},
 	}
 	for name, ws := range wants {

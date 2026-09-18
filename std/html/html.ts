@@ -1052,13 +1052,13 @@ export function html__attributes__make_from(items: Html__NamedAttribute[], posit
         if ((it.item.attribute === "")) {
           const $can_m2: { $can_kind: "ok"; attributes: string } | { $can_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), acc, kept);
           switch ($can_m2.$can_kind) {
-          case "html.duplicate_attribute": {
-            const e = $can_m2;
-            return { $can_kind: "html.duplicate_attribute", name: e.name };
-          }
           case "ok": {
             const r = $can_m2;
             return { $can_kind: "ok", attributes: r.attributes };
+          }
+          case "html.duplicate_attribute": {
+            const e = $can_m2;
+            return { $can_kind: "html.duplicate_attribute", name: e.name };
           }
           default: {
             throw new Error("unreachable");
@@ -1070,41 +1070,41 @@ export function html__attributes__make_from(items: Html__NamedAttribute[], posit
           switch ($can_m3.$can_kind) {
           case "ok": {
             const c = $can_m3;
-            if (c.value) {
+            const $can_m4 = c.value;
+            const $can_m5 = ((BigInt([...kept].length)) === 0n);
+            if ($can_m4) {
               return { $can_kind: "html.duplicate_attribute", name: it.item.name };
             }
-            else {
-              if (((BigInt([...kept].length)) === 0n)) {
-                const $can_m4: { $can_kind: "ok"; attributes: string } | { $can_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), it.item.attribute, [...kept, it.item.name]);
-                switch ($can_m4.$can_kind) {
-                case "html.duplicate_attribute": {
-                  const e = $can_m4;
-                  return { $can_kind: "html.duplicate_attribute", name: e.name };
-                }
-                case "ok": {
-                  const r = $can_m4;
-                  return { $can_kind: "ok", attributes: r.attributes };
-                }
-                default: {
-                  throw new Error("unreachable");
-                }
-                }
+            else if ($can_m5) {
+              const $can_m6: { $can_kind: "ok"; attributes: string } | { $can_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), it.item.attribute, [...kept, it.item.name]);
+              switch ($can_m6.$can_kind) {
+              case "ok": {
+                const r = $can_m6;
+                return { $can_kind: "ok", attributes: r.attributes };
               }
-              else {
-                const $can_m5: { $can_kind: "ok"; attributes: string } | { $can_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), ((acc + " ") + it.item.attribute), [...kept, it.item.name]);
-                switch ($can_m5.$can_kind) {
-                case "html.duplicate_attribute": {
-                  const e = $can_m5;
-                  return { $can_kind: "html.duplicate_attribute", name: e.name };
-                }
-                case "ok": {
-                  const r = $can_m5;
-                  return { $can_kind: "ok", attributes: r.attributes };
-                }
-                default: {
-                  throw new Error("unreachable");
-                }
-                }
+              case "html.duplicate_attribute": {
+                const e = $can_m6;
+                return { $can_kind: "html.duplicate_attribute", name: e.name };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else {
+              const $can_m7: { $can_kind: "ok"; attributes: string } | { $can_kind: "html.duplicate_attribute"; name: string } = html__attributes__make_from(items, (position + 1n), (fuel - 1n), ((acc + " ") + it.item.attribute), [...kept, it.item.name]);
+              switch ($can_m7.$can_kind) {
+              case "ok": {
+                const r = $can_m7;
+                return { $can_kind: "ok", attributes: r.attributes };
+              }
+              case "html.duplicate_attribute": {
+                const e = $can_m7;
+                return { $can_kind: "html.duplicate_attribute", name: e.name };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
               }
             }
           }

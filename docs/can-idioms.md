@@ -16,8 +16,11 @@ which is why this file exists.
 
 ### Calls dispatch, never sequence
 
-Every call lives as a `match` scrutinee with dispatched arms;
-bare calls in bodies or nested `f(call g(...))` are refused
+Every call lives as a `match` scrutinee with dispatched arms,
+or as a whole-arm `forward call` relay of a same-file local
+(a90; elaborated into the dispatched shape at check time,
+CAN3013 otherwise); bare calls in bodies or nested
+`f(call g(...))` are refused
 (CAN3003, CAN4109; fix: wrap each call in its own match).
 Callees resolve to a same-file helper, a `uses`-pinned
 function, an own-module extern, or a state intrinsic — other
@@ -297,13 +300,13 @@ Blessed `std/` predates the linter but is migrated: its rows,
 calls, and relays follow the new idiom, so blessed modules open
 clean. Gallery sketches are held to the same idiom. Everywhere,
 `canlc lint` and the editor agree:
-every finding is an error (CAN3410–3418, error-severity, no
+every finding is an error (CAN3410–3419, error-severity, no
 warnings level), published through `canlc lsp` on files the
 compiler otherwise accepts.
 Positional versus named call args are both bound through the
 signature (`bindSlots`); test rows allow the same mixed shape,
 positionals first, under CAN3205. Proving fixtures for all
-nine rules live in `sketches/lint-errors/`: one file per
+ten rules live in `sketches/lint-errors/`: one file per
 rule, every file compiling clean and linting dirty.
 
 ### C14. Equality ladders restate (`canlc lint`, rule 8)
@@ -327,6 +330,17 @@ order irrelevant. Guarded or impure scrutinees stay nested
 (CAN4109), identical-scrutinee diamonds stay rule C9's, and
 arms that run calls first stay nested (C1).
 Fixture: `sketches/lint-errors/ladder.can`.
+
+### C16. Relay matches rewrite (`canlc lint`, rule 10)
+
+A call match with no `given` table, over a same-file local
+callee, whose every arm forwards its own binder rewrites as
+one `forward call` relay (a90). Foreign, uses-pinned, and
+extern callees keep their match — `given` tables cannot
+attach to the relay shape — as does any arm that rebuilds
+instead of forwarding. Unknown callees stay silent: broken
+code gets check errors, not lint advice.
+Fixture: `sketches/lint-errors/relaycall.can`.
 
 ## Tier 3 — Judgment pattern
 

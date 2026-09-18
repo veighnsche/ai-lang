@@ -49,6 +49,7 @@ const (
 	CodeBadBinding               = "CAN3010"
 	CodeBadForward               = "CAN3011"
 	CodeChainElab                = "CAN3012"
+	CodeBadForwardCall           = "CAN3013"
 	CodeUndeclaredEffect         = "CAN3107"
 	CodeStaleEffect              = "CAN3108"
 	CodeNoGiven                  = "CAN3101"
@@ -76,6 +77,7 @@ const (
 	CodeLintRange                = "CAN3416"
 	CodeLintRestate              = "CAN3417"
 	CodeLintLadder               = "CAN3418"
+	CodeLintRelayCall            = "CAN3419"
 	CodeForeignRaise             = "CAN4001"
 	CodeUnknownKind              = "CAN4002"
 	CodeProofOther               = "CAN4100"
@@ -131,13 +133,13 @@ var allCodes = []string{
 	CodeDupFn, CodeDupSibling, CodeDupVariant, CodeCaseCollision, CodeDupConst,
 	CodeProvidesMiss, CodeProvidesGhost,
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
-	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab,
+	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab, CodeBadForwardCall,
 	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeGivenOnLocal,
 	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind, CodeBadPositional,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeLintRedundant, CodeLintOrFold, CodeLintChain, CodeLintTable,
-	CodeLintSameOutcome, CodeLintRelay, CodeLintRange, CodeLintRestate, CodeLintLadder,
+	CodeLintSameOutcome, CodeLintRelay, CodeLintRange, CodeLintRestate, CodeLintLadder, CodeLintRelayCall,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm, CodeUselessAlt,
 	CodeTestFailed,

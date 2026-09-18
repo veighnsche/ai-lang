@@ -1,4 +1,4 @@
-# can-lang editor support (Cursor / VSCode)
+# can-lang editor support (Cursor / Antigravity / VSCode)
 
 Two halves: `syntaxes/` colors (TextMate), `client/` + `bin/canlc` squiggles
 (LSP client talking to `canlc lsp` over stdio).
@@ -11,7 +11,9 @@ go build -o editors/vscode/bin/canlc ./compiler
 (cd editors/vscode && npm install --no-audit --no-fund)
 (cd editors/vscode && npx -y @vscode/vsce package -o /tmp/can-lang.vsix)
 cursor --install-extension /tmp/can-lang.vsix --force   # or: code --install-extension ...
+antigravity-ide --install-extension /tmp/can-lang.vsix --force
 codesign --force --sign - ~/.cursor/extensions/can-lang.can-lang-*/bin/canlc
+codesign --force --sign - ~/.antigravity-ide/extensions/can-lang.can-lang-*/bin/canlc
 ```
 
 (`codesign` re-signs the server so macOS runs it; without this the OS

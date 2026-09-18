@@ -102,6 +102,7 @@ func lintFiles(files map[string]string) (findings []lintFinding, skipped []strin
 		findings = append(findings, lintRangeMerge(p)...)
 		findings = append(findings, lintRestatable(p)...)
 		findings = append(findings, lintLadderable(p)...)
+		findings = append(findings, lintRelayCallable(p)...)
 	}
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].file != findings[j].file {
@@ -1931,6 +1932,110 @@ func lintLadderable(lm lintModule) []lintFinding {
 			// table replaces.
 			if st, en, ok := lintHeadSpan(lines, m.Line); ok {
 				f.start, f.end = st, en
+			}
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// lintMatchScrut extracts the scrutinee text of a match head row:
+// the source after "match", comments stripped, whitespace
+// normalized (same normalization as lintInnerKey).
+func lintMatchScrut(lines []string, m *Node) (string, bool) {
+	if m.Line < 1 || m.Line > len(lines) {
+		return "", false
+	}
+	row := lines[m.Line-1]
+	i := strings.Index(row, "match ")
+	if i < 0 {
+		return "", false
+	}
+	fields := strings.Fields(lintCodePart(row[i+len("match "):]))
+	if len(fields) == 0 {
+		return "", false
+	}
+	return strings.Join(fields, " "), true
+}
+
+// lintRelayCallable implements the relay-call rule: a call match
+// with no given table, over a same-file local callee, whose
+// every arm forwards its own binder rewrites as one forward
+// call relay. Foreign, uses-pinned, and extern callees keep
+// their match (given tables cannot attach to the relay shape),
+// as does any arm that rebuilds instead of forwarding. Unknown
+// callees stay silent: broken code gets check errors, not lint
+// advice.
+func lintRelayCallable(lm lintModule) []lintFinding {
+	lines := strings.Split(lm.text, "\n")
+	locals := map[string]bool{}
+	externs := map[string]bool{}
+	for _, d := range lm.mod.Decls {
+		switch t := d.(type) {
+		case *FnDecl:
+			locals[t.Name] = true
+		case *ExternDecl:
+			externs[t.Name] = true
+		}
+	}
+	pinned := map[string]bool{}
+	for _, u := range lm.mod.Hdr["uses"] {
+		name := u
+		if i := strings.IndexByte(name, '@'); i >= 0 {
+			name = name[:i]
+		}
+		pinned[strings.TrimSpace(name)] = true
+	}
+	var out []lintFinding
+	for _, d := range lm.mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		for _, m := range matchNodes(fn.Body) {
+			if !m.IsMatch || m.Kind != MatchCall || m.Given != nil {
+				continue
+			}
+			if len(m.Scruts) != 1 || m.Scruts[0] == nil || m.Scruts[0].Kind != "call" {
+				continue
+			}
+			fname := m.Scruts[0].Fname
+			if !locals[fname] || pinned[fname] || externs[fname] {
+				continue
+			}
+			if len(m.Arms) == 0 {
+				continue
+			}
+			all := true
+			for i := range m.Arms {
+				a := &m.Arms[i]
+				if len(a.Pats) != 1 || a.Pats[0].Kind != "variant" {
+					all = false
+					break
+				}
+				binder := a.Pats[0].Var
+				if binder == "" || binder == "_" || a.Rhs == nil || a.Rhs.IsMatch ||
+					a.Rhs.Small == nil || a.Rhs.Small.Kind != "forward" ||
+					a.Rhs.Small.Str != binder {
+					all = false
+					break
+				}
+			}
+			if !all {
+				continue
+			}
+			call, ok := lintMatchScrut(lines, m)
+			if !ok {
+				continue
+			}
+			if len(call) > 72 {
+				call = call[:72]
+			}
+			f := lintFinding{file: lm.name, line: m.Line, msg: "relay match forwards every outcome; write forward " + call, code: CodeLintRelayCall}
+			// Underline the match head: the site the relay
+			// replaces.
+			if s, e, ok := lintHeadSpan(lines, m.Line); ok {
+				f.start, f.end = s, e
 			}
 			out = append(out, f)
 		}

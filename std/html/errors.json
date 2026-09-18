@@ -238,7 +238,15 @@
       },
       {
         "fn": "html.html__attributes__make_from",
-        "arm": "on html.duplicate_attribute e =\u003e forward e"
+        "arm": "false, false =\u003e forward call html__attributes__make_from(items, position + 1, fuel - 1, acc + seal Html__Attribute(\" \") + it.item.attribute, kept + it.item.name)"
+      },
+      {
+        "fn": "html.html__attributes__make_from",
+        "arm": "false, true =\u003e forward call html__attributes__make_from(items, position + 1, fuel - 1, it.item.attribute, kept + it.item.name)"
+      },
+      {
+        "fn": "html.html__attributes__make_from",
+        "arm": "true =\u003e forward call html__attributes__make_from(items, position + 1, fuel - 1, acc, kept)"
       }
     ],
     "hit_by_tests": [
@@ -423,7 +431,35 @@
       },
       {
         "fn": "html.html__url__authority",
-        "arm": "on html.invalid_url e =\u003e forward e"
+        "arm": "_ =\u003e forward call html__url__authority(orig, s[1:#s], n - 1, \".\")"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "false =\u003e forward call html__url__authority(orig, s[1:#s], n - 1, \"-\")"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "false =\u003e forward call html__url__authority_finish(orig, s, n, prev)"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "std__ascii__A..std__ascii__Z =\u003e forward call html__url__authority(orig, s[1:#s], n - 1, s[0:1])"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "std__ascii__NUL =\u003e forward call html__url__authority(orig, s[1:#s], n - 1, prev)"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "std__ascii__SLASH | std__ascii__QUESTION | std__ascii__HASH =\u003e forward call html__url__authority_finish(orig, s, n, prev)"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "std__ascii__SMALL_A..std__ascii__SMALL_Z =\u003e forward call html__url__authority(orig, s[1:#s], n - 1, s[0:1])"
+      },
+      {
+        "fn": "html.html__url__authority",
+        "arm": "std__ascii__ZERO..std__ascii__NINE =\u003e forward call html__url__authority(orig, s[1:#s], n - 1, s[0:1])"
       },
       {
         "fn": "html.html__url__check",
@@ -549,7 +585,23 @@
       },
       {
         "fn": "html.html__attribute__value_from",
-        "arm": "on html.nul_byte e =\u003e forward e"
+        "arm": "\"\u0026\" =\u003e forward call html__attribute__value_from(orig, s[1:#s], acc + \"\u0026amp;\", n - 1)"
+      },
+      {
+        "fn": "html.html__attribute__value_from",
+        "arm": "\"'\" =\u003e forward call html__attribute__value_from(orig, s[1:#s], acc + \"\u0026#39;\", n - 1)"
+      },
+      {
+        "fn": "html.html__attribute__value_from",
+        "arm": "\"\u003c\" =\u003e forward call html__attribute__value_from(orig, s[1:#s], acc + \"\u0026lt;\", n - 1)"
+      },
+      {
+        "fn": "html.html__attribute__value_from",
+        "arm": "\"\u003e\" =\u003e forward call html__attribute__value_from(orig, s[1:#s], acc + \"\u0026gt;\", n - 1)"
+      },
+      {
+        "fn": "html.html__attribute__value_from",
+        "arm": "_ =\u003e forward call html__attribute__value_from(orig, s[1:#s], acc + s[0:1], n - 1)"
       },
       {
         "fn": "html.html__render__document",
@@ -561,7 +613,19 @@
       },
       {
         "fn": "html.html__text__escape_from",
-        "arm": "on html.nul_byte e =\u003e forward e"
+        "arm": "\"\u0026\" =\u003e forward call html__text__escape_from(orig, s[1:#s], acc + \"\u0026amp;\", n - 1)"
+      },
+      {
+        "fn": "html.html__text__escape_from",
+        "arm": "\"\u003c\" =\u003e forward call html__text__escape_from(orig, s[1:#s], acc + \"\u0026lt;\", n - 1)"
+      },
+      {
+        "fn": "html.html__text__escape_from",
+        "arm": "\"\u003e\" =\u003e forward call html__text__escape_from(orig, s[1:#s], acc + \"\u0026gt;\", n - 1)"
+      },
+      {
+        "fn": "html.html__text__escape_from",
+        "arm": "_ =\u003e forward call html__text__escape_from(orig, s[1:#s], acc + s[0:1], n - 1)"
       }
     ],
     "hit_by_tests": [

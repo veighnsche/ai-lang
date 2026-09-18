@@ -389,6 +389,16 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			emit(m, d)
 		}
 	}
+	// a90: elaborate forward-call arms into full relay matches
+	// first: their output arms are plain forwards the next pass
+	// must expand. Same terms — once, here, before proofs, runs,
+	// and emit — and refused sites stay forward-shaped, so this
+	// must not re-run in checkSem either.
+	for _, m := range mods {
+		for _, d := range expandForwardCalls(m, prog, texts[m.ID]) {
+			emit(m, d)
+		}
+	}
 	// Slice 2: elaborate forward arms into complete constructors
 	// on the same terms: once, here, before proofs, runs, and
 	// emit. Invalid forwards stay forward-shaped, so this must

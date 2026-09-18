@@ -125,6 +125,10 @@ rows are proposed evidence.
   once, left to right. Call matches keep a single `call` scrutinee;
   multi matches take no `given`. Coverage stays one obligation per
   reachable source arm, not per product cell.
+- Amendment (a90): an arm may relay a same-file local call
+  directly (`=> forward call f(args)`), elaborated at check
+  time into the full dispatched match; refused shapes are
+  CAN3013, undeclared forwarded kinds CAN4001.
 
 ## R7 — Compile-time tests
 
