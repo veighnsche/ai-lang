@@ -13,3 +13,6 @@ dist/
 build/
 out/
 *.test
+
+# linked git worktrees nested under .agents (see git worktree list)
+/.agents/worktrees/

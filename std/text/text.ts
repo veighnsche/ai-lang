@@ -171,13 +171,13 @@ export function std__str__length_scalars(value: string): { $can_kind: "ok"; valu
   return { $can_kind: "ok", value: (BigInt([...value].length)) };
 }
 export function std__str__scalar_at(value: string, index: bigint): { $can_kind: "ok"; value: bigint } | { $can_kind: "text.index_out_of_range"; value: string; index: bigint } {
-  if ((index >= 0n)) {
-    if ((index < (BigInt([...value].length)))) {
-      return { $can_kind: "ok", value: $canStrAt(value, index) };
-    }
-    else {
-      return { $can_kind: "text.index_out_of_range", value: value, index: index };
-    }
+  const $can_m1 = (index >= 0n);
+  const $can_m2 = (index < (BigInt([...value].length)));
+  if ($can_m1 && $can_m2) {
+    return { $can_kind: "ok", value: $canStrAt(value, index) };
+  }
+  else if ($can_m1 && !($can_m2)) {
+    return { $can_kind: "text.index_out_of_range", value: value, index: index };
   }
   else {
     return { $can_kind: "text.index_out_of_range", value: value, index: index };
@@ -755,7 +755,7 @@ export function std__base64url__translate_from(value: string, acc: string, n: bi
   }
   else {
     if (((BigInt([...value].length)) >= 1n)) {
-      if (($canStrSlice(value, 0n, 1n) === "+")) {
+      if ($canStrSlice(value, 0n, 1n) === "+") {
         const $can_m1: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "-"), (n - 1n));
         switch ($can_m1.$can_kind) {
         case "ok": {
@@ -767,31 +767,27 @@ export function std__base64url__translate_from(value: string, acc: string, n: bi
         }
         }
       }
-      else {
-        if (($canStrSlice(value, 0n, 1n) === "/")) {
-          const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "_"), (n - 1n));
-          switch ($can_m2.$can_kind) {
-          case "ok": {
-            const r = $can_m2;
-            return { $can_kind: "ok", value: r.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+      else if ($canStrSlice(value, 0n, 1n) === "/") {
+        const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "_"), (n - 1n));
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
-        else {
-          const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
-          switch ($can_m3.$can_kind) {
-          case "ok": {
-            const r = $can_m3;
-            return { $can_kind: "ok", value: r.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+        default: {
+          throw new Error("unreachable");
         }
+        }
+      }
+      const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+      switch ($can_m3.$can_kind) {
+      case "ok": {
+        const r = $can_m3;
+        return { $can_kind: "ok", value: r.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
     else {
@@ -805,7 +801,7 @@ export function std__base64url__untranslate_from(value: string, acc: string, n: 
   }
   else {
     if (((BigInt([...value].length)) >= 1n)) {
-      if (($canStrSlice(value, 0n, 1n) === "-")) {
+      if ($canStrSlice(value, 0n, 1n) === "-") {
         const $can_m1: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "+"), (n - 1n));
         switch ($can_m1.$can_kind) {
         case "ok": {
@@ -817,31 +813,27 @@ export function std__base64url__untranslate_from(value: string, acc: string, n: 
         }
         }
       }
-      else {
-        if (($canStrSlice(value, 0n, 1n) === "_")) {
-          const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "/"), (n - 1n));
-          switch ($can_m2.$can_kind) {
-          case "ok": {
-            const r = $can_m2;
-            return { $can_kind: "ok", value: r.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+      else if ($canStrSlice(value, 0n, 1n) === "_") {
+        const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "/"), (n - 1n));
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
-        else {
-          const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
-          switch ($can_m3.$can_kind) {
-          case "ok": {
-            const r = $can_m3;
-            return { $can_kind: "ok", value: r.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+        default: {
+          throw new Error("unreachable");
         }
+        }
+      }
+      const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+      switch ($can_m3.$can_kind) {
+      case "ok": {
+        const r = $can_m3;
+        return { $can_kind: "ok", value: r.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
     else {
@@ -872,16 +864,16 @@ export function std__base64url__rem_from(remaining: bigint, fuel: bigint): { $ca
   }
 }
 export function std__base64url__pad(value: string, rem: bigint): { $can_kind: "ok"; value: string } {
-  if ((rem === 2n)) {
+  const $can_m1 = (rem === 2n);
+  const $can_m2 = (rem === 3n);
+  if ($can_m1) {
     return { $can_kind: "ok", value: (value + "==") };
   }
+  else if ($can_m2) {
+    return { $can_kind: "ok", value: (value + "=") };
+  }
   else {
-    if ((rem === 3n)) {
-      return { $can_kind: "ok", value: (value + "=") };
-    }
-    else {
-      return { $can_kind: "ok", value: value };
-    }
+    return { $can_kind: "ok", value: value };
   }
 }
 export function std__base64url__encode(value: Uint8Array): { $can_kind: "ok"; value: string } {

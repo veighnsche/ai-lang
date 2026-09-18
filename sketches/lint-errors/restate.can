@@ -1,0 +1,25 @@
+// sketches/lint-errors/restate.can — equality ladder over one
+// shared base. Valid, passing, modcheck-clean; the ladder is a
+// lint error (restate as a match on the base). Single rungs,
+// mixed kinds, and != ladders would stay nested; this is none
+// of those.
+mod restate
+  provides [restate__classify, Restate__Value]
+  uses []
+  emits []
+
+type Restate__Value rev 1 (
+  value: str
+)
+
+fn restate__classify(s: str) -> Restate__Value rev 1
+  emits []
+  tests
+    amp("&ab") => Ok(value = "amp")
+    lt("<ab") => Ok(value = "lt")
+    plain("ab") => Ok(value = "plain")
+  match s[0:1] == "&"
+    true => Ok(value = "amp")
+    false => match s[0:1] == "<"
+      true => Ok(value = "lt")
+      false => Ok(value = "plain")

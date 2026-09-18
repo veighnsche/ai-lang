@@ -97,11 +97,10 @@ fn std__str__scalar_at(value: str, index: int) -> Int__Value rev 1
     negative("abc", -1) => text.index_out_of_range(value = "abc", index = -1)
     past_end("abc", 3) => text.index_out_of_range(value = "abc", index = 3)
     empty("", 0) => text.index_out_of_range(value = "", index = 0)
-  match index >= 0
-    true => match index < #value
-      true => Ok(value = value[index])
-      false => text.index_out_of_range(value = value, index = index)
-    false => text.index_out_of_range(value = value, index = index)
+  match index >= 0, index < #value
+    true, true => Ok(value = value[index])
+    true, false => text.index_out_of_range(value = value, index = index)
+    false, _ => text.index_out_of_range(value = value, index = index)
 
 fn std__str__slice_scalars(value: str, start: int, end: int) -> Str__Value rev 1
   emits [text.invalid_slice]
@@ -522,14 +521,13 @@ fn std__base64url__translate_from(value: str, acc: str, n: int) -> Str__Value re
   match n <= 0
     true => Ok(value = acc + value)
     false => match #value >= 1
-      true => match value[0:1] == "+"
-        true => match call std__base64url__translate_from(value[1:#value], acc + "-", n - 1)
+      true => match value[0:1]
+        "+" => match call std__base64url__translate_from(value[1:#value], acc + "-", n - 1)
           on Ok r => Ok(value = r.value)
-        false => match value[0:1] == "/"
-          true => match call std__base64url__translate_from(value[1:#value], acc + "_", n - 1)
-            on Ok r => Ok(value = r.value)
-          false => match call std__base64url__translate_from(value[1:#value], acc + value[0:1], n - 1)
-            on Ok r => Ok(value = r.value)
+        "/" => match call std__base64url__translate_from(value[1:#value], acc + "_", n - 1)
+          on Ok r => Ok(value = r.value)
+        _ => match call std__base64url__translate_from(value[1:#value], acc + value[0:1], n - 1)
+          on Ok r => Ok(value = r.value)
       false => Ok(value = acc + value)
 
 fn std__base64url__untranslate_from(value: str, acc: str, n: int) -> Str__Value rev 1
@@ -545,14 +543,13 @@ fn std__base64url__untranslate_from(value: str, acc: str, n: int) -> Str__Value 
   match n <= 0
     true => Ok(value = acc + value)
     false => match #value >= 1
-      true => match value[0:1] == "-"
-        true => match call std__base64url__untranslate_from(value[1:#value], acc + "+", n - 1)
+      true => match value[0:1]
+        "-" => match call std__base64url__untranslate_from(value[1:#value], acc + "+", n - 1)
           on Ok r => Ok(value = r.value)
-        false => match value[0:1] == "_"
-          true => match call std__base64url__untranslate_from(value[1:#value], acc + "/", n - 1)
-            on Ok r => Ok(value = r.value)
-          false => match call std__base64url__untranslate_from(value[1:#value], acc + value[0:1], n - 1)
-            on Ok r => Ok(value = r.value)
+        "_" => match call std__base64url__untranslate_from(value[1:#value], acc + "/", n - 1)
+          on Ok r => Ok(value = r.value)
+        _ => match call std__base64url__untranslate_from(value[1:#value], acc + value[0:1], n - 1)
+          on Ok r => Ok(value = r.value)
       false => Ok(value = acc + value)
 
 fn std__base64url__rem_from(remaining: int, fuel: int) -> Int__Value rev 1
@@ -577,11 +574,10 @@ fn std__base64url__pad(value: str, rem: int) -> Str__Value rev 1
     none("QUJD", 0) => Ok(value = "QUJD")
     two("QQ", 2) => Ok(value = "QQ==")
     one("QUI", 3) => Ok(value = "QUI=")
-  match rem == 2
-    true => Ok(value = value + "==")
-    false => match rem == 3
-      true => Ok(value = value + "=")
-      false => Ok(value = value)
+  match rem == 2, rem == 3
+    true, _ => Ok(value = value + "==")
+    false, true => Ok(value = value + "=")
+    false, false => Ok(value = value)
 
 fn std__base64url__encode(value: Bytes) -> Encoding__Text rev 1
   emits []

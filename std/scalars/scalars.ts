@@ -1997,16 +1997,16 @@ export function std__convert__bool_to_dec(value: boolean): { $can_kind: "ok"; va
   }
 }
 export function std__convert__dec_to_bool(value: string): { $can_kind: "ok"; value: boolean } | { $can_kind: "convert.invalid_dec_encoding"; value: string } {
-  if ((value === "0.0")) {
+  const $can_m1 = (value === "0.0");
+  const $can_m2 = (value === "1.0");
+  if ($can_m1) {
     return { $can_kind: "ok", value: false };
   }
+  else if ($can_m2) {
+    return { $can_kind: "ok", value: true };
+  }
   else {
-    if ((value === "1.0")) {
-      return { $can_kind: "ok", value: true };
-    }
-    else {
-      return { $can_kind: "convert.invalid_dec_encoding", value: value };
-    }
+    return { $can_kind: "convert.invalid_dec_encoding", value: value };
   }
 }
 export function std__convert__int_to_dec_from(m: bigint, acc: string, step: string): { $can_kind: "ok"; value: string } {

@@ -100,6 +100,8 @@ func lintFiles(files map[string]string) (findings []lintFinding, skipped []strin
 		findings = append(findings, lintSameOutcome(p)...)
 		findings = append(findings, lintForwardable(p, mods)...)
 		findings = append(findings, lintRangeMerge(p)...)
+		findings = append(findings, lintRestatable(p)...)
+		findings = append(findings, lintLadderable(p)...)
 	}
 	sort.Slice(findings, func(i, j int) bool {
 		if findings[i].file != findings[j].file {
@@ -1233,9 +1235,10 @@ func lintChainBound(run []*Node, smalls []*Small) bool {
 // value match over the identical pure scrutinee fold into one
 // multi-scrutinee table (a28 shape). Scrutinees must be pure —
 // eager table evaluation must not fault where guarded nesting
-// would not (CAN4109) — and identical: different inner
-// scrutinees would need don't-care slots bools cannot spell,
-// so those nests stay nested.
+// would not (CAN4109) — and identical: different pure
+// scrutinees fold under the ladder rule instead (don't-care
+// slots, the lcm shape); only identical-scrutinee diamonds
+// are this rule's.
 func lintTableable(lm lintModule) []lintFinding {
 	lines := strings.Split(lm.text, "\n")
 	var out []lintFinding
@@ -1558,6 +1561,378 @@ func lintRangeMerge(lm lintModule) []lintFinding {
 				prevIdx = c.idx
 			}
 			flush(chain)
+		}
+	}
+	return out
+}
+
+// lintSmallEqual reports whether two Smalls are structurally
+// identical: same shape and leaves throughout. There are no
+// paren nodes and lint runs pre-check (types unset), so the
+// comparison is over parse structure only. Update with the
+// Small struct: a field added there and missed here silently
+// compares unequal.
+func lintSmallEqual(a, b *Small) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if a.Kind != b.Kind || a.Op != b.Op || a.Str != b.Str ||
+		a.B != b.B || a.Dec != b.Dec || a.T != b.T ||
+		a.Seal != b.Seal || a.Elem != b.Elem || a.Fname != b.Fname ||
+		a.Ctor != b.Ctor || a.ExportBrand != b.ExportBrand {
+		return false
+	}
+	if (a.Num == nil) != (b.Num == nil) {
+		return false
+	}
+	if a.Num != nil && a.Num.Cmp(b.Num) != 0 {
+		return false
+	}
+	if len(a.Ref) != len(b.Ref) {
+		return false
+	}
+	for i := range a.Ref {
+		if a.Ref[i] != b.Ref[i] {
+			return false
+		}
+	}
+	if !lintSmallEqual(a.L, b.L) || !lintSmallEqual(a.R, b.R) ||
+		!lintSmallEqual(a.Hi, b.Hi) || !lintSmallEqual(a.Outcome, b.Outcome) {
+		return false
+	}
+	if len(a.Args) != len(b.Args) {
+		return false
+	}
+	for i := range a.Args {
+		if a.Args[i].Name != b.Args[i].Name || a.Args[i].HasName != b.Args[i].HasName ||
+			!lintSmallEqual(a.Args[i].V, b.Args[i].V) {
+			return false
+		}
+	}
+	if len(a.Items) != len(b.Items) {
+		return false
+	}
+	for i := range a.Items {
+		if !lintSmallEqual(a.Items[i], b.Items[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// lintRung splits one ==-rung: a single-scrutinee value match
+// testing base == "lit" with true/false arms in either order.
+// The literal may sit on either side; both-literal comparisons
+// are constant conditions (dead arms elsewhere) and never rungs.
+func lintRung(n *Node) (base *Small, lit string, falseArm *Arm, ok bool) {
+	if n == nil || !n.IsMatch || n.Kind != MatchValue || n.Given != nil {
+		return nil, "", nil, false
+	}
+	if len(n.Scruts) != 1 || len(n.Arms) != 2 {
+		return nil, "", nil, false
+	}
+	s := n.Scruts[0]
+	if s == nil || s.Kind != "binop" || s.Op != "==" {
+		return nil, "", nil, false
+	}
+	base = s.L
+	if s.L != nil && s.L.Kind == "str" {
+		base, lit = s.R, s.L.Str
+	} else if s.R != nil && s.R.Kind == "str" {
+		lit = s.R.Str
+	} else {
+		return nil, "", nil, false
+	}
+	if base == nil || base.Kind == "str" {
+		return nil, "", nil, false
+	}
+	var f *Arm
+	seenTrue := false
+	for i := range n.Arms {
+		a := &n.Arms[i]
+		if len(a.Pats) != 1 || a.Pats[0].Kind != "bool" {
+			return nil, "", nil, false
+		}
+		if a.Pats[0].B {
+			if seenTrue {
+				return nil, "", nil, false
+			}
+			seenTrue = true
+			continue
+		}
+		if f != nil {
+			return nil, "", nil, false
+		}
+		f = a
+	}
+	if !seenTrue || f == nil {
+		return nil, "", nil, false
+	}
+	return base, lit, f, true
+}
+
+// lintRestatable implements the equality-ladder rule: a chain of
+// two or more ==-rungs over one base with distinct string
+// literals restates as a single match on the base with one arm
+// per literal plus _. The restatement is fault-neutral — the
+// table evaluates the base once at the same program point the
+// first rung would — so purity is not required, and bodies move
+// verbatim (no outcome comparison). Only false-nesting ladders
+// qualify: an inverted ladder over distinct literals always
+// carries a dead arm, which is the checker's business.
+func lintRestatable(lm lintModule) []lintFinding {
+	lines := strings.Split(lm.text, "\n")
+	var out []lintFinding
+	for _, d := range lm.mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		nodes := matchNodes(fn.Body)
+		chains := map[*Node][]*Node{}
+		for _, m := range nodes {
+			base, lit, f, ok := lintRung(m)
+			if !ok {
+				continue
+			}
+			chain := []*Node{m}
+			seen := map[string]bool{lit: true}
+			next := f.Rhs
+			for next != nil {
+				nbase, nlit, nf, ok := lintRung(next)
+				if !ok || !lintSmallEqual(nbase, base) || seen[nlit] {
+					break
+				}
+				chain = append(chain, next)
+				seen[nlit] = true
+				next = nf.Rhs
+			}
+			chains[m] = chain
+		}
+		// Maximal ladders only: a rung continuing another rung's
+		// chain never heads its own report.
+		continued := map[*Node]bool{}
+		for _, c := range chains {
+			for _, n := range c[1:] {
+				continued[n] = true
+			}
+		}
+		for _, m := range nodes {
+			c := chains[m]
+			if len(c) < 2 || continued[m] {
+				continue
+			}
+			f := lintFinding{file: lm.name, line: m.Line, msg: fmt.Sprintf(
+				"equality ladder over one base with %d rungs; restate as a match on the base, saves %d lines",
+				len(c), len(c)-1), code: CodeLintRestate}
+			// Underline the ladder head: the decision point
+			// the table replaces.
+			if s, e, ok := lintHeadSpan(lines, m.Line); ok {
+				f.start, f.end = s, e
+			}
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// lintPlainArm reports whether an arm yields a single expression:
+// no nested match of either family. The ladder rule folds pure
+// decisions only — arms that run calls first stay nested
+// (can-idioms C1) — so only plain bodies move into tables.
+func lintPlainArm(a *Arm) bool {
+	return a.Rhs != nil && !a.Rhs.IsMatch && a.Rhs.Small != nil
+}
+
+// lintBoolArms splits a two-arm bool match in either arm order.
+func lintBoolArms(m *Node) (tr, fl *Arm, ok bool) {
+	if len(m.Arms) != 2 {
+		return nil, nil, false
+	}
+	for i := range m.Arms {
+		a := &m.Arms[i]
+		if len(a.Pats) != 1 || a.Pats[0].Kind != "bool" {
+			return nil, nil, false
+		}
+		if a.Pats[0].B {
+			if tr != nil {
+				return nil, nil, false
+			}
+			tr = a
+		} else {
+			if fl != nil {
+				return nil, nil, false
+			}
+			fl = a
+		}
+	}
+	return tr, fl, true
+}
+
+// lintValueNest returns the directly-nested value match of an arm
+// body, or nil. Call matches and chains never nest into tables.
+func lintValueNest(a *Arm) *Node {
+	if a.Rhs != nil && a.Rhs.IsMatch && a.Rhs.Kind == MatchValue && a.Rhs.Given == nil {
+		return a.Rhs
+	}
+	return nil
+}
+
+// lintBoolLevel splits one ladder level: a single-scrutinee bool
+// value match over a pure scrutinee. Tables evaluate eagerly,
+// so a faulting scrutinee must keep its guard (CAN4109).
+func lintBoolLevel(m *Node) (scrut *Small, tr, fl *Arm, ok bool) {
+	if m == nil || !m.IsMatch || m.Kind != MatchValue || m.Given != nil {
+		return nil, nil, nil, false
+	}
+	if len(m.Scruts) != 1 || m.Scruts[0] == nil || !lintPureSmall(m.Scruts[0]) {
+		return nil, nil, nil, false
+	}
+	tr, fl, ok = lintBoolArms(m)
+	if !ok {
+		return nil, nil, nil, false
+	}
+	return m.Scruts[0], tr, fl, true
+}
+
+// lintLadderChain walks a pure ladder from its head: every level
+// nests exactly one arm deeper while the other yields plainly,
+// down to a tail level whose arms both yield. All scrutinees
+// must be pairwise different — a repeated scrutinee is
+// statically decided below its first test (degenerate, the
+// checker's business). Returns the scrutinee count and the
+// spine below the head.
+func lintLadderChain(m *Node) (int, []*Node, bool) {
+	scrut, tr, fl, ok := lintBoolLevel(m)
+	if !ok {
+		return 0, nil, false
+	}
+	scruts := []*Small{scrut}
+	var spine []*Node
+	curTr, curFl := tr, fl
+	for {
+		trNest, flNest := lintValueNest(curTr), lintValueNest(curFl)
+		if trNest != nil && flNest != nil {
+			return 0, nil, false // diamond, not a ladder
+		}
+		var next *Node
+		switch {
+		case trNest != nil:
+			if !lintPlainArm(curFl) {
+				return 0, nil, false
+			}
+			next = trNest
+		case flNest != nil:
+			if !lintPlainArm(curTr) {
+				return 0, nil, false
+			}
+			next = flNest
+		default:
+			if !lintPlainArm(curTr) || !lintPlainArm(curFl) {
+				return 0, nil, false
+			}
+			if len(scruts) < 2 {
+				return 0, nil, false // lone level, nothing to fold
+			}
+			return len(scruts), spine, true
+		}
+		nscrut, ntr, nfl, ok := lintBoolLevel(next)
+		if !ok {
+			return 0, nil, false
+		}
+		for _, s := range scruts {
+			if lintSmallEqual(s, nscrut) {
+				return 0, nil, false
+			}
+		}
+		scruts = append(scruts, nscrut)
+		spine = append(spine, next)
+		curTr, curFl = ntr, nfl
+	}
+}
+
+// lintDiamondDiff splits a diamond over different scrutinees:
+// every arm nests directly into a leaf bool level (both arms
+// plain) over a pure scrutinee, and no two scrutinees in the
+// shape are equal. Identical-scrutinee diamonds belong to rule
+// 4. Returns the scrutinee count and the inner levels.
+func lintDiamondDiff(m *Node) (int, []*Node, bool) {
+	scrut, tr, fl, ok := lintBoolLevel(m)
+	if !ok {
+		return 0, nil, false
+	}
+	ti, fi := lintValueNest(tr), lintValueNest(fl)
+	if ti == nil || fi == nil {
+		return 0, nil, false
+	}
+	scruts := []*Small{scrut}
+	var spine []*Node
+	for _, inner := range []*Node{ti, fi} {
+		nscrut, ntr, nfl, ok := lintBoolLevel(inner)
+		if !ok || !lintPlainArm(ntr) || !lintPlainArm(nfl) {
+			return 0, nil, false
+		}
+		for _, s := range scruts {
+			if lintSmallEqual(s, nscrut) {
+				return 0, nil, false
+			}
+		}
+		scruts = append(scruts, nscrut)
+		spine = append(spine, inner)
+	}
+	return len(scruts), spine, true
+}
+
+// lintLadderable implements the pure-nest rule: ladders and
+// diamonds over pure, pairwise-different scrutinees with plain
+// outcomes fold into one multi-scrutinee table with don't-care
+// slots (the std__int__lcm shape). Disjoint slot-1 values make
+// arm order irrelevant, so yielding arms keep their priority in
+// any position. Maximal shapes only: a level continuing another
+// shape's spine never heads its own report.
+func lintLadderable(lm lintModule) []lintFinding {
+	lines := strings.Split(lm.text, "\n")
+	var out []lintFinding
+	for _, d := range lm.mod.Decls {
+		fn, ok := d.(*FnDecl)
+		if !ok {
+			continue
+		}
+		nodes := matchNodes(fn.Body)
+		type shape struct {
+			count int
+			spine []*Node
+		}
+		shapes := map[*Node]shape{}
+		for _, m := range nodes {
+			if n, spine, ok := lintLadderChain(m); ok {
+				shapes[m] = shape{n, spine}
+				continue
+			}
+			if n, spine, ok := lintDiamondDiff(m); ok {
+				shapes[m] = shape{n, spine}
+			}
+		}
+		continued := map[*Node]bool{}
+		for _, s := range shapes {
+			for _, n := range s.spine {
+				continued[n] = true
+			}
+		}
+		for _, m := range nodes {
+			s, ok := shapes[m]
+			if !ok || continued[m] {
+				continue
+			}
+			f := lintFinding{file: lm.name, line: m.Line, msg: fmt.Sprintf(
+				"nested matches over %d pure scrutinees; fold into a multi-scrutinee table",
+				s.count), code: CodeLintLadder}
+			// Underline the nest head: the decision point the
+			// table replaces.
+			if st, en, ok := lintHeadSpan(lines, m.Line); ok {
+				f.start, f.end = st, en
+			}
+			out = append(out, f)
 		}
 	}
 	return out

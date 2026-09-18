@@ -70,7 +70,7 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
       return { $can_kind: "html.nul_byte", value: orig };
     }
     else {
-      if (($canStrSlice(s, 0n, 1n) === "&")) {
+      if ($canStrSlice(s, 0n, 1n) === "&") {
         const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
         switch ($can_m1.$can_kind) {
         case "ok": {
@@ -86,57 +86,51 @@ export function html__text__escape_from(orig: string, s: string, acc: string, n:
         }
         }
       }
-      else {
-        if (($canStrSlice(s, 0n, 1n) === "<")) {
-          const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
-          switch ($can_m2.$can_kind) {
-          case "ok": {
-            const r = $can_m2;
-            return { $can_kind: "ok", value: r.value };
-          }
-          case "html.nul_byte": {
-            const e = $can_m2;
-            return { $can_kind: "html.nul_byte", value: e.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+      else if ($canStrSlice(s, 0n, 1n) === "<") {
+        const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
-        else {
-          if (($canStrSlice(s, 0n, 1n) === ">")) {
-            const $can_m3: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
-            switch ($can_m3.$can_kind) {
-            case "ok": {
-              const r = $can_m3;
-              return { $can_kind: "ok", value: r.value };
-            }
-            case "html.nul_byte": {
-              const e = $can_m3;
-              return { $can_kind: "html.nul_byte", value: e.value };
-            }
-            default: {
-              throw new Error("unreachable");
-            }
-            }
-          }
-          else {
-            const $can_m4: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + $canStrSlice(s, 0n, 1n)), (n - 1n));
-            switch ($can_m4.$can_kind) {
-            case "ok": {
-              const r = $can_m4;
-              return { $can_kind: "ok", value: r.value };
-            }
-            case "html.nul_byte": {
-              const e = $can_m4;
-              return { $can_kind: "html.nul_byte", value: e.value };
-            }
-            default: {
-              throw new Error("unreachable");
-            }
-            }
-          }
+        case "html.nul_byte": {
+          const e = $can_m2;
+          return { $can_kind: "html.nul_byte", value: e.value };
         }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($canStrSlice(s, 0n, 1n) === ">") {
+        const $can_m3: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
+        switch ($can_m3.$can_kind) {
+        case "ok": {
+          const r = $can_m3;
+          return { $can_kind: "ok", value: r.value };
+        }
+        case "html.nul_byte": {
+          const e = $can_m3;
+          return { $can_kind: "html.nul_byte", value: e.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      const $can_m4: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__text__escape_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + $canStrSlice(s, 0n, 1n)), (n - 1n));
+      switch ($can_m4.$can_kind) {
+      case "ok": {
+        const r = $can_m4;
+        return { $can_kind: "ok", value: r.value };
+      }
+      case "html.nul_byte": {
+        const e = $can_m4;
+        return { $can_kind: "html.nul_byte", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
   }
@@ -175,7 +169,7 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
       return { $can_kind: "html.nul_byte", value: orig };
     }
     else {
-      if (($canStrSlice(s, 0n, 1n) === "&")) {
+      if ($canStrSlice(s, 0n, 1n) === "&") {
         const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&amp;"), (n - 1n));
         switch ($can_m1.$can_kind) {
         case "ok": {
@@ -191,75 +185,67 @@ export function html__attribute__value_from(orig: string, s: string, acc: string
         }
         }
       }
-      else {
-        if (($canStrSlice(s, 0n, 1n) === "<")) {
-          const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
-          switch ($can_m2.$can_kind) {
-          case "ok": {
-            const r = $can_m2;
-            return { $can_kind: "ok", value: r.value };
-          }
-          case "html.nul_byte": {
-            const e = $can_m2;
-            return { $can_kind: "html.nul_byte", value: e.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
+      else if ($canStrSlice(s, 0n, 1n) === "<") {
+        const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&lt;"), (n - 1n));
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
         }
-        else {
-          if (($canStrSlice(s, 0n, 1n) === ">")) {
-            const $can_m3: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
-            switch ($can_m3.$can_kind) {
-            case "ok": {
-              const r = $can_m3;
-              return { $can_kind: "ok", value: r.value };
-            }
-            case "html.nul_byte": {
-              const e = $can_m3;
-              return { $can_kind: "html.nul_byte", value: e.value };
-            }
-            default: {
-              throw new Error("unreachable");
-            }
-            }
-          }
-          else {
-            if (($canStrSlice(s, 0n, 1n) === "'")) {
-              const $can_m4: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
-              switch ($can_m4.$can_kind) {
-              case "ok": {
-                const r = $can_m4;
-                return { $can_kind: "ok", value: r.value };
-              }
-              case "html.nul_byte": {
-                const e = $can_m4;
-                return { $can_kind: "html.nul_byte", value: e.value };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-            else {
-              const $can_m5: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + $canStrSlice(s, 0n, 1n)), (n - 1n));
-              switch ($can_m5.$can_kind) {
-              case "ok": {
-                const r = $can_m5;
-                return { $can_kind: "ok", value: r.value };
-              }
-              case "html.nul_byte": {
-                const e = $can_m5;
-                return { $can_kind: "html.nul_byte", value: e.value };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-          }
+        case "html.nul_byte": {
+          const e = $can_m2;
+          return { $can_kind: "html.nul_byte", value: e.value };
         }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($canStrSlice(s, 0n, 1n) === ">") {
+        const $can_m3: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&gt;"), (n - 1n));
+        switch ($can_m3.$can_kind) {
+        case "ok": {
+          const r = $can_m3;
+          return { $can_kind: "ok", value: r.value };
+        }
+        case "html.nul_byte": {
+          const e = $can_m3;
+          return { $can_kind: "html.nul_byte", value: e.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($canStrSlice(s, 0n, 1n) === "'") {
+        const $can_m4: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + "&#39;"), (n - 1n));
+        switch ($can_m4.$can_kind) {
+        case "ok": {
+          const r = $can_m4;
+          return { $can_kind: "ok", value: r.value };
+        }
+        case "html.nul_byte": {
+          const e = $can_m4;
+          return { $can_kind: "html.nul_byte", value: e.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      const $can_m5: { $can_kind: "ok"; value: string } | { $can_kind: "html.nul_byte"; value: string } = html__attribute__value_from(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (acc + $canStrSlice(s, 0n, 1n)), (n - 1n));
+      switch ($can_m5.$can_kind) {
+      case "ok": {
+        const r = $can_m5;
+        return { $can_kind: "ok", value: r.value };
+      }
+      case "html.nul_byte": {
+        const e = $can_m5;
+        return { $can_kind: "html.nul_byte", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
   }
@@ -307,21 +293,20 @@ export function html__attribute__boolean_name(value: string): { $can_kind: "ok";
   return { $can_kind: "html.invalid_attribute_name", value: value };
 }
 export function html__attribute__boolean_spelling(name: string): { $can_kind: "ok"; name: string; spelling: string } {
-  if ((name === "disabled")) {
+  const $can_m1 = (name === "disabled");
+  const $can_m2 = (name === "readonly");
+  const $can_m3 = (name === "required");
+  if ($can_m1) {
     return { $can_kind: "ok", name: name, spelling: "disabled" };
   }
+  else if ($can_m2) {
+    return { $can_kind: "ok", name: name, spelling: "readonly" };
+  }
+  else if ($can_m3) {
+    return { $can_kind: "ok", name: name, spelling: "required" };
+  }
   else {
-    if ((name === "readonly")) {
-      return { $can_kind: "ok", name: name, spelling: "readonly" };
-    }
-    else {
-      if ((name === "required")) {
-        return { $can_kind: "ok", name: name, spelling: "required" };
-      }
-      else {
-        return { $can_kind: "ok", name: name, spelling: "checked" };
-      }
-    }
+    return { $can_kind: "ok", name: name, spelling: "checked" };
   }
 }
 export function html__attribute__boolean(name: string, present: boolean): { $can_kind: "ok"; attribute: string } {
@@ -560,29 +545,22 @@ export function html__url__authority(orig: string, s: string, n: bigint, prev: s
       }
     }
     else if ($canStrAt(s, 0n) === 46n) {
-      if ((prev === "")) {
+      if ((prev === "" || prev === ".")) {
         return { $can_kind: "html.invalid_url", value: orig };
       }
-      else {
-        if ((prev === ".")) {
-          return { $can_kind: "html.invalid_url", value: orig };
-        }
-        else {
-          const $can_m4: { $can_kind: "ok"; n: bigint; tail: string; value: string } | { $can_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), ".");
-          switch ($can_m4.$can_kind) {
-          case "ok": {
-            const r = $can_m4;
-            return { $can_kind: "ok", value: r.value, tail: r.tail, n: r.n };
-          }
-          case "html.invalid_url": {
-            const e = $can_m4;
-            return { $can_kind: "html.invalid_url", value: e.value };
-          }
-          default: {
-            throw new Error("unreachable");
-          }
-          }
-        }
+      const $can_m4: { $can_kind: "ok"; n: bigint; tail: string; value: string } | { $can_kind: "html.invalid_url"; value: string } = html__url__authority(orig, $canStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), ".");
+      switch ($can_m4.$can_kind) {
+      case "ok": {
+        const r = $can_m4;
+        return { $can_kind: "ok", value: r.value, tail: r.tail, n: r.n };
+      }
+      case "html.invalid_url": {
+        const e = $can_m4;
+        return { $can_kind: "html.invalid_url", value: e.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
       }
     }
     else if ($canStrAt(s, 0n) === 45n) {

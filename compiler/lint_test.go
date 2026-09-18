@@ -340,28 +340,17 @@ func TestLintTableable(t *testing.T) {
 	}
 }
 
-// Different inner scrutinees would need don't-care slots;
-// impure inner scrutinees must keep their guard.
+// Guarded nests stay nested: an impure inner scrutinee must
+// keep its guard (CAN4109). Different pure scrutinees fold
+// under the ladder rule instead (see lintTabulate).
 const lintTabledKept = `mod demo
-  provides [demo__diff, demo__guarded, Int__Value]
+  provides [demo__guarded, Int__Value]
   uses []
   emits []
 
 type Int__Value rev 1 (
   value: int
 )
-
-fn demo__diff(a: int, b: int, c: int) -> Int__Value rev 1
-  emits []
-  tests
-    t(1, 2, 3) => Ok(value = 6)
-  match a < 0
-    true => match b < 0
-      true => Ok(value = 0)
-      false => Ok(value = 1)
-    false => match c < 0
-      true => Ok(value = 2)
-      false => Ok(value = 3)
 
 fn demo__guarded(s: str) -> Int__Value rev 1
   emits []
@@ -542,6 +531,272 @@ func TestLintRangeMerge(t *testing.T) {
 	}
 }
 
+// A three-rung equality ladder over one (fault-capable) base:
+// the restatement is fault-neutral, so purity is not required.
+const lintRestate = `mod demo
+  provides [demo__go, Demo__Out]
+  uses []
+  emits []
+
+type Demo__Out rev 1 (
+  value: str
+)
+
+fn demo__go(s: str) -> Demo__Out rev 1
+  emits []
+  tests
+    amp("x&y") => Ok(value = "hit")
+  match s[0:1] == "&"
+    true => Ok(value = "amp")
+    false => match s[0:1] == "<"
+      true => Ok(value = "lt")
+      false => match s[0:1] == ">"
+        true => Ok(value = "gt")
+        false => Ok(value = "plain")
+`
+
+func TestLintRestatable(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintRestate})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	want := []string{
+		`demo.can:14: equality ladder over one base with 3 rungs; restate as a match on the base, saves 2 lines`,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("findings = %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i].String() != want[i] {
+			t.Fatalf("finding %d = %q, want %q", i, got[i].String(), want[i])
+		}
+	}
+}
+
+// Ladders that must not restate: a lone rung saves nothing;
+// mixed kinds, bool literals, and != never form a str table;
+// duplicate literals are dead code, not a table; guards are
+// <=-shaped and never rungs.
+const lintRestateKept = `mod demo
+  provides [demo__single, demo__mixed, demo__bools, demo__neq, demo__dup, demo__guard, Demo__Out]
+  uses []
+  emits []
+
+type Demo__Out rev 1 (
+  value: str
+)
+
+fn demo__single(s: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("ab") => Ok(value = "x")
+  match s[0:1] == "a"
+    true => Ok(value = "hit")
+    false => Ok(value = "miss")
+
+fn demo__mixed(s: str, n: int) -> Demo__Out rev 1
+  emits []
+  tests
+    t("ab", 1) => Ok(value = "x")
+  match s[0:1] == "a"
+    true => Ok(value = "hit")
+    false => match n == 1
+      true => Ok(value = "one")
+      false => Ok(value = "other")
+
+fn demo__bools(b: bool) -> Demo__Out rev 1
+  emits []
+  tests
+    t(true) => Ok(value = "x")
+  match b == true
+    true => Ok(value = "hit")
+    false => match b == false
+      true => Ok(value = "miss")
+      false => Ok(value = "dead")
+
+fn demo__neq(s: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("ab") => Ok(value = "x")
+  match s[0:1] != "a"
+    true => Ok(value = "hit")
+    false => match s[0:1] != "b"
+      true => Ok(value = "hit2")
+      false => Ok(value = "miss")
+
+fn demo__dup(s: str) -> Demo__Out rev 1
+  emits []
+  tests
+    t("ab") => Ok(value = "x")
+  match s[0:1] == "a"
+    true => Ok(value = "hit")
+    false => match s[0:1] == "a"
+      true => Ok(value = "hit2")
+      false => Ok(value = "miss")
+
+fn demo__guard(n: int) -> Demo__Out rev 1
+  emits []
+  tests
+    t(1) => Ok(value = "x")
+  match n <= 0
+    true => Ok(value = "base")
+    false => match n == 1
+      true => Ok(value = "one")
+      false => Ok(value = "other")
+`
+
+func TestLintRestateKeptUntouched(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintRestateKept})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	for _, f := range got {
+		if strings.Contains(f.msg, "restate as a match on the base") {
+			t.Fatalf("kept ladders must not restate, got %v (full %v)", f, got)
+		}
+	}
+}
+
+// A pure two-level ladder and a pure diamond over different
+// scrutinees: both fold into product tables with don't-care
+// slots, all outcomes plain.
+const lintTabulate = `mod demo
+  provides [demo__ladder, demo__diamond, Int__Value]
+  uses []
+  emits []
+
+type Int__Value rev 1 (
+  value: int
+)
+
+fn demo__ladder(a: int, b: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1, 2) => Ok(value = 2)
+  match a == 0
+    true => Ok(value = 0)
+    false => match b == 0
+      true => Ok(value = 1)
+      false => Ok(value = 2)
+
+fn demo__diamond(a: int, b: int, c: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1, 2, 3) => Ok(value = 6)
+  match a < 0
+    true => match b < 0
+      true => Ok(value = 0)
+      false => Ok(value = 1)
+    false => match c < 0
+      true => Ok(value = 2)
+      false => Ok(value = 3)
+`
+
+func TestLintLadderable(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintTabulate})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	want := []string{
+		`demo.can:14: nested matches over 2 pure scrutinees; fold into a multi-scrutinee table`,
+		`demo.can:24: nested matches over 3 pure scrutinees; fold into a multi-scrutinee table`,
+	}
+	if len(got) != len(want) {
+		t.Fatalf("findings = %v, want %v", got, want)
+	}
+	for i := range got {
+		if got[i].String() != want[i] {
+			t.Fatalf("finding %d = %q, want %q", i, got[i].String(), want[i])
+		}
+	}
+}
+
+// Nests that must not tabulate: a guarded (impure) ladder keeps
+// its guard; an identical-scrutinee ladder is degenerate;
+// tables are already tables; a shared-scrutinee diamond is rule
+// 4's, not this rule's; arms that run calls first stay nested
+// (can-idioms C1).
+const lintTabulateKept = `mod demo
+  provides [demo__guarded, demo__same, demo__tabled, demo__shared, demo__help, demo__calls, Int__Value]
+  uses []
+  emits []
+
+type Int__Value rev 1 (
+  value: int
+)
+
+fn demo__guarded(s: str) -> Int__Value rev 1
+  emits []
+  tests
+    t("ab") => Ok(value = 1)
+  match #s >= 1
+    true => match s[0:1] == "a"
+      true => Ok(value = 1)
+      false => Ok(value = 0)
+    false => Ok(value = 0)
+
+fn demo__same(a: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1) => Ok(value = 1)
+  match a == 0
+    true => Ok(value = 0)
+    false => match a == 0
+      true => Ok(value = 1)
+      false => Ok(value = 2)
+
+fn demo__tabled(a: int, b: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1, 2) => Ok(value = 3)
+  match a == 0, b == 0
+    true, true => Ok(value = 0)
+    true, false => Ok(value = 1)
+    false, true => Ok(value = 2)
+    false, false => Ok(value = 3)
+
+fn demo__shared(a: int, b: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1, 2) => Ok(value = 3)
+  match a < 0
+    true => match b < 0
+      true => Ok(value = 0)
+      false => Ok(value = 1)
+    false => match b < 0
+      true => Ok(value = 2)
+      false => Ok(value = 3)
+
+fn demo__help(value: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1) => Ok(value = 1)
+  Ok(value = value)
+
+fn demo__calls(a: int, b: int) -> Int__Value rev 1
+  emits []
+  tests
+    t(1, 2) => Ok(value = 2)
+  match a < 0
+    true => match call demo__help(a)
+      on Ok r => Ok(value = r.value)
+    false => match b < 0
+      true => Ok(value = 1)
+      false => Ok(value = 2)
+`
+
+func TestLintLadderKeptUntouched(t *testing.T) {
+	got, skipped := lintFiles(map[string]string{"demo.can": lintTabulateKept})
+	if len(skipped) != 0 {
+		t.Fatalf("unexpected skips: %v", skipped)
+	}
+	for _, f := range got {
+		if strings.Contains(f.msg, "pure scrutinees") {
+			t.Fatalf("kept nests must not tabulate, got %v (full %v)", f, got)
+		}
+	}
+}
+
 // Two sequential calls that cannot fail share no failure outcome:
 // the router's divergent plain sides must not establish unity for
 // the run (regression: the rejected router leaked failures=true).
@@ -710,8 +965,8 @@ func TestLintErrorFixtures(t *testing.T) {
 		}
 		files[e.Name()] = string(raw)
 	}
-	if len(files) != 7 {
-		t.Fatalf("want 7 proving fixtures, got %d: %v", len(files), files)
+	if len(files) != 9 {
+		t.Fatalf("want 9 proving fixtures, got %d: %v", len(files), files)
 	}
 	got, skipped := lintFiles(files)
 	if len(skipped) != 0 {
@@ -742,10 +997,16 @@ func TestLintErrorFixtures(t *testing.T) {
 			`redundant.can:26: redundant argument name "value" (param 1 of redundant__id is "value"); write positionally`,
 		},
 		"relay.can": {
-			`relay.can:39: handwritten relay of relay.failed; write forward e`,
+			`relay.can:38: handwritten relay of relay.failed; write forward e`,
 		},
 		"table.can": {
 			`table.can:22: nested matches share one scrutinee; fold into a multi-scrutinee table`,
+		},
+		"restate.can": {
+			`restate.can:21: equality ladder over one base with 2 rungs; restate as a match on the base, saves 1 lines`,
+		},
+		"ladder.can": {
+			`ladder.can:21: nested matches over 2 pure scrutinees; fold into a multi-scrutinee table`,
 		},
 	}
 	for name, lines := range want {
@@ -820,10 +1081,16 @@ func TestLintSpanPositions(t *testing.T) {
 			{26, 8, 15, CodeLintRedundant, "value ="},
 		},
 		"relay.can": {
-			{39, 25, 54, CodeLintRelay, "relay.failed(value = e.value)"},
+			{38, 25, 54, CodeLintRelay, "relay.failed(value = e.value)"},
 		},
 		"table.can": {
 			{22, 2, 13, CodeLintTable, "match a < 0"},
+		},
+		"restate.can": {
+			{21, 2, 21, CodeLintRestate, "match s[0:1] == \"&\""},
+		},
+		"ladder.can": {
+			{21, 2, 13, CodeLintLadder, "match a < 0"},
 		},
 	}
 	for name, ws := range wants {

@@ -331,6 +331,16 @@ var explainDocs = map[string]explainEntry{
 		violate: `1..3 => X beside 4..6 => X.`,
 		fix:     "Join into 1..6 => X. Gaps cannot spell; const bounds and contained ranges are out of scope.",
 	},
+	CodeLintRestate: {
+		rule:    "An equality ladder testing one base against string literals restates as a single match on the base (can-idioms C14).",
+		violate: `match s[0:1] == "&" nesting under false into match s[0:1] == "<".`,
+		fix:     "Restate as match s[0:1] with one arm per literal plus _. Single rungs, mixed kinds, bool/int literals, and != ladders stay nested.",
+	},
+	CodeLintLadder: {
+		rule:    "Nested value matches over pure, pairwise-different scrutinees with plain outcomes fold into one multi-scrutinee table with don't-care slots (can-idioms C15).",
+		violate: `match a == 0 nesting under false into match b == 0, all arms plain.`,
+		fix:     "Fold into one match a == 0, b == 0 table (yielding arms take _ slots). Guarded, impure, identical-scrutinee, and call-carrying nests stay nested.",
+	},
 	CodeUnknownKind: {
 		rule:    "Every raised and declared error kind is declared somewhere: unknown kinds are rejected at both sites (R5).",
 		violate: `raising m.stray() with no error m.stray decl, or listing it in emits.`,

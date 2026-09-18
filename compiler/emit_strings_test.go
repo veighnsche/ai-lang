@@ -42,11 +42,10 @@ fn str__order(left: str, right: str) -> Int__Value rev 1
     equal("a", "a") => Ok(value = 0)
     bmp_smp("", "𐀀") => Ok(value = -1)
     smp_bmp("𐀀", "") => Ok(value = 1)
-  match left == right
-    true => Ok(value = 0)
-    false => match left >= right
-      true => Ok(value = 1)
-      false => Ok(value = -1)
+  match left == right, left >= right
+    true, _ => Ok(value = 0)
+    false, true => Ok(value = 1)
+    false, false => Ok(value = -1)
 
 fn str__len(v: str) -> Int__Value rev 1
   emits []

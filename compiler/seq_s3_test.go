@@ -39,11 +39,10 @@ fn t__get(xs: Seq<str>, index: int) -> T__Item rev 1
     negative(Seq<str>["a"], -1) => t.out_of_range(index = -1, length = 1)
     past_end(Seq<str>["a"], 1) => t.out_of_range(index = 1, length = 1)
     empty(Seq<str>[], 0) => t.out_of_range(index = 0, length = 0)
-  match index >= 0
-    true => match index < #xs
-      true => Ok(item = xs[index])
-      false => t.out_of_range(index = index, length = #xs)
-    false => t.out_of_range(index = index, length = #xs)
+  match index >= 0, index < #xs
+    true, true => Ok(item = xs[index])
+    true, false => t.out_of_range(index = index, length = #xs)
+    false, _ => t.out_of_range(index = index, length = #xs)
 
 fn t__get_b(xs: Seq<M__B>, index: int) -> T__BItem rev 1
   emits [t.out_of_range]
@@ -52,11 +51,10 @@ fn t__get_b(xs: Seq<M__B>, index: int) -> T__BItem rev 1
     negative(Seq<M__B>[seal M__B("A")], -1) => t.out_of_range(index = -1, length = 1)
     past_end(Seq<M__B>[seal M__B("A")], 1) => t.out_of_range(index = 1, length = 1)
     empty(Seq<M__B>[], 0) => t.out_of_range(index = 0, length = 0)
-  match index >= 0
-    true => match index < #xs
-      true => Ok(item = xs[index])
-      false => t.out_of_range(index = index, length = #xs)
-    false => t.out_of_range(index = index, length = #xs)
+  match index >= 0, index < #xs
+    true, true => Ok(item = xs[index])
+    true, false => t.out_of_range(index = index, length = #xs)
+    false, _ => t.out_of_range(index = index, length = #xs)
 `
 
 func TestSeqGetWrapper(t *testing.T) {

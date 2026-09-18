@@ -22,11 +22,10 @@ fn relay__step(value: int) -> Relay__Value rev 1
     ok(1) => Ok(value = 1)
     bad(0) => relay.failed(value = 0)
     neg(-1) => relay.other(value = -1, note = "neg")
-  match value == 0
-    true => relay.failed(value = value)
-    false => match value < 0
-      true => relay.other(value = value, note = "neg")
-      false => Ok(value = value)
+  match value == 0, value < 0
+    true, _ => relay.failed(value = value)
+    false, true => relay.other(value = value, note = "neg")
+    false, false => Ok(value = value)
 
 fn relay__go(value: int) -> Relay__Value rev 1
   emits [relay.failed, relay.other]

@@ -258,11 +258,11 @@ share nothing at all. Divergent payloads stay nested. Fixture:
 
 Nested value matches whose every outer arm body is directly an
 inner value match over the identical pure scrutinee fold into
-one multi-scrutinee table (the C1 shape). Different inner
-scrutinees stay nested — bools cannot spell don't-care slots
-— and impure scrutinees stay guarded (CAN4109: tables
-evaluate eagerly, guarded nesting faults late). Fixture:
-`sketches/lint-errors/table.can`.
+one multi-scrutinee table (the C1 shape). Different pure
+scrutinees fold under C15 instead (don't-care slots, the
+`std__int__lcm` shape); impure scrutinees stay guarded
+(CAN4109: tables evaluate eagerly, guarded nesting faults
+late). Fixture: `sketches/lint-errors/table.can`.
 
 ### C10. Matches that decide nothing drop (`canlc lint`, rule 5)
 
@@ -297,14 +297,36 @@ Blessed `std/` predates the linter but is migrated: its rows,
 calls, and relays follow the new idiom, so blessed modules open
 clean. Gallery sketches are held to the same idiom. Everywhere,
 `canlc lint` and the editor agree:
-every finding is an error (CAN3410–3416, error-severity, no
+every finding is an error (CAN3410–3418, error-severity, no
 warnings level), published through `canlc lsp` on files the
 compiler otherwise accepts.
 Positional versus named call args are both bound through the
 signature (`bindSlots`); test rows allow the same mixed shape,
 positionals first, under CAN3205. Proving fixtures for all
-seven rules live in `sketches/lint-errors/`: one file per
+nine rules live in `sketches/lint-errors/`: one file per
 rule, every file compiling clean and linting dirty.
+
+### C14. Equality ladders restate (`canlc lint`, rule 8)
+
+A chain of two or more `==` rungs testing one base against
+distinct string literals restates as one match on the base
+with a `_` default. The restatement is fault-neutral — the
+table evaluates the base once where the first rung would —
+so guarded bases restate too. Single rungs, mixed kinds,
+bool/int literals, `!=`, and duplicate literals stay nested.
+Fixture: `sketches/lint-errors/restate.can`.
+
+### C15. Pure ladders tabulate (`canlc lint`, rule 9)
+
+Nested value matches over pure, pairwise-different
+scrutinees with plain outcomes fold into one
+multi-scrutinee table, with don't-care slots where the nest
+does not discriminate (the `std__int__lcm` shape). Yielding
+arms keep their priority: disjoint slot-1 values make arm
+order irrelevant. Guarded or impure scrutinees stay nested
+(CAN4109), identical-scrutinee diamonds stay rule C9's, and
+arms that run calls first stay nested (C1).
+Fixture: `sketches/lint-errors/ladder.can`.
 
 ## Tier 3 — Judgment pattern
 

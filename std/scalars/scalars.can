@@ -1226,11 +1226,10 @@ fn std__convert__dec_to_bool(value: dec) -> Bool__Value rev 1
     d2b_zero(d"0.0") => Ok(value = false)
     d2b_one(d"1.0") => Ok(value = true)
     d2b_two(d"2.0") => convert.invalid_dec_encoding(value = d"2.0")
-  match value == d"0.0"
-    true => Ok(value = false)
-    false => match value == d"1.0"
-      true => Ok(value = true)
-      false => convert.invalid_dec_encoding(value = value)
+  match value == d"0.0", value == d"1.0"
+    true, _ => Ok(value = false)
+    false, true => Ok(value = true)
+    false, false => convert.invalid_dec_encoding(value = value)
 
 fn std__convert__int_to_dec_from(m: int, acc: dec, step: dec) -> Dec__Value rev 1
   decreases m
