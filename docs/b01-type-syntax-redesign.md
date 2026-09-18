@@ -42,14 +42,16 @@ lines in std, 99 compiler test files, sketches/.
 
 ## Q1: revision spelling — `rev N` vs `@N`
 
-Verdict: **attached `@N`** (`type Ratio__Fraction@1 (`).
+Verdict: **keep `rev N`**.
 
-`rev` stays a keyword for pins elsewhere, but decl headers move to
-the pin spelling: TextMate already tokenizes `@[0-9]+` as
-`constant.numeric.version`, and pins (`db__get_user@3`) prove the
-shape. One revision spelling for declaring and pinning. Touches
-parse, gramcheck ("rev must be a keyword" probe is re-pointed, not
-deleted), TextMate, LSP, lint, and every decl line — all mechanical.
+R4 (REQUIREMENTS.md) settles this: "`rev N` is declaration metadata
+on types and functions, never part of the name." Attached `@N` fuses
+the revision onto the name — exactly what R4 forbids. The two
+spellings are deliberately positional: declarations carry `rev N`
+metadata with a keyword; references carry `@N` pins
+(`uses [db__get_user@4]`). Unifying them would erase the
+declaration/reference distinction the revision-identity machinery
+(N1) reads. The gramcheck "rev must be a keyword" probe stays.
 
 ## Q2: declaration keywords — keep or rename
 
@@ -122,25 +124,27 @@ offer; churning them buys nothing.
 ## Proposed surface (after)
 
 ```
-type Ratio__Fraction@1 (         type Ratio__Value<T>@1 (
-  numerator: int                   value: T
-  denominator: int               )
+type Ratio__Fraction rev 1 (         type Ratio__Value<T> rev 1 (
+  numerator: int                       value: T
+  denominator: int                   )
 )
-variant Login__Event@1 (         brand UserId@1 (
-  case Ticked()                    repr: str
-)                                )
-error math.zero_divisor (        fn std__ratio__abs(value: int) -> Ratio__Value<int>@1
+variant Login__Event rev 1 (         brand UserId rev 1 (
+  case Ticked()                        repr: str
+)                                    )
+error math.zero_divisor (
   divisor: int
 )
-const std__ascii__NUL: int@1 = 0
 values: [int]
 ```
 
-Note: `fn`/`const` take `@N` too — one revision spelling (Q1), and
-`fn` is already in the migration blast radius via annotations.
+`fn`/`const` headers are untouched (Q1); `fn` bodies still migrate
+where annotations use `[T]` (Q5).
 
 ## Considered and rejected
 
+- Attached `@N` on declarations: violates R4 — rev is metadata,
+  never part of the name; `@N` is the reference-site pin spelling
+  (Q1).
 - `type` → `record`, `variant` → `union`: fashion churn (Q2).
 - Per-error revisions: new N1 semantics disguised as syntax (Q3).
 - `::` or `.` domain separators: `.` taken; `::` churns N2
@@ -152,8 +156,8 @@ Note: `fn`/`const` take `@N` too — one revision spelling (Q1), and
 
 ## Implementation phases (on approval)
 
-1. Grammar + scanner: TextMate `@N`-on-decl, keyword rows for
-   `repr`/`seals_from`; gramcheck probes re-pointed.
+1. Grammar + scanner: keyword rows for `repr`/`seals_from`,
+   `[T]` annotation; gramcheck probes extended (rev probe stays).
 2. Parse: `@N` headers, block errors/brands, `[T]` annotations;
    `parseTypeParams`/`parseTypeBinds` untouched.
 3. Check/emit: internal names unchanged (`Seq`, `rev` ints) —
@@ -170,9 +174,8 @@ Note: `fn`/`const` take `@N` too — one revision spelling (Q1), and
   reader test, not more deliberation.
 - b00 sequencing: if the outsourced agent starts before this
   lands, its syntax grounding rots. Hold the prompt until green.
-- `@N` on `fn` changes every fn header in std and tests; the
-  mechanical migration must not smuggle semantic edits — review
-  the migration diff separately from the compiler diff.
+- The mechanical migration must not smuggle semantic edits —
+  review the migration diff separately from the compiler diff.
 - Unresolved: exact `seals_from` row grammar when combined with
   future int-backed `repr` (deferred with int brands).
 - Omitted scope: `mod`/`provides`/`uses`/`emits` headers, match/
