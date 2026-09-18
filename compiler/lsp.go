@@ -144,6 +144,19 @@ func locateLineFrom(text, sub string, fromLine, fallback int) int {
 	return locateLine(text, sub, fallback)
 }
 
+// needsSiblingWarn reports whether the sibling-parse warning may fire:
+// solely alongside an unresolved-uses error. It keys on the typed
+// diagnostic code (CodeUsesResolve), never on message wording, so
+// rewording the human message cannot silently detach the suppression.
+func needsSiblingWarn(world []Diag) bool {
+	for _, d := range world {
+		if d.Sev == "error" && d.Code == CodeUsesResolve {
+			return true
+		}
+	}
+	return false
+}
+
 // diagnose runs every check on the open file (sibling .can files in dir
 // provide the uses/provides world) and returns sorted diagnostics.
 // Without a baseline no identity findings report: the editor stays
@@ -178,8 +191,8 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	}
 	all = append(all, open)
 	// An unparseable sibling only matters when it could be the missing
-	// provider: the warning fires solely alongside "resolves nowhere",
-	// so one broken demo never yellows its whole gallery.
+	// provider: the warning fires solely alongside an unresolved uses
+	// (CodeUsesResolve), so one broken demo never yellows its whole gallery.
 	var sibWarn []Diag
 	for _, f := range files {
 		data, err := os.ReadFile(filepath.Join(dir, f))
@@ -204,11 +217,8 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	out = append(out, checkStatic(open, text)...)
 	prog, world := buildWorld(open, all, texts)
 	out = append(out, world...)
-	for _, d := range world {
-		if d.Sev == "error" && strings.Contains(d.Msg, "resolves nowhere") {
-			out = append(out, sibWarn...)
-			break
-		}
+	if needsSiblingWarn(world) {
+		out = append(out, sibWarn...)
 	}
 	if len(world) > 0 {
 		sortDiags(out)
@@ -572,48 +582,33 @@ func stripLinePrefix(err error) string {
 // proofDiag anchors an exhaustiveness-proof failure to a token. A stale
 // arm names its kind on its own row, so the kind gets the squiggle; every
 // other proof failure (missing arm, bool shape, bad pattern) lands on the
-// match or arm keyword of its row. The shape matching mirrors the exact
-// message shapes built in eval.go's verifyExhaustiveAll, which is also
-// what assigns each failure its stable code.
+// match or arm keyword of its row. The code travels typed on the error
+// from the producer (see proofErrf); only the squiggle token and the
+// missing-arm hint still read the message, which is data, not identity.
 func proofDiag(text string, err error) Diag {
 	line := diagLine(err, 1)
 	msg := stripLinePrefix(err)
-	if i := strings.Index(msg, "stale match arm "); i >= 0 {
+	code, ok := proofCode(err)
+	if !ok {
+		code = CodeProofOther
+	}
+	var want, hint string
+	switch code {
+	case CodeStaleArm:
 		// a63: the kind is the first field after the marker;
 		// a nesting hint may follow it (see verifyExhaustiveAll).
-		kind := strings.TrimSpace(msg[i+len("stale match arm "):])
-		if j := strings.IndexAny(kind, " ;"); j >= 0 {
-			kind = kind[:j]
+		if i := strings.Index(msg, "stale match arm "); i >= 0 {
+			kind := strings.TrimSpace(msg[i+len("stale match arm "):])
+			if j := strings.IndexAny(kind, " ;"); j >= 0 {
+				kind = kind[:j]
+			}
+			return spanDiag(text, line, "error", msg, kind, code)
 		}
-		return spanDiag(text, line, "error", msg, kind, CodeStaleArm)
-	}
-	code := CodeProofOther
-	var want, hint string
-	switch {
-	case strings.Contains(msg, "non-exhaustive match, missing "):
-		code = CodeMissingArm
+	case CodeMissingArm:
 		if i := strings.Index(msg, "missing "); i >= 0 {
 			want = strings.TrimSpace(msg[i+len("missing "):])
 			hint = fmt.Sprintf("add an `on %s ...` arm covering the missing outcome", want)
 		}
-	case strings.Contains(msg, "bool match must be exactly "):
-		code = CodeBoolArms
-	case strings.Contains(msg, "value match without _ "):
-		code = CodeValueNoWild
-	case strings.Contains(msg, "call-match arm must be "):
-		code = CodeBadArmKind
-	case strings.Contains(msg, "patterns; this match has "):
-		code = CodeBadArmKind
-	case strings.Contains(msg, "variant pattern on a non-call "):
-		code = CodeVariantOnVal
-	case strings.Contains(msg, "mixes integer patterns with"):
-		code = CodeBoolArms
-	case strings.Contains(msg, "is fully covered by earlier arms"):
-		code = CodeUselessArm
-	case strings.Contains(msg, "contributes no remaining space"):
-		code = CodeUselessAlt
-	case strings.Contains(msg, "alternatives take scalar patterns only"):
-		code = CodeUselessAlt
 	}
 	kw := "match"
 	if lines := strings.Split(text, "\n"); line >= 1 && line <= len(lines) {

@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 // Slice 4: or-patterns. One source arm, several alternatives per
 // slot; coverage unions over them, credit is sequential (an
 // alternative must add space beyond earlier arms and earlier
@@ -118,7 +114,7 @@ func checkOrAlternatives(n *Node, owner string, covers []armCover, domains [][]v
 			}
 			for k, alt := range p.Alts {
 				if !orAltUseful(covers, i, s, altAtoms, k, nslot, domains) {
-					out = append(out, at(n.Arms[i].Line, fmt.Errorf("%s: or-alternative %s contributes no remaining space", owner, patAtomRender(alt))))
+					out = append(out, at(n.Arms[i].Line, proofErrf(CodeUselessAlt, "%s: or-alternative %s contributes no remaining space", owner, patAtomRender(alt))))
 				}
 			}
 		}

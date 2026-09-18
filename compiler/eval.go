@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"regexp"
@@ -1954,6 +1955,32 @@ func checkNaming(m *Module, text string) []Diag {
 //
 // The walk collects every violation in order; verifyExhaustive reports the
 // first (CLI behavior), verifyExhaustiveAll reports all (editor squiggles).
+// proofError is an exhaustiveness-proof failure carrying its stable
+// diagnostic code from the producer, so proofDiag never re-derives
+// codes by matching message wording. It travels inside LineError
+// (at() unwraps through), keeping the human message byte-identical.
+type proofError struct {
+	code string
+	msg  string
+}
+
+func (e *proofError) Error() string { return e.msg }
+
+func proofErrf(code, format string, args ...any) error {
+	return &proofError{code: code, msg: fmt.Sprintf(format, args...)}
+}
+
+// proofCode recovers the producer-assigned code, or false when the
+// error predates typed proof errors (proofDiag falls back to
+// CodeProofOther, the same default the old message switch used).
+func proofCode(err error) (string, bool) {
+	var pe *proofError
+	if errors.As(err, &pe) {
+		return pe.code, true
+	}
+	return "", false
+}
+
 func verifyExhaustive(mods []*Module, prog *Program) error {
 	if all := verifyExhaustiveAll(mods, prog); len(all) > 0 {
 		return all[0]
@@ -1990,7 +2017,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 		}
 		if !elaborated(n) {
 			// Reaching verification unelaborated is a compiler bug.
-			out = append(out, at(n.Line, fmt.Errorf("%s: match chain reached proof unelaborated", owner)))
+			out = append(out, at(n.Line, proofErrf(CodeProofOther, "%s: match chain reached proof unelaborated", owner)))
 			return
 		}
 		if n.Kind == MatchCall {
@@ -2000,7 +2027,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 				// explicitly; an absent entry is never an empty
 				// error set (no dec__parts shortcut).
 				if _, ok := prog.EmitsOf[fname]; !ok {
-					out = append(out, at(n.Line, fmt.Errorf("%s: bytes kernel %s has no registered contract", owner, fname)))
+					out = append(out, at(n.Line, proofErrf(CodeProofOther, "%s: bytes kernel %s has no registered contract", owner, fname)))
 				}
 			}
 			if calleeUnknown(prog, fname) {
@@ -2028,7 +2055,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 					}
 					got[k] = a.Line
 				default:
-					out = append(out, at(a.Line, fmt.Errorf("%s: call-match arm must be an error kind or Ok", owner)))
+					out = append(out, at(a.Line, proofErrf(CodeBadArmKind, "%s: call-match arm must be an error kind or Ok", owner)))
 				}
 			}
 			missing := map[string]bool{}
@@ -2043,7 +2070,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			}
 			for _, k := range sortedKeys(want) {
 				if missing[k] {
-					out = append(out, at(n.Line, fmt.Errorf("%s: non-exhaustive match, missing %s", owner, k)))
+					out = append(out, at(n.Line, proofErrf(CodeMissingArm, "%s: non-exhaustive match, missing %s", owner, k)))
 				}
 			}
 			for _, k := range sortedKeys(got) {
@@ -2052,7 +2079,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 					if al := enclosingMissing(anc, k); al > 0 {
 						msg += fmt.Sprintf("; enclosing match at line %d is missing this outcome: check that this on-arm is attached to the intended match", al)
 					}
-					out = append(out, at(got[k], fmt.Errorf("%s", msg)))
+					out = append(out, at(got[k], &proofError{code: CodeStaleArm, msg: msg}))
 				}
 			}
 			return
@@ -2244,16 +2271,16 @@ func residualInLast(prior []armCover, last armCover, nslot int, domains [][]valu
 // product spaces covering the total space. Arity 1 keeps the historical
 // single policy verbatim (CAN4103/CAN4104 byte-pinned; the product
 // engine would accept more, and that language change is parked, not
-// smuggled in). Diagnostics reuse the single-match codes, tuple-rendered
-// past arity 1 and anchored by the same message shapes proofDiag matches
-// on. Proven tables record the emit bit; anything else leaves analysis
+// smuggled in). Diagnostics carry the single-match codes typed from
+// the producer (see proofErrf), tuple-rendered past arity 1.
+// Proven tables record the emit bit; anything else leaves analysis
 // nil, which the emitter reads as "test the last arm".
 func verifyValueMatch(n *Node, owner string) []error {
 	var out []error
 	nslot := len(n.Scruts)
 	for _, s := range n.Scruts {
 		if s.Kind == "call" {
-			out = append(out, at(n.Line, fmt.Errorf("%s: multi-scrutinee match over call %s is not supported: match a single call per match", owner, s.Fname)))
+			out = append(out, at(n.Line, proofErrf(CodeProofOther, "%s: multi-scrutinee match over call %s is not supported: match a single call per match", owner, s.Fname)))
 		}
 	}
 	// Per-slot pattern inventory across arms.
@@ -2269,7 +2296,7 @@ func verifyValueMatch(n *Node, owner string) []error {
 	hasIntAny := false
 	for _, a := range n.Arms {
 		if len(a.Pats) != nslot {
-			out = append(out, at(a.Line, fmt.Errorf("%s: match arm has %d patterns; this match has %d scrutinees", owner, len(a.Pats), nslot)))
+			out = append(out, at(a.Line, proofErrf(CodeBadArmKind, "%s: match arm has %d patterns; this match has %d scrutinees", owner, len(a.Pats), nslot)))
 			shapeOK = false
 			continue
 		}
@@ -2323,9 +2350,9 @@ func verifyValueMatch(n *Node, owner string) []error {
 					case "wild":
 					default:
 						if nslot == 1 {
-							out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match", owner)))
+							out = append(out, at(a.Line, proofErrf(CodeVariantOnVal, "%s: variant pattern on a non-call match", owner)))
 						} else {
-							out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match (slot %d)", owner, i+1)))
+							out = append(out, at(a.Line, proofErrf(CodeVariantOnVal, "%s: variant pattern on a non-call match (slot %d)", owner, i+1)))
 						}
 						shapeOK = false
 					}
@@ -2345,9 +2372,9 @@ func verifyValueMatch(n *Node, owner string) []error {
 					continue
 				}
 				if nslot == 1 {
-					out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match", owner)))
+					out = append(out, at(a.Line, proofErrf(CodeVariantOnVal, "%s: variant pattern on a non-call match", owner)))
 				} else {
-					out = append(out, at(a.Line, fmt.Errorf("%s: variant pattern on a non-call match (slot %d)", owner, i+1)))
+					out = append(out, at(a.Line, proofErrf(CodeVariantOnVal, "%s: variant pattern on a non-call match (slot %d)", owner, i+1)))
 				}
 				shapeOK = false
 			}
@@ -2370,7 +2397,7 @@ func verifyValueMatch(n *Node, owner string) []error {
 	}
 	domains, covers, atomIndex, mixed := valueCoverOf(n, hasBool, strLits, nil)
 	if mixed > 0 {
-		out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
+		out = append(out, at(n.Line, proofErrf(CodeBoolArms, "%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
 		return out
 	}
 	if hasOrArm(n) {
@@ -2406,10 +2433,10 @@ func verifyValueMatch(n *Node, owner string) []error {
 	// cells are missing, so the _-coverage rule fires instead of a
 	// finite missing-cell list.
 	if otherSlot > 0 {
-		out = append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
+		out = append(out, at(n.Line, proofErrf(CodeValueNoWild, "%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
 		return out
 	}
-	out = append(out, at(n.Line, fmt.Errorf("%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
+	out = append(out, at(n.Line, proofErrf(CodeMissingArm, "%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
 	return out
 }
 
@@ -2444,17 +2471,17 @@ func verifySinglePolicy(n *Node, owner string, out []error, hasBool []bool, strL
 		}
 	}
 	if len(bools) > 0 && (len(bools) != 2 || hasStr || hasWild) {
-		return append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false", owner)))
+		return append(out, at(n.Line, proofErrf(CodeBoolArms, "%s: bool match must be exactly true+false", owner)))
 	}
 	if hasStr && !hasWild {
-		return append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive", owner)))
+		return append(out, at(n.Line, proofErrf(CodeValueNoWild, "%s: value match without _ is not provably exhaustive", owner)))
 	}
 	domains, covers, atomIndex, mixed := valueCoverOf(n, hasBool, strLits, nil)
 	if mixed > 0 {
 		// Unreachable through the legacy gates above (any bool
 		// presence with a string mix fails the first rule), kept for
 		// hand-built ASTs that bypass them.
-		return append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false", owner)))
+		return append(out, at(n.Line, proofErrf(CodeBoolArms, "%s: bool match must be exactly true+false", owner)))
 	}
 	if hasOrArm(n) {
 		// Slice 4: per-alternative usefulness on a path that

@@ -343,13 +343,13 @@ func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits 
 	nslot := len(n.Scruts)
 	for i := 0; i < nslot; i++ {
 		if len(intSpans[i]) > 0 && (hasBool[i] || len(strLits[i]) > 0) {
-			out = append(out, at(n.Line, fmt.Errorf("%s: slot %d mixes integer patterns with bool/string patterns: one slot takes one scalar domain", owner, i+1)))
+			out = append(out, at(n.Line, proofErrf(CodeBoolArms, "%s: slot %d mixes integer patterns with bool/string patterns: one slot takes one scalar domain", owner, i+1)))
 			return out
 		}
 	}
 	domains, covers, atomIndex, mixed := valueCoverOf(n, hasBool, strLits, intSpans)
 	if mixed > 0 {
-		out = append(out, at(n.Line, fmt.Errorf("%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
+		out = append(out, at(n.Line, proofErrf(CodeBoolArms, "%s: bool match must be exactly true+false (slot %d mixes bool and string patterns)", owner, mixed)))
 		return out
 	}
 	for i := range n.Arms {
@@ -357,7 +357,7 @@ func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits 
 			continue
 		}
 		if !armUseful(covers, i, nslot, domains) {
-			out = append(out, at(n.Arms[i].Line, fmt.Errorf("%s: arm %s is fully covered by earlier arms", owner, patRender(n, i))))
+			out = append(out, at(n.Arms[i].Line, proofErrf(CodeUselessArm, "%s: arm %s is fully covered by earlier arms", owner, patRender(n, i))))
 		}
 	}
 	// Slice 4: per-alternative usefulness over the same covers.
@@ -392,9 +392,9 @@ func verifyIntMatch(n *Node, owner string, out []error, hasBool []bool, strLits 
 	// of a finite missing-cell list. Integer tails always render
 	// concrete witnesses, never remainder.
 	if otherSlot > 0 {
-		out = append(out, at(n.Line, fmt.Errorf("%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
+		out = append(out, at(n.Line, proofErrf(CodeValueNoWild, "%s: value match without _ is not provably exhaustive (slot %d leaves an open string remainder)", owner, otherSlot)))
 		return out
 	}
-	out = append(out, at(n.Line, fmt.Errorf("%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
+	out = append(out, at(n.Line, proofErrf(CodeMissingArm, "%s: non-exhaustive match, missing %s", owner, strings.Join(wits, "; "))))
 	return out
 }
