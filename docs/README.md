@@ -36,6 +36,7 @@ specs, and the rules each feature had to satisfy before it landed.
 | `a45-bytes-values.md` | Shipped (Bytes B1) | `Bytes` value admission; `Bytes(Seq<int>[...])` literals `0..255`; `Uint8Array` emit; export/codecs next |
 | `a46-bytes-export.md` | Shipped (Bytes B2) | Owner-local `exports_utf8` grants; `bytes__utf8__export` kernel; whole-program certification barrier; generic encoder next |
 | `a47-bytes-encode.md` | Shipped (Bytes B3) | Public `bytes__utf8__encode` kernel; kernel descriptor table; strict `str` admission; Render consumer next |
+| `can-idioms.md` | Living | `.can` style guide from blessed code: truth tables, bool-field match, guard shapes, fuel workers, arm coverage |
 
 ## Reading order for a reviewer
 
@@ -44,6 +45,7 @@ specs, and the rules each feature had to satisfy before it landed.
 3. `a06` → `a09` in order (each spec pairs a power with its proof).
 4. `sketches/` live shape: `auth-login/`, `retry-loop/`, `counter/`;
    `std/` blessed library: `quota/`, `scalars/`.
+5. `can-idioms.md` before writing or refactoring any `.can` file.
 5. `CLEAN_ROOM_REVIEW.md` (design input; historical record, see note).
 
 ## Rules for reading (and editing)

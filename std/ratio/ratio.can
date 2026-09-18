@@ -1,0 +1,246 @@
+// std/ratio/ratio.can — exact fractions as records, not a fifth base type.
+//
+// Canonical form: reduced fraction, positive denominator, zero as
+// 0/1. std__ratio__make is the blessed normalizing constructor.
+//
+// Representation note: language brands wrap str scalars only (every
+// brand in std/ is `is str`), so a numerator/denominator pair has
+// no brand form. Ratio__Fraction is a transparent record; the invariant is
+// held by construction through make. A hand-forged record with a
+// zero denominator cannot divide: every entry point surfaces
+// math.zero_divisor instead. Genuine make-minted values never
+// trigger it (their denominators are positive by construction),
+// so add/multiply carry the kind only for forged inputs — the one
+// deviation from the ASTRA wishlist, which lists them as
+// infallible. Likewise to_dec_exact adds math.zero_divisor next
+// to the specified math.nonterminating_decimal.
+//
+// to_dec_exact is a guarded digit loop (NOW†, not a performance
+// endorsement): integer part by repeated addition, fractional
+// digits by long division over non-negative remainders with the
+// seen-remainder set. Fuel of denominator + 1 always suffices —
+// remainders below the denominator must repeat or hit zero — so
+// exhaustion and repetition both mean nonterminating, never
+// silent truncation. No dec division operator exists (the checker
+// rejects dec/dec; exact division lives in scalars), so digits
+// fold left to right with a place value shrunk by multiplication
+// with d"0.1", which is exact. Large numerators pay linear fuel.
+
+mod ratio
+  provides [std__ratio__make, std__ratio__add, std__ratio__multiply, std__ratio__divide, std__ratio__to_dec_exact, std__ratio__abs, std__ratio__gcd_from, std__ratio__seen_from, std__ratio__digits_from, std__ratio__digit_from, std__ratio__fold_from, Ratio__Fraction, Ratio__Int, Ratio__Bool, Ratio__Dec, Ratio__Digits]
+  uses []
+  emits [math.zero_divisor, math.nonterminating_decimal]
+
+error math.zero_divisor(divisor: int)
+error math.nonterminating_decimal(numerator: int, denominator: int)
+
+type Ratio__Fraction rev 1 (
+  numerator: int
+  denominator: int
+)
+
+type Ratio__Int rev 1 (
+  value: int
+)
+
+type Ratio__Bool rev 1 (
+  value: bool
+)
+
+type Ratio__Dec rev 1 (
+  value: dec
+)
+
+type Ratio__Digits rev 1 (
+  values: Seq<int>
+)
+
+fn std__ratio__abs(value: int) -> Ratio__Int rev 1
+  emits []
+  tests
+    neg(value = -3) => Ok(value = 3)
+    pos(value = 3) => Ok(value = 3)
+    zero(value = 0) => Ok(value = 0)
+=
+  match value < 0
+    true => Ok(value = 0 - value)
+    false => Ok(value = value)
+
+fn std__ratio__gcd_from(a: int, b: int) -> Ratio__Int rev 1
+  decreases a, b by euclid
+  emits []
+  tests
+    basic(a = 12, b = 8) => Ok(value = 4)
+    coprime(a = 8, b = 9) => Ok(value = 1)
+    zero_left(a = 0, b = 5) => Ok(value = 5)
+    zero_right(a = 5, b = 0) => Ok(value = 5)
+    zero_zero(a = 0, b = 0) => Ok(value = 0)
+=
+  match b <= 0
+    true => Ok(value = a)
+    false => match call std__ratio__gcd_from(b, a % b)
+      on Ok r => Ok(value = r.value)
+
+fn std__ratio__make(numerator: int, denominator: int) -> Ratio__Fraction rev 1
+  emits [math.zero_divisor]
+  tests
+    half(numerator = 1, denominator = 2) => Ok(numerator = 1, denominator = 2)
+    reduce(numerator = 2, denominator = 4) => Ok(numerator = 1, denominator = 2)
+    whole(numerator = 4, denominator = 2) => Ok(numerator = 2, denominator = 1)
+    zero(numerator = 0, denominator = 5) => Ok(numerator = 0, denominator = 1)
+    zero_neg(numerator = 0, denominator = -5) => Ok(numerator = 0, denominator = 1)
+    neg_num(numerator = -1, denominator = 2) => Ok(numerator = -1, denominator = 2)
+    neg_den(numerator = 1, denominator = -2) => Ok(numerator = -1, denominator = 2)
+    neg_both(numerator = -2, denominator = -4) => Ok(numerator = 1, denominator = 2)
+    zero_den(numerator = 1, denominator = 0) => math.zero_divisor(divisor = 0)
+=
+  match denominator == 0
+    true => math.zero_divisor(divisor = denominator)
+    false => match numerator == 0
+      true => Ok(numerator = 0, denominator = 1)
+      false => match call std__ratio__abs(numerator)
+        on Ok an => match call std__ratio__abs(denominator)
+          on Ok ad => match call std__ratio__gcd_from(an.value, ad.value)
+            on Ok g => match numerator < 0, denominator < 0
+              true, true => Ok(numerator = an.value / g.value, denominator = ad.value / g.value)
+              true, false => Ok(numerator = (0 - an.value) / g.value, denominator = ad.value / g.value)
+              false, true => Ok(numerator = (0 - an.value) / g.value, denominator = ad.value / g.value)
+              false, false => Ok(numerator = an.value / g.value, denominator = ad.value / g.value)
+
+fn std__ratio__add(left: Ratio__Fraction, right: Ratio__Fraction) -> Ratio__Fraction rev 1
+  emits [math.zero_divisor]
+  tests
+    half_third(left = Ratio__Fraction(numerator = 1, denominator = 2), right = Ratio__Fraction(numerator = 1, denominator = 3)) => Ok(numerator = 5, denominator = 6)
+    double(left = Ratio__Fraction(numerator = 1, denominator = 2), right = Ratio__Fraction(numerator = 1, denominator = 2)) => Ok(numerator = 1, denominator = 1)
+    cancel(left = Ratio__Fraction(numerator = -1, denominator = 2), right = Ratio__Fraction(numerator = 1, denominator = 2)) => Ok(numerator = 0, denominator = 1)
+    forged(left = Ratio__Fraction(numerator = 1, denominator = 0), right = Ratio__Fraction(numerator = 1, denominator = 2)) => math.zero_divisor(divisor = 0)
+=
+  match call std__ratio__make(left.numerator * right.denominator + right.numerator * left.denominator, left.denominator * right.denominator)
+    on Ok r => Ok(numerator = r.numerator, denominator = r.denominator)
+    on math.zero_divisor e => forward e
+
+fn std__ratio__multiply(left: Ratio__Fraction, right: Ratio__Fraction) -> Ratio__Fraction rev 1
+  emits [math.zero_divisor]
+  tests
+    basic(left = Ratio__Fraction(numerator = 2, denominator = 3), right = Ratio__Fraction(numerator = 3, denominator = 4)) => Ok(numerator = 1, denominator = 2)
+    neg(left = Ratio__Fraction(numerator = -2, denominator = 3), right = Ratio__Fraction(numerator = 3, denominator = 4)) => Ok(numerator = -1, denominator = 2)
+    zero(left = Ratio__Fraction(numerator = 0, denominator = 1), right = Ratio__Fraction(numerator = 3, denominator = 4)) => Ok(numerator = 0, denominator = 1)
+    forged(left = Ratio__Fraction(numerator = 1, denominator = 0), right = Ratio__Fraction(numerator = 1, denominator = 2)) => math.zero_divisor(divisor = 0)
+=
+  match call std__ratio__make(left.numerator * right.numerator, left.denominator * right.denominator)
+    on Ok r => Ok(numerator = r.numerator, denominator = r.denominator)
+    on math.zero_divisor e => forward e
+
+fn std__ratio__divide(left: Ratio__Fraction, right: Ratio__Fraction) -> Ratio__Fraction rev 1
+  emits [math.zero_divisor]
+  tests
+    basic(left = Ratio__Fraction(numerator = 1, denominator = 2), right = Ratio__Fraction(numerator = 3, denominator = 4)) => Ok(numerator = 2, denominator = 3)
+    neg(left = Ratio__Fraction(numerator = -1, denominator = 2), right = Ratio__Fraction(numerator = 3, denominator = 4)) => Ok(numerator = -2, denominator = 3)
+    by_zero(left = Ratio__Fraction(numerator = 1, denominator = 2), right = Ratio__Fraction(numerator = 0, denominator = 1)) => math.zero_divisor(divisor = 0)
+    forged_left(left = Ratio__Fraction(numerator = 1, denominator = 0), right = Ratio__Fraction(numerator = 1, denominator = 2)) => math.zero_divisor(divisor = 0)
+=
+  match right.numerator == 0
+    true => math.zero_divisor(divisor = right.numerator)
+    false => match call std__ratio__make(left.numerator * right.denominator, left.denominator * right.numerator)
+      on Ok r => Ok(numerator = r.numerator, denominator = r.denominator)
+      on math.zero_divisor e => forward e
+
+fn std__ratio__seen_from(seen: Seq<int>, target: int, pos: int, fuel: int) -> Ratio__Bool rev 1
+  decreases fuel
+  emits []
+  tests
+    empty(seen = Seq<int>[], target = 1, pos = 0, fuel = 1) => Ok(value = false)
+    hit(seen = Seq<int>[2, 1], target = 1, pos = 0, fuel = 3) => Ok(value = true)
+    miss(seen = Seq<int>[2, 3], target = 1, pos = 0, fuel = 3) => Ok(value = false)
+    over(seen = Seq<int>[1], target = 1, pos = 5, fuel = 2) => Ok(value = false)
+    spent(seen = Seq<int>[1], target = 1, pos = 0, fuel = 0) => Ok(value = false)
+=
+  match fuel <= 0
+    true => Ok(value = false)
+    false => match pos < #seen
+      true => match seen[pos] == target
+        true => Ok(value = true)
+        false => match call std__ratio__seen_from(seen, target, pos + 1, fuel - 1)
+          on Ok r => Ok(value = r.value)
+      false => Ok(value = false)
+
+fn std__ratio__digits_from(orig_n: int, orig_d: int, rem: int, denom: int, digits: Seq<int>, seen: Seq<int>, fuel: int) -> Ratio__Digits rev 1
+  decreases fuel
+  emits [math.nonterminating_decimal]
+  tests
+    exact(orig_n = 1, orig_d = 2, rem = 0, denom = 2, digits = Seq<int>[], seen = Seq<int>[], fuel = 3) => Ok(values = Seq<int>[])
+    step(orig_n = 1, orig_d = 2, rem = 1, denom = 2, digits = Seq<int>[], seen = Seq<int>[], fuel = 3) => Ok(values = Seq<int>[5])
+    cycle(orig_n = 1, orig_d = 3, rem = 1, denom = 3, digits = Seq<int>[], seen = Seq<int>[1], fuel = 4) => math.nonterminating_decimal(numerator = 1, denominator = 3)
+    spent(orig_n = 1, orig_d = 2, rem = 1, denom = 2, digits = Seq<int>[], seen = Seq<int>[], fuel = 0) => math.nonterminating_decimal(numerator = 1, denominator = 2)
+=
+  match fuel <= 0
+    true => math.nonterminating_decimal(numerator = orig_n, denominator = orig_d)
+    false => match rem == 0
+      true => Ok(values = digits)
+      false => match call std__ratio__seen_from(seen, rem, 0, #seen + 1)
+        on Ok hit => match hit.value
+          true => math.nonterminating_decimal(numerator = orig_n, denominator = orig_d)
+          false => match call std__ratio__digits_from(orig_n, orig_d, rem * 10 - ((rem * 10) / denom) * denom, denom, digits + ((rem * 10) / denom), seen + rem, fuel - 1)
+            on Ok r => Ok(values = r.values)
+            on math.nonterminating_decimal e => math.nonterminating_decimal(numerator = e.numerator, denominator = e.denominator)
+
+fn std__ratio__digit_from(remaining: int, acc: dec, fuel: int) -> Ratio__Dec rev 1
+  decreases fuel
+  emits []
+  tests
+    zero(remaining = 0, acc = d"0.0", fuel = 1) => Ok(value = d"0.0")
+    five(remaining = 5, acc = d"0.0", fuel = 6) => Ok(value = d"5.0")
+    nine(remaining = 9, acc = d"0.0", fuel = 10) => Ok(value = d"9.0")
+    spent(remaining = 5, acc = d"0.0", fuel = 0) => Ok(value = d"0.0")
+=
+  match fuel <= 0
+    true => Ok(value = acc)
+    false => match remaining <= 0
+      true => Ok(value = acc)
+      false => match call std__ratio__digit_from(remaining - 1, acc + d"1.0", fuel - 1)
+        on Ok r => Ok(value = r.value)
+
+fn std__ratio__fold_from(digits: Seq<int>, pos: int, place: dec, acc: dec, fuel: int) -> Ratio__Dec rev 1
+  decreases fuel
+  emits []
+  tests
+    eighth(digits = Seq<int>[1, 2, 5], pos = 0, place = d"0.1", acc = d"0.0", fuel = 4) => Ok(value = d"0.125")
+    empty(digits = Seq<int>[], pos = 0, place = d"0.1", acc = d"0.0", fuel = 1) => Ok(value = d"0.0")
+    over(digits = Seq<int>[5], pos = 9, place = d"0.1", acc = d"0.0", fuel = 2) => Ok(value = d"0.0")
+    spent(digits = Seq<int>[5], pos = 0, place = d"0.1", acc = d"0.0", fuel = 0) => Ok(value = d"0.0")
+=
+  match fuel <= 0
+    true => Ok(value = acc)
+    false => match pos < #digits
+      true => match call std__ratio__digit_from(digits[pos], d"0.0", 10)
+        on Ok d => match call std__ratio__fold_from(digits, pos + 1, place * d"0.1", acc + d.value * place, fuel - 1)
+          on Ok r => Ok(value = r.value)
+      false => Ok(value = acc)
+
+fn std__ratio__to_dec_exact(value: Ratio__Fraction) -> Ratio__Dec rev 1
+  emits [math.zero_divisor, math.nonterminating_decimal]
+  tests
+    half(value = Ratio__Fraction(numerator = 1, denominator = 2)) => Ok(value = d"0.5")
+    third(value = Ratio__Fraction(numerator = 1, denominator = 3)) => math.nonterminating_decimal(numerator = 1, denominator = 3)
+    sixth(value = Ratio__Fraction(numerator = 1, denominator = 6)) => math.nonterminating_decimal(numerator = 1, denominator = 6)
+    neg(value = Ratio__Fraction(numerator = -1, denominator = 2)) => Ok(value = d"-0.5")
+    negden(value = Ratio__Fraction(numerator = 1, denominator = -2)) => Ok(value = d"-0.5")
+    negboth(value = Ratio__Fraction(numerator = -1, denominator = -2)) => Ok(value = d"0.5")
+    whole(value = Ratio__Fraction(numerator = 7, denominator = 2)) => Ok(value = d"3.5")
+    zero(value = Ratio__Fraction(numerator = 0, denominator = 1)) => Ok(value = d"0.0")
+    eighth(value = Ratio__Fraction(numerator = 1, denominator = 8)) => Ok(value = d"0.125")
+    forged(value = Ratio__Fraction(numerator = 1, denominator = 0)) => math.zero_divisor(divisor = 0)
+=
+  match value.denominator == 0
+    true => math.zero_divisor(divisor = value.denominator)
+    false => match call std__ratio__abs(value.numerator)
+      on Ok an => match call std__ratio__abs(value.denominator)
+        on Ok ad => match call std__ratio__digit_from(an.value / ad.value, d"0.0", an.value / ad.value + 1)
+          on Ok ip => match call std__ratio__digits_from(value.numerator, value.denominator, an.value - (an.value / ad.value) * ad.value, ad.value, Seq<int>[], Seq<int>[], ad.value + 1)
+            on Ok dg => match call std__ratio__fold_from(dg.values, 0, d"0.1", d"0.0", #dg.values + 1)
+              on Ok fr => match value.numerator < 0, value.denominator < 0
+                true, true => Ok(value = ip.value + fr.value)
+                true, false => Ok(value = d"0.0" - (ip.value + fr.value))
+                false, true => Ok(value = d"0.0" - (ip.value + fr.value))
+                false, false => Ok(value = ip.value + fr.value)
+            on math.nonterminating_decimal e => math.nonterminating_decimal(numerator = e.numerator, denominator = e.denominator)

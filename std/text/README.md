@@ -18,7 +18,11 @@
   pinned data, base64 on Bytes via
   `std__base64__encode`/`std__base64__decode`
   (`utf8` via `std__utf8__encode`/`std__utf8__decode`,
-  `hex` via `std__hex__encode`/`std__hex__decode`).
+  `hex` via `std__hex__encode`/`std__hex__decode`), and the
+  URL-safe unpadded `std__base64url__encode`/
+  `std__base64url__decode` (pure-`.can` translation, padding
+  strip, and strict re-pad over the base64 kernels, emitting
+  `encoding.invalid_base64url`).
 - `text.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out
   std/text std/text/text.can`; verify: `go test ./...`.

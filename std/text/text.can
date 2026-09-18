@@ -16,10 +16,11 @@
 // Bytes codecs all landed (see #42): utf8 via std__utf8__encode
 // and std__utf8__decode, hex via std__hex__encode and
 // std__hex__decode, base64 via std__base64__encode and
-// std__base64__decode below.
+// std__base64__decode below, plus the URL-safe unpadded
+// base64url pair (separate names, no ambient encoding flag).
 
 mod text
-  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, std__hex__decode, std__base64__encode, std__base64__decode, Str__Value, Bool__Value, Int__Value, Split__Result]
+  provides [std__str__concat, std__str__is_empty, std__str__is_whitespace, std__str__length_scalars, std__str__scalar_at, std__str__slice_scalars, std__str__find_from, std__str__find, std__str__contains, std__str__starts_with, std__str__ends_with, std__str__replace_all_from, std__str__replace_all, std__str__trim_left, std__str__trim_right, std__str__trim_ascii, std__str__upper_ascii_from, std__str__upper_ascii, std__str__lower_ascii_from, std__str__lower_ascii, std__str__join_from, std__str__join, std__str__split_from, std__str__split, std__utf8__encode, std__utf8__decode, std__hex__encode, std__hex__decode, std__base64__encode, std__base64__decode, std__base64url__strip_from, std__base64url__translate_from, std__base64url__untranslate_from, std__base64url__rem_from, std__base64url__pad, std__base64url__encode, std__base64url__decode, Str__Value, Bool__Value, Int__Value, Split__Result]
   uses []
   emits [text.index_out_of_range, text.invalid_slice, text.not_found, text.empty_pattern]
 
@@ -28,6 +29,7 @@ error text.invalid_slice(value: str, start: int, end: int)
 error text.not_found(value: str, pattern: str)
 error text.empty_pattern()
 error text.empty_separator()
+error encoding.invalid_base64url(value: str)
 
 type Str__Value rev 1 (
   value: str
@@ -517,3 +519,148 @@ fn std__base64__decode(value: str) -> Bytes__Value rev 1
   match call bytes__base64__decode(value)
     on Ok r => Ok(value = r.value)
     on encoding.invalid_base64 e => encoding.invalid_base64(value = e.value)
+
+fn std__base64url__strip_from(value: str, fuel: int) -> Str__Value rev 1
+  decreases fuel
+  emits []
+  tests
+    empty(value = "", fuel = 0) => Ok(value = "")
+    empty_fuel(value = "", fuel = 3) => Ok(value = "")
+    none(value = "QUJD", fuel = 4) => Ok(value = "QUJD")
+    one(value = "QUI=", fuel = 4) => Ok(value = "QUI")
+    two(value = "QQ==", fuel = 4) => Ok(value = "QQ")
+    spent(value = "QQ==", fuel = 0) => Ok(value = "QQ==")
+=
+  match fuel <= 0
+    true => Ok(value = value)
+    false => match #value >= 1
+      true => match value[#value - 1:#value] == "="
+        true => match call std__base64url__strip_from(value[0:#value - 1], fuel - 1)
+          on Ok r => Ok(value = r.value)
+        false => Ok(value = value)
+      false => Ok(value = value)
+
+fn std__base64url__translate_from(value: str, acc: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    empty(value = "", acc = "q", n = 0) => Ok(value = "q")
+    short(value = "a", acc = "", n = 5) => Ok(value = "a")
+    plus(value = "+w==", acc = "", n = 4) => Ok(value = "-w==")
+    slash(value = "a/bc", acc = "", n = 4) => Ok(value = "a_bc")
+    both(value = "+/", acc = "", n = 2) => Ok(value = "-_")
+    plain(value = "QUJD", acc = "", n = 4) => Ok(value = "QUJD")
+=
+  match n <= 0
+    true => Ok(value = acc + value)
+    false => match #value >= 1
+      true => match value[0:1] == "+"
+        true => match call std__base64url__translate_from(value[1:#value], acc + "-", n - 1)
+          on Ok r => Ok(value = r.value)
+        false => match value[0:1] == "/"
+          true => match call std__base64url__translate_from(value[1:#value], acc + "_", n - 1)
+            on Ok r => Ok(value = r.value)
+          false => match call std__base64url__translate_from(value[1:#value], acc + value[0:1], n - 1)
+            on Ok r => Ok(value = r.value)
+      false => Ok(value = acc + value)
+
+fn std__base64url__untranslate_from(value: str, acc: str, n: int) -> Str__Value rev 1
+  decreases n
+  emits []
+  tests
+    empty(value = "", acc = "q", n = 0) => Ok(value = "q")
+    short(value = "a", acc = "", n = 5) => Ok(value = "a")
+    dash(value = "-w", acc = "", n = 2) => Ok(value = "+w")
+    under(value = "a_b", acc = "", n = 3) => Ok(value = "a/b")
+    both(value = "-_", acc = "", n = 2) => Ok(value = "+/")
+    plain(value = "QUJD", acc = "", n = 4) => Ok(value = "QUJD")
+=
+  match n <= 0
+    true => Ok(value = acc + value)
+    false => match #value >= 1
+      true => match value[0:1] == "-"
+        true => match call std__base64url__untranslate_from(value[1:#value], acc + "+", n - 1)
+          on Ok r => Ok(value = r.value)
+        false => match value[0:1] == "_"
+          true => match call std__base64url__untranslate_from(value[1:#value], acc + "/", n - 1)
+            on Ok r => Ok(value = r.value)
+          false => match call std__base64url__untranslate_from(value[1:#value], acc + value[0:1], n - 1)
+            on Ok r => Ok(value = r.value)
+      false => Ok(value = acc + value)
+
+fn std__base64url__rem_from(remaining: int, fuel: int) -> Int__Value rev 1
+  decreases fuel
+  emits []
+  tests
+    zero(remaining = 0, fuel = 0) => Ok(value = 0)
+    four(remaining = 4, fuel = 4) => Ok(value = 0)
+    five(remaining = 5, fuel = 5) => Ok(value = 1)
+    seven(remaining = 7, fuel = 7) => Ok(value = 3)
+    spent(remaining = 9, fuel = 0) => Ok(value = 9)
+=
+  match fuel <= 0
+    true => Ok(value = remaining)
+    false => match remaining < 4
+      true => Ok(value = remaining)
+      false => match call std__base64url__rem_from(remaining - 4, fuel - 1)
+        on Ok r => Ok(value = r.value)
+
+fn std__base64url__pad(value: str, rem: int) -> Str__Value rev 1
+  emits []
+  tests
+    none(value = "QUJD", rem = 0) => Ok(value = "QUJD")
+    two(value = "QQ", rem = 2) => Ok(value = "QQ==")
+    one(value = "QUI", rem = 3) => Ok(value = "QUI=")
+=
+  match rem == 2
+    true => Ok(value = value + "==")
+    false => match rem == 3
+      true => Ok(value = value + "=")
+      false => Ok(value = value)
+
+fn std__base64url__encode(value: Bytes) -> Encoding__Text rev 1
+  emits []
+  tests
+    empty(value = Bytes(Seq<int>[])) => Ok(value = "")
+    zero(value = Bytes(Seq<int>[0])) => Ok(value = "AA")
+    ff(value = Bytes(Seq<int>[255])) => Ok(value = "_w")
+    one(value = Bytes(Seq<int>[65])) => Ok(value = "QQ")
+    two(value = Bytes(Seq<int>[65, 66])) => Ok(value = "QUI")
+    three(value = Bytes(Seq<int>[65, 66, 67])) => Ok(value = "QUJD")
+    plus(value = Bytes(Seq<int>[251])) => Ok(value = "-w")
+    std(value = Bytes(Seq<int>[222, 173, 190, 239])) => Ok(value = "3q2-7w")
+=
+  match call std__base64__encode(value)
+    on Ok b => match call std__base64url__translate_from(b.value, "", #b.value)
+      on Ok t => match call std__base64url__strip_from(t.value, #t.value)
+        on Ok r => Ok(value = r.value)
+
+fn std__base64url__decode(value: str) -> Bytes__Value rev 1
+  emits [encoding.invalid_base64url]
+  tests
+    empty(value = "") => Ok(value = Bytes(Seq<int>[]))
+    two(value = "QQ") => Ok(value = Bytes(Seq<int>[65]))
+    three(value = "QUI") => Ok(value = Bytes(Seq<int>[65, 66]))
+    full(value = "QUJD") => Ok(value = Bytes(Seq<int>[65, 66, 67]))
+    url(value = "-_8") => Ok(value = Bytes(Seq<int>[251, 255]))
+    padded(value = "QQ==") => encoding.invalid_base64url(value = "QQ==")
+    single(value = "QUI=") => encoding.invalid_base64url(value = "QUI=")
+    plus(value = "Q+JD") => encoding.invalid_base64url(value = "Q+JD")
+    slash(value = "Q/JD") => encoding.invalid_base64url(value = "Q/JD")
+    short(value = "Q") => encoding.invalid_base64url(value = "Q")
+    space(value = "Q UJ") => encoding.invalid_base64url(value = "Q UJ")
+=
+  match call std__str__find(value, "=")
+    on Ok _ => encoding.invalid_base64url(value = value)
+    on text.not_found _ => match call std__str__find(value, "+")
+      on Ok _ => encoding.invalid_base64url(value = value)
+      on text.not_found _ => match call std__str__find(value, "/")
+        on Ok _ => encoding.invalid_base64url(value = value)
+        on text.not_found _ => match call std__base64url__untranslate_from(value, "", #value)
+          on Ok t => match call std__base64url__rem_from(#t.value, #t.value)
+            on Ok m => match m.value == 1
+              true => encoding.invalid_base64url(value = value)
+              false => match call std__base64url__pad(t.value, m.value)
+                on Ok p => match call bytes__base64__decode(p.value)
+                  on Ok r => Ok(value = r.value)
+                  on encoding.invalid_base64 _ => encoding.invalid_base64url(value = value)

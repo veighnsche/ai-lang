@@ -12,6 +12,10 @@
       {
         "fn": "text.std__base64__decode",
         "arm": "on encoding.invalid_base64 e =\u003e encoding.invalid_base64(value = e.value)"
+      },
+      {
+        "fn": "text.std__base64url__decode",
+        "arm": "on encoding.invalid_base64 _ =\u003e encoding.invalid_base64url(value = value)"
       }
     ],
     "hit_by_tests": [
@@ -23,6 +27,24 @@
       "text.std__base64__decode/padbits4",
       "text.std__base64__decode/sp_mid",
       "text.std__base64__decode/under"
+    ]
+  },
+  {
+    "kind": "encoding.invalid_base64url",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "text.std__base64url__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "text.std__base64url__decode/padded",
+      "text.std__base64url__decode/plus",
+      "text.std__base64url__decode/short",
+      "text.std__base64url__decode/single",
+      "text.std__base64url__decode/slash",
+      "text.std__base64url__decode/space"
     ]
   },
   {
@@ -143,6 +165,18 @@
       "text.std__str__find_from"
     ],
     "handled_by": [
+      {
+        "fn": "text.std__base64url__decode",
+        "arm": "on text.not_found _ =\u003e match call std__base64url__untranslate_from(value, \"\", #value)"
+      },
+      {
+        "fn": "text.std__base64url__decode",
+        "arm": "on text.not_found _ =\u003e match call std__str__find(value, \"+\")"
+      },
+      {
+        "fn": "text.std__base64url__decode",
+        "arm": "on text.not_found _ =\u003e match call std__str__find(value, \"/\")"
+      },
       {
         "fn": "text.std__str__contains",
         "arm": "on text.not_found _ =\u003e Ok(value = false)"

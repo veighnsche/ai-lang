@@ -1483,6 +1483,42 @@ export function html__el__h3(attrs: string, children: Html__Children): { $can_ki
   }
   }
 }
+export function html__el__h4(attrs: string, children: Html__Children): { $can_kind: "ok"; safe: string } {
+  const $can_m1: { $can_kind: "ok"; safe: string } = html__el__container_from("h4", attrs, children);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__h5(attrs: string, children: Html__Children): { $can_kind: "ok"; safe: string } {
+  const $can_m1: { $can_kind: "ok"; safe: string } = html__el__container_from("h5", attrs, children);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function html__el__h6(attrs: string, children: Html__Children): { $can_kind: "ok"; safe: string } {
+  const $can_m1: { $can_kind: "ok"; safe: string } = html__el__container_from("h6", attrs, children);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", safe: r.safe };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
 export function html__el__section(attrs: string, children: Html__Children): { $can_kind: "ok"; safe: string } {
   const $can_m1: { $can_kind: "ok"; safe: string } = html__el__container_from("section", attrs, children);
   switch ($can_m1.$can_kind) {

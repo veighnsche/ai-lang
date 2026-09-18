@@ -1,6 +1,6 @@
 // GENERATED from text.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type TextResult = { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; values: string[] } | { $can_kind: "text.index_out_of_range"; value: string; index: bigint } | { $can_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } | { $can_kind: "text.empty_pattern" } | { $can_kind: "text.empty_separator" } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string } | { $can_kind: "encoding.invalid_base64"; value: string };
+export type TextResult = { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; values: string[] } | { $can_kind: "text.index_out_of_range"; value: string; index: bigint } | { $can_kind: "text.invalid_slice"; value: string; start: bigint; end: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } | { $can_kind: "text.empty_pattern" } | { $can_kind: "text.empty_separator" } | { $can_kind: "encoding.invalid_base64url"; value: string } | { $can_kind: "encoding.invalid_utf8"; value: Uint8Array } | { $can_kind: "encoding.invalid_hex"; value: string } | { $can_kind: "encoding.invalid_base64"; value: string };
 export type Str__Value = { value: string };
 export type Bool__Value = { value: boolean };
 export type Int__Value = { value: bigint };
@@ -716,6 +716,285 @@ export function std__base64__decode(value: string): { $can_kind: "ok"; value: Ui
   case "encoding.invalid_base64": {
     const e = $can_m1;
     return { $can_kind: "encoding.invalid_base64", value: e.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__base64url__strip_from(value: string, fuel: bigint): { $can_kind: "ok"; value: string } {
+  if ((fuel <= 0n)) {
+    return { $can_kind: "ok", value: value };
+  }
+  else {
+    if (((BigInt([...value].length)) >= 1n)) {
+      if (($canStrSlice(value, ((BigInt([...value].length)) - 1n), (BigInt([...value].length))) === "=")) {
+        const $can_m1: { $can_kind: "ok"; value: string } = std__base64url__strip_from($canStrSlice(value, 0n, ((BigInt([...value].length)) - 1n)), (fuel - 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else {
+        return { $can_kind: "ok", value: value };
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: value };
+    }
+  }
+}
+export function std__base64url__translate_from(value: string, acc: string, n: bigint): { $can_kind: "ok"; value: string } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: (acc + value) };
+  }
+  else {
+    if (((BigInt([...value].length)) >= 1n)) {
+      if (($canStrSlice(value, 0n, 1n) === "+")) {
+        const $can_m1: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "-"), (n - 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else {
+        if (($canStrSlice(value, 0n, 1n) === "/")) {
+          const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "_"), (n - 1n));
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const r = $can_m2;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__translate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const r = $can_m3;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: (acc + value) };
+    }
+  }
+}
+export function std__base64url__untranslate_from(value: string, acc: string, n: bigint): { $can_kind: "ok"; value: string } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: (acc + value) };
+  }
+  else {
+    if (((BigInt([...value].length)) >= 1n)) {
+      if (($canStrSlice(value, 0n, 1n) === "-")) {
+        const $can_m1: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "+"), (n - 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else {
+        if (($canStrSlice(value, 0n, 1n) === "_")) {
+          const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + "/"), (n - 1n));
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const r = $can_m2;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from($canStrSlice(value, 1n, (BigInt([...value].length))), (acc + $canStrSlice(value, 0n, 1n)), (n - 1n));
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const r = $can_m3;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: (acc + value) };
+    }
+  }
+}
+export function std__base64url__rem_from(remaining: bigint, fuel: bigint): { $can_kind: "ok"; value: bigint } {
+  if ((fuel <= 0n)) {
+    return { $can_kind: "ok", value: remaining };
+  }
+  else {
+    if ((remaining < 4n)) {
+      return { $can_kind: "ok", value: remaining };
+    }
+    else {
+      const $can_m1: { $can_kind: "ok"; value: bigint } = std__base64url__rem_from((remaining - 4n), (fuel - 1n));
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        return { $can_kind: "ok", value: r.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+  }
+}
+export function std__base64url__pad(value: string, rem: bigint): { $can_kind: "ok"; value: string } {
+  if ((rem === 2n)) {
+    return { $can_kind: "ok", value: (value + "==") };
+  }
+  else {
+    if ((rem === 3n)) {
+      return { $can_kind: "ok", value: (value + "=") };
+    }
+    else {
+      return { $can_kind: "ok", value: value };
+    }
+  }
+}
+export function std__base64url__encode(value: Uint8Array): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } = std__base64__encode(value);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const b = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } = std__base64url__translate_from(b.value, "", (BigInt([...b.value].length)));
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const t = $can_m2;
+      const $can_m3: { $can_kind: "ok"; value: string } = std__base64url__strip_from(t.value, (BigInt([...t.value].length)));
+      switch ($can_m3.$can_kind) {
+      case "ok": {
+        const r = $can_m3;
+        return { $can_kind: "ok", value: r.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__base64url__decode(value: string): { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64url"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find(value, "=");
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const _ = $can_m1;
+    return { $can_kind: "encoding.invalid_base64url", value: value };
+  }
+  case "text.not_found": {
+    const _ = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find(value, "+");
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const _ = $can_m2;
+      return { $can_kind: "encoding.invalid_base64url", value: value };
+    }
+    case "text.not_found": {
+      const _ = $can_m2;
+      const $can_m3: { $can_kind: "ok"; value: bigint } | { $can_kind: "text.not_found"; value: string; pattern: string } = std__str__find(value, "/");
+      switch ($can_m3.$can_kind) {
+      case "ok": {
+        const _ = $can_m3;
+        return { $can_kind: "encoding.invalid_base64url", value: value };
+      }
+      case "text.not_found": {
+        const _ = $can_m3;
+        const $can_m4: { $can_kind: "ok"; value: string } = std__base64url__untranslate_from(value, "", (BigInt([...value].length)));
+        switch ($can_m4.$can_kind) {
+        case "ok": {
+          const t = $can_m4;
+          const $can_m5: { $can_kind: "ok"; value: bigint } = std__base64url__rem_from((BigInt([...t.value].length)), (BigInt([...t.value].length)));
+          switch ($can_m5.$can_kind) {
+          case "ok": {
+            const m = $can_m5;
+            if ((m.value === 1n)) {
+              return { $can_kind: "encoding.invalid_base64url", value: value };
+            }
+            else {
+              const $can_m6: { $can_kind: "ok"; value: string } = std__base64url__pad(t.value, m.value);
+              switch ($can_m6.$can_kind) {
+              case "ok": {
+                const p = $can_m6;
+                const $can_m7: { $can_kind: "ok"; value: Uint8Array } | { $can_kind: "encoding.invalid_base64"; value: string } = $canB64Decode(p.value);
+                switch ($can_m7.$can_kind) {
+                case "ok": {
+                  const r = $can_m7;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "encoding.invalid_base64": {
+                  const _ = $can_m7;
+                  return { $can_kind: "encoding.invalid_base64url", value: value };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
   }
   default: {
     throw new Error("unreachable");
