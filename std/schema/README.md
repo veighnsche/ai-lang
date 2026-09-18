@@ -33,6 +33,10 @@
 
 Rules: `docs/a83-astra-schema.md` (trust rulings, §§1, 6, 9–11 in this
 slice). Plan: `.agents/plans/2026-09-18-schema-asset-slices.md` (S1).
-Builders (`html__asset__stylesheet`, `html__asset__script`), the two-owner
-bridge grant, and provenance certificates arrive in S2–S4; until then this
+Provenance design: `docs/a84-asset-provenance.md` (S4 paper).
+`schema__asset__recheck` (S4) re-runs authorization and requires
+witness equality; currency is enforced on the supplied snapshot, not
+historically on the witness. Builders (`html__asset__stylesheet`,
+`html__asset__script`) and the two-owner bridge grant arrived in
+S2–S3; acceptance certificates are future work — until then this
 core is test-gated and makes no production trust claim.

@@ -485,6 +485,27 @@ export function schema__revoked__contains(revoked: Schema__Revoked[], id: string
 export function schema__revoked__entry_at(revoked: Schema__Revoked[], position: bigint): { $ail_kind: "ok"; entry: Schema__Revoked } {
   return { $ail_kind: "ok", entry: $ailSeqAt(revoked, position) };
 }
+export function schema__asset__recheck(request: Schema__AssetRequest, snapshot: Schema__RegistrySnapshot, policy: string, site: Schema__Site, head: bigint, t: bigint, asset: string): { $ail_kind: "ok"; value: boolean } | { $ail_kind: "schema.asset_not_approved"; asset: Schema__AssetRequest } {
+  const $ail_m1: { $ail_kind: "ok"; approval: string } | { $ail_kind: "schema.asset_not_approved"; asset: Schema__AssetRequest } = schema__asset__approve(request, snapshot, policy, site, head, t);
+  switch ($ail_m1.$ail_kind) {
+  case "ok": {
+    const a = $ail_m1;
+    if ((a.approval === asset)) {
+      return { $ail_kind: "ok", value: true };
+    }
+    else {
+      return { $ail_kind: "schema.asset_not_approved", asset: request };
+    }
+  }
+  case "schema.asset_not_approved": {
+    const e = $ail_m1;
+    return { $ail_kind: "schema.asset_not_approved", asset: e.asset };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
 export function schema__policy__admit(program: string, policy: string): { $ail_kind: "ok"; policy: string } {
   return { $ail_kind: "ok", policy: ((program + "|") + policy) };
 }

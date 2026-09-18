@@ -38,9 +38,15 @@
       "asset"
     ],
     "raised_by": [
-      "schema.schema__asset__approve"
+      "schema.schema__asset__approve",
+      "schema.schema__asset__recheck"
     ],
-    "handled_by": [],
+    "handled_by": [
+      {
+        "fn": "schema.schema__asset__recheck",
+        "arm": "on schema.asset_not_approved e =\u003e schema.asset_not_approved(asset = e.asset)"
+      }
+    ],
     "hit_by_tests": [
       "schema.schema__asset__approve/approve_bad_digest",
       "schema.schema__asset__approve/approve_bad_token",
@@ -59,7 +65,11 @@
       "schema.schema__asset__approve/approve_unknown_role",
       "schema.schema__asset__approve/approve_unknown_url",
       "schema.schema__asset__approve/approve_userinfo",
-      "schema.schema__asset__approve/approve_wrong_digest"
+      "schema.schema__asset__approve/approve_wrong_digest",
+      "schema.schema__asset__recheck/recheck_mixed_policy",
+      "schema.schema__asset__recheck/recheck_stale",
+      "schema.schema__asset__recheck/recheck_tampered",
+      "schema.schema__asset__recheck/recheck_wrong_site"
     ]
   }
 ]
