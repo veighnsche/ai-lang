@@ -1,0 +1,43 @@
+// fibonacci/fib.ail — Fibonacci without a loop: fib__at guards the
+// domain (negatives are a declared error, not a hang) and fib__from
+// walks down one proven self-call per step, carrying both accumulators
+// so the decreases proof is a single unit step on n (a11). Same-file
+// helper, so no call-site given (a07).
+
+mod fib
+  provides [fib__at, fib__from, Fib__Value]
+  uses []
+  emits [fib.negative_input]
+
+error fib.negative_input(value: int)
+
+type Fib__Value rev 1 (
+  value: int
+)
+
+fn fib__at(n: int) -> Fib__Value rev 1
+  emits [fib.negative_input]
+  tests
+    zero(n = 0) => Ok(value = 0)
+    one(n = 1) => Ok(value = 1)
+    two(n = 2) => Ok(value = 1)
+    ten(n = 10) => Ok(value = 55)
+    negative(n = -3) => fib.negative_input(value = -3)
+=
+  match n < 0
+    true => fib.negative_input(value = n)
+    false => match call fib__from(n, 0, 1)
+      on Ok r => Ok(value = r.value)
+
+fn fib__from(n: int, a: int, b: int) -> Fib__Value rev 1
+  decreases n
+  emits []
+  tests
+    base(n = 0, a = 5, b = 8) => Ok(value = 5)
+    one_left(n = 1, a = 3, b = 5) => Ok(value = 5)
+    step(n = 2, a = 2, b = 3) => Ok(value = 5)
+=
+  match n <= 0
+    true => Ok(value = a)
+    false => match call fib__from(n - 1, b, a + b)
+      on Ok r => Ok(value = r.value)
