@@ -401,6 +401,43 @@ func TestVerifyMissingSolver(t *testing.T) {
 	}
 }
 
+// TestVerifyIntArms pins integer case analysis: range and
+// wildcard arms encode as value constraints, so an admitted
+// integer match discharges instead of going inconclusive.
+func TestVerifyIntArms(t *testing.T) {
+	prog, texts := admitProg(t, verifyClamp)
+	if diags := VerifyContracts(prog, texts); len(diags) != 0 {
+		t.Fatalf("clamp did not verify: %v", diags)
+	}
+}
+
+const verifyClamp = `mod m
+  provides [m__clamp, M__Out]
+  uses []
+  emits []
+
+type M__Out rev 1 (
+  value: int
+)
+
+fn m__clamp(x: int) -> M__Out rev 1
+  emits []
+  requires
+    x >= 0
+  ensures
+    on Ok result
+      result.value >= 0
+      result.value <= 10
+  tests
+    lo(x = 3) => Ok(value = 3)
+    hi(x = 15) => Ok(value = 10)
+    edge(x = 0) => Ok(value = 0)
+=
+  match x
+    0..10 => Ok(value = x)
+    _ => Ok(value = 10)
+`
+
 // TestParseSMTResult pins response classification: only exact
 // sat/unsat/unknown decide; anything else is a tooling failure.
 func TestParseSMTResult(t *testing.T) {

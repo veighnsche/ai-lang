@@ -26,9 +26,11 @@ type smt struct {
 	args []*smt
 }
 
-func svar(name string) *smt            { return &smt{op: "var", name: name} }
-func snum(digits string) *smt          { return &smt{op: "num", name: digits} }
-func sbool(b bool) *smt                { return &smt{op: "bool", name: map[bool]string{true: "true", false: "false"}[b]} }
+func svar(name string) *smt   { return &smt{op: "var", name: name} }
+func snum(digits string) *smt { return &smt{op: "num", name: digits} }
+func sbool(b bool) *smt {
+	return &smt{op: "bool", name: map[bool]string{true: "true", false: "false"}[b]}
+}
 func sapp(app string, args ...*smt) *smt { return &smt{op: "app", app: app, args: args} }
 
 func smtNum(v string) *smt {
@@ -442,12 +444,39 @@ func (p *prover) genBody(node *Node, st *execState, req []*smt, out *[]obligatio
 		if !ok {
 			return false
 		}
+		// Boolean arms keep the exact complete-case encoding.
+		// Integer, range, and wildcard arms encode as value
+		// constraints; anything else declines. Admission takes
+		// all three (int scrutinees are admitted), so the
+		// prover discharges them instead of failing every
+		// integer case analysis as inconclusive.
+		intCase := true
 		for _, armNode := range node.Arms {
-			if len(armNode.Pats) != 1 || armNode.Pats[0].Kind != "bool" {
+			if len(armNode.Pats) != 1 {
 				return false
 			}
+			if armNode.Pats[0].Kind == "bool" {
+				intCase = false
+			}
+		}
+		if !intCase {
+			for _, armNode := range node.Arms {
+				if armNode.Pats[0].Kind != "bool" {
+					return false
+				}
+			}
+		}
+		for _, armNode := range node.Arms {
+			cond := scrutCond(scrut, armNode.Pats[0].B)
+			if intCase {
+				var ok bool
+				cond, ok = armIntCond(scrut, armNode.Pats[0])
+				if !ok {
+					return false
+				}
+			}
 			branch := &execState{env: st.env, viaSummary: st.viaSummary, line: line}
-			branch.asserts = append(append([]*smt{}, st.asserts...), scrutCond(scrut, armNode.Pats[0].B))
+			branch.asserts = append(append([]*smt{}, st.asserts...), cond)
 			if armNode.Line > 0 {
 				branch.line = armNode.Line
 			}
@@ -461,6 +490,31 @@ func (p *prover) genBody(node *Node, st *execState, req []*smt, out *[]obligatio
 		return false
 	}
 	return p.genExit(node.Small, st, req, out, line)
+}
+
+// armIntCond encodes one integer-case arm guard: int literals
+// as equalities, ranges as closed intervals, wildcards as true.
+// Wild over-approximates (it also covers inputs earlier arms
+// take): sound for universal postconditions, at most
+// inconclusive where the solver cannot use it. Or-alternatives
+// and unresolved bounds decline.
+func armIntCond(scrut *smt, pat Pattern) (*smt, bool) {
+	switch pat.Kind {
+	case "int":
+		if pat.Num == nil {
+			return nil, false
+		}
+		return sapp("=", scrut, smtNum(pat.Num.String())), true
+	case "range":
+		if pat.Num == nil || pat.Hi == nil {
+			return nil, false
+		}
+		lo, hi := pat.Num.String(), pat.Hi.String()
+		return sand(sapp("<=", smtNum(lo), scrut), sapp("<=", scrut, smtNum(hi))), true
+	case "wild":
+		return sbool(true), true
+	}
+	return nil, false
 }
 
 func scrutCond(scrut *smt, takeTrue bool) *smt {
@@ -510,8 +564,8 @@ func (p *prover) genExit(ctor *Small, st *execState, req []*smt, out *[]obligati
 	*out = append(*out, obligation{
 		fn: p.name, kind: "exit on " + arm.Outcome, line: line,
 		req: req, path: append([]*smt{}, st.asserts...),
-		neg: sapp("not", sand(claims...)),
-		inputs: append([]string{}, p.inputs...),
+		neg:        sapp("not", sand(claims...)),
+		inputs:     append([]string{}, p.inputs...),
 		viaSummary: st.viaSummary,
 		want:       "on " + arm.Outcome + ": " + descClaims(arm),
 	})

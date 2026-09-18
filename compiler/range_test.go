@@ -381,7 +381,13 @@ func TestRangeAdmissionContract(t *testing.T) {
 	if hasCode(diags, "CAN4302") {
 		t.Fatalf("admitted int body reported unsupported: %v", diags)
 	}
-	if !hasCode(diags, "CAN4305") {
-		t.Fatalf("expected fail-closed inconclusive, got %v", diags)
+	// Integer case analysis discharges: range and wildcard arms
+	// prove, so the old fail-closed inconclusive is gone. (Point
+	// 9: admission no longer outruns the prover here.)
+	if hasCode(diags, "CAN4305") {
+		t.Fatalf("int body went inconclusive instead of verifying: %v", diags)
+	}
+	if len(diags) != 0 {
+		t.Fatalf("int body did not verify clean: %v", diags)
 	}
 }
