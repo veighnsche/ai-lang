@@ -7,7 +7,8 @@
   plus its `_from` worker) plus a quota counter
   (`quota__consume`, `quota__usage`) and the S1a request pilot
   (`quota__request__validate`, `quota__request__admit` over
-  `Quota__Request` / `Quota__RequestSchema`): the module pins
+  `Quota__Request` / `Quota__RequestSchema`, plus the S1b
+  envelope witness `quota__envelope__validate`): the module pins
   `std__convert__int_to_str@1` for canonical integer rendering
   in violation payloads, with per-site `given` scripts (a18
   verifies the scripted renders against the real converter).

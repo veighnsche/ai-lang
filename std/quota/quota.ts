@@ -1,7 +1,7 @@
 // GENERATED from quota.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
 import { std__convert__int_to_str, type ScalarsResult } from "./scalars";
-export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string };
+export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: Quota__Envelope } | { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string };
 export type Quota__Usage = { used: bigint; remaining: bigint };
 export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
@@ -10,6 +10,8 @@ export type Str__Value = { value: string };
 export type Quota__Request = { label: string; amount: bigint; mode: string };
 export type Quota__RequestSchema = { label_minimum: bigint; label_maximum: bigint; amount_lower: bigint; amount_upper: bigint; allowed_modes: string[] };
 export type Quota__RequestValue = { value: Quota__Request };
+export type Quota__Envelope = { request: Quota__Request };
+export type Quota__EnvelopeValue = { value: Quota__Envelope };
 let Quota__used: bigint = 0n;
 // Exact-decimal runtime (a10): canonical-digit strings, BigInt math.
 function $canDecSplit(d: string): { neg: boolean; ip: string; fp: string } {
@@ -377,6 +379,27 @@ export function quota__request__admit(request: Quota__Request, schema: Quota__Re
       throw new Error("unreachable");
     }
     }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function quota__envelope__validate(envelope: Quota__Envelope, schema: Quota__RequestSchema): { $can_kind: "ok"; value: Quota__Envelope } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } = quota__request__validate(envelope.request, schema);
+  switch ($can_m1.$can_kind) {
+  case "validation.schema_violation": {
+    const e = $can_m1;
+    if ((e.path === "")) {
+      return { $can_kind: "validation.schema_violation", path: "request", rule: e.rule, value: e.value };
+    }
+    else {
+      return { $can_kind: "validation.schema_violation", path: ("request." + e.path), rule: e.rule, value: e.value };
+    }
+  }
+  case "ok": {
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: envelope };
   }
   default: {
     throw new Error("unreachable");

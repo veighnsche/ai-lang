@@ -8,7 +8,7 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, quota__request__validate, quota__request__admit, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
   uses [std__convert__int_to_str@1]
   emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice, validation.not_allowed, validation.schema_violation]
 
@@ -65,6 +65,14 @@ type Quota__RequestSchema rev 1 (
 
 type Quota__RequestValue rev 1 (
   value: Quota__Request
+)
+
+type Quota__Envelope rev 1 (
+  request: Quota__Request
+)
+
+type Quota__EnvelopeValue rev 1 (
+  value: Quota__Envelope
 )
 
 fn std__validate__require(condition: bool, field: str, rule: str) -> Validate__Pass rev 1
@@ -277,6 +285,11 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
           over => -
           bad_quota => -
           negative => -
+          env_ok => -
+          env_root => [exchange args (value = 5) outcome Ok(value = "5")]
+          env_field => -
+          env_rendered => -
+          env_member => -
         on Ok lo => match call std__convert__int_to_str(schema.label_maximum)
           given
             label_bounds => [exchange args (value = 1) outcome Ok(value = "1")]
@@ -305,6 +318,11 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
             over => -
             bad_quota => -
             negative => -
+            env_ok => -
+            env_root => [exchange args (value = 1) outcome Ok(value = "1")]
+            env_field => -
+            env_rendered => -
+            env_member => -
           on Ok hi => validation.schema_violation(path = "", rule = "schema.label_bounds", value = "minimum=" + lo.value + ";maximum=" + hi.value)
       on validation.invalid_length _ => validation.schema_violation(path = "label", rule = "str.length_scalars", value = request.label)
       on Ok _ => match call std__validate__int_range(request.amount, schema.amount_lower, schema.amount_upper)
@@ -336,6 +354,11 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
             over => -
             bad_quota => -
             negative => -
+            env_ok => -
+            env_root => -
+            env_field => -
+            env_rendered => -
+            env_member => -
           on Ok lo => match call std__convert__int_to_str(schema.amount_upper)
             given
               amount_bounds => [exchange args (value = 0) outcome Ok(value = "0")]
@@ -364,6 +387,11 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
               over => -
               bad_quota => -
               negative => -
+              env_ok => -
+              env_root => -
+              env_field => -
+              env_rendered => -
+              env_member => -
             on Ok hi => validation.schema_violation(path = "", rule = "schema.amount_bounds", value = "lower=" + lo.value + ";upper=" + hi.value)
         on validation.out_of_range _ => match call std__convert__int_to_str(request.amount)
           given
@@ -393,6 +421,11 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
             over => -
             bad_quota => -
             negative => -
+            env_ok => -
+            env_root => -
+            env_field => -
+            env_rendered => [exchange args (value = 11) outcome Ok(value = "11")]
+            env_member => -
           on Ok r => validation.schema_violation(path = "amount", rule = "int.closed_range", value = r.value)
         on Ok _ => match call std__validate__str_one_of(request.mode, schema.allowed_modes)
           on validation.not_allowed _ => validation.schema_violation(path = "mode", rule = "str.one_of", value = request.mode)
@@ -425,6 +458,11 @@ fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchem
         over => -
         bad_quota => -
         negative => -
+        env_ok => -
+        env_root => -
+        env_field => -
+        env_rendered => -
+        env_member => -
       on Ok r => validation.schema_violation(path = "", rule = "schema.label_minimum", value = r.value)
 
 fn quota__request__admit(request: Quota__Request, schema: Quota__RequestSchema, quota: int) -> Quota__Usage rev 1
@@ -443,6 +481,20 @@ fn quota__request__admit(request: Quota__Request, schema: Quota__RequestSchema, 
       on validation.invalid_bounds e => forward e
       on validation.out_of_range e => forward e
       on Ok u => Ok(used = u.used, remaining = u.remaining)
+
+fn quota__envelope__validate(envelope: Quota__Envelope, schema: Quota__RequestSchema) -> Quota__EnvelopeValue rev 1
+  emits [validation.schema_violation]
+  tests
+    env_ok(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => Ok(value = Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")))
+    env_root(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")), Quota__RequestSchema(label_minimum = 5, label_maximum = 1, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request", rule = "schema.label_bounds", value = "minimum=5;maximum=1")
+    env_field(Quota__Envelope(request = Quota__Request(label = "", amount = 5, mode = "batch")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request.label", rule = "str.length_scalars", value = "")
+    env_rendered(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 11, mode = "batch")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request.amount", rule = "int.closed_range", value = "11")
+    env_member(Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "admin")), Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])) => validation.schema_violation(path = "request.mode", rule = "str.one_of", value = "admin")
+  match call quota__request__validate(envelope.request, schema)
+    on validation.schema_violation e => match e.path == ""
+      true => validation.schema_violation(path = "request", rule = e.rule, value = e.value)
+      false => validation.schema_violation(path = "request." + e.path, rule = e.rule, value = e.value)
+    on Ok _ => Ok(value = envelope)
 
 fn quota__consume(amount: int, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]

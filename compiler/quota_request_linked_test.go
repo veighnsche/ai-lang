@@ -88,6 +88,58 @@ func TestQuotaRequestLinked(t *testing.T) {
 	}
 }
 
+// S1b (a89): linked vectors for the envelope witness. The real
+// S1a body runs under the wrapper with no scripts: prefixing,
+// rule/value preservation, and whole-envelope success all
+// execute.
+func TestQuotaEnvelopeLinked(t *testing.T) {
+	schema := `Quota__RequestSchema(label_minimum = 1, label_maximum = 12, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])`
+	vectors := []struct {
+		name     string
+		envelope string
+		schema   string
+		expect   string
+	}{
+		{
+			"ok",
+			`Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
+			schema,
+			`Ok(value = Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch")))`,
+		},
+		{
+			"root",
+			`Quota__Envelope(request = Quota__Request(label = "Ada", amount = 5, mode = "batch"))`,
+			`Quota__RequestSchema(label_minimum = 5, label_maximum = 1, amount_lower = 1, amount_upper = 10, allowed_modes = Seq<str>["interactive", "batch"])`,
+			`validation.schema_violation(path = "request", rule = "schema.label_bounds", value = "minimum=5;maximum=1")`,
+		},
+		{
+			"field",
+			`Quota__Envelope(request = Quota__Request(label = "", amount = 5, mode = "batch"))`,
+			schema,
+			`validation.schema_violation(path = "request.label", rule = "str.length_scalars", value = "")`,
+		},
+		{
+			"rendered",
+			`Quota__Envelope(request = Quota__Request(label = "Ada", amount = 11, mode = "batch"))`,
+			schema,
+			`validation.schema_violation(path = "request.amount", rule = "int.closed_range", value = "11")`,
+		},
+	}
+	for _, order := range [][]string{
+		{"quota.can", "scalars.can"},
+		{"scalars.can", "quota.can"},
+	} {
+		for _, v := range vectors {
+			if err := runLinkedPure(t, quotaRequestFiles(t), order,
+				"quota__envelope__validate", 1,
+				map[string]string{"envelope": v.envelope, "schema": v.schema},
+				v.expect); err != nil {
+				t.Fatalf("linked %s (%v): %v", v.name, order, err)
+			}
+		}
+	}
+}
+
 // TestQuotaRequestLinkedContradiction pins failure detection:
 // a wrong rendered value and a wrong rule token must both fail.
 func TestQuotaRequestLinkedContradiction(t *testing.T) {

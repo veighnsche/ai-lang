@@ -24,7 +24,7 @@ func TestQuotaRequestRuntimeParity(t *testing.T) {
 	}
 	// Same harness shim as the P1 parity test (a89 amendment 1).
 	rewriteSpecifier(t, filepath.Join(out, "quota.ts"), "./scalars", "./scalars.ts")
-	driver := `import { quota__request__validate, quota__request__admit } from "./quota.ts";
+	driver := `import { quota__request__validate, quota__request__admit, quota__envelope__validate } from "./quota.ts";
 const show = (x) => JSON.stringify(x, (k, v) => typeof v === "bigint" ? { $bigint: v.toString() } : v);
 const eq = (got, want, name) => {
   if (show(got) !== show(want)) throw new Error(name + ": got " + show(got));
@@ -54,6 +54,13 @@ eq(quota__request__admit(R("Ada", 2n, "batch"), S, 10n), { $can_kind: "ok", used
 eq(quota__request__admit(R("Ada", 10n, "batch"), S, 5n), { $can_kind: "validation.out_of_range", value: 15n, lower: 0n, upper: 5n }, "admit over");
 eq(quota__request__admit(R("Ada", 5n, "batch"), S, -1n), { $can_kind: "validation.invalid_bounds", lower: 0n, upper: -1n }, "admit bad quota");
 eq(quota__request__admit(R("Ada", -2n, "batch"), { ...S, amount_lower: -5n }, 10n), { $can_kind: "validation.negative_value", value: -2n }, "admit negative");
+// envelope: success preserves the whole envelope; failures prefix exactly once.
+const E = (request) => ({ request });
+eq(quota__envelope__validate(E(R("Ada", 5n, "batch")), S), { $can_kind: "ok", value: E(R("Ada", 5n, "batch")) }, "envelope ok");
+eq(quota__envelope__validate(E(R("Ada", 5n, "batch")), { ...S, label_minimum: 5n, label_maximum: 1n }), V("request", "schema.label_bounds", "minimum=5;maximum=1"), "envelope root");
+eq(quota__envelope__validate(E(R("", 5n, "batch")), S), V("request.label", "str.length_scalars", ""), "envelope field");
+eq(quota__envelope__validate(E(R("Ada", 11n, "batch")), S), V("request.amount", "int.closed_range", "11"), "envelope rendered");
+eq(quota__envelope__validate(E(R("Ada", 5n, "admin")), S), V("request.mode", "str.one_of", "admin"), "envelope member");
 console.log("REQUEST_PARITY_OK");
 `
 	if err := os.WriteFile(filepath.Join(out, "driver.ts"), []byte(driver), 0o644); err != nil {

@@ -644,16 +644,25 @@
       "value"
     ],
     "raised_by": [
+      "quota.quota__envelope__validate",
       "quota.quota__request__admit",
       "quota.quota__request__validate"
     ],
     "handled_by": [
+      {
+        "fn": "quota.quota__envelope__validate",
+        "arm": "on validation.schema_violation e =\u003e match e.path == \"\""
+      },
       {
         "fn": "quota.quota__request__admit",
         "arm": "on validation.schema_violation e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
+      "quota.quota__envelope__validate/env_field",
+      "quota.quota__envelope__validate/env_member",
+      "quota.quota__envelope__validate/env_rendered",
+      "quota.quota__envelope__validate/env_root",
       "quota.quota__request__admit/rejected",
       "quota.quota__request__validate/amount_above",
       "quota.quota__request__validate/amount_beats_mode",
