@@ -8,7 +8,7 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, std__validate__length_check, std__validate__range_check, std__validate__membership_check, Validate__Length, Validate__Range, Validate__Membership, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
   uses [std__convert__int_to_str@1]
   emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice, validation.not_allowed, validation.schema_violation]
 
@@ -47,6 +47,30 @@ type Dec__Value rev 1 (
 
 type Str__Value rev 1 (
   value: str
+)
+
+// S2 closed constraint descriptors (docs/a91-schema-s2-design.md):
+// one revisioned record per exhibited constraint kind. path is the
+// frozen data path on violation; tag builds the policy-token infix
+// ("schema." + tag + "_bounds"). Both are plain strings pinned per
+// consumer by decision tables, never validated against a universe.
+type Validate__Length rev 1 (
+  path: str
+  tag: str
+  minimum: int
+  maximum: int
+)
+
+type Validate__Range rev 1 (
+  path: str
+  tag: str
+  lower: int
+  upper: int
+)
+
+type Validate__Membership rev 1 (
+  path: str
+  allowed: Seq<str>
 )
 
 type Quota__Request rev 1 (
@@ -230,6 +254,87 @@ fn std__validate__str_one_of(value: str, allowed: Seq<str>) -> Str__Value rev 1
   match call std__validate__str_one_of_from(value, allowed, 0, #allowed)
     on validation.not_allowed e => forward e
     on Ok r => Ok(r.value)
+
+// S2 closed check operations: one constraint in, frozen triple out.
+// Each op owns its producer call, its malformed-policy detection,
+// and its violation construction, so consumers bind checks to
+// fields without rewriting reconstruction arms, converter
+// scripts, or token formats. Producer binders stay `_`; only Ok
+// binders are read. Fail-fast within an op is frozen below;
+// ordering across checks stays each consumer's chain.
+fn std__validate__length_check(value: str, constraint: Validate__Length) -> Str__Value rev 1
+  emits [validation.schema_violation]
+  tests
+    len_ok("Ada", Validate__Length("guest", "guest", 1, 24)) => Ok("Ada")
+    len_short("", Validate__Length("guest", "guest", 1, 24)) => validation.schema_violation("guest", "str.length_scalars", "")
+    len_long("abcdefghijklmnopqrstuvwxy", Validate__Length("guest", "guest", 1, 24)) => validation.schema_violation("guest", "str.length_scalars", "abcdefghijklmnopqrstuvwxy")
+    len_min_negative("Ada", Validate__Length("guest", "guest", -1, 24)) => validation.schema_violation("", "schema.guest_minimum", "-1")
+    len_min_negative_beats_data("", Validate__Length("guest", "guest", -1, 24)) => validation.schema_violation("", "schema.guest_minimum", "-1")
+    len_bounds("Ada", Validate__Length("guest", "guest", 5, 1)) => validation.schema_violation("", "schema.guest_bounds", "minimum=5;maximum=1")
+    len_other_path("", Validate__Length("label", "label", 1, 12)) => validation.schema_violation("label", "str.length_scalars", "")
+    len_other_bounds("Ada", Validate__Length("label", "label", 5, 1)) => validation.schema_violation("", "schema.label_bounds", "minimum=5;maximum=1")
+    len_bigint_bounds("Ada", Validate__Length("guest", "guest", 9007199254740993, 1)) => validation.schema_violation("", "schema.guest_bounds", "minimum=9007199254740993;maximum=1")
+  match constraint.minimum >= 0
+    true => match call std__validate__str_length(value, constraint.minimum, constraint.maximum)
+      on validation.invalid_bounds _ => match call std__convert__int_to_str(constraint.minimum)
+        given
+          len_bounds => [exchange args (value = 5) outcome Ok("5")]
+          len_other_bounds => [exchange args (value = 5) outcome Ok("5")]
+          len_bigint_bounds => [exchange args (value = 9007199254740993) outcome Ok("9007199254740993")]
+        on Ok lo => match call std__convert__int_to_str(constraint.maximum)
+          given
+            len_bounds => [exchange args (value = 1) outcome Ok("1")]
+            len_other_bounds => [exchange args (value = 1) outcome Ok("1")]
+            len_bigint_bounds => [exchange args (value = 1) outcome Ok("1")]
+          on Ok hi => validation.schema_violation("", "schema." + constraint.tag + "_bounds", "minimum=" + lo.value + ";maximum=" + hi.value)
+      on validation.invalid_length _ => validation.schema_violation(constraint.path, "str.length_scalars", value)
+      on Ok v => Ok(v.value)
+    false => match call std__convert__int_to_str(constraint.minimum)
+      given
+        len_min_negative => [exchange args (value = -1) outcome Ok("-1")]
+        len_min_negative_beats_data => [exchange args (value = -1) outcome Ok("-1")]
+      on Ok r => validation.schema_violation("", "schema." + constraint.tag + "_minimum", r.value)
+
+fn std__validate__range_check(value: int, constraint: Validate__Range) -> Int__Value rev 1
+  emits [validation.schema_violation]
+  tests
+    range_ok(3, Validate__Range("party", "party", 1, 8)) => Ok(3)
+    range_below(0, Validate__Range("party", "party", 1, 8)) => validation.schema_violation("party", "int.closed_range", "0")
+    range_above(9, Validate__Range("party", "party", 1, 8)) => validation.schema_violation("party", "int.closed_range", "9")
+    range_bounds(3, Validate__Range("party", "party", 8, 1)) => validation.schema_violation("", "schema.party_bounds", "lower=8;upper=1")
+    range_other_path(11, Validate__Range("amount", "amount", 1, 10)) => validation.schema_violation("amount", "int.closed_range", "11")
+    range_other_bounds(5, Validate__Range("amount", "amount", 10, 0)) => validation.schema_violation("", "schema.amount_bounds", "lower=10;upper=0")
+    range_bigint(-9007199254740993, Validate__Range("party", "party", 1, 8)) => validation.schema_violation("party", "int.closed_range", "-9007199254740993")
+  match call std__validate__int_range(value, constraint.lower, constraint.upper)
+    on validation.invalid_bounds _ => match call std__convert__int_to_str(constraint.lower)
+      given
+        range_bounds => [exchange args (value = 8) outcome Ok("8")]
+        range_other_bounds => [exchange args (value = 10) outcome Ok("10")]
+      on Ok lo => match call std__convert__int_to_str(constraint.upper)
+        given
+          range_bounds => [exchange args (value = 1) outcome Ok("1")]
+          range_other_bounds => [exchange args (value = 0) outcome Ok("0")]
+        on Ok hi => validation.schema_violation("", "schema." + constraint.tag + "_bounds", "lower=" + lo.value + ";upper=" + hi.value)
+    on validation.out_of_range _ => match call std__convert__int_to_str(value)
+      given
+        range_below => [exchange args (value = 0) outcome Ok("0")]
+        range_above => [exchange args (value = 9) outcome Ok("9")]
+        range_other_path => [exchange args (value = 11) outcome Ok("11")]
+        range_bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
+      on Ok r => validation.schema_violation(constraint.path, "int.closed_range", r.value)
+    on Ok v => Ok(v.value)
+
+fn std__validate__membership_check(value: str, constraint: Validate__Membership) -> Str__Value rev 1
+  emits [validation.schema_violation]
+  tests
+    member_ok("dinner", Validate__Membership("slot", Seq<str>["lunch", "dinner"])) => Ok("dinner")
+    member_bad("brunch", Validate__Membership("slot", Seq<str>["lunch", "dinner"])) => validation.schema_violation("slot", "str.one_of", "brunch")
+    member_empty_allowed("dinner", Validate__Membership("slot", Seq<str>[])) => validation.schema_violation("slot", "str.one_of", "dinner")
+    member_other_path("admin", Validate__Membership("mode", Seq<str>["interactive", "batch"])) => validation.schema_violation("mode", "str.one_of", "admin")
+    member_case("Dinner", Validate__Membership("slot", Seq<str>["lunch", "dinner"])) => validation.schema_violation("slot", "str.one_of", "Dinner")
+  match call std__validate__str_one_of(value, constraint.allowed)
+    on validation.not_allowed _ => validation.schema_violation(constraint.path, "str.one_of", value)
+    on Ok v => Ok(v.value)
 
 fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchema) -> Quota__RequestValue rev 1
   emits [validation.schema_violation]

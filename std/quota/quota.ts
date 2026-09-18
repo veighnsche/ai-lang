@@ -7,6 +7,9 @@ export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
 export type Dec__Value = { value: string };
 export type Str__Value = { value: string };
+export type Validate__Length = { path: string; tag: string; minimum: bigint; maximum: bigint };
+export type Validate__Range = { path: string; tag: string; lower: bigint; upper: bigint };
+export type Validate__Membership = { path: string; allowed: string[] };
 export type Quota__Request = { label: string; amount: bigint; mode: string };
 export type Quota__RequestSchema = { label_minimum: bigint; label_maximum: bigint; amount_lower: bigint; amount_upper: bigint; allowed_modes: string[] };
 export type Quota__RequestValue = { value: Quota__Request };
@@ -233,6 +236,121 @@ export function std__validate__str_one_of(value: string, allowed: string[]): { $
   case "ok": {
     const r = $can_m1;
     return { $can_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__validate__length_check(value: string, constraint: Validate__Length): { $can_kind: "ok"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  if ((constraint.minimum >= 0n)) {
+    const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } = std__validate__str_length(value, constraint.minimum, constraint.maximum);
+    switch ($can_m1.$can_kind) {
+    case "validation.invalid_bounds": {
+      const _ = $can_m1;
+      const $can_m2: { $can_kind: "ok"; value: string } = std__convert__int_to_str(constraint.minimum);
+      switch ($can_m2.$can_kind) {
+      case "ok": {
+        const lo = $can_m2;
+        const $can_m3: { $can_kind: "ok"; value: string } = std__convert__int_to_str(constraint.maximum);
+        switch ($can_m3.$can_kind) {
+        case "ok": {
+          const hi = $can_m3;
+          return { $can_kind: "validation.schema_violation", path: "", rule: (("schema." + constraint.tag) + "_bounds"), value: ((("minimum=" + lo.value) + ";maximum=") + hi.value) };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    case "validation.invalid_length": {
+      const _ = $can_m1;
+      return { $can_kind: "validation.schema_violation", path: constraint.path, rule: "str.length_scalars", value: value };
+    }
+    case "ok": {
+      const v = $can_m1;
+      return { $can_kind: "ok", value: v.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  else {
+    const $can_m4: { $can_kind: "ok"; value: string } = std__convert__int_to_str(constraint.minimum);
+    switch ($can_m4.$can_kind) {
+    case "ok": {
+      const r = $can_m4;
+      return { $can_kind: "validation.schema_violation", path: "", rule: (("schema." + constraint.tag) + "_minimum"), value: r.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}
+export function std__validate__range_check(value: bigint, constraint: Validate__Range): { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } = std__validate__int_range(value, constraint.lower, constraint.upper);
+  switch ($can_m1.$can_kind) {
+  case "validation.invalid_bounds": {
+    const _ = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } = std__convert__int_to_str(constraint.lower);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const lo = $can_m2;
+      const $can_m3: { $can_kind: "ok"; value: string } = std__convert__int_to_str(constraint.upper);
+      switch ($can_m3.$can_kind) {
+      case "ok": {
+        const hi = $can_m3;
+        return { $can_kind: "validation.schema_violation", path: "", rule: (("schema." + constraint.tag) + "_bounds"), value: ((("lower=" + lo.value) + ";upper=") + hi.value) };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  case "validation.out_of_range": {
+    const _ = $can_m1;
+    const $can_m4: { $can_kind: "ok"; value: string } = std__convert__int_to_str(value);
+    switch ($can_m4.$can_kind) {
+    case "ok": {
+      const r = $can_m4;
+      return { $can_kind: "validation.schema_violation", path: constraint.path, rule: "int.closed_range", value: r.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  case "ok": {
+    const v = $can_m1;
+    return { $can_kind: "ok", value: v.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__validate__membership_check(value: string, constraint: Validate__Membership): { $can_kind: "ok"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "validation.not_allowed"; value: string } = std__validate__str_one_of(value, constraint.allowed);
+  switch ($can_m1.$can_kind) {
+  case "validation.not_allowed": {
+    const _ = $can_m1;
+    return { $can_kind: "validation.schema_violation", path: constraint.path, rule: "str.one_of", value: value };
+  }
+  case "ok": {
+    const v = $can_m1;
+    return { $can_kind: "ok", value: v.value };
   }
   default: {
     throw new Error("unreachable");

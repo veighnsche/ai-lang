@@ -12,6 +12,13 @@
   `std__convert__int_to_str@1` for canonical integer rendering
   in violation payloads, with per-site `given` scripts (a18
   verifies the scripted renders against the real converter).
+  S2a adds the closed check layer (`std__validate__length_check`,
+  `std__validate__range_check`, `std__validate__membership_check`
+  over `Validate__Length` / `Validate__Range` /
+  `Validate__Membership`): one constraint in, frozen
+  `validation.schema_violation` triple out, so consumers bind
+  checks to fields without rewriting reconstruction arms
+  (see `docs/a91-schema-s2-design.md`).
   (`quota__consume`, `quota__usage`) that reuses them through
   same-file local calls, so every call executes its body.
   Validators return the accepted value or a producer-owned typed

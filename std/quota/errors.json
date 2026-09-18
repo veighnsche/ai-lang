@@ -491,6 +491,14 @@
       {
         "fn": "quota.quota__request__validate",
         "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(schema.label_minimum)"
+      },
+      {
+        "fn": "quota.std__validate__length_check",
+        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(constraint.minimum)"
+      },
+      {
+        "fn": "quota.std__validate__range_check",
+        "arm": "on validation.invalid_bounds _ =\u003e match call std__convert__int_to_str(constraint.lower)"
       }
     ],
     "hit_by_tests": [
@@ -514,6 +522,10 @@
       {
         "fn": "quota.quota__request__validate",
         "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(\"label\", \"str.length_scalars\", request.label)"
+      },
+      {
+        "fn": "quota.std__validate__length_check",
+        "arm": "on validation.invalid_length _ =\u003e validation.schema_violation(constraint.path, \"str.length_scalars\", value)"
       }
     ],
     "hit_by_tests": [
@@ -566,6 +578,10 @@
       {
         "fn": "quota.quota__request__validate",
         "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(\"mode\", \"str.one_of\", request.mode)"
+      },
+      {
+        "fn": "quota.std__validate__membership_check",
+        "arm": "on validation.not_allowed _ =\u003e validation.schema_violation(constraint.path, \"str.one_of\", value)"
       },
       {
         "fn": "quota.std__validate__str_one_of",
@@ -627,6 +643,10 @@
       {
         "fn": "quota.quota__request__validate",
         "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(request.amount)"
+      },
+      {
+        "fn": "quota.std__validate__range_check",
+        "arm": "on validation.out_of_range _ =\u003e match call std__convert__int_to_str(value)"
       }
     ],
     "hit_by_tests": [
@@ -646,7 +666,10 @@
     "raised_by": [
       "quota.quota__envelope__validate",
       "quota.quota__request__admit",
-      "quota.quota__request__validate"
+      "quota.quota__request__validate",
+      "quota.std__validate__length_check",
+      "quota.std__validate__membership_check",
+      "quota.std__validate__range_check"
     ],
     "handled_by": [
       {
@@ -677,7 +700,25 @@
       "quota.quota__request__validate/label_short",
       "quota.quota__request__validate/mode_bad",
       "quota.quota__request__validate/mode_case",
-      "quota.quota__request__validate/modes_empty"
+      "quota.quota__request__validate/modes_empty",
+      "quota.std__validate__length_check/len_bigint_bounds",
+      "quota.std__validate__length_check/len_bounds",
+      "quota.std__validate__length_check/len_long",
+      "quota.std__validate__length_check/len_min_negative",
+      "quota.std__validate__length_check/len_min_negative_beats_data",
+      "quota.std__validate__length_check/len_other_bounds",
+      "quota.std__validate__length_check/len_other_path",
+      "quota.std__validate__length_check/len_short",
+      "quota.std__validate__membership_check/member_bad",
+      "quota.std__validate__membership_check/member_case",
+      "quota.std__validate__membership_check/member_empty_allowed",
+      "quota.std__validate__membership_check/member_other_path",
+      "quota.std__validate__range_check/range_above",
+      "quota.std__validate__range_check/range_below",
+      "quota.std__validate__range_check/range_bigint",
+      "quota.std__validate__range_check/range_bounds",
+      "quota.std__validate__range_check/range_other_bounds",
+      "quota.std__validate__range_check/range_other_path"
     ]
   }
 ]
