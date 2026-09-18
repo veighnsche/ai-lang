@@ -30,6 +30,24 @@
   (and NUL) in ids, revisions, and site fields; the URL tail and the
   digest alphabet exclude it too. A field holding the separator would
   make the kernel split ambiguous, so approval refuses it.
+- Fixture root (S5): there is no ambient registry to poison — the
+  module holds no state cells and declares no effects or `uses`
+  (pinned by `TestAssetNoAmbientAuthority`), and no approval-path
+  check runs under a `given` table (pinned by
+  `TestAssetNoScriptedEvidence`). Fixture snapshots are explicit
+  values; a sealed success-shaped value alone never approves, and
+  fixture-signed material under production keys stays a future
+  `SchemaAuthorityInvalid` hook (see `docs/a84-asset-provenance.md`),
+  never a committed row.
+- Hostile set (pinned by `TestAssetHostileSet`, each with its row):
+  unapproved URL, wrong digest, policy mismatch, revocation,
+  role swap, expiry, stale sequence, conflicting snapshot,
+  non-transitive dependency URL, tampered witness, mixed policy
+  context — all rejected as `schema.asset_not_approved` carrying
+  the original request unchanged; cross-role spends rejected by
+  the builders with the witness preserved. No rejection kind
+  carries registry contents, expected digests, or alternate
+  entries.
 
 Rules: `docs/a83-astra-schema.md` (trust rulings, §§1, 6, 9–11 in this
 slice). Plan: `.agents/plans/2026-09-18-schema-asset-slices.md` (S1).
