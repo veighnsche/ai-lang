@@ -15,7 +15,13 @@ outlives the implementation.
 
 1. Jev gets dedicated .can judgment syntax (new expressions with confidence
    handling elaborated by the compiler), not extern-only wrappers.
-2. TypeScript emit targets the TypeSafe JavaScript SDK.
+2. TypeScript emit stays dependency-free: judgment calls emit as plain
+   platform fetch against the TypeSafe HTTP API (POST
+   api.typesafe.ai/v1/systemone, Bearer key), no SDK import. Same
+   zero-dependency invariant as the $canDec inline helpers (R11).
+4. Runtime authentication: the TypeSafe Bearer key comes from env vars
+   (TYPESAFE_API_KEY per the quickstart convention). Emitted code reads
+   it from the environment; it never appears in .can source.
 3. can-lang's v0.1 freeze plus tagged-amendment discipline stands
    (REQUIREMENTS.md): no silent rule rewrites, one rule per CAN code,
    every behavior change gated by golden/diagnosis suites.
@@ -47,7 +53,9 @@ Live TypeSafe docs (source of truth; append .md to page paths):
 - confidence.md (confidence is derived from the distribution shape;
   three-path high/medium/low pattern; thresholds scale with risk)
 - concepts/how-to-build-with-system-one.md, patterns/fan-out.md,
-  patterns/confidence-routing.md, the JavaScript SDK page
+  patterns/confidence-routing.md
+- api.md (the HTTP contract the fetch emit targets: single POST endpoint,
+  Bearer auth, JSON state/questions in, typed answers out)
 
 Reference: Probably-lang (https://probably-lang.southpolesteve.workers.dev/):
 feels with confidence gates, otherwise-maybe, highest-probability match,
@@ -100,14 +108,19 @@ D. A hybrid you define. Examples only, not a menu: scripted labels with
 4. Ratification-ready amendment sketch: rule deltas against R7/R8 with
    version tags, new CAN codes, one normative .can example (types, fn,
    tests, given, judgment arms including the low-confidence path), the
-   expected TS emit sketch, errors.json impact.
+   expected dependency-free TS emit sketch (fetch plus inline response
+   shaping, no imports), errors.json impact.
 5. Edge cases adjudicated, each with a ruling: ties; Noul near 0.5; arms
    reachable only below a confidence floor and CAN4107; leftover versus
    unreached scripts for judgments; whether given rows script raw
    probabilities, confidence, or both; whether chaos-style sampling exists
    and where; prod-strip of judgment tables; whether prompt/instruction
    wording is rev-hashed code (reword without bump: error?); multi-question
-   fan-out in one model call and how its answers are scripted.
+   fan-out in one model call and how its answers are scripted; endpoint
+   and model pinning ("jev-latest"
+   floats: allowed, or must the model be pinned like a uses rev per R4?);
+   transport failures (non-2xx, network error, malformed answers) mapped
+   to which declared emits.
 6. Verification plan: which existing golden/diagnosis suites change, which
    new suites are required, modcheck/gramcheck impact.
 7. Open questions ranked by blast radius.

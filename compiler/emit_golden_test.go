@@ -107,6 +107,33 @@ func TestGoldenReserve(t *testing.T) {
 	}
 }
 
+// TestGoldenNotify freezes the S2b third consumer: the notification
+// desk must transpile byte-identical. Since it pins quota check ops,
+// quota compiles alongside; only notify.ts and errors.json are
+// golden-kept.
+func TestGoldenNotify(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../sketches/notify/notify.can",
+		"../std/quota/quota.can",
+		"../std/scalars/scalars.can",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"notify.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../sketches/notify", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		checkGoldenFile(t, f, got, want)
+	}
+}
+
 // TestGoldenQuotaCounter freezes row 1 of the stdlib program: the
 // validation module plus its quota counter must transpile
 // byte-identical, so validator payloads and the multi-shape ok union
