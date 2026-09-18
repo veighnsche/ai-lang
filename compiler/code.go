@@ -92,6 +92,9 @@ const (
 	CodeContractMalformed    = "AIL4301"
 	CodeContractUnsupported  = "AIL4302"
 	CodeContractUnverifiedDep = "AIL4303"
+	CodeContractUnproven      = "AIL4304"
+	CodeContractInconclusive  = "AIL4305"
+	CodeContractInadmissibleTest = "AIL4306"
 )
 
 // allCodes mirrors every constant above; the test fails on duplicates,
@@ -112,6 +115,7 @@ var allCodes = []string{
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee,
 	CodeContractMalformed, CodeContractUnsupported, CodeContractUnverifiedDep,
+	CodeContractUnproven, CodeContractInconclusive, CodeContractInadmissibleTest,
 	CodeTestFailed,
 	CodeSiblingParse, CodeBadCompare,
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,

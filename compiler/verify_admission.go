@@ -49,6 +49,11 @@ type admission struct {
 	brands   map[string]bool
 	variants map[string]bool
 	out      []Diag
+	// verified names callees a proving run has established in
+	// this run (verdict position 4): their summaries are usable
+	// assumptions. Empty during standalone admission, so every
+	// callee summary is unavailable there.
+	verified map[string]bool
 }
 
 func indexAdmission(prog *Program, texts map[string]string) *admission {
@@ -61,6 +66,7 @@ func indexAdmission(prog *Program, texts map[string]string) *admission {
 		errors:   map[string]*ErrorDecl{},
 		brands:   map[string]bool{},
 		variants: map[string]bool{},
+		verified: map[string]bool{},
 	}
 	for _, m := range prog.Modules {
 		for _, d := range m.Decls {
@@ -828,6 +834,9 @@ func (a *admission) callRules(m *Module, fn *FnDecl, name, text, callee string, 
 	}
 	if target, ok := a.fns[callee]; ok {
 		if isContracted(target) {
+			if a.verified[callee] {
+				return
+			}
 			a.emit(text, line, name, CodeContractUnverifiedDep,
 				fmt.Sprintf("%s calls contracted %s: its summary is unavailable until a proving run verifies it", name, callee),
 				"callees verified in this run",
@@ -859,7 +868,7 @@ func (a *admission) callRules(m *Module, fn *FnDecl, name, text, callee string, 
 // needs an induction rule this cut does not have. Language
 // termination rules are unchanged; this is a proof-domain
 // restriction, not a program rejection.
-func (a *admission) checkRecursion() {
+func (a *admission) checkRecursion() []string {
 	edges := map[string]map[string]bool{}
 	var contracted []string
 	for name, fn := range a.fns {
@@ -874,8 +883,10 @@ func (a *admission) checkRecursion() {
 			}
 		})
 	}
+	var involved []string
 	for _, name := range contracted {
 		if reaches(edges, name, name) {
+			involved = append(involved, name)
 			fn := a.fns[name]
 			m := a.ownerOf(fn)
 			var text string
@@ -890,6 +901,7 @@ func (a *admission) checkRecursion() {
 				"verify a non-recursive formulation, or defer this contract-bearing interface")
 		}
 	}
+	return involved
 }
 
 // collectCalls gathers every called name in a body tree.

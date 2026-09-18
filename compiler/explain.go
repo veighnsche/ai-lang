@@ -60,6 +60,21 @@ var explainDocs = map[string]explainEntry{
 		violate: `a contracted function calling another contracted function before any prover ran.`,
 		fix:     "Verify the source callee and its closure in the proving run; do not treat its declaration as proof. The diagnostic names the caller and the unavailable callee.",
 	},
+	CodeContractUnproven: {
+		rule:    "Every exit of a contracted body proves its outcome predicate from the entry assumptions plus the path facts, and every call site proves the callee precondition. A satisfiable negation is a counterexample, not an acceptance.",
+		violate: `a maximum body returning max(left,right)+1.`,
+		fix:     "Correct the body, or strengthen the relevant explicit summary through reviewed revision changes. The diagnostic carries the counterexample inputs (found).",
+	},
+	CodeContractInconclusive: {
+		rule:    "Timeout, solver failure, unknown, or a missing solver backend rejects verification as inconclusive. Inconclusive is never acceptance.",
+		violate: `a proof attempt with no solver on PATH.`,
+		fix:     "Rerun within the supported policy or reduce proof complexity. The diagnostic names the obligation and the cause (found).",
+	},
+	CodeContractInadmissibleTest: {
+		rule:    "Test entry rows satisfy the tested function's requires: a row outside the admitted inputs proves nothing about the contract.",
+		violate: `a row with x = -1 under requires x >= 0.`,
+		fix:     "Supply an admitted row; do not skip the row or silently narrow expectations.",
+	},
 }
 
 // explainFamily describes each code family for codes
