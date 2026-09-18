@@ -375,6 +375,10 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		return "int", true
 	case "strslice":
 		return "str", true
+	case "not":
+		// Slice 5: negation takes and yields bools; the value
+		// rule owns the operand refusal.
+		return "bool", true
 	case "binop":
 		if !isArith(s.Op) {
 			return "bool", true
@@ -450,6 +454,8 @@ func tokenOf(s *Small) string {
 		}
 	case "binop":
 		return s.Op
+	case "not":
+		return "not"
 	case "strlen":
 		return "#"
 	case "stridx":
@@ -590,10 +596,45 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 	}
 	switch s.Kind {
+	case "not":
+		// Slice 5: prefix negation over one bool operand, no
+		// calls inside (those stay AIL3003 outside a match
+		// scrutinee), no truthiness: AIL6003 names the type.
+		s.T = "bool"
+		c.value(s.L, "", line, env, "not")
+		t, ok := c.typeOf(s.L, env)
+		if !ok {
+			return
+		}
+		if t != "bool" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot not %s: not takes a bool operand", t), "not", CodeTypeMismatch))
+		}
+		return
 	case "binop":
 		where := "comparison"
 		if isArith(s.Op) {
 			where = arithVerb(s.Op)
+		}
+		if s.Op == "and" || s.Op == "or" {
+			// Slice 5: eager combinators over two bool
+			// operands. Calls inside stay AIL3003 (outside
+			// a match scrutinee); mistyped sides are
+			// AIL6003; the result is always bool.
+			s.T = "bool"
+			where = s.Op
+			c.value(s.L, "", line, env, where)
+			c.value(s.R, "", line, env, where)
+			l, lok := c.typeOf(s.L, env)
+			r, rok := c.typeOf(s.R, env)
+			if !lok || !rok {
+				return
+			}
+			if l != "bool" || r != "bool" {
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("cannot %s %s with %s: and/or take bool operands", s.Op, l, r), s.Op, CodeTypeMismatch))
+			}
+			return
 		}
 		c.value(s.L, "", line, env, where)
 		c.value(s.R, "", line, env, where)

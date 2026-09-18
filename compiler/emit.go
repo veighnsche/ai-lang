@@ -484,6 +484,20 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		// Slice 5: eager combinators lower to strict helper
+		// calls (both arguments evaluate before the call, so
+		// no bare && short-circuits); the helper emits only
+		// when used, following the $ailDec* pattern.
+		if node.Op == "and" || node.Op == "or" {
+			name := "$ailBoolAnd"
+			key := "and"
+			if node.Op == "or" {
+				name = "$ailBoolOr"
+				key = "or"
+			}
+			e.boolOps[key] = true
+			return fmt.Sprintf("%s(%s, %s)", name, l, r), nil
+		}
 		ot := binopOperandType(node)
 		if ot == "" {
 			return "", fmt.Errorf("cannot emit %s: operand type unknown (run checkSem first)", node.Op)
@@ -590,6 +604,14 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			}
 		}
 		return fmt.Sprintf("(BigInt([...%s].length))", v), nil
+	case "not":
+		// Slice 5: negation is already strict (the operand
+		// evaluates first), so a plain prefix lowers it.
+		v, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("!(%s)", v), nil
 	case "stridx":
 		b, err := e.emitValue(node.L)
 		if err != nil {
@@ -1050,6 +1072,29 @@ func seqHelpers(used map[string]bool) []string {
 	return out
 }
 
+// boolHelpers renders the strict boolean runtime for exactly the
+// used operators. Calls evaluate both arguments before the body
+// runs, so and/or stay eager where a bare && would short-circuit.
+func boolHelpers(used map[string]bool) []string {
+	var out []string
+	out = append(out, "// Strict boolean runtime (slice 5): eager helpers, never bare &&.")
+	if used["and"] {
+		out = append(out,
+			"function $ailBoolAnd(a: boolean, b: boolean): boolean {",
+			"  return a && b;",
+			"}",
+		)
+	}
+	if used["or"] {
+		out = append(out,
+			"function $ailBoolOr(a: boolean, b: boolean): boolean {",
+			"  return a || b;",
+			"}",
+		)
+	}
+	return out
+}
+
 // decHelpers renders the exact-decimal runtime for exactly the used
 // operations, shared plumbing first, then ops in fixed order.
 func decHelpers(used map[string]bool) []string {
@@ -1074,6 +1119,7 @@ type emitter struct {
 	decOps    map[string]bool         // exact-decimal helpers used by this module
 	strOps    map[string]bool         // byte-order string helpers used by this module
 	seqOps    map[string]bool         // sequence helpers used by this module (a38 S3)
+	boolOps   map[string]bool         // strict boolean helpers used by this module (slice 5)
 	recEq     bool                    // structural record comparison used by this module
 	bytesEq   bool                    // compared shapes can contain Bytes (a45 S1)
 	recs      map[string][][2]string  // record name -> declared fields
@@ -2326,7 +2372,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), variants: variants, cases: prog.Cases, divmod: false, consts: prog.Consts}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, boolOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), variants: variants, cases: prog.Cases, divmod: false, consts: prog.Consts}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {
@@ -2368,6 +2414,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// spell, so user code can never collide with them.
 	if len(em.decOps) > 0 {
 		L = append(L, decHelpers(em.decOps)...)
+	}
+	// Strict boolean runtime: emitted inline only when and/or is
+	// used, so files without boolean operators gain no code.
+	if len(em.boolOps) > 0 {
+		L = append(L, boolHelpers(em.boolOps)...)
 	}
 	// Byte-order string runtime: emitted inline only when a string
 	// ordering is used, so files without one gain no code.

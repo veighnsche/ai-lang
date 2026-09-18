@@ -454,6 +454,17 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		return &Value{Kind: "str", S: v.S}, nil
 	case "wild":
 		return nil, fmt.Errorf("lone _ is not a value")
+	case "not":
+		// Slice 5: negation evaluates its operand once; a
+		// fault there propagates, never negates.
+		v, err := evSmall(node.L, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		if v.Kind != "bool" {
+			return nil, fmt.Errorf("bad not operand")
+		}
+		return &Value{Kind: "bool", B: !v.B}, nil
 	case "binop":
 		lv, err := evSmall(node.L, env, ctx, owner)
 		if err != nil {
@@ -470,6 +481,19 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		switch node.Op {
 		case "+", "-", "*", "/", "%":
 			return evArith(node.Op, lv, rv)
+		case "and", "or":
+			// Slice 5: eager combinators. Both sides evaluated
+			// above (a left fault returns before the right
+			// runs); both results stored before the truth
+			// table, so a faulting right side faults loudly
+			// even under a false left / true right.
+			if lv.Kind != "bool" || rv.Kind != "bool" {
+				return nil, fmt.Errorf("bad %s operands", node.Op)
+			}
+			if node.Op == "and" {
+				return &Value{Kind: "bool", B: lv.B && rv.B}, nil
+			}
+			return &Value{Kind: "bool", B: lv.B || rv.B}, nil
 		}
 		if lv.Kind != rv.Kind || (lv.Kind != "int" && lv.Kind != "str" && lv.Kind != "dec") {
 			return nil, fmt.Errorf("bad %s operands", node.Op)

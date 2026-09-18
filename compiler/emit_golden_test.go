@@ -200,6 +200,7 @@ func TestGoldenStdHtml(t *testing.T) {
 	srcs := []string{
 		"../std/html/html.ail",
 		"../std/ascii/ascii.ail",
+		"../std/scalars/scalars.ail",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)

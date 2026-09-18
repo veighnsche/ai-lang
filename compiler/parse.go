@@ -591,6 +591,75 @@ func findTop(s string, ops []string) (int, string) {
 	return -1, ""
 }
 
+// isWordChar reports identifier constituents for operator-word
+// boundaries: and/or/not never split inside a longer name.
+func isWordChar(ch byte) bool {
+	return ch == '_' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9'
+}
+
+// findTopWord is findTop for whole-word operators (and/or): the
+// first depth-zero occurrence outside strings whose neighbors
+// are not word characters, so `or` splits `a or b` but never
+// `orig`, `error`, or `"a or b"`.
+func findTopWord(s string, words []string) (int, string) {
+	var stack []byte
+	pairs := map[byte]byte{'(': ')', '[': ']'}
+	inStr, esc := false, false
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if inStr {
+			if esc {
+				esc = false
+			} else if ch == '\\' {
+				esc = true
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else if ch == '"' {
+			inStr = true
+		} else if closer, ok := pairs[ch]; ok {
+			stack = append(stack, closer)
+		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
+			stack = stack[:len(stack)-1]
+		} else if len(stack) == 0 {
+			if strings.HasPrefix(s[i:], "Seq<") {
+				if end := seqHeadEnd(s[i:]); end > 0 {
+					i += end
+					continue
+				}
+			}
+			for _, w := range words {
+				if !strings.HasPrefix(s[i:], w) {
+					continue
+				}
+				if i > 0 && isWordChar(s[i-1]) {
+					continue
+				}
+				if j := i + len(w); j < len(s) && isWordChar(s[j]) {
+					continue
+				}
+				return i, w
+			}
+		}
+	}
+	return -1, ""
+}
+
+// cutWordPrefix strips a leading operator word (not) with the
+// same boundary rule: `not x` and `not(x)` claim, `nothing`
+// never does.
+func cutWordPrefix(s, w string) (string, bool) {
+	if !strings.HasPrefix(s, w) {
+		return "", false
+	}
+	if rest := s[len(w):]; rest == "" {
+		return "", true
+	} else if !isWordChar(rest[0]) {
+		return strings.TrimSpace(rest), true
+	}
+	return "", false
+}
+
 // findLastTop is findTop keeping the last top-level occurrence instead
 // of the first: splitting there makes chains associate left.
 func findLastTop(s string, ops []string) (int, string) {
@@ -917,6 +986,53 @@ func parseSmall(s string) (*Small, error) {
 			return nil, err
 		}
 		return parseSmall("(" + head + ")" + s[end+1:])
+	}
+	// Slice 5: eager boolean operators, loosest precedence: or,
+	// then and, each splitting at the first top-level whole
+	// word so chains associate left through recursion.
+	if i, op := findTopWord(s, []string{"or"}); i >= 0 {
+		l, err := parseSmall(s[:i])
+		if err != nil {
+			return nil, err
+		}
+		r, err := parseSmall(s[i+len(op):])
+		if err != nil {
+			return nil, err
+		}
+		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
+	}
+	if i, op := findTopWord(s, []string{"and"}); i >= 0 {
+		l, err := parseSmall(s[:i])
+		if err != nil {
+			return nil, err
+		}
+		r, err := parseSmall(s[i+len(op):])
+		if err != nil {
+			return nil, err
+		}
+		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
+	}
+	return parseSmallCmp(s)
+}
+
+// parseSmallCmp parses comparison-level expressions and
+// tighter: prefix not, comparisons, arithmetic, postfix, and
+// primaries. Splitting not out of parseSmall keeps `not a and
+// b` reading `(not a) and b`: the operand never spans an
+// and/or, while parenthesized operands still take the full
+// cascade through parseSmall.
+func parseSmallCmp(s string) (*Small, error) {
+	// Slice 5: prefix not binds tighter than comparisons
+	// (`not a == b` is `not (a == b)`), nesting freely.
+	if rest, ok := cutWordPrefix(s, "not"); ok {
+		if strings.TrimSpace(rest) == "" {
+			return nil, fmt.Errorf("empty expression")
+		}
+		v, err := parseSmallCmp(rest)
+		if err != nil {
+			return nil, err
+		}
+		return &Small{Kind: "not", L: v}, nil
 	}
 	if i, op := findTop(s, []string{"==", ">=", "<=", ">", "<", "!="}); i >= 0 {
 		l, err := parseSmall(s[:i])

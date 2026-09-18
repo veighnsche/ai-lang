@@ -307,18 +307,23 @@ func TestAssetBridgeRealModules(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Slice 1: html.ail pins ascii consts; the provider loads
-	// beside the real modules.
+	// beside the real modules. Slice 5: ascii pins
+	// Bool__Value, so scalars loads too.
 	asciiSrc, err := os.ReadFile("../std/ascii/ascii.ail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	scalarsSrc, err := os.ReadFile("../std/scalars/scalars.ail")
 	if err != nil {
 		t.Fatal(err)
 	}
 	digest := "sha384-" + strings.Repeat("A", 64)
 	witness := "app-css|1.0.0|https://cdn.example/app.css|" + digest + "|stylesheet|shop|pages|home"
 	element := "<link rel='stylesheet' href='https://cdn.example/app.css' integrity='" + digest + "' crossorigin='anonymous'>"
-	files := map[string]string{"html.ail": string(htmlSrc), "schema.ail": string(schemaSrc), "ascii.ail": string(asciiSrc)}
+	files := map[string]string{"html.ail": string(htmlSrc), "schema.ail": string(schemaSrc), "ascii.ail": string(asciiSrc), "scalars.ail": string(scalarsSrc)}
 	for _, order := range [][]string{
-		{"schema.ail", "html.ail", "ascii.ail"},
-		{"html.ail", "schema.ail", "ascii.ail"},
+		{"schema.ail", "html.ail", "ascii.ail", "scalars.ail"},
+		{"html.ail", "schema.ail", "ascii.ail", "scalars.ail"},
 	} {
 		err := runLinkedPure(t, files, order, "html__asset__stylesheet", 1,
 			map[string]string{
