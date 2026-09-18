@@ -196,7 +196,7 @@ func checkConstRefs(fn *FnDecl, prog *Program, owner *Module, text string) []Dia
 		}
 		if prog.ConstFile[head] != owner.ID && !prog.Uses[head] {
 			emit(line, head, CodeConstNotInUses,
-				fmt.Sprintf("%s references foreign const %s which is not in uses: add name@rev to uses", fn.Name, head),
+				foreignConstMsg(fn.Name, head),
 				fmt.Sprintf("uses [%s@%d]", head, target.Rev),
 				"reference to "+head,
 				"pin the provider rev; same-module constants need no pin")
@@ -315,6 +315,30 @@ func usedConsts(fn *FnDecl) map[string]bool {
 	return out
 }
 
+// markConstUsed records a per-module constant reference for
+// checkUnusedUses: pattern and bound references mark pins used
+// even where elaboration rewrites the reference away before
+// checkSem collects evidence. One definition shared by const
+// pattern elaboration and range bound resolution, so a new
+// reference site cannot forget the record.
+func markConstUsed(prog *Program, modID, name string) {
+	if prog.ConstUsed == nil {
+		prog.ConstUsed = map[string]map[string]bool{}
+	}
+	if prog.ConstUsed[modID] == nil {
+		prog.ConstUsed[modID] = map[string]bool{}
+	}
+	prog.ConstUsed[modID][name] = true
+}
+
+// foreignConstMsg renders the missing-rev-pin message (CAN2105):
+// patterns and bounds resolve through the same program table
+// as bodies. One wording shared by const checks, const pattern
+// elaboration, and range bound resolution.
+func foreignConstMsg(fnName, name string) string {
+	return fmt.Sprintf("%s references foreign const %s which is not in uses: add name@rev to uses", fnName, name)
+}
+
 // elaborateConstPatterns resolves const-named match patterns in
 // one module in place, before checks, runs, or proofs see them.
 // Declared bool/str/int constants rewrite to literals (slice 3
@@ -328,13 +352,7 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 	var out []Diag
 	pinned := map[string]bool{}
 	markUsed := func(name string) {
-		if prog.ConstUsed == nil {
-			prog.ConstUsed = map[string]map[string]bool{}
-		}
-		if prog.ConstUsed[open.ID] == nil {
-			prog.ConstUsed[open.ID] = map[string]bool{}
-		}
-		prog.ConstUsed[open.ID][name] = true
+		markConstUsed(prog, open.ID, name)
 	}
 	pinCheck := func(fn *FnDecl, line int, name string) {
 		// A foreign constant in a pattern needs its rev pin
@@ -344,7 +362,7 @@ func elaborateConstPatterns(open *Module, prog *Program, text string) []Diag {
 		if prog.ConstFile[name] != open.ID && !prog.Uses[name] && !pinned[name] {
 			pinned[name] = true
 			out = append(out, spanDiag(text, line, "error",
-				fmt.Sprintf("%s references foreign const %s which is not in uses: add name@rev to uses", fn.Name, name),
+				foreignConstMsg(fn.Name, name),
 				name, CodeConstNotInUses))
 		}
 	}

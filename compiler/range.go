@@ -28,16 +28,10 @@ func resolveRangePattern(open *Module, prog *Program, text, fnName string, line 
 		out = append(out, spanDiag(text, line, "error", fmt.Sprintf(format, args...), rangeToken(p), CodeBadRange))
 	}
 	need := func(name string) {
-		if prog.ConstUsed == nil {
-			prog.ConstUsed = map[string]map[string]bool{}
-		}
-		if prog.ConstUsed[open.ID] == nil {
-			prog.ConstUsed[open.ID] = map[string]bool{}
-		}
-		prog.ConstUsed[open.ID][name] = true
+		markConstUsed(prog, open.ID, name)
 		if prog.ConstFile[name] != open.ID && !prog.Uses[name] {
 			out = append(out, spanDiag(text, line, "error",
-				fmt.Sprintf("%s references foreign const %s which is not in uses: add name@rev to uses", fnName, name),
+				foreignConstMsg(fnName, name),
 				name, CodeConstNotInUses))
 		}
 	}
