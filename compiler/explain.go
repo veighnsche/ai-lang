@@ -31,6 +31,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `go => m.bad  (where error m.bad(id: str))`,
 		fix:     "Write m.bad(id = ...) with all fields. The diagnostic shows the complete construction (expected).",
 	},
+	CodeBadPositional: {
+		rule:    "Positional test args resolve front-to-back through the parameter list: positionals precede named args, each claims its slot exactly once.",
+		violate: `go(id = 1, 2) (positional after named), go(1, 2, 3) for two params (over arity), go(1, a = 2) (slot a claimed twice).`,
+		fix:     "Move positionals before the first named arg, drop the extra arg, or name the double-claimed slot once. The message names the test and the fault.",
+	},
 	CodeDanglingTest: {
 		rule:    "Every reaching test needs a script at every foreign call (R8).",
 		violate: `a test with no entry under the call's given table.`,

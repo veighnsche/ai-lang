@@ -1948,11 +1948,10 @@ func parseModuleText(name, text string) (*Module, error) {
 					return nil, at(a.Line, fmt.Errorf("unknown contract outcome %s: want Ok or a declared emits kind", a.Outcome))
 				}
 			}
-			for _, t := range fn.Tests {
-				if !isKwargList(t.Args) {
-					return nil, at(t.Line, fmt.Errorf("test %s args must be named", t.Name))
-				}
-			}
+			// Test args stay as parsed here — named or positional.
+			// resolveTestArgs (checkStatic) gives positionals their
+			// parameter names before any shape, type, run, or emit
+			// phase sees them.
 			fn.Body = body
 			mod.Decls = append(mod.Decls, fn)
 		default:

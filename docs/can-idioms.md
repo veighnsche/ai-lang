@@ -115,7 +115,11 @@ restricted to the callee's emits (CAN3101–CAN3105, CAN3109,
 CAN3110; unreachable tests script `-`, per `docs/a07-helpers.md`).
 Local calls execute — no `given` on them, none on
 multi-scrutinee matches (CAN3106). Hence pure `std/` code has
-no `given` at all.
+no `given` at all. Test rows take positional args front-to-back
+through the parameter list with the rest named; a positional
+after a named arg, past the arity, or onto a named-claimed slot
+is CAN3205. Resolution fills parameter names before any later
+phase, so shapes, types, runs, and emit all see one named form.
 
 ### Names, surface, revisions
 
@@ -217,7 +221,8 @@ Call-match arm order is mixed in blessed code (`Ok` first in
 `forward` versus handwritten same-kind reconstruction is one
 spelling elaborated (`std/html` writes `forward`, `std/text`
 writes it out). Positional versus named call args are both
-bound through the signature; test rows always name theirs.
+bound through the signature (`bindSlots`); test rows allow the
+same mixed shape, positionals first, under CAN3205.
 
 ## Tier 3 — Judgment pattern
 

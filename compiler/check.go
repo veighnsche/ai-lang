@@ -602,9 +602,64 @@ func hasHdr(list []string, name string) bool {
 	return false
 }
 
+// resolveTestArgs gives positional test args their parameter names: a
+// positional arg at list index i takes params[i], mirroring bindSlots'
+// slot rule for calls. Named args keep their names. Runs in checkStatic
+// before checkTestShapes, so every later phase — shapes, types, runs,
+// emit, coverage, fingerprints — sees one named shape. Idempotent:
+// resolved args are named, so a second run is a no-op. Three faults
+// are CAN3205: a positional after a named arg, a positional past the
+// arity, and a positional landing on a named-claimed slot. Unknown
+// named args stay for CAN3202, missing params for CAN3203.
+func resolveTestArgs(fn *FnDecl, text string) []Diag {
+	var out []Diag
+	for ti := range fn.Tests {
+		t := &fn.Tests[ti]
+		claimed := map[int]bool{}
+		for _, a := range t.Args {
+			if !a.HasName {
+				continue
+			}
+			for j, p := range fn.Params {
+				if p[0] == a.Name {
+					claimed[j] = true
+				}
+			}
+		}
+		seenNamed := false
+		for i := range t.Args {
+			a := &t.Args[i]
+			if a.HasName {
+				seenNamed = true
+				continue
+			}
+			if seenNamed {
+				out = append(out, spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s takes positional arg after named arg", t.Name), t.Name, CodeBadPositional))
+				continue
+			}
+			if i >= len(fn.Params) {
+				out = append(out, spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s takes %d args for %d params", t.Name, len(t.Args), len(fn.Params)), t.Name, CodeBadPositional))
+				continue
+			}
+			if claimed[i] {
+				out = append(out, spanDiag(text, t.Line, "error",
+					fmt.Sprintf("test %s supplies arg %s twice", t.Name, fn.Params[i][0]), t.Name, CodeBadPositional))
+				continue
+			}
+			claimed[i] = true
+			a.Name = fn.Params[i][0]
+			a.HasName = true
+		}
+	}
+	return out
+}
+
 // checkTestShapes catches decision-table mistakes without running anything:
 // duplicate test names, args that match no parameter, and parameters the
-// test never supplies (all three are runtime failures today).
+// test never supplies (all three are runtime failures today). Unnamed
+// args are resolution-owned faults, already reported as CAN3205.
 func checkTestShapes(fn *FnDecl, text string) []Diag {
 	var out []Diag
 	seen := map[string]bool{}
@@ -620,6 +675,9 @@ func checkTestShapes(fn *FnDecl, text string) []Diag {
 		seen[t.Name] = true
 		got := map[string]bool{}
 		for _, a := range t.Args {
+			if !a.HasName {
+				continue
+			}
 			got[a.Name] = true
 			if !params[a.Name] {
 				out = append(out, spanDiag(text, t.Line, "error",

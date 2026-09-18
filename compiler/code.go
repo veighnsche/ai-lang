@@ -63,6 +63,7 @@ const (
 	CodeUnknownArg               = "CAN3202"
 	CodeMissingArg               = "CAN3203"
 	CodeBareErrorKind            = "CAN3204"
+	CodeBadPositional            = "CAN3205"
 	CodeMissingTests             = "CAN3301"
 	CodeUnusedUses               = "CAN3401"
 	CodeUnusedParam              = "CAN3402"
@@ -124,7 +125,7 @@ var allCodes = []string{
 	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab,
 	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeDanglingTest, CodeGivenOnLocal,
 	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript,
-	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind,
+	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind, CodeBadPositional,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeForeignRaise, CodeUnknownKind,
 	CodeProofOther, CodeMissingArm, CodeStaleArm, CodeBoolArms, CodeValueNoWild, CodeBadArmKind, CodeVariantOnVal, CodeArmUntaken, CodeInvalidRelay, CodeEagerScrutinee, CodeBadRange, CodeUselessArm, CodeUselessAlt,

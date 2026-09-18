@@ -289,6 +289,7 @@ func checkStatic(open *Module, text string) []Diag {
 			out = append(out, spanDiag(text, fn.Line, "error",
 				fmt.Sprintf("%s ships no tests: every function needs its decision table", fn.Name), fn.Name, CodeMissingTests))
 		}
+		out = append(out, resolveTestArgs(fn, text)...)
 		out = append(out, checkTestShapes(fn, text)...)
 	}
 	return withFile(out, open.File)
