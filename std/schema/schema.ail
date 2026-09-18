@@ -180,9 +180,11 @@ fn schema__url__prefix(url: str) -> Schema__BoolResult rev 1
       true => Ok(value = true)
       false => Ok(value = false)
 
-// ASCII-whitespace classifier for the URL tail (TAB LF FF CR SPACE, codes
-// 9 10 12 13 32). NUL is not whitespace anywhere in this file: it is
-// rejected by its own arm in the tail worker, never folded in here.
+// ASCII-whitespace set: TAB LF FF CR SPACE, codes 9 10 12 13 32.
+// The tail worker folds these codes into its C0 reject arm (0..31
+// plus 32) instead of calling here; this function names the set and
+// witnesses each code. NUL is not whitespace anywhere in this file:
+// the tail's range arm rejects it, never folded in here.
 fn schema__url__ws(code: int) -> Schema__BoolResult rev 1
   emits []
   tests
@@ -201,7 +203,11 @@ fn schema__url__ws(code: int) -> Schema__BoolResult rev 1
 
 // URL tail scan: no NUL, no other C0 control, no DEL, no fragment, no
 // backslash, no ASCII whitespace, no userinfo (@ before the first /),
-// and no quote or angle characters (' " < >). The quotes and angles are
+// and no quote or angle characters (' " < >). One range-or arm rejects
+// NUL, C0 (whitespace folded in), DEL, and the symbol set; @-in-authority
+// rejects through a boolean conjunct and the /-flip threads through the
+// recursive call's authority argument.
+// The quotes and angles are
 // excluded for the fixed single-quoted sink embedding: a ' in an approved
 // URL would break out of the href/src attribute, and " < > ride out with
 // it as noncanonical input; & rides along as exact-entry-bound query
@@ -237,22 +243,11 @@ fn schema__url__tail_check(s: str, n: int, in_authority: bool) -> Schema__BoolRe
   match n <= 0
     true => Ok(value = true)
     false => match s[0]
-      0 | 35 | 92 | 124 | 34 | 39 | 60 | 62 | 127 => Ok(value = false)
-      _ => match s[0] < 32
+      0..31 | 32 | 34 | 35 | 39 | 60 | 62 | 92 | 124 | 127 => Ok(value = false)
+      _ => match s[0] == 64 and in_authority
         true => Ok(value = false)
-        false => match call schema__url__ws(s[0])
-          on Ok w => match w.value
-            true => Ok(value = false)
-            false => match s[0] == 64
-              true => match in_authority
-                true => Ok(value = false)
-                false => match call schema__url__tail_check(s[1:#s], n - 1, in_authority)
-                  on Ok r => Ok(value = r.value)
-              false => match s[0] == 47
-                true => match call schema__url__tail_check(s[1:#s], n - 1, false)
-                  on Ok r => Ok(value = r.value)
-                false => match call schema__url__tail_check(s[1:#s], n - 1, in_authority)
-                  on Ok r => Ok(value = r.value)
+        false => match call schema__url__tail_check(s[1:#s], n - 1, not (s[0] == 47) and in_authority)
+          on Ok r => Ok(value = r.value)
 
 // Separator-safe token scan: identifiers, revisions, and site fields must
 // carry no NUL and no "|" (code 124). The witness canonical string joins

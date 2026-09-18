@@ -84,65 +84,18 @@ export function schema__url__tail_check(s: string, n: bigint, in_authority: bool
     return { $ail_kind: "ok", value: true };
   }
   else {
-    if (($ailStrAt(s, 0n) === 0n || $ailStrAt(s, 0n) === 35n || $ailStrAt(s, 0n) === 92n || $ailStrAt(s, 0n) === 124n || $ailStrAt(s, 0n) === 34n || $ailStrAt(s, 0n) === 39n || $ailStrAt(s, 0n) === 60n || $ailStrAt(s, 0n) === 62n || $ailStrAt(s, 0n) === 127n)) {
+    if ((($ailStrAt(s, 0n) >= 0n && $ailStrAt(s, 0n) <= 31n) || $ailStrAt(s, 0n) === 32n || $ailStrAt(s, 0n) === 34n || $ailStrAt(s, 0n) === 35n || $ailStrAt(s, 0n) === 39n || $ailStrAt(s, 0n) === 60n || $ailStrAt(s, 0n) === 62n || $ailStrAt(s, 0n) === 92n || $ailStrAt(s, 0n) === 124n || $ailStrAt(s, 0n) === 127n)) {
       return { $ail_kind: "ok", value: false };
     }
-    if (($ailStrAt(s, 0n) < 32n)) {
+    if ($ailBoolAnd(($ailStrAt(s, 0n) === 64n), in_authority)) {
       return { $ail_kind: "ok", value: false };
     }
     else {
-      const $ail_m1: { $ail_kind: "ok"; value: boolean } = schema__url__ws($ailStrAt(s, 0n));
+      const $ail_m1: { $ail_kind: "ok"; value: boolean } = schema__url__tail_check($ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), $ailBoolAnd(!(($ailStrAt(s, 0n) === 47n)), in_authority));
       switch ($ail_m1.$ail_kind) {
       case "ok": {
-        const w = $ail_m1;
-        if (w.value) {
-          return { $ail_kind: "ok", value: false };
-        }
-        else {
-          if (($ailStrAt(s, 0n) === 64n)) {
-            if (in_authority) {
-              return { $ail_kind: "ok", value: false };
-            }
-            else {
-              const $ail_m2: { $ail_kind: "ok"; value: boolean } = schema__url__tail_check($ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), in_authority);
-              switch ($ail_m2.$ail_kind) {
-              case "ok": {
-                const r = $ail_m2;
-                return { $ail_kind: "ok", value: r.value };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-          }
-          else {
-            if (($ailStrAt(s, 0n) === 47n)) {
-              const $ail_m3: { $ail_kind: "ok"; value: boolean } = schema__url__tail_check($ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), false);
-              switch ($ail_m3.$ail_kind) {
-              case "ok": {
-                const r = $ail_m3;
-                return { $ail_kind: "ok", value: r.value };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-            else {
-              const $ail_m4: { $ail_kind: "ok"; value: boolean } = schema__url__tail_check($ailStrSlice(s, 1n, (BigInt([...s].length))), (n - 1n), in_authority);
-              switch ($ail_m4.$ail_kind) {
-              case "ok": {
-                const r = $ail_m4;
-                return { $ail_kind: "ok", value: r.value };
-              }
-              default: {
-                throw new Error("unreachable");
-              }
-              }
-            }
-          }
-        }
+        const r = $ail_m1;
+        return { $ail_kind: "ok", value: r.value };
       }
       default: {
         throw new Error("unreachable");
