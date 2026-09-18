@@ -60,9 +60,7 @@ func TestGoldenJSONDiags(t *testing.T) {
 	var buf bytes.Buffer
 	reportDiags(&buf, collected)
 	got := buf.String()
-	if got != jsonGolden {
-		t.Fatalf("JSON golden mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, jsonGolden)
-	}
+	checkGolden(t, "diags.jsonl", got, jsonGolden)
 }
 
 const jsonGolden = `{"code":"CAN3401","sev":"warning","file":"auth.can","line":3,"start":19,"end":29,"msg":"uses db__ping@1 but auth never calls it"}

@@ -28,9 +28,7 @@ func TestGoldenAuthLogin(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -54,9 +52,7 @@ func TestGoldenRetryLoop(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -80,9 +76,7 @@ func TestGoldenCounter(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -107,9 +101,7 @@ func TestGoldenQuotaCounter(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -133,9 +125,7 @@ func TestGoldenStdText(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -159,9 +149,7 @@ func TestGoldenStdDivision(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -185,9 +173,7 @@ func TestGoldenStdScalars(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }
 
@@ -214,8 +200,6 @@ func TestGoldenStdHtml(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read golden %s: %v", f, err)
 		}
-		if string(got) != string(want) {
-			t.Errorf("golden mismatch: %s (re-run canlc and inspect the diff)", f)
-		}
+		checkGoldenFile(t, f, got, want)
 	}
 }

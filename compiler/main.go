@@ -7,6 +7,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -51,24 +52,8 @@ func run(argv []string) int {
 		}
 		return 0
 	}
-	var out, format, baseline string
-	var args []string
-	for i := 0; i < len(argv); {
-		if argv[i] == "--out" && i+1 < len(argv) {
-			out = argv[i+1]
-			i += 2
-		} else if argv[i] == "--format" && i+1 < len(argv) {
-			format = argv[i+1]
-			i += 2
-		} else if argv[i] == "--baseline" && i+1 < len(argv) {
-			baseline = argv[i+1]
-			i += 2
-		} else {
-			args = append(args, argv[i])
-			i++
-		}
-	}
-	if out == "" || len(args) == 0 {
+	out, format, baseline, args, err := parseCompileArgs(argv)
+	if err != nil || out == "" || len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "usage: canlc [--format json] [--baseline BASE.json] --out OUT_DIR file.can [...]")
 		return 2
 	}
@@ -87,22 +72,40 @@ func run(argv []string) int {
 // from clean sources: `canlc baseline --out base.json [--origin ID]
 // files...`. Generation refuses broken programs; acceptance happens
 // by committing an accepted file, never by regenerating.
-func runBaseline(argv []string) int {
-	var out, origin string
-	var args []string
-	for i := 0; i < len(argv); {
-		if argv[i] == "--out" && i+1 < len(argv) {
-			out = argv[i+1]
-			i += 2
-		} else if argv[i] == "--origin" && i+1 < len(argv) {
-			origin = argv[i+1]
-			i += 2
-		} else {
-			args = append(args, argv[i])
-			i++
-		}
+// parseCompileArgs parses the default compile command:
+//
+//	canlc [--format json] [--baseline BASE.json] --out OUT_DIR file.can [...]
+//
+// Unknown flags and missing values are usage errors (err != nil); the
+// caller prints the one-line usage and exits 2, as before.
+func parseCompileArgs(argv []string) (out, format, baseline string, args []string, err error) {
+	fs := flag.NewFlagSet("canlc", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&out, "out", "", "output directory for emitted modules")
+	fs.StringVar(&format, "format", "", "output format (json)")
+	fs.StringVar(&baseline, "baseline", "", "accepted revision baseline (JSON)")
+	if err := fs.Parse(argv); err != nil {
+		return "", "", "", nil, err
 	}
-	if out == "" || len(args) == 0 {
+	return out, format, baseline, fs.Args(), nil
+}
+
+// parseBaselineArgs parses `canlc baseline --out BASE.json [--origin ID]
+// file.can [...]`. Unknown flags and missing values are usage errors.
+func parseBaselineArgs(argv []string) (out, origin string, args []string, err error) {
+	fs := flag.NewFlagSet("canlc baseline", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.StringVar(&out, "out", "", "candidate baseline to write (JSON)")
+	fs.StringVar(&origin, "origin", "", "origin id recorded in the baseline")
+	if err := fs.Parse(argv); err != nil {
+		return "", "", nil, err
+	}
+	return out, origin, fs.Args(), nil
+}
+
+func runBaseline(argv []string) int {
+	out, origin, args, err := parseBaselineArgs(argv)
+	if err != nil || out == "" || len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "usage: canlc baseline --out BASE.json [--origin ID] file.can [...]")
 		return 2
 	}

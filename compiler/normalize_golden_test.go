@@ -32,9 +32,7 @@ db.db__get_user/known_user => Ok(failed_attempts = 0, id = "u_01", pw_hash = "se
 db.db__get_user/locked_user => Ok(failed_attempts = 5, id = "u_02", pw_hash = "second")
 db.db__get_user/unknown_user => err(db.user_not_found(id = "u_99"))
 `
-	if got := buf.String(); got != want {
-		t.Fatalf("normalize golden mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
-	}
+	checkGolden(t, "normalize", buf.String(), want)
 }
 
 // TestGoldenNormalizeRetryLoop freezes the retry-loop decision table:
@@ -52,9 +50,7 @@ retry.retry__fetch/later => Ok(body = "hi")
 retry.retry__fetch/never => err(retry.exhausted)
 retry.retry__fetch/now => Ok(body = "hi")
 `
-	if got := buf.String(); got != want {
-		t.Fatalf("normalize golden mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
-	}
+	checkGolden(t, "normalize-retry", buf.String(), want)
 }
 
 // TestGoldenNormalizeCounter freezes the counter decision table: the
@@ -71,9 +67,7 @@ counter.count__bump/three_again => Ok(total = 3)
 counter.count__bump/zero => Ok(total = 0)
 counter.count__twice/double => Ok(total = 4)
 `
-	if got := buf.String(); got != want {
-		t.Fatalf("normalize golden mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, want)
-	}
+	checkGolden(t, "normalize-counter", buf.String(), want)
 }
 
 // TestNormalizeValueShapes pins the canonical grammar on unit values:

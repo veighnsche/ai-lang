@@ -15,6 +15,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -718,16 +719,16 @@ func publishDiagnostics(w *bufio.Writer, uri, text string, diags []Diag) error {
 // parseLSPArgs takes the flags after `lsp`: only --baseline PATH.
 // Bare means unenforced; anything else is a usage error.
 func parseLSPArgs(argv []string) (string, error) {
-	var baseline string
-	for i := 0; i < len(argv); {
-		if argv[i] == "--baseline" && i+1 < len(argv) {
-			baseline = argv[i+1]
-			i += 2
-		} else {
-			return "", fmt.Errorf("usage: canlc lsp [--baseline BASE.json]")
-		}
+	fs := flag.NewFlagSet("canlc lsp", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	baseline := fs.String("baseline", "", "accepted revision baseline (JSON)")
+	if err := fs.Parse(argv); err != nil {
+		return "", fmt.Errorf("usage: canlc lsp [--baseline BASE.json]")
 	}
-	return baseline, nil
+	if fs.NArg() != 0 {
+		return "", fmt.Errorf("usage: canlc lsp [--baseline BASE.json]")
+	}
+	return *baseline, nil
 }
 
 func runLSP(argv []string) int {
