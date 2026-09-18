@@ -19,6 +19,16 @@ library cannot invent this model from inside; it must arrive as a
 language layer, like Functions, Async, and Resources (see
 `docs/a13-stdlib.md:118`, where Schema is named with those layers).
 
+## Input: settled trust model (gating)
+
+This workstream starts from the rulings produced under
+`docs/schema-design-prompt.md`, after adversarial security review —
+not alongside them, not before them. The twelve attack-surface items
+arrive as settled rulings with rationale and failure rows; the open
+questions above arrive answered. If any ruling is missing or marked
+`unresolved`, the workstream stops at the boundary and says so rather
+than assuming a trust decision. No slice may bake in an unmade ruling.
+
 ## Required surface (from the consumer)
 
 - `ApprovedAsset`: a value proving an external asset passed approval.
