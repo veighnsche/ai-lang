@@ -1,12 +1,14 @@
 # a72: closed tagged unions (borrow #3) — design
 
-Status: proposal (pre-decision, revised per chatbot
-verdicts 2026-09-18). No rule, no code.
+Status: decided; slices shipped (a73 registry,
+a74 values, a75 elimination, a76 pilot). Variant
+sequences in field position remain deferred
+(`checkDeclFields` Decision 6).
 Parent: `docs/ASTRA_FSHARP_BORROW.md` §3 (finite,
 monomorphic, closed unions). This doc adapts that
 sketch to CAN specifics. Verdicts: keep closed
 unions; semantic boundaries and slice order revised
-as below. Slices need greenlight.
+as below. Slices a73–a76 have since shipped.
 
 ## Goal
 
