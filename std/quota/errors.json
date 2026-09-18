@@ -194,6 +194,38 @@
     ]
   },
   {
+    "kind": "validation.not_allowed",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "quota.std__validate__str_one_of",
+      "quota.std__validate__str_one_of_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "quota.std__validate__str_one_of",
+        "arm": "on validation.not_allowed e =\u003e forward e"
+      },
+      {
+        "fn": "quota.std__validate__str_one_of_from",
+        "arm": "on validation.not_allowed e =\u003e forward e"
+      }
+    ],
+    "hit_by_tests": [
+      "quota.std__validate__str_one_of/absent",
+      "quota.std__validate__str_one_of/case",
+      "quota.std__validate__str_one_of/dup_miss",
+      "quota.std__validate__str_one_of/empty_allowed",
+      "quota.std__validate__str_one_of/empty_value_miss",
+      "quota.std__validate__str_one_of/singleton_miss",
+      "quota.std__validate__str_one_of/unicode_miss",
+      "quota.std__validate__str_one_of_from/exhausted",
+      "quota.std__validate__str_one_of_from/miss",
+      "quota.std__validate__str_one_of_from/over"
+    ]
+  },
+  {
     "kind": "validation.not_positive",
     "fields": [
       "value"

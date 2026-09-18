@@ -1,6 +1,6 @@
 // GENERATED from quota.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" };
+export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string };
 export type Quota__Usage = { used: bigint; remaining: bigint };
 export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
@@ -65,6 +65,13 @@ function $canDecGt(a: string, b: string): boolean {
   const B = $canDecSplit(b);
   const s = Math.max(A.fp.length, B.fp.length);
   return $canDecMant(A, s) > $canDecMant(B, s);
+}
+// Sequence indexing (a38 S3): bounds throw, matching Go.
+function $canSeqAt<T>(a: T[], i: bigint): T {
+  if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("seq index out of range");
+  const k = Number(i);
+  if (k >= a.length) throw new Error("seq index out of range");
+  return a[k];
 }
 export function std__validate__require(condition: boolean, field: string, rule: string): { $can_kind: "ok" } | { $can_kind: "validation.failed"; field: string; rule: string } {
   if (condition) {
@@ -177,6 +184,53 @@ export function std__validate__exclusive_pair(left: boolean, right: boolean): { 
   }
   else {
     return { $can_kind: "validation.exclusive_choice" };
+  }
+}
+export function std__validate__str_one_of_from(value: string, allowed: string[], pos: bigint, n: bigint): { $can_kind: "ok"; value: string } | { $can_kind: "validation.not_allowed"; value: string } {
+  if ((n <= 0n)) {
+    return { $can_kind: "validation.not_allowed", value: value };
+  }
+  else {
+    if ((pos < (BigInt([...allowed].length)))) {
+      if (($canSeqAt(allowed, pos) === value)) {
+        return { $can_kind: "ok", value: value };
+      }
+      else {
+        const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "validation.not_allowed"; value: string } = std__validate__str_one_of_from(value, allowed, (pos + 1n), (n - 1n));
+        switch ($can_m1.$can_kind) {
+        case "validation.not_allowed": {
+          const e = $can_m1;
+          return { $can_kind: "validation.not_allowed", value: e.value };
+        }
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $can_kind: "validation.not_allowed", value: value };
+    }
+  }
+}
+export function std__validate__str_one_of(value: string, allowed: string[]): { $can_kind: "ok"; value: string } | { $can_kind: "validation.not_allowed"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "validation.not_allowed"; value: string } = std__validate__str_one_of_from(value, allowed, 0n, (BigInt([...allowed].length)));
+  switch ($can_m1.$can_kind) {
+  case "validation.not_allowed": {
+    const e = $can_m1;
+    return { $can_kind: "validation.not_allowed", value: e.value };
+  }
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
   }
 }
 export function quota__consume(amount: bigint, quota: bigint): { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } {

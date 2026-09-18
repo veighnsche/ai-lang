@@ -8,9 +8,9 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value]
   uses []
-  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice]
+  emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice, validation.not_allowed]
 
 state Quota__used: int = 0
 
@@ -26,6 +26,7 @@ error validation.dec_negative_value(value: dec)
 error validation.invalid_length(value: str, minimum: int, maximum: int)
 error validation.empty_value(value: str)
 error validation.exclusive_choice()
+error validation.not_allowed(value: str)
 
 type Quota__Usage rev 1 (
   used: int
@@ -162,6 +163,46 @@ fn std__validate__exclusive_pair(left: bool, right: bool) -> Validate__Pass rev 
     true, false => Ok()
     false, true => Ok()
     false, false => validation.exclusive_choice()
+
+fn std__validate__str_one_of_from(value: str, allowed: Seq<str>, pos: int, n: int) -> Str__Value rev 1
+  decreases n
+  emits [validation.not_allowed]
+  tests
+    exhausted("z", Seq<str>["a", "b"], 0, 0) => validation.not_allowed(value = "z")
+    over("a", Seq<str>["a"], 5, 2) => validation.not_allowed(value = "a")
+    immediate("a", Seq<str>["a", "b"], 0, 2) => Ok(value = "a")
+    later("b", Seq<str>["a", "b"], 0, 2) => Ok(value = "b")
+    miss("z", Seq<str>["a", "b"], 0, 2) => validation.not_allowed(value = "z")
+  match n <= 0
+    true => validation.not_allowed(value = value)
+    false => match pos < #allowed
+      true => match allowed[pos] == value
+        true => Ok(value = value)
+        false => match call std__validate__str_one_of_from(value, allowed, pos + 1, n - 1)
+          on validation.not_allowed e => forward e
+          on Ok r => Ok(value = r.value)
+      false => validation.not_allowed(value = value)
+
+fn std__validate__str_one_of(value: str, allowed: Seq<str>) -> Str__Value rev 1
+  emits [validation.not_allowed]
+  tests
+    empty_allowed("a", Seq<str>[]) => validation.not_allowed(value = "a")
+    singleton_hit("a", Seq<str>["a"]) => Ok(value = "a")
+    singleton_miss("b", Seq<str>["a"]) => validation.not_allowed(value = "b")
+    first("a", Seq<str>["a", "b", "c"]) => Ok(value = "a")
+    middle("b", Seq<str>["a", "b", "c"]) => Ok(value = "b")
+    last("c", Seq<str>["a", "b", "c"]) => Ok(value = "c")
+    absent("z", Seq<str>["a", "b", "c"]) => validation.not_allowed(value = "z")
+    dup_hit("a", Seq<str>["a", "a"]) => Ok(value = "a")
+    dup_miss("z", Seq<str>["a", "a"]) => validation.not_allowed(value = "z")
+    case("Batch", Seq<str>["batch"]) => validation.not_allowed(value = "Batch")
+    unicode("世界", Seq<str>["héllo", "世界"]) => Ok(value = "世界")
+    unicode_miss("世界x", Seq<str>["héllo", "世界"]) => validation.not_allowed(value = "世界x")
+    empty_value("", Seq<str>["", "a"]) => Ok(value = "")
+    empty_value_miss("", Seq<str>["a"]) => validation.not_allowed(value = "")
+  match call std__validate__str_one_of_from(value, allowed, 0, #allowed)
+    on validation.not_allowed e => forward e
+    on Ok r => Ok(value = r.value)
 
 fn quota__consume(amount: int, quota: int) -> Quota__Usage rev 1
   effects [Quota__used.read, Quota__used.write]

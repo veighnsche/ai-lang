@@ -3,7 +3,8 @@
 - `quota.can` — `mod quota`: monomorphic scalar validators
   (`std__validate__require`, `std__validate__int_range`,
   `std__validate__int_nonnegative`, `std__validate__str_nonempty`,
-  `std__validate__exclusive_pair`) plus a quota counter
+  `std__validate__exclusive_pair`, `std__validate__str_one_of`
+  plus its `_from` worker) plus a quota counter
   (`quota__consume`, `quota__usage`) that reuses them through
   same-file local calls, so every call executes its body.
   Validators return the accepted value or a producer-owned typed
