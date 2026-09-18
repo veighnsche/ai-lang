@@ -379,6 +379,13 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 		// Slice 5: negation takes and yields bools; the value
 		// rule owns the operand refusal.
 		return "bool", true
+	case "neg":
+		// Slice 6: prefix minus over exact int or dec yields
+		// the operand type; the value rule owns the refusal.
+		if t, ok := c.typeOf(s.L, env); ok && (t == "int" || t == "dec") {
+			return t, true
+		}
+		return "", false
 	case "binop":
 		if !isArith(s.Op) {
 			return "bool", true
@@ -456,6 +463,8 @@ func tokenOf(s *Small) string {
 		return s.Op
 	case "not":
 		return "not"
+	case "neg":
+		return "-"
 	case "strlen":
 		return "#"
 	case "stridx":
@@ -610,6 +619,23 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot not %s: not takes a bool operand", t), "not", CodeTypeMismatch))
 		}
+		return
+	case "neg":
+		// Slice 6: prefix minus over exact int or dec. Calls
+		// inside stay AIL3003 outside a match scrutinee;
+		// anything else is AIL6003. The result carries the
+		// operand type for emit's typed dispatch.
+		c.value(s.L, "", line, env, "negate")
+		t, ok := c.typeOf(s.L, env)
+		if !ok {
+			return
+		}
+		if t != "int" && t != "dec" {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot negate %s: unary minus takes int or dec", t), "-", CodeTypeMismatch))
+			return
+		}
+		s.T = t
 		return
 	case "binop":
 		where := "comparison"

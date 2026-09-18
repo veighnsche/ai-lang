@@ -1630,7 +1630,7 @@ export function std__dec__divide_round_half_even_result(qm: bigint, scale: bigin
   switch ($ail_m1.$ail_kind) {
   case "ok": {
     const qi = $ail_m1;
-    const $ail_m2: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (0n - scale));
+    const $ail_m2: { $ail_kind: "ok"; value: string } = std__dec__scale_by_power_of_ten(qi.value, (-scale));
     switch ($ail_m2.$ail_kind) {
     case "ok": {
       const q = $ail_m2;

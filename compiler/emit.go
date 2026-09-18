@@ -612,6 +612,24 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "", err
 		}
 		return fmt.Sprintf("!(%s)", v), nil
+	case "neg":
+		// Slice 6: integers emit (-value) over native
+		// bigints. Decimals never emit JavaScript -x
+		// (canonical strings): exact subtraction from
+		// decimal zero through the shared helper.
+		v, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		switch binopOperandType(node) {
+		case "int":
+			return fmt.Sprintf("(-%s)", v), nil
+		case "dec":
+			e.decOps["sub"] = true
+			return fmt.Sprintf("$ailDecSub(\"0.0\", %s)", v), nil
+		default:
+			return "", fmt.Errorf("cannot emit neg: operand type unknown (run checkSem first)")
+		}
 	case "stridx":
 		b, err := e.emitValue(node.L)
 		if err != nil {

@@ -20,7 +20,7 @@ type Arg struct {
 }
 
 type Small struct {
-	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward
+	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward,not,neg
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
 	// "this request received this permitted response" (a12).
@@ -1048,10 +1048,62 @@ func parseSmallCmp(s string) (*Small, error) {
 	// Arithmetic binds tighter than comparisons. + and - split before
 	// *, /, % (lower precedence splits first); each level splits at
 	// the LAST top-level occurrence so chains associate left:
-	// 10 - 3 - 2 is (10-3)-2. Unary minus exists on literals only
-	// (reInt above). / and % share * precedence (a17: exact
-	// Euclidean integer division; dec operands refused in checkSem).
-	if i, op := findLastTop(s, []string{"+", "-"}); i > 0 {
+	// 10 - 3 - 2 is (10-3)-2. Prefix minus binds tighter than *
+	// and binary +/- (slice 6), so the addition level delegates.
+	// / and % share * precedence (a17: exact Euclidean integer
+	// division; dec operands refused in checkSem).
+	return parseSmallAdd(s)
+}
+
+// findLastBinAddSub splits + and - like findLastTop, except a +/-
+// in unary position never splits: the previous non-space
+// character must end an operand (word character, closing quote,
+// paren, or bracket). A leading or operator-preceded minus is
+// unary, so a * -b keeps its minus and a - -b splits at the
+// binary one; chains still associate left through recursion.
+func findLastBinAddSub(s string) (int, string) {
+	var stack []byte
+	pairs := map[byte]byte{'(': ')', '[': ']'}
+	inStr, esc := false, false
+	best, bestOp := -1, ""
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if inStr {
+			if esc {
+				esc = false
+			} else if ch == '\\' {
+				esc = true
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else if ch == '"' {
+			inStr = true
+		} else if closer, ok := pairs[ch]; ok {
+			stack = append(stack, closer)
+		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
+			stack = stack[:len(stack)-1]
+		} else if len(stack) == 0 && (ch == '+' || ch == '-') {
+			j := i - 1
+			for j >= 0 && (s[j] == ' ' || s[j] == '\t') {
+				j--
+			}
+			if j < 0 {
+				continue
+			}
+			pc := s[j]
+			if pc == '"' || pc == ')' || pc == ']' || isWordChar(pc) {
+				best, bestOp = i, string(ch)
+			}
+		}
+	}
+	return best, bestOp
+}
+
+// parseSmallAdd parses addition-level expressions: binary +/-
+// splits, else multiplication level. A minus in unary position
+// never splits here; it descends for the prefix rule below.
+func parseSmallAdd(s string) (*Small, error) {
+	if i, op := findLastBinAddSub(s); i >= 0 {
 		l, err := parseSmall(s[:i])
 		if err != nil {
 			return nil, err
@@ -1062,6 +1114,70 @@ func parseSmallCmp(s string) (*Small, error) {
 		}
 		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
 	}
+	return parseSmallMul(s)
+}
+
+// parseNegAtom resolves one atomic operand spelling for prefix
+// minus: integer and decimal literals fold to their negated
+// literal nodes, floats parse so the float ban owns them, and
+// bools pass through for the operand refusal. ok=false means
+// rest is composite: refs, calls, brackets, and parens descend
+// at mul precedence instead. Seal, exchange, and Seq<>
+// spellings stay composite-path parse errors (nonsense either
+// way); -not x is out of scope (not binds looser than prefix
+// minus, so it needs parens: -(not x)).
+func parseNegAtom(rest string) (*Small, bool) {
+	if reInt.MatchString(rest) {
+		n, ok := new(big.Int).SetString(rest, 10)
+		if !ok {
+			return nil, false
+		}
+		return &Small{Kind: "int", Num: new(big.Int).Neg(n)}, true
+	}
+	if m := reDec.FindStringSubmatch(rest); m != nil {
+		canon, err := canonDec(m[1])
+		if err != nil {
+			return nil, false
+		}
+		if strings.HasPrefix(canon, "-") {
+			return &Small{Kind: "dec", Dec: canon[1:]}, true
+		}
+		neg, err := canonDec("-" + canon)
+		if err != nil {
+			return nil, false
+		}
+		return &Small{Kind: "dec", Dec: neg}, true
+	}
+	if reFloat.MatchString(rest) {
+		return &Small{Kind: "float", Str: rest}, true
+	}
+	if rest == "true" || rest == "false" {
+		return &Small{Kind: "bool", B: rest == "true"}, true
+	}
+	if strings.HasPrefix(rest, `e"`) {
+		j := escClose(rest[1:])
+		if j < 0 {
+			return nil, false
+		}
+		j++
+		if j != len(rest)-1 {
+			return nil, false
+		}
+		decoded, err := decodeEscapes(rest[2:j])
+		if err != nil {
+			return nil, false
+		}
+		return &Small{Kind: "str", Str: decoded}, true
+	}
+	return nil, false
+}
+
+// parseSmallMul parses multiplication-level expressions and
+// tighter: * / % splits, then prefix minus, then the postfix
+// and primary chain below. Trying * first keeps the minus
+// tight: -a * b splits at *, leaving -a for the rule, so the
+// tree reads (-a) * b.
+func parseSmallMul(s string) (*Small, error) {
 	if i, op := findLastTop(s, []string{"*", "/", "%"}); i > 0 {
 		l, err := parseSmall(s[:i])
 		if err != nil {
@@ -1072,6 +1188,42 @@ func parseSmallCmp(s string) (*Small, error) {
 			return nil, err
 		}
 		return &Small{Kind: "binop", Op: op, L: l, R: r}, nil
+	}
+	if len(s) > 1 && s[0] == '-' {
+		rest := strings.TrimSpace(s[1:])
+		if rest == "" {
+			return nil, fmt.Errorf("empty expression")
+		}
+		// Slice 6: atomic spellings first. Literals live in
+		// parseSmall's head, below this level, so - 3, -d"0.5",
+		// -3.5, and -true resolve here: ints and decs fold
+		// back to literal nodes (emitted bytes never change),
+		// while floats and bools pass through so AIL6001 and
+		// AIL6003 own them downstream. Anything else (refs,
+		// calls, brackets, parens) descends; reaching here
+		// past the * split keeps the minus tight.
+		if lit, ok := parseNegAtom(rest); ok {
+			return lit, nil
+		}
+		v, err := parseSmallMul(rest)
+		if err != nil {
+			return nil, err
+		}
+		// Parenthesized literals normalize too: -(3) is -3.
+		if v.Kind == "int" && v.Num != nil {
+			return &Small{Kind: "int", Num: new(big.Int).Neg(v.Num)}, nil
+		}
+		if v.Kind == "dec" {
+			if strings.HasPrefix(v.Dec, "-") {
+				return &Small{Kind: "dec", Dec: v.Dec[1:]}, nil
+			}
+			canon, err := canonDec("-" + v.Dec)
+			if err != nil {
+				return nil, err
+			}
+			return &Small{Kind: "dec", Dec: canon}, nil
+		}
+		return &Small{Kind: "neg", L: v}, nil
 	}
 	// a20: scalar text operators. # binds tightest (this branch runs
 	// only when no looser split matched, so the operand is atomic);

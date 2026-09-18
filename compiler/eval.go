@@ -465,6 +465,33 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			return nil, fmt.Errorf("bad not operand")
 		}
 		return &Value{Kind: "bool", B: !v.B}, nil
+	case "neg":
+		// Slice 6: exact negation. Integers negate by value;
+		// decimals flip the canonical spelling (-0.0 folds to
+		// 0.0), never JavaScript arithmetic. A fault inside
+		// propagates, never negates.
+		v, err := evSmall(node.L, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		switch v.Kind {
+		case "int":
+			if v.N == nil {
+				return nil, fmt.Errorf("bad neg operand")
+			}
+			return &Value{Kind: "int", N: new(big.Int).Neg(v.N)}, nil
+		case "dec":
+			if strings.HasPrefix(v.D, "-") {
+				return &Value{Kind: "dec", D: v.D[1:]}, nil
+			}
+			d, err := canonDec("-" + v.D)
+			if err != nil {
+				return nil, err
+			}
+			return &Value{Kind: "dec", D: d}, nil
+		default:
+			return nil, fmt.Errorf("bad neg operand")
+		}
 	case "binop":
 		lv, err := evSmall(node.L, env, ctx, owner)
 		if err != nil {

@@ -1140,7 +1140,7 @@ fn std__dec__divide_round_half_even_result(qm: int, scale: int, num: int, den: i
     div_result_neg_both(qm = 35, scale = 1, num = -700, den = -200, dividend = d"-7.0", divisor = d"-2.0") => Ok(value = d"3.5", remainder = d"0.0")
 =
   match call std__convert__int_to_dec(qm)
-    on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, 0 - scale)
+    on Ok qi => match call std__dec__scale_by_power_of_ten(qi.value, -scale)
       on Ok q => match num < 0, den < 0
         true, true => Ok(value = q.value, remainder = dividend - divisor * q.value)
         true, false => Ok(value = q.value * d"-1.0", remainder = dividend - divisor * (q.value * d"-1.0"))
