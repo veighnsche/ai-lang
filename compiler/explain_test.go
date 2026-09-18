@@ -26,19 +26,42 @@ func TestExplainKnown(t *testing.T) {
 	}
 }
 
-// TestExplainFallback pins honest coverage: a registered
-// code without a per-code doc gets family text that says
-// so; an unregistered code fails.
+// TestExplainFallback pins the fallback mechanism: a registered
+// code without a per-code doc gets family text that says so;
+// an unregistered code fails. Uses a temp-registered code so
+// the mechanism stays tested at full coverage.
 func TestExplainFallback(t *testing.T) {
-	text, ok := explainCode(CodeParse)
+	allCodes = append(allCodes, "AIL9998")
+	defer func() { allCodes = allCodes[:len(allCodes)-1] }()
+	text, ok := explainCode("AIL9998")
 	if !ok {
-		t.Fatal("expected family fallback for AIL1000")
+		t.Fatal("expected family fallback for temp-registered AIL9998")
 	}
 	if !strings.Contains(text, "No per-code doc yet") {
 		t.Fatalf("fallback must admit its cut, got %q", text)
 	}
 	if _, ok := explainCode("AIL9999"); ok {
 		t.Fatal("unregistered code must fail")
+	}
+}
+
+// TestExplainComplete pins full coverage: every registered
+// code carries a per-code doc with rule, violation, and fix.
+// Add the entry with the code, not after.
+func TestExplainComplete(t *testing.T) {
+	for _, code := range allCodes {
+		text, ok := explainCode(code)
+		if !ok {
+			t.Fatalf("expected explain entry for %s", code)
+		}
+		for _, want := range []string{code, "rule:", "violation:", "fix:"} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("explain for %s must contain %q, got %q", code, want, text)
+			}
+		}
+		if strings.Contains(text, "No per-code doc yet") {
+			t.Fatalf("explain for %s falls back; write the entry: %q", code, text)
+		}
 	}
 }
 
