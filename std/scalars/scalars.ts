@@ -267,6 +267,45 @@ export function std__compare__bool(left: boolean, right: boolean): { $can_kind: 
     return { $can_kind: "ok", value: -1n };
   }
 }
+export function std__compare__int(left: bigint, right: bigint): { $can_kind: "ok"; value: bigint } {
+  const $can_m1 = (left === right);
+  const $can_m2 = (left >= right);
+  if ($can_m1) {
+    return { $can_kind: "ok", value: 0n };
+  }
+  else if ($can_m2) {
+    return { $can_kind: "ok", value: 1n };
+  }
+  else {
+    return { $can_kind: "ok", value: -1n };
+  }
+}
+export function std__compare__dec(left: string, right: string): { $can_kind: "ok"; value: bigint } {
+  const $can_m1 = (left === right);
+  const $can_m2 = $canDecGe(left, right);
+  if ($can_m1) {
+    return { $can_kind: "ok", value: 0n };
+  }
+  else if ($can_m2) {
+    return { $can_kind: "ok", value: 1n };
+  }
+  else {
+    return { $can_kind: "ok", value: -1n };
+  }
+}
+export function std__compare__str(left: string, right: string): { $can_kind: "ok"; value: bigint } {
+  const $can_m1 = (left === right);
+  const $can_m2 = $canStrGe(left, right);
+  if ($can_m1) {
+    return { $can_kind: "ok", value: 0n };
+  }
+  else if ($can_m2) {
+    return { $can_kind: "ok", value: 1n };
+  }
+  else {
+    return { $can_kind: "ok", value: -1n };
+  }
+}
 export function std__select__int(condition: boolean, when_true: bigint, when_false: bigint): { $can_kind: "ok"; value: bigint } {
   if (condition) {
     return { $can_kind: "ok", value: when_true };
