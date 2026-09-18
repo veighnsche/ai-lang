@@ -285,6 +285,10 @@ func checkStatic(open *Module, text string) []Diag {
 // prove-first gate as the per-module termination proofs.
 func checkSem(open *Module, text string, prog *Program, onPass func(fn, test string), extBlocked bool) []Diag {
 	var out []Diag
+	// Slice 1: resolve const-named patterns to literals before
+	// any other per-function check, test run, or proof sees
+	// them. Idempotent: rewritten literals are not revisited.
+	out = append(out, elaborateConstPatterns(open, prog, text)...)
 	called := map[string]bool{}
 	localExtern := map[string]bool{}
 	for _, d := range open.Decls {
@@ -308,6 +312,10 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 			out = append(out, checkEmits(fn, prog, text)...)
 			out = append(out, checkTypes(fn, prog, text)...)
 			out = append(out, checkUnusedParams(fn, text)...)
+			out = append(out, checkConstRefs(fn, prog, open, text)...)
+			for k := range usedConsts(fn) {
+				called[k] = true
+			}
 		case *ExternDecl:
 			out = append(out, checkExternSig(d, prog, text)...)
 		case *BrandDecl:
@@ -323,6 +331,10 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 		case *ErrorDecl:
 			out = append(out, checkDeclFields(d.Name, d.Fields, d.Line, prog, text)...)
 		}
+	}
+	out = append(out, checkConstDecls(open, text)...)
+	for k := range prog.ConstUsed[open.ID] {
+		called[k] = true
 	}
 	out = append(out, checkUnusedUses(open, text, called)...)
 	out = append(out, checkLocalCycles(open, prog, text)...)

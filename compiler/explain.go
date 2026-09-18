@@ -91,6 +91,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `type user(...), brand hash is str.`,
 		fix:     "Rename to Domain__Name (e.g. Db__User). Same rule covers variant and brand declarations.",
 	},
+	CodeConstNaming: {
+		rule:    "Constants read domain__SCREAMING: a lowercase domain prefix, then an uppercase name (R3).",
+		violate: `const Foo: int rev 1 = 1.`,
+		fix:     "Rename to domain__NAME (e.g. std__ascii__COLON). Kinds stay visually distinct: lowercase functions, CamelCase types, SCREAMING constants.",
+	},
 	CodeUsesPin: {
 		rule:    "Every uses entry pins a rev: name@N. Unpinned uses are errors (R4).",
 		violate: `uses [db__get_user] with no @N.`,
@@ -105,6 +110,16 @@ var explainDocs = map[string]explainEntry{
 		rule:    "A uses pin must name a rev the provider actually declares (R4).",
 		violate: `uses [db__get_user@9] while the provider declares rev 5.`,
 		fix:     "Pin a declared rev, or upgrade the provider (change code and rev together — one never moves without the other).",
+	},
+	CodeUnknownConst: {
+		rule:    "A constant reference resolves to exactly one declared constant in the build.",
+		violate: `Ok(value = m__NOPE) with no such const declared.`,
+		fix:     "Declare the constant, or correct the name. Qualified names resolve globally; there are no locals to shadow them.",
+	},
+	CodeConstNotInUses: {
+		rule:    "A foreign constant needs a rev pin in uses, like a foreign call (R2/R4).",
+		violate: `Ok(value = lib__K) with uses [] while lib.ail provides lib__K@1.`,
+		fix:     "Pin the provider rev (uses [lib__K@1]). Same-module constants need no pin.",
 	},
 	CodeDupFn: {
 		rule:    "One name, one function per file: double definitions are rejected.",
@@ -125,6 +140,11 @@ var explainDocs = map[string]explainEntry{
 		rule:    "Case identity is unique: no case collides with a record type, no duplicate case in one variant, no case declared by two variants.",
 		violate: `case Circle in both Shape and Blob, or a case named like an existing record type.`,
 		fix:     "Rename the colliding case or merge the owners. Identity collisions are never resolved by qualification.",
+	},
+	CodeDupConst: {
+		rule:    "One name, one constant per file: double definitions are rejected like double-defined functions.",
+		violate: `two const m__A blocks in one file.`,
+		fix:     "Delete or rename one. Cross-module sharing goes through uses with a rev pin, never re-declaration.",
 	},
 	CodeProvidesMiss: {
 		rule:    "provides names exactly what the file defines: anything defined but unlisted is an error (R2).",
@@ -395,6 +415,11 @@ var explainDocs = map[string]explainEntry{
 		rule:    "An asset sink matches the sink predicate exactly (asset then policy params, single-Html__Safe record return, one emits kind, no effects, single kernel match with one Ok arm, granted role literal inside).",
 		violate: `a sink with a raw-string param, or one that never checks the granted role.`,
 		fix:     "Fit the predicate; the message names the failing clause. Sinks assemble fixed elements, nothing else.",
+	},
+	CodeConstNonliteral: {
+		rule:    "V1 constant initializers are scalar literals (int, str, dec, bool) matching the declared type. Computed, alias, and cross-constant initializers are rejected.",
+		violate: `const m__B: int rev 1 = 1 + 2, or = m__A.`,
+		fix:     "Write the literal value. (Allocated AIL6016: the drafts' AIL6014 collided with shipped AssetBridgeAuthority.)",
 	},
 	CodePrimitiveShadow: {
 		rule:    "Declarations never shadow a compiler kernel or primitive: Bytes and kernel names are reserved.",

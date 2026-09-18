@@ -78,12 +78,31 @@ func TestAssetNoScriptedEvidence(t *testing.T) {
 }
 
 // TestAssetSinkPurity pins the sinks dependency-free: the builders
-// call nothing but the certified kernel (no uses entries), so no
-// helper can smuggle unapproved strings into the fixed elements.
+// call nothing but the certified kernel, so no helper can smuggle
+// unapproved strings into the fixed elements. Slice 1 allows one
+// exception: uses entries that resolve to constants (inlined data,
+// never callees) — html pins the ascii bounds.
 func TestAssetSinkPurity(t *testing.T) {
 	htmlMod, _ := assetGuardModules(t)
-	if len(htmlMod.Hdr["uses"]) != 0 {
-		t.Fatalf("html declares uses: sinks must stay kernel-only")
+	if len(htmlMod.Hdr["uses"]) == 0 {
+		return
+	}
+	asciiRaw, err := os.ReadFile("../std/ascii/ascii.ail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	asciiMod, err := parseModuleText("ascii.ail", string(asciiRaw))
+	if err != nil {
+		t.Fatalf("parse ascii: %v", err)
+	}
+	mods := []*Module{htmlMod, asciiMod}
+	texts := map[string]string{htmlMod.ID: "", asciiMod.ID: string(asciiRaw)}
+	prog, _ := buildWorld(htmlMod, mods, texts)
+	for _, u := range htmlMod.Hdr["uses"] {
+		base := pinRe.ReplaceAllString(u, "")
+		if _, ok := prog.Consts[base]; !ok {
+			t.Fatalf("html uses %s: sinks must stay kernel-only apart from const data pins", u)
+		}
 	}
 }
 

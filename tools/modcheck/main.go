@@ -106,7 +106,38 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 		return filepath.Base(path)
 	}
 	// Each directory is its own program: names resolve within it.
+	// Slice 1: stdlib shares providers across its directories
+	// (ascii consts), so a uses entry also resolves to a
+	// provider elsewhere under the same root. Self-provides
+	// still resolve nowhere, exactly like the compiler.
 	groups := map[string][]string{}
+	rootOf := map[string]string{}
+	for _, root := range roots {
+		top, _ := filepath.Glob(filepath.Join(root, "*.ail"))
+		sub, _ := filepath.Glob(filepath.Join(root, "*", "*.ail"))
+		for _, p := range append(top, sub...) {
+			rootOf[p] = root
+		}
+	}
+	rootProvides := map[string]map[string][]string{}
+	for _, path := range files {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		m := modRe.FindStringSubmatch(string(body))
+		if m == nil {
+			continue
+		}
+		shared := rootProvides[rootOf[path]]
+		if shared == nil {
+			shared = map[string][]string{}
+			rootProvides[rootOf[path]] = shared
+		}
+		for _, name := range names(m[2]) {
+			shared[name] = append(shared[name], keyOf(path))
+		}
+	}
 	var order []string
 	for _, path := range files {
 		dir := filepath.Dir(path)
@@ -117,7 +148,7 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 	}
 	for _, dir := range order {
 		scanned = append(scanned, filepath.Base(dir))
-		c, s, es := checkGroup(groups[dir], keyOf)
+		c, s, es := checkGroup(groups[dir], keyOf, rootProvides[rootOf[groups[dir][0]]])
 		current += c
 		skipped += s
 		errs = append(errs, es...)
@@ -127,7 +158,10 @@ func check(roots []string) (current, skipped int, scanned []string, errs []strin
 }
 
 // checkGroup enforces the module rules within one program directory.
-func checkGroup(files []string, keyOf func(string) string) (current, skipped int, errs []string) {
+// shared is the root-wide provider index (slice 1): a uses entry
+// resolves to another file in its directory or anywhere else under
+// the same root, but never to its own file.
+func checkGroup(files []string, keyOf func(string) string, shared map[string][]string) (current, skipped int, errs []string) {
 	provides := map[string][]owner{}
 	uses := map[string][][2]string{}
 	externs := map[string][]string{}
@@ -195,6 +229,13 @@ func checkGroup(files []string, keyOf func(string) string) (current, skipped int
 			for _, f := range providedFiles[dep[1]] {
 				if f != file {
 					others = true
+				}
+			}
+			if !others {
+				for _, f := range shared[dep[1]] {
+					if f != file {
+						others = true
+					}
 				}
 			}
 			if !others {

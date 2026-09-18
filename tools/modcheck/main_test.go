@@ -104,6 +104,25 @@ func TestUnresolvableUses(t *testing.T) {
 	}
 }
 
+// TestSharedRootUses pins slice-1 stdlib sharing: a uses entry
+// resolves to a provider in another directory under the same root,
+// while a self-provided name still resolves nowhere.
+func TestSharedRootUses(t *testing.T) {
+	lib := "mod lib\n  provides [lib__K]\n  uses []\n  emits []\n\nconst lib__K: int rev 1 = 7\n"
+	app := "mod app\n  provides [app__go]\n  uses [lib__K@1]\n  emits []\n"
+	dir := writeFixtures(t, map[string]string{"lib/lib.ail": lib, "app/app.ail": app})
+	_, _, _, errs := check([]string{dir})
+	if len(errs) != 0 {
+		t.Fatalf("expected shared-root resolve, got %v", errs)
+	}
+	self := "mod self\n  provides [self__K]\n  uses [self__K@1]\n  emits []\n"
+	dir2 := writeFixtures(t, map[string]string{"self/self.ail": self})
+	_, _, _, errs2 := check([]string{dir2})
+	if !contains(errs2, "resolves nowhere") {
+		t.Fatalf("expected self-uses resolve error, got %v", errs2)
+	}
+}
+
 func TestExternRedeclare(t *testing.T) {
 	bad := "extern fn db__get(id: str) -> Db__U\n" + goodAuth
 	dir := writeFixtures(t, map[string]string{"db.ail": goodDB, "auth.ail": bad})

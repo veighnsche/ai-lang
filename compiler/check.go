@@ -87,6 +87,10 @@ func declaredRev(owner *Module, base string) (int, bool) {
 			if d.Name == base {
 				return d.Rev, true
 			}
+		case *ConstDecl:
+			if d.Name == base {
+				return d.Rev, true
+			}
 		}
 	}
 	return 0, false
@@ -107,6 +111,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 		EmitsOf: map[string][]string{}, Uses: map[string]bool{},
 		Modules: mods, FnFile: map[string]string{}, BrandFile: map[string]string{},
 		Variants: map[string]*VariantDecl{}, Cases: map[string]string{},
+		Consts: map[string]*ConstDecl{}, ConstFile: map[string]string{},
 	}
 	provides := map[string]*Module{}
 	emit := func(m *Module, d Diag) {
@@ -131,6 +136,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 	seenFn := map[string]*Module{}
 	seenOther := map[string]bool{}
 	seenVariant := map[string]*Module{}
+	seenConst := map[string]*Module{}
 	for _, m := range mods {
 		for _, d := range m.Decls {
 			name, line := declNameLine(d)
@@ -152,6 +158,7 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			_, isFn := d.(*FnDecl)
 			_, isEx := d.(*ExternDecl)
 			_, isVar := d.(*VariantDecl)
+			_, isConst := d.(*ConstDecl)
 			if isVar {
 				// Variants collide loudly (decision 8): the case
 				// set affects proofs, so silent first-wins would
@@ -188,6 +195,22 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 					continue
 				}
 				seenFn[name] = m
+			} else if isConst {
+				// Constants collide loudly like functions: a
+				// shared name must resolve to exactly one
+				// value, so first-wins would silently prove
+				// consumers against the wrong literal.
+				if _, dup := seenConst[name]; dup {
+					if m == open {
+						emit(m, spanDiag(texts[m.ID], line, "error",
+							fmt.Sprintf("double definition: const %s", name), name, CodeDupConst))
+					} else {
+						emit(m, spanDiag(texts[open.ID], 1, "error",
+							fmt.Sprintf("sibling %s also defines const %s (double definition)", qualifiedFile(mods, m), name), m.File, CodeDupConst))
+					}
+					continue
+				}
+				seenConst[name] = m
 			} else if seenOther[name] {
 				continue
 			} else {
@@ -198,6 +221,10 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 				prog.Fns[d.Name] = d
 				prog.EmitsOf[d.Name] = d.Emits
 				prog.FnFile[d.Name] = m.ID
+				provides[d.Name] = m
+			case *ConstDecl:
+				prog.Consts[d.Name] = d
+				prog.ConstFile[d.Name] = m.ID
 				provides[d.Name] = m
 			case *ExternDecl:
 				prog.Externs[d.Name] = d
@@ -349,6 +376,16 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 		}
 		prog.Errors[b.Name] = fs
 	}
+	// Slice 1: resolve const-named patterns to literals once the
+	// const table is complete, so the prover, test runs, and emit
+	// see one shape in every pipeline (the LSP proves before
+	// checkSem runs, so elaboration cannot live in checkSem
+	// alone). Idempotent: checkSem re-runs it harmlessly.
+	for _, m := range mods {
+		for _, d := range elaborateConstPatterns(m, prog, texts[m.ID]) {
+			emit(m, d)
+		}
+	}
 	return prog, out
 }
 
@@ -363,6 +400,8 @@ func declNameLine(d Decl) (string, int) {
 	case *VariantDecl:
 		return d.Name, d.Line
 	case *BrandDecl:
+		return d.Name, d.Line
+	case *ConstDecl:
 		return d.Name, d.Line
 	case *AssetBridgeDecl:
 		// Grants register under the sink function name (unique per
@@ -501,6 +540,12 @@ func checkModIntegrity(m *Module, text string) []Diag {
 					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
 			}
 		case *BrandDecl:
+			defined[d.Name] = true
+			if !hasHdr(m.Hdr["provides"], d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("%s is defined but missing from provides", d.Name), d.Name, CodeProvidesMiss))
+			}
+		case *ConstDecl:
 			defined[d.Name] = true
 			if !hasHdr(m.Hdr["provides"], d.Name) {
 				out = append(out, spanDiag(text, d.Line, "error",

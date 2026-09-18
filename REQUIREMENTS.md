@@ -86,6 +86,11 @@ specification must rule out the constant function, not merely bless examples.
   Unpinned use = error. No floating versions.
 - Provider bumps never break pinned callers; upgrading a pin is an explicit
   one-line diff.
+- Constants (`const name: TYPE rev N = literal`) carry `rev` like types
+  and functions. A constant's semantic content is its expanded typed
+  value, not its spelling (a78 slice 1): changing the value without
+  bumping rev = error, and renaming with owner/revision/type/value
+  unchanged is revision-inert.
 
 ## R5 — Errors
 

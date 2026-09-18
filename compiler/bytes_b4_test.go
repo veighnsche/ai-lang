@@ -21,6 +21,12 @@ func TestBytesB4NulChainProbe(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read html.ail: %v", err)
 	}
+	// Slice 1: html.ail pins ascii consts, so the temp copy needs
+	// the provider beside it.
+	asciiRaw, err := os.ReadFile("../std/ascii/ascii.ail")
+	if err != nil {
+		t.Fatalf("read ascii.ail: %v", err)
+	}
 	probe := "\nfn html__probe__nul_chain() -> Bytes__Value rev 1\n" +
 		"  emits []\n" +
 		"  tests\n" +
@@ -32,8 +38,8 @@ func TestBytesB4NulChainProbe(t *testing.T) {
 	body := string(raw) + probe
 	// The probe fn lives in the temp copy only; provide it there so
 	// the copy stays well-formed under the provides rule.
-	body = strings.Replace(body, "]\n  uses []", ", html__probe__nul_chain]\n  uses []", 1)
-	dir := writeLSPDir(t, map[string]string{"probe.ail": body})
+	body = strings.Replace(body, ", html__asset__script]", ", html__asset__script, html__probe__nul_chain]", 1)
+	dir := writeLSPDir(t, map[string]string{"probe.ail": body, "ascii.ail": string(asciiRaw)})
 	if diags := diagnose(dir, "probe.ail", body); len(diags) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", diags)
 	}

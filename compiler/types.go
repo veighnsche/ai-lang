@@ -221,6 +221,13 @@ func (c *tycker) resolveRef(ref []string, env map[string]string) (string, bool) 
 	}
 	t, ok := env[ref[0]]
 	if !ok || t == "" {
+		// Slice 1: mirror the value() exemption so pure
+		// type queries resolve constants to their sort.
+		if len(ref) == 1 && constNameRe.MatchString(ref[0]) {
+			if decl, found := lookupConst(c.prog, ref[0]); found {
+				return decl.Type, true
+			}
+		}
 		return "", false
 	}
 	if strings.HasPrefix(t, "cell:") {
@@ -535,6 +542,17 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 	}
 	if s.Kind == "ref" {
 		t, ok := env[s.Ref[0]]
+		if !ok {
+			// Slice 1: a constant reference carries its
+			// declared sort: existence is checkConstRefs'
+			// job (AIL2104), so the type checker
+			// substitutes instead of reporting unbound.
+			if len(s.Ref) > 0 && constNameRe.MatchString(s.Ref[0]) {
+				if decl, found := lookupConst(c.prog, s.Ref[0]); found {
+					t, ok = decl.Type, true
+				}
+			}
+		}
 		if !ok {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("unbound name %s in %s", s.Ref[0], c.fn), s.Ref[0], CodeTypeMismatch))

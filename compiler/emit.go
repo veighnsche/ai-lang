@@ -465,6 +465,15 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		}
 		return "[" + strings.Join(parts, ", ") + "]", nil
 	case "ref":
+		// Slice 1: a constant reference inlines its literal:
+		// the checker owns existence (AIL2104) and linkage
+		// (AIL2105), so emit substitutes the value. Unknown
+		// names emit verbatim and fail downstream as before.
+		if len(node.Ref) == 1 && constNameRe.MatchString(node.Ref[0]) {
+			if c, ok := e.consts[node.Ref[0]]; ok && c.Value != nil {
+				return e.emitValue(c.Value)
+			}
+		}
 		return strings.Join(node.Ref, "."), nil
 	case "binop":
 		l, err := e.emitValue(node.L)
@@ -1078,6 +1087,7 @@ type emitter struct {
 	hexdec    bool                    // strict hex decode helper used by this module (a55 B10)
 	b64enc    bool                    // base64 encode helper used by this module (a58 B12)
 	b64dec    bool                    // strict base64 decode helper used by this module (a59 B14)
+	consts    map[string]*ConstDecl   // program const table: refs inline their literal (slice 1)
 }
 
 // shapeContainsBytes reports whether a comparison operand's declared
@@ -2253,7 +2263,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	for n, ex := range prog.Externs {
 		params[n] = ex.Params
 	}
-	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), variants: variants, cases: prog.Cases, divmod: false}
+	em := &emitter{fnUnions: fnUnions, params: params, brands: prog.Brands, cellTypes: cellTypes, decOps: map[string]bool{}, strOps: map[string]bool{}, seqOps: map[string]bool{}, recs: recs, errFields: prog.Errors, errTypes: errorShapes(prog.Modules), variants: variants, cases: prog.Cases, divmod: false, consts: prog.Consts}
 	for _, d := range mod.Decls {
 		sd, ok := d.(*StateDecl)
 		if !ok {

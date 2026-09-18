@@ -1,0 +1,34 @@
+// std/ascii/ascii.ail — row 1 of the a78 gap closures: named ASCII
+// scalar bounds shared across stdlib. URL scheme tokens, authority
+// checks, and every future ASCII classifier compare against these
+// names instead of magic code points, so bounds stay greppable and
+// a bound change is one pinned rev bump, never a hunt.
+// Z is uppercase (90); lowercase z needs marking and reads SMALL_Z.
+// The ASCII predicates (is_digit, is_alpha, is_alnum) live beside
+// these constants and arrive with the boolean-operator slice, which
+// needs them for its probe row.
+
+mod ascii
+  provides [std__ascii__AT, std__ascii__BACKTICK, std__ascii__COLON, std__ascii__DOT, std__ascii__MINUS, std__ascii__NINE, std__ascii__PLUS, std__ascii__SLASH, std__ascii__SMALL_Z, std__ascii__Z]
+  uses []
+  emits []
+
+const std__ascii__PLUS: int rev 1 = 43
+
+const std__ascii__MINUS: int rev 1 = 45
+
+const std__ascii__DOT: int rev 1 = 46
+
+const std__ascii__SLASH: int rev 1 = 47
+
+const std__ascii__NINE: int rev 1 = 57
+
+const std__ascii__COLON: int rev 1 = 58
+
+const std__ascii__AT: int rev 1 = 64
+
+const std__ascii__Z: int rev 1 = 90
+
+const std__ascii__BACKTICK: int rev 1 = 96
+
+const std__ascii__SMALL_Z: int rev 1 = 122

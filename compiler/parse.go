@@ -58,7 +58,7 @@ type Small struct {
 }
 
 type Pattern struct {
-	Kind string // wild,bool,str,variant,variantWild
+	Kind string // wild,bool,str,const,variant,variantWild
 	B    bool
 	Str  string
 	Name string
@@ -269,6 +269,21 @@ type BrandDecl struct {
 	SealsFrom []string
 	Line      int
 }
+
+// ConstDecl is a named scalar-literal constant (slice 1): const
+// Name: TYPE rev N = literal. V1 admits int, str, dec, bool
+// literals only; the checker rejects anything else (AIL6016).
+// References resolve lazily at each consumer through the
+// program const table, so termination stays syntactic.
+type ConstDecl struct {
+	Name  string
+	Type  string
+	Rev   int
+	Value *Small
+	Line  int
+}
+
+func (d *ConstDecl) declKind() string { return "const" }
 
 func (d *BrandDecl) declKind() string { return "brand" }
 
@@ -1198,6 +1213,7 @@ var (
 	reVariant     = regexp.MustCompile(`^variant\s+(\w+)\s+rev\s+(\d+)\s*\($`)
 	reVariantCase = regexp.MustCompile(`^case\s+(\w+)\((.*)\)$`)
 	reBrand       = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
+	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+)\s+rev\s+(\d+)\s*=\s*(.+)$`)
 	reExtern      = regexp.MustCompile(`^extern\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reFn          = regexp.MustCompile(`^fn\s+(\w+)\((.*)\)\s*->\s*(\w+(?:<[\w.]+>)?)\s+rev\s+(\d+)$`)
 	reExport      = regexp.MustCompile(`^exports_utf8\s+(\w+)\s+via\s+(\w+)@(\d+)$`)
@@ -1399,6 +1415,21 @@ func parseModuleText(name, text string) (*Module, error) {
 				}
 			}
 			mod.Decls = append(mod.Decls, &BrandDecl{Name: m[1], Under: m[2], Rev: rev, SealsFrom: from, Line: declLine})
+			i++
+		case strings.HasPrefix(code, "const "):
+			m := reConst.FindStringSubmatch(code)
+			if m == nil {
+				if !reRevWord.MatchString(code) {
+					return nil, at(declLine, fmt.Errorf("missing rev N: versioning is mandatory"))
+				}
+				return nil, at(declLine, fmt.Errorf("bad const decl: %s", code))
+			}
+			rev, _ := strconv.Atoi(m[3])
+			val, err := parseSmall(strings.TrimSpace(m[4]))
+			if err != nil {
+				return nil, at(declLine, fmt.Errorf("bad const value: %v", err))
+			}
+			mod.Decls = append(mod.Decls, &ConstDecl{Name: m[1], Type: m[2], Rev: rev, Value: val, Line: declLine})
 			i++
 		case strings.HasPrefix(code, "exports_utf8 "):
 			m := reExport.FindStringSubmatch(code)
@@ -1657,6 +1688,14 @@ func parsePattern(s string) (Pattern, error) {
 			return Pattern{}, err
 		}
 		return Pattern{Kind: "str", Str: decoded, Raw: s}, nil
+	}
+	if constNameRe.MatchString(s) {
+		// Slice 1: a bare const-shaped name parses as a const
+		// pattern; checkSem resolves it against declared
+		// constants (falling back to variant treatment when
+		// undeclared). Binder forms (with a trailing name)
+		// still parse as variant patterns below.
+		return Pattern{Kind: "const", Name: s}, nil
 	}
 	if m := rePatVar.FindStringSubmatch(s); m != nil && (m[1] == "Ok" || strings.Contains(m[1], ".") || strings.Contains(m[1], "__")) {
 		// a75: qualified case names parse as patterns; the

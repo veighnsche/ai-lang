@@ -306,13 +306,19 @@ func TestAssetBridgeRealModules(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Slice 1: html.ail pins ascii consts; the provider loads
+	// beside the real modules.
+	asciiSrc, err := os.ReadFile("../std/ascii/ascii.ail")
+	if err != nil {
+		t.Fatal(err)
+	}
 	digest := "sha384-" + strings.Repeat("A", 64)
 	witness := "app-css|1.0.0|https://cdn.example/app.css|" + digest + "|stylesheet|shop|pages|home"
 	element := "<link rel='stylesheet' href='https://cdn.example/app.css' integrity='" + digest + "' crossorigin='anonymous'>"
-	files := map[string]string{"html.ail": string(htmlSrc), "schema.ail": string(schemaSrc)}
+	files := map[string]string{"html.ail": string(htmlSrc), "schema.ail": string(schemaSrc), "ascii.ail": string(asciiSrc)}
 	for _, order := range [][]string{
-		{"schema.ail", "html.ail"},
-		{"html.ail", "schema.ail"},
+		{"schema.ail", "html.ail", "ascii.ail"},
+		{"html.ail", "schema.ail", "ascii.ail"},
 	} {
 		err := runLinkedPure(t, files, order, "html__asset__stylesheet", 1,
 			map[string]string{

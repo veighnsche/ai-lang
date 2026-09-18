@@ -199,6 +199,7 @@ func TestGoldenStdHtml(t *testing.T) {
 	dir := t.TempDir()
 	srcs := []string{
 		"../std/html/html.ail",
+		"../std/ascii/ascii.ail",
 	}
 	if err := compile(dir, srcs); err != nil {
 		t.Fatalf("compile: %v", err)

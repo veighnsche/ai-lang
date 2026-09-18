@@ -318,6 +318,17 @@ type Program struct {
 	// construction (a73 registry rejects collisions).
 	Variants map[string]*VariantDecl
 	Cases    map[string]string
+	// Consts maps constant name to its declaration (slice 1);
+	// ConstFile maps every constant name to its declaring
+	// module file. Same file means a local reference;
+	// anything else needs a uses pin (AIL2105).
+	Consts    map[string]*ConstDecl
+	ConstFile map[string]string
+	// ConstUsed records per-module constant names referenced in
+	// match patterns (slice 1): elaboration rewrites patterns to
+	// literals before checkSem collects evidence, so pattern-only
+	// references are captured here for checkUnusedUses.
+	ConstUsed map[string]map[string]bool
 }
 
 func vField(v *Value, field string) (*Value, error) {
@@ -709,6 +720,16 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		if len(node.Ref) == 1 {
 			v, ok := env[node.Ref[0]]
 			if !ok {
+				// Slice 1: a constant reference resolves
+				// lazily to its literal: the checker owns
+				// existence (AIL2104) and linkage (AIL2105),
+				// so eval just substitutes the value.
+				// Unknown names still fail loud as unbound.
+				if ctx != nil && constNameRe.MatchString(node.Ref[0]) {
+					if c, ok := lookupConst(ctx.Prog, node.Ref[0]); ok && c.Value != nil {
+						return evSmall(c.Value, env, ctx, owner)
+					}
+				}
 				return nil, fmt.Errorf("unbound name: %s", node.Ref[0])
 			}
 			return v, nil
@@ -1767,8 +1788,9 @@ func runTest(fn *FnDecl, test Test, prog *Program, cov map[*Node]map[int]bool) e
 }
 
 var (
-	fnNameRe   = regexp.MustCompile(`^[a-z][a-z0-9]*__[a-z][a-z0-9_]*$`)
-	typeNameRe = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*__[A-Za-z0-9_]*$`)
+	fnNameRe    = regexp.MustCompile(`^[a-z][a-z0-9]*__[a-z][a-z0-9_]*$`)
+	typeNameRe  = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*__[A-Za-z0-9_]*$`)
+	constNameRe = regexp.MustCompile(`^[a-z][a-z0-9]*__[a-z0-9_]*[A-Z][A-Z0-9_]*$`)
 )
 
 // checkNaming enforces R3: strict naming grammar, part of every diagnosis.
@@ -1798,6 +1820,11 @@ func checkNaming(m *Module, text string) []Diag {
 			if !typeNameRe.MatchString(d.Name) {
 				out = append(out, spanDiag(text, d.Line, "error",
 					fmt.Sprintf("brand name %q must match Domain__Name", d.Name), d.Name, CodeTypeNaming))
+			}
+		case *ConstDecl:
+			if !constNameRe.MatchString(d.Name) {
+				out = append(out, spanDiag(text, d.Line, "error",
+					fmt.Sprintf("const name %q must match domain__SCREAMING", d.Name), d.Name, CodeConstNaming))
 			}
 		case *ExternDecl:
 			if d.Name == "state__get" || d.Name == "state__put" {

@@ -192,6 +192,15 @@ func canonSmall(s *Small) string {
 	}
 }
 
+// canonConst serializes a constant by its semantic content (R4
+// clarification): the expanded typed value, not its spelling. A
+// changed value can never hide behind a rename — renames change
+// the entry key, values change the canonical form. Literals only
+// (V1), so there are no nominal dependencies to record.
+func canonConst(d *ConstDecl) string {
+	return "const(" + d.Name + ")type(" + d.Type + ")value(" + canonSmall(d.Value) + ")"
+}
+
 // canonPattern serializes one match pattern by decoded meaning:
 // raw spellings (Raw) are presentation, Str carries the value.
 func canonPattern(p Pattern) string {
@@ -429,6 +438,15 @@ func revisionDeclEntries(m *Module, out map[string]*revisionWork) {
 				m.Mod, d.Name, canonFields(params), d.Ret, canonStringList(d.Emits))
 			out[key] = &revisionWork{canon: canon, fragment: fragment, loc: declLoc, deps: deps,
 				detail: RevisionDetail{Kind: "extern", Params: params, Ret: d.Ret, Emits: append([]string{}, d.Emits...)}}
+		case *ConstDecl:
+			key := revisionKey("const", m.Mod, d.Name, d.Rev, true)
+			if _, seen := out[key]; seen {
+				continue
+			}
+			canon := canonConst(d)
+			fragment := fmt.Sprintf("const %s.%s@%d: %s", m.Mod, d.Name, d.Rev, d.Type)
+			out[key] = &revisionWork{canon: canon, fragment: fragment, loc: declLoc, deps: depsMap(),
+				detail: RevisionDetail{Kind: "const", Ret: d.Type, Init: canonSmall(d.Value)}}
 		case *StateDecl:
 			key := revisionKey("state", m.Mod, d.Name, 0, false)
 			if _, seen := out[key]; seen {
@@ -798,6 +816,13 @@ func diffRevisionDetail(kind string, old, new RevisionDetail) []string {
 		}
 		if old.Init != new.Init {
 			out = append(out, "init changed")
+		}
+	case "const":
+		if old.Ret != new.Ret {
+			out = append(out, "type "+old.Ret+" -> "+new.Ret)
+		}
+		if old.Init != new.Init {
+			out = append(out, "value changed")
 		}
 	case "export":
 		if old.Grant != new.Grant {

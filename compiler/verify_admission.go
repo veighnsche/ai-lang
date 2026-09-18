@@ -252,6 +252,15 @@ func (a *admission) projection(s *Small, scope map[string]admitSort) admitTerm {
 	}
 	cur, ok := scope[s.Ref[0]]
 	if !ok {
+		// Slice 1: a constant reference classifies exactly
+		// like its literal (int/bool admit as scalar sorts;
+		// str/dec are outside like their literals). Unknown
+		// names stay unknown: contracts never raise AIL2104.
+		if len(s.Ref) == 1 && constNameRe.MatchString(s.Ref[0]) {
+			if decl, found := lookupConst(a.prog, s.Ref[0]); found && decl.Value != nil {
+				return a.term(decl.Value, scope)
+			}
+		}
 		return admitTerm{flag: "unknown", what: "unknown name " + s.Ref[0]}
 	}
 	if cur.kind == "outside" {
