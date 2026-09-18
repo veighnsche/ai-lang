@@ -68,6 +68,14 @@
   witness preserved. The grant defends callers (unapproved assets
   cannot flow in), not the sink owner: shape + rows + golden pin the
   flow. See `std/schema/README.md`, `docs/a83-astra-schema.md`.
+- `html__asset__script` is the second pinned sink (S3 slice plan),
+  classic scripts only: `asset_bridge ... for script`, fixed `script`
+  element with `src` + integrity + `crossorigin='anonymous'`. Witnesses
+  approved as `stylesheet` fail as `html.asset_script_rejected`, and
+  `module`/`worker`/`preload` spends have no builder (a `module`
+  witness row pins the rejection). Approving an entry never approves
+  its dependencies: each URL needs its own entry (schema row
+  `approve_no_transitive`).
 - `html.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped; `errors.json` is the error registry).
   Regenerate: `go run ./compiler --out std/html

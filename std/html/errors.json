@@ -33,6 +33,20 @@
     "hit_by_tests": []
   },
   {
+    "kind": "html.asset_script_rejected",
+    "fields": [
+      "asset"
+    ],
+    "raised_by": [
+      "html.html__asset__script"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "html.html__asset__script/script_module_unsupported",
+      "html.html__asset__script/script_role_mismatch"
+    ]
+  },
+  {
     "kind": "html.asset_stylesheet_rejected",
     "fields": [
       "asset"

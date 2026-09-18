@@ -6,6 +6,7 @@ package main
 // the compiler machinery around it.
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -290,6 +291,37 @@ brand Schema__AssetPolicy is str rev 1
 	}
 	if !strings.Contains(err.Error(), "admitted policy handle") {
 		t.Fatalf("refusal must name the malformed handle, got %v", err)
+	}
+}
+
+// TestAssetBridgeRealModules pins no drift between the fixture shape
+// and the shipped modules: the real stylesheet sink projects across
+// the real owner module in both file orders.
+func TestAssetBridgeRealModules(t *testing.T) {
+	htmlSrc, err := os.ReadFile("../std/html/html.ail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemaSrc, err := os.ReadFile("../std/schema/schema.ail")
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := "sha384-" + strings.Repeat("A", 64)
+	witness := "app-css|1.0.0|https://cdn.example/app.css|" + digest + "|stylesheet|shop|pages|home"
+	element := "<link rel='stylesheet' href='https://cdn.example/app.css' integrity='" + digest + "' crossorigin='anonymous'>"
+	files := map[string]string{"html.ail": string(htmlSrc), "schema.ail": string(schemaSrc)}
+	for _, order := range [][]string{
+		{"schema.ail", "html.ail"},
+		{"html.ail", "schema.ail"},
+	} {
+		err := runLinkedPure(t, files, order, "html__asset__stylesheet", 1,
+			map[string]string{
+				"asset":  `seal Schema__ApprovedAsset("` + witness + `")`,
+				"policy": `seal Schema__AssetPolicy("shop|prod")`,
+			}, `Ok(safe = "`+element+`")`)
+		if err != nil {
+			t.Fatalf("order %v: %v", order, err)
+		}
 	}
 }
 

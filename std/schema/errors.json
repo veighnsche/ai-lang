@@ -48,6 +48,7 @@
       "schema.schema__asset__approve/approve_expired",
       "schema.schema__asset__approve/approve_fragment",
       "schema.schema__asset__approve/approve_http",
+      "schema.schema__asset__approve/approve_no_transitive",
       "schema.schema__asset__approve/approve_not_yet",
       "schema.schema__asset__approve/approve_policy_mismatch",
       "schema.schema__asset__approve/approve_program_mismatch",
