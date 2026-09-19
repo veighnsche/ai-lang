@@ -40,7 +40,20 @@ func parseRhs(rows []row, i, ind, aline int, rest string) (*Node, int, error) {
 		if rest == "match chain" && isChainBlock(rows, i, ind) {
 			return parseChainBlock(rows, i, ind, aline)
 		}
-		sub, err := parseScrutList(strings.TrimSpace(rest[len("match "):]))
+		head := strings.TrimSpace(rest[len("match "):])
+		if ref, arg, err, matched := parseInvokeHead(head); matched {
+			if err != nil {
+				return nil, i, at(aline, err)
+			}
+			node, next, err := parseMatchArmsKind(rows, i, ind, aline, []*Small{ref}, MatchInvoke)
+			if err != nil {
+				return nil, next, err
+			}
+			node.InvokeArg = arg
+			node.Line = aline
+			return node, next, nil
+		}
+		sub, err := parseScrutList(head)
 		if err != nil {
 			return nil, i, at(aline, err)
 		}

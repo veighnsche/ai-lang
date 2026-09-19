@@ -251,6 +251,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `a given table on match call count__bump(by), or under match x, y.`,
 		fix:     "Delete the table. Helpers execute with no table; their own internal tables script every reaching test.",
 	},
+	CodeGivenOnInvoke: {
+		rule:    "A given table scripts a foreign call's exchange: match invoke executes the target body directly, so nothing is scripted and the table is refused.",
+		violate: `a given block under match invoke cb with n.`,
+		fix:     "Delete the given block. Invocation outcomes prove against the Fn error set; no script selects them.",
+	},
 	CodeBadStub: {
 		rule:    "Stub outcomes are Ok(..) or a declared error — nothing else scripts (R8).",
 		violate: `outcome 42, or outcome m.undeclared_thing.`,
@@ -405,11 +410,6 @@ var explainDocs = map[string]explainEntry{
 		rule:    "Pinned rows are trusted acceptance (a87): weakening, removing, or demoting one since the accepted baseline is reported loudly and never gates.",
 		violate: `a pinned expectation changed to match a new implementation.`,
 		fix:     "Restore the accepted expectation, or re-accept by updating the baseline. Unmarked rows churn freely; only the marker carries acceptance.",
-	},
-	CodeFnValueDeferred: {
-		rule:    "Function values are staged (b00): references check statically, but invocation has no runtime yet, so match invoke is refused until the invocation slice lands.",
-		violate: `match invoke cb with n in an ordinary body.`,
-		fix:     "Call the target directly until the invocation slice lands. Reference creation already checks; only dispatch is deferred.",
 	},
 	CodeFnHeadInvalid: {
 		rule:    "A Fn head names a known input type, a record success carrier, and a distinct canonically ordered list of declared error kinds.",

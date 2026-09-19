@@ -2056,6 +2056,57 @@ func enclosingMissing(anc []matchMissing, kind string) int {
 	return 0
 }
 
+// proveOutcomeArms proves one outcome match — a call match over
+// the callee's emits, or an invoke match over the resolved Fn
+// error set — against a shared outcome domain: every arm names Ok
+// or an error kind, every wanted outcome has an arm (CAN4101),
+// and no arm names an unwanted one (CAN4102, with the a63
+// enclosing-match hint). Nested matches prove under the extended
+// ancestor chain. word names the match family in diagnostics.
+func proveOutcomeArms(n *Node, owner string, want map[string]bool, word string, anc []matchMissing, walk func(n *Node, owner string, anc []matchMissing)) []error {
+	var out []error
+	got := map[string]int{}
+	for _, a := range n.Arms {
+		switch p := a.Pats[0]; p.Kind {
+		case "variantWild":
+			got[p.Name] = a.Line
+		case "variant":
+			k := p.Name
+			if k == "Ok" {
+				k = "ok"
+			}
+			got[k] = a.Line
+		default:
+			out = append(out, at(a.Line, proofErrf(CodeBadArmKind, "%s: %s arm must be an error kind or Ok", owner, word)))
+		}
+	}
+	missing := map[string]bool{}
+	for k := range want {
+		if _, ok := got[k]; !ok {
+			missing[k] = true
+		}
+	}
+	next := append(append([]matchMissing{}, anc...), matchMissing{line: n.Line, missing: missing})
+	for _, a := range n.Arms {
+		walk(a.Rhs, owner, next)
+	}
+	for _, k := range sortedKeys(want) {
+		if missing[k] {
+			out = append(out, at(n.Line, proofErrFoundf(CodeMissingArm, presentArms(n), "%s: non-exhaustive match, missing %s", owner, k)))
+		}
+	}
+	for _, k := range sortedKeys(got) {
+		if !want[k] {
+			msg := fmt.Sprintf("%s: stale match arm %s", owner, k)
+			if al := enclosingMissing(anc, k); al > 0 {
+				msg += fmt.Sprintf("; enclosing match at line %d is missing this outcome: check that this on-arm is attached to the intended match", al)
+			}
+			out = append(out, at(got[k], &proofError{code: CodeStaleArm, msg: msg}))
+		}
+	}
+	return out
+}
+
 func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 	var out []error
 	var walk func(n *Node, owner string, anc []matchMissing)
@@ -2069,7 +2120,22 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			return
 		}
 		if n.Kind == MatchInvoke {
-			out = append(out, at(n.Line, proofErrf(CodeProofOther, "%s: function invocation is deferred", owner)))
+			sig := n.invokeSig
+			if sig == nil {
+				// The checker owns the target error
+				// (unbound name or non-callable type);
+				// prove nothing about its outcomes, but
+				// still prove nested matches, like a62.
+				for _, a := range n.Arms {
+					walk(a.Rhs, owner, anc)
+				}
+				return
+			}
+			want := map[string]bool{"ok": true}
+			for _, e := range sig.errs {
+				want[e] = true
+			}
+			out = append(out, proveOutcomeArms(n, owner, want, "invoke-match", anc, walk)...)
 			return
 		}
 		if n.Kind == MatchCall {
@@ -2095,45 +2161,7 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 			for _, e := range prog.EmitsOf[fname] {
 				want[e] = true
 			}
-			got := map[string]int{}
-			for _, a := range n.Arms {
-				switch p := a.Pats[0]; p.Kind {
-				case "variantWild":
-					got[p.Name] = a.Line
-				case "variant":
-					k := p.Name
-					if k == "Ok" {
-						k = "ok"
-					}
-					got[k] = a.Line
-				default:
-					out = append(out, at(a.Line, proofErrf(CodeBadArmKind, "%s: call-match arm must be an error kind or Ok", owner)))
-				}
-			}
-			missing := map[string]bool{}
-			for k := range want {
-				if _, ok := got[k]; !ok {
-					missing[k] = true
-				}
-			}
-			next := append(append([]matchMissing{}, anc...), matchMissing{line: n.Line, missing: missing})
-			for _, a := range n.Arms {
-				walk(a.Rhs, owner, next)
-			}
-			for _, k := range sortedKeys(want) {
-				if missing[k] {
-					out = append(out, at(n.Line, proofErrFoundf(CodeMissingArm, presentArms(n), "%s: non-exhaustive match, missing %s", owner, k)))
-				}
-			}
-			for _, k := range sortedKeys(got) {
-				if !want[k] {
-					msg := fmt.Sprintf("%s: stale match arm %s", owner, k)
-					if al := enclosingMissing(anc, k); al > 0 {
-						msg += fmt.Sprintf("; enclosing match at line %d is missing this outcome: check that this on-arm is attached to the intended match", al)
-					}
-					out = append(out, at(got[k], &proofError{code: CodeStaleArm, msg: msg}))
-				}
-			}
+			out = append(out, proveOutcomeArms(n, owner, want, "call-match", anc, walk)...)
 			return
 		}
 		out = append(out, verifyValueMatch(n, owner)...)

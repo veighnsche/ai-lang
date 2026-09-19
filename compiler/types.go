@@ -1712,23 +1712,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		return
 	}
 	if n.Kind == MatchInvoke {
-		// B00 stage 1: invocation parses but has no proof, run,
-		// or emit yet, so the node is refused before any value
-		// or exhaustiveness logic could misread its call-shaped
-		// arms. Reference, argument, and arm bodies still check
-		// structurally; Ok binders stay unbound until the
-		// invocation slice threads the reference type through.
-		c.out = append(c.out, spanDiag(c.text, n.Line, "error",
-			"function invocation is deferred: invocation has not landed yet", "invoke", CodeFnValueDeferred))
-		for _, s := range n.Scruts {
-			c.value(s, "", n.Line, env, "match scrutinee")
-		}
-		if n.InvokeArg != nil {
-			c.value(n.InvokeArg, "", n.Line, env, "invoke argument")
-		}
-		for _, a := range n.Arms {
-			c.node(a.Rhs, env, want)
-		}
+		c.checkInvoke(n, env, want)
 		return
 	}
 	// Every scrutinee is valued, so a bad reference in any slot is
@@ -1820,6 +1804,76 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 			}
 		}
 		c.node(a.Rhs, env, want)
+	}
+}
+
+// checkInvoke checks one `match invoke cb with n` against the
+// resolved callable signature: the target names an Fn-typed value
+// in scope, the argument matches the input type, and arm binders
+// thread the success record and error kinds exactly like a call
+// match. Unbound names report through the scrutinee check, while
+// known non-callables (including shadowed binders) reuse the
+// mismatch code (JEV Q1). Exhaustiveness belongs to the proof.
+func (c *tycker) checkInvoke(n *Node, env map[string]string, want string) {
+	for _, s := range n.Scruts {
+		c.value(s, "", n.Line, env, "match scrutinee")
+	}
+	if n.InvokeArg != nil {
+		c.value(n.InvokeArg, "", n.Line, env, "invoke argument")
+	}
+	name := ""
+	if len(n.Scruts) == 1 {
+		if s := n.Scruts[0]; s.Kind == "ref" && len(s.Ref) == 1 {
+			name = s.Ref[0]
+		}
+	}
+	sig := n.invokeSig
+	if name != "" {
+		t, ok := env[name]
+		if !ok && constNameRe.MatchString(name) {
+			if decl, found := lookupConst(c.prog, name); found {
+				t, ok = decl.Type, true
+			}
+		}
+		// A resolved signature still loses to a shadowed
+		// binder: the name in scope is what executes. The
+		// proof keeps reading the parameter's kinds (it has
+		// no env), so only the checker reports the shadow.
+		if ok && t != "" && (sig == nil || t != sig.head) {
+			c.out = append(c.out, spanDiag(c.text, n.Line, "error",
+				fmt.Sprintf("invoke target %s has type %s: want a function value", name, strings.TrimPrefix(t, "err:")), name, CodeTypeMismatch))
+		}
+	}
+	if sig != nil && n.InvokeArg != nil && c.knownType(sig.in) {
+		if got, ok := c.typeOf(n.InvokeArg, env); ok && got != sig.in {
+			c.mismatch(n.Line, "invoke "+name+" argument", got, sig.in, tokenOf(n.InvokeArg))
+		}
+	}
+	for _, a := range n.Arms {
+		p := a.Pats[0]
+		env2 := map[string]string{}
+		for k, v := range env {
+			env2[k] = v
+		}
+		armWant := ""
+		if p.Kind == "variant" && p.Var != "" {
+			if p.Name == "Ok" {
+				if sig != nil && c.knownType(sig.ret) {
+					env2[p.Var] = sig.ret
+				} else {
+					env2[p.Var] = ""
+				}
+				armWant = want
+			} else if _, ok := c.errs[p.Name]; ok {
+				env2[p.Var] = "err:" + p.Name
+			} else {
+				env2[p.Var] = ""
+			}
+		}
+		if p.Kind == "variantWild" && p.Name == "Ok" {
+			armWant = want
+		}
+		c.node(a.Rhs, env2, armWant)
 	}
 }
 

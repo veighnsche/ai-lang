@@ -405,6 +405,14 @@ func buildWorld(open *Module, mods []*Module, texts map[string]string) (*Program
 			emit(m, d)
 		}
 	}
+	// B00: resolve callable sites before anything consumes
+	// them. Forward elaboration reads invoke signatures for Ok
+	// forwards; check, proof, runs, and emit read them after.
+	// Pure (no diagnostics): unresolvable targets stay nil and
+	// every consumer fails closed with its own diagnostic.
+	for _, m := range mods {
+		resolveInvokeSites(m)
+	}
 	// Slice 2: elaborate forward arms into complete constructors
 	// on the same terms: once, here, before proofs, runs, and
 	// emit. Invalid forwards stay forward-shaped, so this must
@@ -949,6 +957,10 @@ func checkGiven(fn *FnDecl, prog *Program, text string) []Diag {
 		if m.Kind == MatchValue && m.Given != nil {
 			out = append(out, spanDiag(text, m.Line, "error",
 				fmt.Sprintf("multi-scrutinee match takes no given table: only a single call match takes given"), "given", CodeGivenOnLocal))
+		}
+		if m.Kind == MatchInvoke && m.Given != nil {
+			out = append(out, spanDiag(text, m.Line, "error",
+				fmt.Sprintf("match invoke takes no given table: invocation executes the target body, nothing is scripted"), "given", CodeGivenOnInvoke))
 		}
 		if m.Kind != MatchCall {
 			continue

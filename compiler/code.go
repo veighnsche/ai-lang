@@ -64,6 +64,7 @@ const (
 	CodeNoExchange               = "CAN3109"
 	CodeInconsistentScript       = "CAN3110"
 	CodeGivenDashRetired         = "CAN3111"
+	CodeGivenOnInvoke            = "CAN3112"
 	CodeDupTest                  = "CAN3201"
 	CodeUnknownArg               = "CAN3202"
 	CodeMissingArg               = "CAN3203"
@@ -117,7 +118,9 @@ const (
 	CodeAssetBridgeShape         = "CAN6015"
 	CodeConstNonliteral          = "CAN6016"
 	CodePinnedWeakened           = "CAN6017"
-	CodeFnValueDeferred          = "CAN6018"
+	// CAN6018 (CodeFnValueDeferred) retired by b00 I2: invocation
+	// proves statically now, so "deferred" is no longer a diagnostic.
+	// Numbers are never reused.
 	CodeFnHeadInvalid            = "CAN6019"
 	CodeFnResidualArity          = "CAN6020"
 	CodeFnComputedCapture        = "CAN6021"
@@ -146,7 +149,7 @@ var allCodes = []string{
 	CodeUnknownCall, CodeCallNotInUses, CodeCallOutside, CodeCallNested, CodeLocalCycle,
 	CodeBadDecreases, CodeStaleDecreases, CodeNoDecrease, CodeNoGuard, CodeBadBinding, CodeBadForward, CodeChainElab, CodeBadForwardCall, CodeGenericExpand,
 	CodeNoGiven, CodeBadStub, CodeStubNotInEmit, CodeDeadScript, CodeGivenOnLocal,
-	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript, CodeGivenDashRetired,
+	CodeUndeclaredEffect, CodeStaleEffect, CodeNoExchange, CodeInconsistentScript, CodeGivenDashRetired, CodeGivenOnInvoke,
 	CodeDupTest, CodeUnknownArg, CodeMissingArg, CodeBareErrorKind, CodeBadPositional,
 	CodeMissingTests, CodeUnusedUses, CodeUnusedParam,
 	CodeLintRedundant, CodeLintOrFold, CodeLintChain, CodeLintTable,
@@ -160,7 +163,6 @@ var allCodes = []string{
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
 	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodePrimitiveShadow, CodeRevisionIdentity,
 	CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePinnedWeakened,
-	CodeFnValueDeferred,
 	CodeFnHeadInvalid,
 	CodeFnResidualArity,
 	CodeFnComputedCapture,

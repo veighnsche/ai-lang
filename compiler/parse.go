@@ -230,6 +230,13 @@ type Node struct {
 	// emit (nil until verifyValueMatch proves the table). Unexported:
 	// invisible to any serialization, meaningful only post-proof.
 	analysis *valueMatchAnalysis
+	// invokeSig carries the resolved callable signature for a
+	// MatchInvoke (nil until resolveInvokeSites runs in
+	// buildWorld, and nil forever when the target names no
+	// Fn-typed parameter). Check, proof, forward elaboration,
+	// run, and emit consume it; every consumer fails closed on
+	// nil. Unexported like analysis.
+	invokeSig *invokeSig
 }
 
 type Test struct {
@@ -2766,7 +2773,9 @@ func parseMatchArmsKind(rows []row, i, indent, mline int, scruts []*Small, kind 
 	// Single non-call matches take no given table. Multi matches with a
 	// given table parse and fail in checkGiven with CodeGivenOnLocal, so
 	// the diagnostic names the rule instead of a coarse parse error.
-	// Invoke matches keep their table: scripting lands with invocation.
+	// Invoke matches keep their table for the same reason: checkGiven
+	// rejects it with CodeGivenOnInvoke, since invocation scripts
+	// nothing.
 	if node.Given != nil && node.Kind == MatchValue && len(node.Scruts) == 1 {
 		return nil, i, at(node.Line, fmt.Errorf("given table on a non-call match"))
 	}

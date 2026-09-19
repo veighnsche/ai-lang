@@ -91,11 +91,10 @@ func TestCheckFnrefRow(t *testing.T) {
 	wantFnvaluesClean(t, map[string]string{"m.can": fnvaluesCheckRow}, "m.can")
 }
 
-// Invocation stays deferred in I1: the row-held reference now
-// checks clean (only its CAN4200 evaluation failure remains,
-// admitted below), the match invoke node reports once, and
-// nothing else fires (no value-table proof, no exhaustiveness,
-// no given validation).
+// The proving invocation: the row-held reference checks against
+// the callback parameter, the argument matches the Fn input, and
+// the arms cover Ok plus the declared error set. Only the row's
+// runtime confirmation remains until I3 evaluates invocations.
 const fnvaluesCheckInvoke = `mod m
   provides [m__go, m__t, M__O]
   uses []
@@ -122,32 +121,12 @@ fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
     on m.err _ => Ok("e")
 `
 
-func TestCheckInvokeDeferred(t *testing.T) {
-	files := map[string]string{"m.can": fnvaluesCheckInvoke}
-	dir := writeLSPDir(t, files)
-	diags := diagnose(dir, "m.can", files["m.can"])
-	deferred := 0
-	proof := 0
-	for _, d := range diags {
-		if d.Sev != "error" {
-			continue
-		}
-		switch {
-		case d.Code == CodeFnValueDeferred:
-			deferred++
-		case d.Code == CodeProofOther:
-			proof++
-		case d.Code == CodeTestFailed || d.Code == CodeInconsistentScript:
-		default:
-			t.Fatalf("unexpected cascade error, got %v", diags)
-		}
-	}
-	if deferred != 1 {
-		t.Fatalf("expected exactly one deferral (the invoke node), got %v", diags)
-	}
-	if proof != 1 {
-		t.Fatalf("expected exactly one proof fail-closed, got %v", diags)
-	}
+// I2: the invocation proves. The reference and argument check
+// against the Fn signature, the arms cover Ok plus the declared
+// error set, and only the row's runtime confirmation remains
+// (evaluation lands in I3).
+func TestCheckInvokeProves(t *testing.T) {
+	wantFnvaluesClean(t, map[string]string{"m.can": fnvaluesCheckInvoke}, "m.can")
 }
 
 // Calls in invoke-argument position are outside-call violations:
@@ -584,27 +563,112 @@ func TestCheckFnrefForeignPinClean(t *testing.T) {
 }
 
 func TestCheckInvokeWithCall(t *testing.T) {
-	files := map[string]string{"m.can": fnvaluesCheckWithCall}
-	dir := writeLSPDir(t, files)
-	diags := diagnose(dir, "m.can", files["m.can"])
-	deferred, outside, proof := 0, 0, 0
-	for _, d := range diags {
-		if d.Sev != "error" {
-			continue
-		}
-		switch {
-		case d.Code == CodeFnValueDeferred:
-			deferred++
-		case d.Code == CodeCallOutside:
-			outside++
-		case d.Code == CodeProofOther:
-			proof++
-		case d.Code == CodeTestFailed || d.Code == CodeInconsistentScript:
-		default:
-			t.Fatalf("unexpected cascade error, got %v", diags)
-		}
+	seqCode(t, map[string]string{"m.can": fnvaluesCheckWithCall}, "m.can",
+		CodeCallOutside, "outside a match scrutinee")
+}
+
+// I2 negatives: each invocation rule reports its own reused code
+// with a singular report (seqCode admits only the runtime
+// confirmation). The proof stays silent on unresolvable targets
+// (a62): the checker owns those, so no CAN4100 joins them.
+const fnvaluesInvokeBase = `mod m
+  provides [m__go, m__t, M__O]
+  uses []
+  emits [m.err, m.odd]
+
+error m.err(detail: str)
+
+error m.odd(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    g(fnref m__t(divisor = 3), 4) => Ok("q")
+MATCH
+`
+
+func TestCheckInvokeNegatives(t *testing.T) {
+	cases := []struct {
+		name  string
+		match string
+		code  string
+		sub   string
+	}{
+		{"non-callable target", `  match invoke n with n
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")`,
+			CodeTypeMismatch, "invoke target n has type int: want a function value"},
+		{"unknown target", `  match invoke nope with n
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")`,
+			CodeTypeMismatch, "unbound name nope in m__go"},
+		{"argument mismatch", `  match invoke cb with "s"
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")`,
+			CodeTypeMismatch, "invoke cb argument: got str, want int"},
+		{"missing arm", `  match invoke cb with n
+    on Ok _ => Ok("q")`,
+			CodeMissingArm, "non-exhaustive match, missing m.err"},
+		{"stale arm", `  match invoke cb with n
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")
+    on m.odd _ => Ok("o")`,
+			CodeStaleArm, "stale match arm m.odd"},
+		{"given scripts nothing", `  match invoke cb with n
+    given
+      g => [exchange args (n = 4) outcome Ok("q")]
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")`,
+			CodeGivenOnInvoke, "takes no given table"},
 	}
-	if deferred != 1 || outside != 1 || proof != 1 {
-		t.Fatalf("want 1 deferral + outside call + proof guard, got %v", diags)
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			body := strings.Replace(fnvaluesInvokeBase, "MATCH", c.match, 1)
+			seqCode(t, map[string]string{"m.can": body}, "m.can", c.code, c.sub)
+		})
+	}
+}
+
+// A binder shadowing the callback parameter is not callable: the
+// checker reports the shadowed type while the proof still reads
+// the parameter's signature (exhaustive here, so silent).
+func TestCheckInvokeShadowedTarget(t *testing.T) {
+	body := strings.Replace(fnvaluesInvokeBase, "MATCH", `  match invoke cb with n
+    on Ok _ => Ok("q")
+    on m.err cb => match invoke cb with n
+      on Ok _ => Ok("q")
+      on m.err _ => Ok("e")`, 1)
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
+		CodeTypeMismatch, "invoke target cb has type m.err: want a function value")
+}
+
+// Ok forwards elaborate in invoke arms exactly like call arms:
+// the success record comes off the resolved signature.
+func TestCheckInvokeForwardOk(t *testing.T) {
+	body := strings.Replace(fnvaluesInvokeBase, "MATCH", `  match invoke cb with n
+    on Ok r => forward r
+    on m.err _ => Ok("e")`, 1)
+	wantFnvaluesClean(t, map[string]string{"m.can": body}, "m.can")
+}
+
+// A mistargeted forward in an invoke arm is CAN3011, like
+// everywhere else.
+func TestCheckInvokeForwardRejects(t *testing.T) {
+	body := strings.Replace(fnvaluesInvokeBase, "MATCH", `  match invoke cb with n
+    on Ok r => forward q
+    on m.err _ => Ok("e")`, 1)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	if diags := diagnose(dir, "m.can", body); !hasCode(diags, "CAN3011") {
+		t.Fatalf("mistargeted invoke forward reported no CAN3011: %v", diags)
 	}
 }

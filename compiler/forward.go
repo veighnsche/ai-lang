@@ -35,10 +35,9 @@ func elaborateForwards(open *Module, prog *Program, text string) []Diag {
 					continue
 				}
 				operand := strings.TrimSpace(a.Rhs.Small.Str)
-				if m.Kind == MatchInvoke {
-					continue // invoke arms are call-shaped; forward validity lands with invocation
-				}
-				if m.Kind != MatchCall || len(m.Scruts) != 1 || m.Scruts[0].Kind != "call" {
+				isInvoke := m.Kind == MatchInvoke
+				if (m.Kind != MatchCall && !isInvoke) || len(m.Scruts) != 1 ||
+					(!isInvoke && m.Scruts[0].Kind != "call") || (isInvoke && m.Scruts[0].Kind != "ref") {
 					fail(a.Line, "forward is a call-outcome arm shape: value matches cannot forward")
 					continue
 				}
@@ -60,7 +59,21 @@ func elaborateForwards(open *Module, prog *Program, text string) []Diag {
 					continue
 				}
 				if pat.Name == "Ok" {
-					rewrite, err := forwardOk(prog, fn, m.Scruts[0].Fname, pat.Var)
+					var rewrite *Small
+					var err error
+					if isInvoke {
+						name := ""
+						if len(m.Scruts[0].Ref) == 1 {
+							name = m.Scruts[0].Ref[0]
+						}
+						if m.invokeSig == nil {
+							fail(a.Line, "forward cannot resolve invoke target %s", name)
+							continue
+						}
+						rewrite, err = forwardOkRet(prog, fn, name, m.invokeSig.ret, pat.Var)
+					} else {
+						rewrite, err = forwardOk(prog, fn, m.Scruts[0].Fname, pat.Var)
+					}
 					if err != nil {
 						fail(a.Line, "%s", err.Error())
 						continue
@@ -105,10 +118,19 @@ func forwardOk(prog *Program, fn *FnDecl, callee, binder string) (*Small, error)
 	} else {
 		return nil, fmt.Errorf("forward cannot resolve callee %s", callee)
 	}
+	return forwardOkRet(prog, fn, callee, calleeRet, binder)
+}
+
+// forwardOkRet rebuilds an Ok payload from a known success record:
+// the record must hold exactly the enclosing function's success
+// fields with resolved types. Call matches resolve the record
+// through the callee; invoke matches read it off the resolved
+// callable signature.
+func forwardOkRet(prog *Program, fn *FnDecl, who, calleeRet, binder string) (*Small, error) {
 	src := recordDecl(prog, calleeRet)
 	dst := recordDecl(prog, fn.Ret)
 	if src == nil || dst == nil {
-		return nil, fmt.Errorf("forward needs record returns: %s -> %s, %s -> %s", callee, calleeRet, fn.Name, fn.Ret)
+		return nil, fmt.Errorf("forward needs record returns: %s -> %s, %s -> %s", who, calleeRet, fn.Name, fn.Ret)
 	}
 	if len(src.Fields) != len(dst.Fields) {
 		return nil, fmt.Errorf("forward needs exactly the destination success fields: %s holds %d, %s holds %d", calleeRet, len(src.Fields), fn.Ret, len(dst.Fields))
