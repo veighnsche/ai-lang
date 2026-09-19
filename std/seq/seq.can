@@ -1,0 +1,139 @@
+// std/seq/seq.can — roadmap order 6, first cut: immutable ordered
+// sequences over explicit element types. Construction is empty,
+// singleton, append, and concat; observation is length, checked
+// get, and half-open slice (same rule as text slicing). The
+// language rejects bare-Seq returns, so every sequence result
+// travels in Seq__Values<T> and every element in Seq__Item<T>.
+// Callbacks (map/filter/fold/find/all/any/sort/unique) wait on
+// function values; maps and sets wait on collection types.
+
+mod seq
+  provides [std__seq__empty, std__seq__singleton, std__seq__length, std__seq__get, std__seq__append, std__seq__concat_from, std__seq__concat, std__seq__slice_from, std__seq__slice, Int__Value, Seq__Values, Seq__Item]
+  uses []
+  emits [sequence.index_out_of_range, sequence.invalid_slice]
+
+error sequence.index_out_of_range(index: int)
+error sequence.invalid_slice(start: int, end: int)
+
+type Int__Value rev 1 (
+  value: int
+)
+
+type Seq__Values<T> rev 1 (
+  values: Seq<T>
+)
+
+type Seq__Item<T> rev 1 (
+  item: T
+)
+
+fn std__seq__empty<T>() -> Seq__Values<T> rev 1
+  emits []
+  tests
+    ints<T=int>() => Ok(Seq<int>[])
+    strs<T=str>() => Ok(Seq<str>[])
+  Ok(Seq<T>[])
+
+fn std__seq__singleton<T>(value: T) -> Seq__Values<T> rev 1
+  emits []
+  tests
+    int<T=int>(5) => Ok(Seq<int>[5])
+    str<T=str>("a") => Ok(Seq<str>["a"])
+  Ok(Seq<T>[value])
+
+fn std__seq__length<T>(values: Seq<T>) -> Int__Value rev 1
+  emits []
+  tests
+    empty_int<T=int>(Seq<int>[]) => Ok(0)
+    three_int<T=int>(Seq<int>[1, 2, 3]) => Ok(3)
+    one_str<T=str>(Seq<str>["a"]) => Ok(1)
+  Ok(#values)
+
+fn std__seq__get<T>(values: Seq<T>, index: int) -> Seq__Item<T> rev 1
+  emits [sequence.index_out_of_range]
+  tests
+    first<T=int>(Seq<int>[7, 8], 0) => Ok(7)
+    last<T=int>(Seq<int>[7, 8], 1) => Ok(8)
+    neg<T=int>(Seq<int>[7, 8], -1) => sequence.index_out_of_range(-1)
+    past_end<T=int>(Seq<int>[7, 8], 2) => sequence.index_out_of_range(2)
+    empty<T=int>(Seq<int>[], 0) => sequence.index_out_of_range(0)
+    str<T=str>(Seq<str>["a", "b"], 1) => Ok("b")
+    str_neg<T=str>(Seq<str>["a"], -1) => sequence.index_out_of_range(-1)
+    str_past<T=str>(Seq<str>["a"], 1) => sequence.index_out_of_range(1)
+  match index < 0, index >= #values
+    true, _ => sequence.index_out_of_range(index)
+    _, true => sequence.index_out_of_range(index)
+    false, false => Ok(values[index])
+
+fn std__seq__append<T>(values: Seq<T>, item: T) -> Seq__Values<T> rev 1
+  emits []
+  tests
+    onto_empty<T=int>(Seq<int>[], 1) => Ok(Seq<int>[1])
+    onto_two<T=int>(Seq<int>[1, 2], 3) => Ok(Seq<int>[1, 2, 3])
+    str<T=str>(Seq<str>["a"], "b") => Ok(Seq<str>["a", "b"])
+  Ok(values + item)
+
+fn std__seq__concat_from<T>(left: Seq<T>, right: Seq<T>, pos: int, n: int, acc: Seq<T>) -> Seq__Values<T> rev 1
+  decreases n
+  emits []
+  tests
+    done<T=int>(Seq<int>[1], Seq<int>[2], 1, 0, Seq<int>[1, 2]) => Ok(Seq<int>[1, 2])
+    over<T=int>(Seq<int>[1], Seq<int>[2], 5, 2, Seq<int>[1]) => Ok(Seq<int>[1])
+    step<T=int>(Seq<int>[1], Seq<int>[2, 3], 0, 2, Seq<int>[1]) => Ok(Seq<int>[1, 2, 3])
+    str<T=str>(Seq<str>["a"], Seq<str>["b"], 0, 1, Seq<str>["a"]) => Ok(Seq<str>["a", "b"])
+    str_done<T=str>(Seq<str>["a"], Seq<str>["b"], 1, 0, Seq<str>["a", "b"]) => Ok(Seq<str>["a", "b"])
+    str_over<T=str>(Seq<str>["a"], Seq<str>["b"], 5, 1, Seq<str>["a"]) => Ok(Seq<str>["a"])
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #right
+      true => match call std__seq__concat_from<T>(left, right, pos + 1, n - 1, acc + right[pos])
+        on Ok r => Ok(r.values)
+      false => Ok(acc)
+
+fn std__seq__concat<T>(left: Seq<T>, right: Seq<T>) -> Seq__Values<T> rev 1
+  emits []
+  tests
+    both_empty<T=int>(Seq<int>[], Seq<int>[]) => Ok(Seq<int>[])
+    left_empty<T=int>(Seq<int>[], Seq<int>[1, 2]) => Ok(Seq<int>[1, 2])
+    right_empty<T=int>(Seq<int>[1], Seq<int>[]) => Ok(Seq<int>[1])
+    two_and_two<T=int>(Seq<int>[1, 2], Seq<int>[3, 4]) => Ok(Seq<int>[1, 2, 3, 4])
+    str<T=str>(Seq<str>["a"], Seq<str>["b", "c"]) => Ok(Seq<str>["a", "b", "c"])
+  match call std__seq__concat_from<T>(left, right, 0, #right, left)
+    on Ok r => Ok(r.values)
+
+fn std__seq__slice_from<T>(values: Seq<T>, end: int, pos: int, n: int, acc: Seq<T>) -> Seq__Values<T> rev 1
+  decreases n
+  emits []
+  tests
+    done<T=int>(Seq<int>[1, 2, 3], 3, 3, 0, Seq<int>[2, 3]) => Ok(Seq<int>[2, 3])
+    over<T=int>(Seq<int>[1], 9, 5, 2, Seq<int>[]) => Ok(Seq<int>[])
+    step<T=int>(Seq<int>[1, 2, 3], 2, 0, 2, Seq<int>[]) => Ok(Seq<int>[1, 2])
+    str<T=str>(Seq<str>["a", "b"], 1, 0, 1, Seq<str>[]) => Ok(Seq<str>["a"])
+    str_done<T=str>(Seq<str>["a", "b"], 2, 2, 0, Seq<str>["a", "b"]) => Ok(Seq<str>["a", "b"])
+    str_over<T=str>(Seq<str>["a"], 9, 5, 1, Seq<str>[]) => Ok(Seq<str>[])
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < end, pos < #values
+      true, true => match call std__seq__slice_from<T>(values, end, pos + 1, n - 1, acc + values[pos])
+        on Ok r => Ok(r.values)
+      _, _ => Ok(acc)
+
+fn std__seq__slice<T>(values: Seq<T>, start: int, end: int) -> Seq__Values<T> rev 1
+  emits [sequence.invalid_slice]
+  tests
+    whole<T=int>(Seq<int>[1, 2, 3], 0, 3) => Ok(Seq<int>[1, 2, 3])
+    middle<T=int>(Seq<int>[1, 2, 3], 1, 2) => Ok(Seq<int>[2])
+    empty_mid<T=int>(Seq<int>[1, 2, 3], 2, 2) => Ok(Seq<int>[])
+    neg_start<T=int>(Seq<int>[1, 2, 3], -1, 2) => sequence.invalid_slice(-1, 2)
+    reversed<T=int>(Seq<int>[1, 2, 3], 2, 1) => sequence.invalid_slice(2, 1)
+    past_end<T=int>(Seq<int>[1, 2, 3], 0, 4) => sequence.invalid_slice(0, 4)
+    str<T=str>(Seq<str>["a", "b", "c"], 0, 2) => Ok(Seq<str>["a", "b"])
+    str_neg<T=str>(Seq<str>["a"], -1, 1) => sequence.invalid_slice(-1, 1)
+    str_rev<T=str>(Seq<str>["a"], 1, 0) => sequence.invalid_slice(1, 0)
+    str_past<T=str>(Seq<str>["a"], 0, 2) => sequence.invalid_slice(0, 2)
+  match start < 0, start > end, end > #values
+    true, _, _ => sequence.invalid_slice(start, end)
+    _, true, _ => sequence.invalid_slice(start, end)
+    _, _, true => sequence.invalid_slice(start, end)
+    false, false, false => match call std__seq__slice_from<T>(values, end, start, end - start, Seq<T>[])
+      on Ok r => Ok(r.values)
