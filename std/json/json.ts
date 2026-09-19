@@ -1,7 +1,7 @@
 // GENERATED from json.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
 import { std__convert__dec_to_str, std__convert__int_to_str, std__convert__str_to_dec, std__convert__str_to_int, type Bool__Value, type Dec__Value, type Int__Value, type Str__Value, type ScalarsResult } from "./scalars";
-export type JsonResult = { $can_kind: "ok"; frames: Json__Frame[] } | { $can_kind: "ok"; value: Json__Value } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.numeric_out_of_range"; text: string } | { $can_kind: "json.render_budget_exhausted" };
+export type JsonResult = { $can_kind: "ok"; frames: Json__Frame[] } | { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "ok"; tag: Json__HeadTag } | { $can_kind: "ok"; value: Json__Value } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: boolean } | { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.numeric_out_of_range"; text: string } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string };
 export type Int__Value = { value: bigint };
 export type Dec__Value = { value: string };
 export type Str__Value = { value: string };
@@ -9,13 +9,24 @@ export type Bool__Value = { value: boolean };
 export type Json__Text = { value: string };
 export type Json__Field = { name: string; value: Json__Value };
 export type Json__Doc = { value: Json__Value };
-export type Json__Frame = { tag: bigint; text: string; val: Json__Value; items: Json__Doc[]; ipos: bigint; fields: Json__Field[]; fpos: bigint };
+export type Json__Frame = { tag: Json__Tag; text: string; val: Json__Value; items: Json__Doc[]; ipos: bigint; fields: Json__Field[]; fpos: bigint };
 export type Json__Frames = { frames: Json__Frame[] };
 export type Json__IntSchema = { encode: (input: bigint) => { $can_kind: "ok"; value: Json__Value }; decode: (input: Json__Value) => { $can_kind: "ok"; value: bigint } | { $can_kind: "json.numeric_out_of_range"; text: string } | { $can_kind: "json.schema_mismatch"; detail: string } };
 export type Json__StrSchema = { encode: (input: string) => { $can_kind: "ok"; value: Json__Value }; decode: (input: Json__Value) => { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } };
 export type Json__BoolSchema = { encode: (input: boolean) => { $can_kind: "ok"; value: Json__Value }; decode: (input: Json__Value) => { $can_kind: "ok"; value: boolean } | { $can_kind: "json.schema_mismatch"; detail: string } };
 export type Json__DecSchema = { encode: (input: string) => { $can_kind: "ok"; value: Json__Value }; decode: (input: Json__Value) => { $can_kind: "ok"; value: string } | { $can_kind: "json.numeric_out_of_range"; text: string } | { $can_kind: "json.schema_mismatch"; detail: string } };
+export type Json__PFrame = { tag: Json__PTag; items: Json__Doc[]; fields: Json__Field[]; keys: string[]; key: string; acc: string; val: Json__Value; ofields: Json__Field[]; okeys: string[] };
+export type Json__PFrames = { frames: Json__PFrame[] };
+export type Json__Head = { tag: Json__HeadTag };
+export type Json__LitOut = { val: Json__Value; next: bigint };
 export type Json__Value = { $can_kind: "Json__Null" } | { $can_kind: "Json__Bool"; value: boolean } | { $can_kind: "Json__Num"; text: string } | { $can_kind: "Json__Str"; value: string } | { $can_kind: "Json__Arr"; items: Json__Doc[] } | { $can_kind: "Json__Obj"; fields: Json__Field[] };
+export type Json__Tag = { $can_kind: "Json__TagEmit" } | { $can_kind: "Json__TagValue" } | { $can_kind: "Json__TagItems" } | { $can_kind: "Json__TagFields" };
+export type Json__PTag = { $can_kind: "Json__PArrFirst" } | { $can_kind: "Json__PArrVal" } | { $can_kind: "Json__PArrNext" } | { $can_kind: "Json__PObjFirst" } | { $can_kind: "Json__PObjKey" } | { $can_kind: "Json__PObjColon" } | { $can_kind: "Json__PObjKeyVal" } | { $can_kind: "Json__PObjNext" } | { $can_kind: "Json__PStrKey" } | { $can_kind: "Json__PStrVal" } | { $can_kind: "Json__PNumAcc" } | { $can_kind: "Json__PTail" };
+export type Json__HeadTag = { $can_kind: "Json__HeadBrace" } | { $can_kind: "Json__HeadBracket" } | { $can_kind: "Json__HeadStr" } | { $can_kind: "Json__HeadLit" } | { $can_kind: "Json__HeadNum" } | { $can_kind: "Json__HeadBad" } | { $can_kind: "Json__HeadEof" };
+// Strict boolean runtime (slice 5): eager helpers, never bare &&.
+function $canBoolAnd(a: boolean, b: boolean): boolean {
+  return a && b;
+}
 // Byte-order string comparison: UTF-8 bytes, matching Go.
 function $canStrCmp(a: string, b: string): number {
   const A = new TextEncoder().encode(a);
@@ -99,24 +110,16 @@ export function std__json__pop_from(frames: Json__Frame[], pos: bigint, n: bigin
     }
   }
 }
-export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } {
+export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; value: string } {
   const $can_m1 = v;
   switch ($can_m1.$can_kind) {
   case "Json__Null": {
     const _ = $can_m1;
-    const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([{ tag: 1n, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
+    const $can_m2: { $can_kind: "ok"; value: string } = std__json__render_step([{ tag: { $can_kind: "Json__TagValue" }, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
     switch ($can_m2.$can_kind) {
     case "ok": {
       const r = $can_m2;
       return { $can_kind: "ok", value: r.value };
-    }
-    case "json.schema_mismatch": {
-      const e = $can_m2;
-      return { $can_kind: "json.schema_mismatch", detail: e.detail };
-    }
-    case "json.render_budget_exhausted": {
-      const e = $can_m2;
-      return { $can_kind: "json.render_budget_exhausted" };
     }
     default: {
       throw new Error("unreachable");
@@ -125,19 +128,11 @@ export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; valu
   }
   case "Json__Bool": {
     const _ = $can_m1;
-    const $can_m3: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([{ tag: 1n, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
+    const $can_m3: { $can_kind: "ok"; value: string } = std__json__render_step([{ tag: { $can_kind: "Json__TagValue" }, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
     switch ($can_m3.$can_kind) {
     case "ok": {
       const r = $can_m3;
       return { $can_kind: "ok", value: r.value };
-    }
-    case "json.schema_mismatch": {
-      const e = $can_m3;
-      return { $can_kind: "json.schema_mismatch", detail: e.detail };
-    }
-    case "json.render_budget_exhausted": {
-      const e = $can_m3;
-      return { $can_kind: "json.render_budget_exhausted" };
     }
     default: {
       throw new Error("unreachable");
@@ -146,19 +141,11 @@ export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; valu
   }
   case "Json__Num": {
     const _ = $can_m1;
-    const $can_m4: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([{ tag: 1n, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
+    const $can_m4: { $can_kind: "ok"; value: string } = std__json__render_step([{ tag: { $can_kind: "Json__TagValue" }, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
     switch ($can_m4.$can_kind) {
     case "ok": {
       const r = $can_m4;
       return { $can_kind: "ok", value: r.value };
-    }
-    case "json.schema_mismatch": {
-      const e = $can_m4;
-      return { $can_kind: "json.schema_mismatch", detail: e.detail };
-    }
-    case "json.render_budget_exhausted": {
-      const e = $can_m4;
-      return { $can_kind: "json.render_budget_exhausted" };
     }
     default: {
       throw new Error("unreachable");
@@ -167,19 +154,11 @@ export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; valu
   }
   case "Json__Str": {
     const _ = $can_m1;
-    const $can_m5: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([{ tag: 1n, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
+    const $can_m5: { $can_kind: "ok"; value: string } = std__json__render_step([{ tag: { $can_kind: "Json__TagValue" }, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
     switch ($can_m5.$can_kind) {
     case "ok": {
       const r = $can_m5;
       return { $can_kind: "ok", value: r.value };
-    }
-    case "json.schema_mismatch": {
-      const e = $can_m5;
-      return { $can_kind: "json.schema_mismatch", detail: e.detail };
-    }
-    case "json.render_budget_exhausted": {
-      const e = $can_m5;
-      return { $can_kind: "json.render_budget_exhausted" };
     }
     default: {
       throw new Error("unreachable");
@@ -188,19 +167,11 @@ export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; valu
   }
   case "Json__Arr": {
     const _ = $can_m1;
-    const $can_m6: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([{ tag: 1n, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
+    const $can_m6: { $can_kind: "ok"; value: string } = std__json__render_step([{ tag: { $can_kind: "Json__TagValue" }, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
     switch ($can_m6.$can_kind) {
     case "ok": {
       const r = $can_m6;
       return { $can_kind: "ok", value: r.value };
-    }
-    case "json.schema_mismatch": {
-      const e = $can_m6;
-      return { $can_kind: "json.schema_mismatch", detail: e.detail };
-    }
-    case "json.render_budget_exhausted": {
-      const e = $can_m6;
-      return { $can_kind: "json.render_budget_exhausted" };
     }
     default: {
       throw new Error("unreachable");
@@ -209,19 +180,11 @@ export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; valu
   }
   case "Json__Obj": {
     const _ = $can_m1;
-    const $can_m7: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([{ tag: 1n, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
+    const $can_m7: { $can_kind: "ok"; value: string } = std__json__render_step([{ tag: { $can_kind: "Json__TagValue" }, text: "", val: v, items: [], ipos: 0n, fields: [], fpos: 0n }], "", 1000000n);
     switch ($can_m7.$can_kind) {
     case "ok": {
       const r = $can_m7;
       return { $can_kind: "ok", value: r.value };
-    }
-    case "json.schema_mismatch": {
-      const e = $can_m7;
-      return { $can_kind: "json.schema_mismatch", detail: e.detail };
-    }
-    case "json.render_budget_exhausted": {
-      const e = $can_m7;
-      return { $can_kind: "json.render_budget_exhausted" };
     }
     default: {
       throw new Error("unreachable");
@@ -233,9 +196,9 @@ export function std__json__render_value(v: Json__Value): { $can_kind: "ok"; valu
   }
   }
 }
-export function std__json__render_step(frames: Json__Frame[], acc: string, fuel: bigint): { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } {
+export function std__json__render_step(frames: Json__Frame[], acc: string, fuel: bigint): { $can_kind: "ok"; value: string } {
   if ((fuel <= 0n)) {
-    return { $can_kind: "json.render_budget_exhausted" };
+    return { $can_kind: "ok", value: acc };
   }
   else {
     if (((BigInt([...frames].length)) === 0n)) {
@@ -246,44 +209,32 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
       switch ($can_m1.$can_kind) {
       case "ok": {
         const pf = $can_m1;
-        if ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).tag === 0n) {
-          const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, (acc + $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).text), (fuel - 1n));
-          switch ($can_m2.$can_kind) {
+        const $can_m2 = $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).tag;
+        switch ($can_m2.$can_kind) {
+        case "Json__TagEmit": {
+          const _ = $can_m2;
+          const $can_m3: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, (acc + $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).text), (fuel - 1n));
+          switch ($can_m3.$can_kind) {
           case "ok": {
-            const r = $can_m2;
+            const r = $can_m3;
             return { $can_kind: "ok", value: r.value };
-          }
-          case "json.schema_mismatch": {
-            const e = $can_m2;
-            return { $can_kind: "json.schema_mismatch", detail: e.detail };
-          }
-          case "json.render_budget_exhausted": {
-            const e = $can_m2;
-            return { $can_kind: "json.render_budget_exhausted" };
           }
           default: {
             throw new Error("unreachable");
           }
           }
         }
-        else if ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).tag === 1n) {
-          const $can_m3 = $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).val;
-          switch ($can_m3.$can_kind) {
+        case "Json__TagValue": {
+          const _ = $can_m2;
+          const $can_m4 = $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).val;
+          switch ($can_m4.$can_kind) {
           case "Json__Null": {
-            const _ = $can_m3;
-            const $can_m4: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, (acc + "null"), (fuel - 1n));
-            switch ($can_m4.$can_kind) {
+            const _ = $can_m4;
+            const $can_m5: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, (acc + "null"), (fuel - 1n));
+            switch ($can_m5.$can_kind) {
             case "ok": {
-              const r = $can_m4;
+              const r = $can_m5;
               return { $can_kind: "ok", value: r.value };
-            }
-            case "json.schema_mismatch": {
-              const e = $can_m4;
-              return { $can_kind: "json.schema_mismatch", detail: e.detail };
-            }
-            case "json.render_budget_exhausted": {
-              const e = $can_m4;
-              return { $can_kind: "json.render_budget_exhausted" };
             }
             default: {
               throw new Error("unreachable");
@@ -291,21 +242,13 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           case "Json__Bool": {
-            const b = $can_m3;
+            const b = $can_m4;
             if (b.value) {
-              const $can_m5: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, (acc + "true"), (fuel - 1n));
-              switch ($can_m5.$can_kind) {
+              const $can_m6: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, (acc + "true"), (fuel - 1n));
+              switch ($can_m6.$can_kind) {
               case "ok": {
-                const r = $can_m5;
+                const r = $can_m6;
                 return { $can_kind: "ok", value: r.value };
-              }
-              case "json.schema_mismatch": {
-                const e = $can_m5;
-                return { $can_kind: "json.schema_mismatch", detail: e.detail };
-              }
-              case "json.render_budget_exhausted": {
-                const e = $can_m5;
-                return { $can_kind: "json.render_budget_exhausted" };
               }
               default: {
                 throw new Error("unreachable");
@@ -313,19 +256,11 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
               }
             }
             else {
-              const $can_m6: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, (acc + "false"), (fuel - 1n));
-              switch ($can_m6.$can_kind) {
+              const $can_m7: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, (acc + "false"), (fuel - 1n));
+              switch ($can_m7.$can_kind) {
               case "ok": {
-                const r = $can_m6;
+                const r = $can_m7;
                 return { $can_kind: "ok", value: r.value };
-              }
-              case "json.schema_mismatch": {
-                const e = $can_m6;
-                return { $can_kind: "json.schema_mismatch", detail: e.detail };
-              }
-              case "json.render_budget_exhausted": {
-                const e = $can_m6;
-                return { $can_kind: "json.render_budget_exhausted" };
               }
               default: {
                 throw new Error("unreachable");
@@ -334,20 +269,12 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           case "Json__Num": {
-            const n = $can_m3;
-            const $can_m7: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, (acc + n.text), (fuel - 1n));
-            switch ($can_m7.$can_kind) {
+            const n = $can_m4;
+            const $can_m8: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, (acc + n.text), (fuel - 1n));
+            switch ($can_m8.$can_kind) {
             case "ok": {
-              const r = $can_m7;
+              const r = $can_m8;
               return { $can_kind: "ok", value: r.value };
-            }
-            case "json.schema_mismatch": {
-              const e = $can_m7;
-              return { $can_kind: "json.schema_mismatch", detail: e.detail };
-            }
-            case "json.render_budget_exhausted": {
-              const e = $can_m7;
-              return { $can_kind: "json.render_budget_exhausted" };
             }
             default: {
               throw new Error("unreachable");
@@ -355,24 +282,16 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           case "Json__Str": {
-            const s = $can_m3;
-            const $can_m8: { $can_kind: "ok"; value: string } = std__json__escape(s.value);
-            switch ($can_m8.$can_kind) {
+            const s = $can_m4;
+            const $can_m9: { $can_kind: "ok"; value: string } = std__json__escape(s.value);
+            switch ($can_m9.$can_kind) {
             case "ok": {
-              const e = $can_m8;
-              const $can_m9: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, (((acc + "\"") + e.value) + "\""), (fuel - 1n));
-              switch ($can_m9.$can_kind) {
+              const e = $can_m9;
+              const $can_m10: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, (((acc + "\"") + e.value) + "\""), (fuel - 1n));
+              switch ($can_m10.$can_kind) {
               case "ok": {
-                const r = $can_m9;
+                const r = $can_m10;
                 return { $can_kind: "ok", value: r.value };
-              }
-              case "json.schema_mismatch": {
-                const e = $can_m9;
-                return { $can_kind: "json.schema_mismatch", detail: e.detail };
-              }
-              case "json.render_budget_exhausted": {
-                const e = $can_m9;
-                return { $can_kind: "json.render_budget_exhausted" };
               }
               default: {
                 throw new Error("unreachable");
@@ -385,20 +304,12 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           case "Json__Arr": {
-            const a = $can_m3;
-            const $can_m10: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([...[...[...pf.frames, { tag: 0n, text: "]", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: 2n, text: "", val: { $can_kind: "Json__Null" }, items: a.items, ipos: 0n, fields: [], fpos: 0n }], { tag: 0n, text: "[", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
-            switch ($can_m10.$can_kind) {
+            const a = $can_m4;
+            const $can_m11: { $can_kind: "ok"; value: string } = std__json__render_step([...[...[...pf.frames, { tag: { $can_kind: "Json__TagEmit" }, text: "]", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagItems" }, text: "", val: { $can_kind: "Json__Null" }, items: a.items, ipos: 0n, fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagEmit" }, text: "[", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
+            switch ($can_m11.$can_kind) {
             case "ok": {
-              const r = $can_m10;
+              const r = $can_m11;
               return { $can_kind: "ok", value: r.value };
-            }
-            case "json.schema_mismatch": {
-              const e = $can_m10;
-              return { $can_kind: "json.schema_mismatch", detail: e.detail };
-            }
-            case "json.render_budget_exhausted": {
-              const e = $can_m10;
-              return { $can_kind: "json.render_budget_exhausted" };
             }
             default: {
               throw new Error("unreachable");
@@ -406,20 +317,12 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           case "Json__Obj": {
-            const o = $can_m3;
-            const $can_m11: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([...[...[...pf.frames, { tag: 0n, text: "}", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: 3n, text: "", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: o.fields, fpos: 0n }], { tag: 0n, text: "{", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
-            switch ($can_m11.$can_kind) {
+            const o = $can_m4;
+            const $can_m12: { $can_kind: "ok"; value: string } = std__json__render_step([...[...[...pf.frames, { tag: { $can_kind: "Json__TagEmit" }, text: "}", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagFields" }, text: "", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: o.fields, fpos: 0n }], { tag: { $can_kind: "Json__TagEmit" }, text: "{", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
+            switch ($can_m12.$can_kind) {
             case "ok": {
-              const r = $can_m11;
+              const r = $can_m12;
               return { $can_kind: "ok", value: r.value };
-            }
-            case "json.schema_mismatch": {
-              const e = $can_m11;
-              return { $can_kind: "json.schema_mismatch", detail: e.detail };
-            }
-            case "json.render_budget_exhausted": {
-              const e = $can_m11;
-              return { $can_kind: "json.render_budget_exhausted" };
             }
             default: {
               throw new Error("unreachable");
@@ -431,22 +334,15 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
           }
           }
         }
-        else if ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).tag === 2n) {
+        case "Json__TagItems": {
+          const _ = $can_m2;
           if (($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos < (BigInt([...$canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items].length)))) {
             if (($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos === 0n)) {
-              const $can_m12: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([...[...pf.frames, { tag: 2n, text: "", val: { $can_kind: "Json__Null" }, items: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, ipos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos + 1n), fields: [], fpos: 0n }], { tag: 1n, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
-              switch ($can_m12.$can_kind) {
+              const $can_m13: { $can_kind: "ok"; value: string } = std__json__render_step([...[...pf.frames, { tag: { $can_kind: "Json__TagItems" }, text: "", val: { $can_kind: "Json__Null" }, items: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, ipos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos + 1n), fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagValue" }, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
+              switch ($can_m13.$can_kind) {
               case "ok": {
-                const r = $can_m12;
+                const r = $can_m13;
                 return { $can_kind: "ok", value: r.value };
-              }
-              case "json.schema_mismatch": {
-                const e = $can_m12;
-                return { $can_kind: "json.schema_mismatch", detail: e.detail };
-              }
-              case "json.render_budget_exhausted": {
-                const e = $can_m12;
-                return { $can_kind: "json.render_budget_exhausted" };
               }
               default: {
                 throw new Error("unreachable");
@@ -454,19 +350,11 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
               }
             }
             else {
-              const $can_m13: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([...[...[...pf.frames, { tag: 2n, text: "", val: { $can_kind: "Json__Null" }, items: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, ipos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos + 1n), fields: [], fpos: 0n }], { tag: 1n, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: 0n, text: ", ", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
-              switch ($can_m13.$can_kind) {
+              const $can_m14: { $can_kind: "ok"; value: string } = std__json__render_step([...[...[...pf.frames, { tag: { $can_kind: "Json__TagItems" }, text: "", val: { $can_kind: "Json__Null" }, items: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, ipos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos + 1n), fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagValue" }, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).ipos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagEmit" }, text: ", ", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
+              switch ($can_m14.$can_kind) {
               case "ok": {
-                const r = $can_m13;
+                const r = $can_m14;
                 return { $can_kind: "ok", value: r.value };
-              }
-              case "json.schema_mismatch": {
-                const e = $can_m13;
-                return { $can_kind: "json.schema_mismatch", detail: e.detail };
-              }
-              case "json.render_budget_exhausted": {
-                const e = $can_m13;
-                return { $can_kind: "json.render_budget_exhausted" };
               }
               default: {
                 throw new Error("unreachable");
@@ -475,19 +363,11 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           else {
-            const $can_m14: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, acc, (fuel - 1n));
-            switch ($can_m14.$can_kind) {
+            const $can_m15: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, acc, (fuel - 1n));
+            switch ($can_m15.$can_kind) {
             case "ok": {
-              const r = $can_m14;
+              const r = $can_m15;
               return { $can_kind: "ok", value: r.value };
-            }
-            case "json.schema_mismatch": {
-              const e = $can_m14;
-              return { $can_kind: "json.schema_mismatch", detail: e.detail };
-            }
-            case "json.render_budget_exhausted": {
-              const e = $can_m14;
-              return { $can_kind: "json.render_budget_exhausted" };
             }
             default: {
               throw new Error("unreachable");
@@ -495,26 +375,19 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
         }
-        else if ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).tag === 3n) {
+        case "Json__TagFields": {
+          const _ = $can_m2;
           if (($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos < (BigInt([...$canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields].length)))) {
-            const $can_m15: { $can_kind: "ok"; value: string } = std__json__escape($canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos).name);
-            switch ($can_m15.$can_kind) {
+            const $can_m16: { $can_kind: "ok"; value: string } = std__json__escape($canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos).name);
+            switch ($can_m16.$can_kind) {
             case "ok": {
-              const k = $can_m15;
+              const k = $can_m16;
               if (($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos === 0n)) {
-                const $can_m16: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([...[...[...pf.frames, { tag: 3n, text: "", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, fpos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos + 1n) }], { tag: 1n, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: 0n, text: (("\"" + k.value) + "\": "), val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
-                switch ($can_m16.$can_kind) {
+                const $can_m17: { $can_kind: "ok"; value: string } = std__json__render_step([...[...[...pf.frames, { tag: { $can_kind: "Json__TagFields" }, text: "", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, fpos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos + 1n) }], { tag: { $can_kind: "Json__TagValue" }, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagEmit" }, text: (("\"" + k.value) + "\": "), val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
+                switch ($can_m17.$can_kind) {
                 case "ok": {
-                  const r = $can_m16;
+                  const r = $can_m17;
                   return { $can_kind: "ok", value: r.value };
-                }
-                case "json.schema_mismatch": {
-                  const e = $can_m16;
-                  return { $can_kind: "json.schema_mismatch", detail: e.detail };
-                }
-                case "json.render_budget_exhausted": {
-                  const e = $can_m16;
-                  return { $can_kind: "json.render_budget_exhausted" };
                 }
                 default: {
                   throw new Error("unreachable");
@@ -522,19 +395,11 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
                 }
               }
               else {
-                const $can_m17: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step([...[...[...pf.frames, { tag: 3n, text: "", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, fpos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos + 1n) }], { tag: 1n, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: 0n, text: (((", " + "\"") + k.value) + "\": "), val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
-                switch ($can_m17.$can_kind) {
+                const $can_m18: { $can_kind: "ok"; value: string } = std__json__render_step([...[...[...pf.frames, { tag: { $can_kind: "Json__TagFields" }, text: "", val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, fpos: ($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos + 1n) }], { tag: { $can_kind: "Json__TagValue" }, text: "", val: $canSeqAt($canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fpos).value, items: [], ipos: 0n, fields: [], fpos: 0n }], { tag: { $can_kind: "Json__TagEmit" }, text: (((", " + "\"") + k.value) + "\": "), val: { $can_kind: "Json__Null" }, items: [], ipos: 0n, fields: [], fpos: 0n }], acc, (fuel - 1n));
+                switch ($can_m18.$can_kind) {
                 case "ok": {
-                  const r = $can_m17;
+                  const r = $can_m18;
                   return { $can_kind: "ok", value: r.value };
-                }
-                case "json.schema_mismatch": {
-                  const e = $can_m17;
-                  return { $can_kind: "json.schema_mismatch", detail: e.detail };
-                }
-                case "json.render_budget_exhausted": {
-                  const e = $can_m17;
-                  return { $can_kind: "json.render_budget_exhausted" };
                 }
                 default: {
                   throw new Error("unreachable");
@@ -548,19 +413,11 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
           else {
-            const $can_m18: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.render_budget_exhausted" } = std__json__render_step(pf.frames, acc, (fuel - 1n));
-            switch ($can_m18.$can_kind) {
+            const $can_m19: { $can_kind: "ok"; value: string } = std__json__render_step(pf.frames, acc, (fuel - 1n));
+            switch ($can_m19.$can_kind) {
             case "ok": {
-              const r = $can_m18;
+              const r = $can_m19;
               return { $can_kind: "ok", value: r.value };
-            }
-            case "json.schema_mismatch": {
-              const e = $can_m18;
-              return { $can_kind: "json.schema_mismatch", detail: e.detail };
-            }
-            case "json.render_budget_exhausted": {
-              const e = $can_m18;
-              return { $can_kind: "json.render_budget_exhausted" };
             }
             default: {
               throw new Error("unreachable");
@@ -568,7 +425,10 @@ export function std__json__render_step(frames: Json__Frame[], acc: string, fuel:
             }
           }
         }
-        return { $can_kind: "json.schema_mismatch", detail: "bad frame tag" };
+        default: {
+          throw new Error("unreachable");
+        }
+        }
       }
       default: {
         throw new Error("unreachable");
@@ -1140,5 +1000,693 @@ export function std__json__dec__decode_value(value: Json__Value, schema: Json__D
   default: {
     throw new Error("unreachable");
   }
+  }
+}
+export function std__json__parse_ws_skip(text: string, pos: bigint): { $can_kind: "ok"; value: bigint } {
+  const $can_m1: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip_from(text, pos, (BigInt([...text].length)), pos);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__parse_ws_skip_from(text: string, pos: bigint, n: bigint, acc: bigint): { $can_kind: "ok"; value: bigint } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: acc };
+  }
+  else {
+    if ((pos < (BigInt([...text].length)))) {
+      if ($canStrAt(text, pos) === 32n) {
+        const $can_m1: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip_from(text, (pos + 1n), (n - 1n), (pos + 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($canStrAt(text, pos) === 9n) {
+        const $can_m2: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip_from(text, (pos + 1n), (n - 1n), (pos + 1n));
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const r = $can_m2;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($canStrAt(text, pos) === 10n) {
+        const $can_m3: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip_from(text, (pos + 1n), (n - 1n), (pos + 1n));
+        switch ($can_m3.$can_kind) {
+        case "ok": {
+          const r = $can_m3;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else if ($canStrAt(text, pos) === 13n) {
+        const $can_m4: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip_from(text, (pos + 1n), (n - 1n), (pos + 1n));
+        switch ($can_m4.$can_kind) {
+        case "ok": {
+          const r = $can_m4;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      return { $can_kind: "ok", value: pos };
+    }
+    else {
+      return { $can_kind: "ok", value: acc };
+    }
+  }
+}
+export function std__json__parse_head(text: string, pos: bigint): { $can_kind: "ok"; tag: Json__HeadTag } {
+  if ((pos < (BigInt([...text].length)))) {
+    if ($canStrAt(text, pos) === 123n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadBrace" } };
+    }
+    else if ($canStrAt(text, pos) === 91n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadBracket" } };
+    }
+    else if ($canStrAt(text, pos) === 34n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadStr" } };
+    }
+    else if ($canStrAt(text, pos) === 116n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadLit" } };
+    }
+    else if ($canStrAt(text, pos) === 102n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadLit" } };
+    }
+    else if ($canStrAt(text, pos) === 110n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadLit" } };
+    }
+    else if ($canStrAt(text, pos) === 45n) {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadNum" } };
+    }
+    if (($canStrAt(text, pos) >= 48n)) {
+      if (($canStrAt(text, pos) <= 57n)) {
+        return { $can_kind: "ok", tag: { $can_kind: "Json__HeadNum" } };
+      }
+      else {
+        return { $can_kind: "ok", tag: { $can_kind: "Json__HeadBad" } };
+      }
+    }
+    else {
+      return { $can_kind: "ok", tag: { $can_kind: "Json__HeadBad" } };
+    }
+  }
+  else {
+    return { $can_kind: "ok", tag: { $can_kind: "Json__HeadEof" } };
+  }
+}
+export function std__json__parse_literal(text: string, pos: bigint): { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } {
+  if ($canStrAt(text, pos) === 116n) {
+    if ((((BigInt([...text].length)) - pos) >= 4n)) {
+      if (($canStrSlice(text, pos, (pos + 4n)) === "true")) {
+        return { $can_kind: "ok", val: { $can_kind: "Json__Bool", value: true }, next: (pos + 4n) };
+      }
+      else {
+        return { $can_kind: "json.invalid_syntax", detail: "bad literal" };
+      }
+    }
+    else {
+      return { $can_kind: "json.invalid_syntax", detail: "bad literal" };
+    }
+  }
+  else if ($canStrAt(text, pos) === 102n) {
+    if ((((BigInt([...text].length)) - pos) >= 5n)) {
+      if (($canStrSlice(text, pos, (pos + 5n)) === "false")) {
+        return { $can_kind: "ok", val: { $can_kind: "Json__Bool", value: false }, next: (pos + 5n) };
+      }
+      else {
+        return { $can_kind: "json.invalid_syntax", detail: "bad literal" };
+      }
+    }
+    else {
+      return { $can_kind: "json.invalid_syntax", detail: "bad literal" };
+    }
+  }
+  if ((((BigInt([...text].length)) - pos) >= 4n)) {
+    if (($canStrSlice(text, pos, (pos + 4n)) === "null")) {
+      return { $can_kind: "ok", val: { $can_kind: "Json__Null" }, next: (pos + 4n) };
+    }
+    else {
+      return { $can_kind: "json.invalid_syntax", detail: "bad literal" };
+    }
+  }
+  else {
+    return { $can_kind: "json.invalid_syntax", detail: "bad literal" };
+  }
+}
+export function std__json__parse_unescape(c: string): { $can_kind: "ok"; value: string } | { $can_kind: "json.invalid_syntax"; detail: string } {
+  if (c === "\"") {
+    return { $can_kind: "ok", value: "\"" };
+  }
+  else if (c === "\\") {
+    return { $can_kind: "ok", value: "\\" };
+  }
+  else if (c === "/") {
+    return { $can_kind: "ok", value: "/" };
+  }
+  else if (c === "n") {
+    return { $can_kind: "ok", value: "\n" };
+  }
+  else if (c === "r") {
+    return { $can_kind: "ok", value: "\r" };
+  }
+  else if (c === "t") {
+    return { $can_kind: "ok", value: "\t" };
+  }
+  if ((c === "u")) {
+    return { $can_kind: "json.invalid_syntax", detail: "unsupported escape" };
+  }
+  else {
+    if ((c === "b")) {
+      return { $can_kind: "json.invalid_syntax", detail: "unsupported escape" };
+    }
+    else {
+      if ((c === "f")) {
+        return { $can_kind: "json.invalid_syntax", detail: "unsupported escape" };
+      }
+      else {
+        return { $can_kind: "json.invalid_syntax", detail: "bad escape" };
+      }
+    }
+  }
+}
+export function std__json__parse_numcheck(text: string): { $can_kind: "ok"; value: boolean } {
+  const $can_m1: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, 0n, ((BigInt([...text].length)) + 1n), 0n);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__parse_numcheck_from(text: string, pos: bigint, n: bigint, state: bigint): { $can_kind: "ok"; value: boolean } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: false };
+  }
+  else {
+    if ((pos >= (BigInt([...text].length)))) {
+      if ((state === 2n)) {
+        return { $can_kind: "ok", value: true };
+      }
+      else {
+        if ((state === 3n)) {
+          return { $can_kind: "ok", value: true };
+        }
+        else {
+          if ((state === 5n)) {
+            return { $can_kind: "ok", value: true };
+          }
+          else {
+            if ((state === 8n)) {
+              return { $can_kind: "ok", value: true };
+            }
+            else {
+              return { $can_kind: "ok", value: false };
+            }
+          }
+        }
+      }
+    }
+    else {
+      if (state === 0n) {
+        if ($canStrAt(text, pos) === 45n) {
+          const $can_m1: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 1n);
+          switch ($can_m1.$can_kind) {
+          case "ok": {
+            const r = $can_m1;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 48n) {
+          const $can_m2: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 2n);
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const r = $can_m2;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        if ($canBoolAnd(($canStrAt(text, pos) >= 49n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m3: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 3n);
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const r = $can_m3;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 1n) {
+        if ($canStrAt(text, pos) === 48n) {
+          const $can_m4: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 2n);
+          switch ($can_m4.$can_kind) {
+          case "ok": {
+            const r = $can_m4;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        if ($canBoolAnd(($canStrAt(text, pos) >= 49n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m5: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 3n);
+          switch ($can_m5.$can_kind) {
+          case "ok": {
+            const r = $can_m5;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 2n) {
+        if ($canStrAt(text, pos) === 46n) {
+          const $can_m6: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 4n);
+          switch ($can_m6.$can_kind) {
+          case "ok": {
+            const r = $can_m6;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 101n) {
+          const $can_m7: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 6n);
+          switch ($can_m7.$can_kind) {
+          case "ok": {
+            const r = $can_m7;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 69n) {
+          const $can_m8: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 6n);
+          switch ($can_m8.$can_kind) {
+          case "ok": {
+            const r = $can_m8;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        return { $can_kind: "ok", value: false };
+      }
+      else if (state === 3n) {
+        if ($canStrAt(text, pos) === 46n) {
+          const $can_m9: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 4n);
+          switch ($can_m9.$can_kind) {
+          case "ok": {
+            const r = $can_m9;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 101n) {
+          const $can_m10: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 6n);
+          switch ($can_m10.$can_kind) {
+          case "ok": {
+            const r = $can_m10;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 69n) {
+          const $can_m11: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 6n);
+          switch ($can_m11.$can_kind) {
+          case "ok": {
+            const r = $can_m11;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m12: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 3n);
+          switch ($can_m12.$can_kind) {
+          case "ok": {
+            const r = $can_m12;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 4n) {
+        if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m13: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 5n);
+          switch ($can_m13.$can_kind) {
+          case "ok": {
+            const r = $can_m13;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 5n) {
+        if ($canStrAt(text, pos) === 101n) {
+          const $can_m14: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 6n);
+          switch ($can_m14.$can_kind) {
+          case "ok": {
+            const r = $can_m14;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 69n) {
+          const $can_m15: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 6n);
+          switch ($can_m15.$can_kind) {
+          case "ok": {
+            const r = $can_m15;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m16: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 5n);
+          switch ($can_m16.$can_kind) {
+          case "ok": {
+            const r = $can_m16;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 6n) {
+        if ($canStrAt(text, pos) === 43n) {
+          const $can_m17: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 7n);
+          switch ($can_m17.$can_kind) {
+          case "ok": {
+            const r = $can_m17;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else if ($canStrAt(text, pos) === 45n) {
+          const $can_m18: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 7n);
+          switch ($can_m18.$can_kind) {
+          case "ok": {
+            const r = $can_m18;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m19: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 8n);
+          switch ($can_m19.$can_kind) {
+          case "ok": {
+            const r = $can_m19;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 7n) {
+        if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m20: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 8n);
+          switch ($can_m20.$can_kind) {
+          case "ok": {
+            const r = $can_m20;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      else if (state === 8n) {
+        if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+          const $can_m21: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck_from(text, (pos + 1n), (n - 1n), 8n);
+          switch ($can_m21.$can_kind) {
+          case "ok": {
+            const r = $can_m21;
+            return { $can_kind: "ok", value: r.value };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          return { $can_kind: "ok", value: false };
+        }
+      }
+      return { $can_kind: "ok", value: false };
+    }
+  }
+}
+export function std__json__parse_contains_key(keys: string[], key: string): { $can_kind: "ok"; value: boolean } {
+  const $can_m1: { $can_kind: "ok"; value: boolean } = std__json__parse_contains_key_from(keys, key, 0n, (BigInt([...keys].length)));
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", value: r.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__parse_contains_key_from(keys: string[], key: string, pos: bigint, n: bigint): { $can_kind: "ok"; value: boolean } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: false };
+  }
+  else {
+    if ((pos < (BigInt([...keys].length)))) {
+      if (($canSeqAt(keys, pos) === key)) {
+        return { $can_kind: "ok", value: true };
+      }
+      else {
+        const $can_m1: { $can_kind: "ok"; value: boolean } = std__json__parse_contains_key_from(keys, key, (pos + 1n), (n - 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: false };
+    }
+  }
+}
+export function std__json__parse_pop(frames: Json__PFrame[]): { $can_kind: "ok"; frames: Json__PFrame[] } {
+  const $can_m1: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop_from(frames, 0n, ((BigInt([...frames].length)) - 1n), []);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", frames: r.frames };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__parse_pop_from(frames: Json__PFrame[], pos: bigint, n: bigint, acc: Json__PFrame[]): { $can_kind: "ok"; frames: Json__PFrame[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", frames: acc };
+  }
+  else {
+    if ((pos < (BigInt([...frames].length)))) {
+      const $can_m1: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop_from(frames, (pos + 1n), (n - 1n), [...acc, $canSeqAt(frames, pos)]);
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        return { $can_kind: "ok", frames: r.frames };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", frames: acc };
+    }
+  }
+}
+export function std__json__parse_attach(frames: Json__PFrame[], v: Json__Value): { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } {
+  if (((BigInt([...frames].length)) === 0n)) {
+    return { $can_kind: "ok", frames: [...frames, { tag: { $can_kind: "Json__PTail" }, items: [], fields: [], keys: [], key: "", acc: "", val: v, ofields: [], okeys: [] }] };
+  }
+  else {
+    const $can_m1 = $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).tag;
+    switch ($can_m1.$can_kind) {
+    case "Json__PArrFirst": {
+      const _ = $can_m1;
+      const $can_m2: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(frames);
+      switch ($can_m2.$can_kind) {
+      case "ok": {
+        const pf = $can_m2;
+        return { $can_kind: "ok", frames: [...pf.frames, { tag: { $can_kind: "Json__PArrNext" }, items: [...$canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, { value: v }], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }] };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    case "Json__PArrVal": {
+      const _ = $can_m1;
+      const $can_m3: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(frames);
+      switch ($can_m3.$can_kind) {
+      case "ok": {
+        const pf = $can_m3;
+        return { $can_kind: "ok", frames: [...pf.frames, { tag: { $can_kind: "Json__PArrNext" }, items: [...$canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).items, { value: v }], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }] };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    case "Json__PArrNext": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PObjFirst": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PObjKey": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PObjColon": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PObjKeyVal": {
+      const _ = $can_m1;
+      const $can_m4: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(frames);
+      switch ($can_m4.$can_kind) {
+      case "ok": {
+        const pf = $can_m4;
+        return { $can_kind: "ok", frames: [...pf.frames, { tag: { $can_kind: "Json__PObjNext" }, items: [], fields: [...$canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).fields, { name: $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).key, value: v }], keys: [...$canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).keys, $canSeqAt(frames, ((BigInt([...frames].length)) - 1n)).key], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }] };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    case "Json__PObjNext": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PStrKey": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PStrVal": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PNumAcc": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    case "Json__PTail": {
+      const _ = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
   }
 }

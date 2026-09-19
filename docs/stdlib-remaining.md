@@ -24,6 +24,7 @@ landed, unblocking the §1.8 callback rows. Slices 7+ below.
 | 7 | `44b188b` | NEW `std/seq` map/filter/fold/all/any/find; 62 rows |
 | 8 | `02495f4` | NEW `std/seq` sort/unique; 40 rows |
 | 9 | `43f0dfc` | NEW `std/json` value layer: AST + render frame machine + escape + 8 scalar codecs + monomorphic schema family with Fn dispatch; 125 rows |
+| 11a | TBD | `std/json`: render goes total (variant tags, fuel-exhaust `Ok(acc)`, budget error deleted) + parse leaves (ws/head/literal/unescape/9-state numcheck/contains/pop/attach); 234 rows |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
@@ -60,6 +61,9 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - `forward call` is arm-position-only, never a bare body (slice 9).
 - No `Ok` splat: `Ok(r)` binds the whole record to the first field (slice 10; generic migrate blocked).
 - No `Outcome<T,E>` / `Option<T>` types; no generic error-set algebra (slice 10; §1.7 blocked).
+- Downstream-unwitnessable error arms are an API bug: render's budget/mismatch errors removed in slice 11a (fuel-exhaust now `Ok(acc)` per `int_to_str_from`).
+- Variant matches take case arms only, never `_` (slice 11a; attach carries all 12 PTag arms).
+- `and`/`or` stay eager, no short-circuit (slice 11a; guards nest instead).
 
 ## JEV decision log (all via `jev-1.13.0`, Choice)
 

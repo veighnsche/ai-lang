@@ -6,8 +6,8 @@
 // function: the language admits only direct self-recursion, so the
 // natural value/fields/array mutual recursion is inexpressible
 // (CAN local-cycle) and frames carry the pending work instead. Each
-// step burns one fuel; exhaustion raises the payloadless
-// json.render_budget_exhausted. Escape walks scalars with the
+// step burns one fuel (sized to always suffice, as fuel in
+// int_to_str_from); the machine is total. Escape walks scalars with the
 // slice/index operators (the same pattern slice_scalars uses
 // internally), dispatching on scalar code: named escapes for
 // quote/backslash/TAB/LF/CR, \u00XX for other C0 controls via an
@@ -19,15 +19,17 @@
 // carries its exact encode/decode callbacks.
 
 mod json
-  provides [std__json__RENDER_FUEL, std__json__render_value, std__json__render_step, std__json__pop, std__json__pop_from, std__json__escape, std__json__escape_from, std__json__escape_hex, std__json__hexdigit, std__json__int__encode, std__json__int__decode, std__json__str__encode, std__json__str__decode, std__json__bool__encode, std__json__bool__decode, std__json__dec__encode, std__json__dec__decode, std__json__int__encode_apply, std__json__int__decode_apply, std__json__str__encode_apply, std__json__str__decode_apply, std__json__bool__encode_apply, std__json__bool__decode_apply, std__json__dec__encode_apply, std__json__dec__decode_apply, std__json__int__encode_value, std__json__int__decode_value, std__json__str__encode_value, std__json__str__decode_value, std__json__bool__encode_value, std__json__bool__decode_value, std__json__dec__encode_value, std__json__dec__decode_value, Int__Value, Dec__Value, Str__Value, Bool__Value, Json__Text, Json__Field, Json__Doc, Json__Value, Json__Frame, Json__Frames, Json__IntSchema, Json__StrSchema, Json__BoolSchema, Json__DecSchema]
+  provides [std__json__RENDER_FUEL, std__json__PARSE_FUEL, std__json__render_value, std__json__render_step, std__json__pop, std__json__pop_from, std__json__escape, std__json__escape_from, std__json__escape_hex, std__json__hexdigit, std__json__int__encode, std__json__int__decode, std__json__str__encode, std__json__str__decode, std__json__bool__encode, std__json__bool__decode, std__json__dec__encode, std__json__dec__decode, std__json__int__encode_apply, std__json__int__decode_apply, std__json__str__encode_apply, std__json__str__decode_apply, std__json__bool__encode_apply, std__json__bool__decode_apply, std__json__dec__encode_apply, std__json__dec__decode_apply, std__json__int__encode_value, std__json__int__decode_value, std__json__str__encode_value, std__json__str__decode_value, std__json__bool__encode_value, std__json__bool__decode_value, std__json__dec__encode_value, std__json__dec__decode_value, std__json__parse_attach, std__json__parse_head, std__json__parse_literal, std__json__parse_unescape, std__json__parse_numcheck, std__json__parse_numcheck_from, std__json__parse_contains_key, std__json__parse_contains_key_from, std__json__parse_ws_skip, std__json__parse_ws_skip_from, std__json__parse_pop, std__json__parse_pop_from, Int__Value, Dec__Value, Str__Value, Bool__Value, Json__Text, Json__Field, Json__Doc, Json__Value, Json__Tag, Json__Frame, Json__Frames, Json__IntSchema, Json__StrSchema, Json__BoolSchema, Json__DecSchema, Json__PTag, Json__PFrame, Json__PFrames, Json__HeadTag, Json__Head, Json__LitOut]
   uses [std__convert__int_to_str@1, std__convert__str_to_int@1, std__convert__dec_to_str@1, std__convert__str_to_dec@1]
-  emits [json.schema_mismatch, json.numeric_out_of_range, json.render_budget_exhausted]
+  emits [json.schema_mismatch, json.numeric_out_of_range, json.invalid_syntax, json.duplicate_key]
 
 error json.schema_mismatch(detail: str)
 error json.numeric_out_of_range(text: str)
-error json.render_budget_exhausted()
+error json.invalid_syntax(detail: str)
+error json.duplicate_key(key: str)
 
 const std__json__RENDER_FUEL: int rev 1 = 1000000
+const std__json__PARSE_FUEL: int rev 1 = 1000000
 
 type Int__Value rev 1 (
   value: int
@@ -69,10 +71,18 @@ variant Json__Value rev 1 (
 
 // Frames are tag-dispatched records, not a variant: variant
 // sequences are not admitted, so the stack is Seq<Json__Frame>
-// with tag 0 Emit / 1 Value / 2 Items / 3 Fields. Only the
-// tag's fields are read; the rest carry dummies.
+// with a variant tag field (exhaustive case dispatch, no
+// defensive wildcard). Only the tag's fields are read; the rest
+// carry dummies.
+variant Json__Tag rev 1 (
+  case TagEmit()
+  case TagValue()
+  case TagItems()
+  case TagFields()
+)
+
 type Json__Frame rev 1 (
-  tag: int
+  tag: Json__Tag
   text: str
   val: Json__Value
   items: Seq<Json__Doc>
@@ -92,8 +102,8 @@ fn std__json__pop(frames: Seq<Json__Frame>) -> Json__Frames rev 1
   emits []
   tests
     empty(Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
-    one(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)]) => Ok(Seq<Json__Frame>[])
-    two(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), Json__Frame(0, "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)]) => Ok(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)])
+    one(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)]) => Ok(Seq<Json__Frame>[])
+    two(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), Json__Frame(Json__TagEmit(), "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)]) => Ok(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)])
   match call std__json__pop_from(frames, 0, #frames - 1, Seq<Json__Frame>[])
     on Ok r => Ok(r.frames)
 
@@ -101,9 +111,9 @@ fn std__json__pop_from(frames: Seq<Json__Frame>, pos: int, n: int, acc: Seq<Json
   decreases n
   emits []
   tests
-    done(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 1, 0, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
-    over(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 5, 2, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
-    step(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), Json__Frame(0, "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 1, 2, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[Json__Frame(0, "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)])
+    done(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 1, 0, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
+    over(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 5, 2, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
+    step(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), Json__Frame(Json__TagEmit(), "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 1, 2, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)])
   match n <= 0
     true => Ok(acc)
     false => match pos < #frames
@@ -112,7 +122,7 @@ fn std__json__pop_from(frames: Seq<Json__Frame>, pos: int, n: int, acc: Seq<Json
       false => Ok(acc)
 
 fn std__json__render_value(v: Json__Value) -> Json__Text rev 1
-  emits [json.schema_mismatch, json.render_budget_exhausted]
+  emits []
   tests
     null(Json__Null()) => Ok("null")
     boolt(Json__Bool(true)) => Ok("true")
@@ -121,42 +131,41 @@ fn std__json__render_value(v: Json__Value) -> Json__Text rev 1
     arr(Json__Arr(Seq<Json__Doc>[Json__Doc(Json__Num("1")), Json__Doc(Json__Arr(Seq<Json__Doc>[Json__Doc(Json__Num("2"))]))])) => Ok("[1, [2]]")
     obj(Json__Obj(Seq<Json__Field>[Json__Field("a", Json__Obj(Seq<Json__Field>[Json__Field("b", Json__Bool(true))]))])) => Ok(e"{\"a\": {\"b\": true}}")
   match v
-    on Json__Null _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
-    on Json__Bool _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
-    on Json__Num _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
-    on Json__Str _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
-    on Json__Arr _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
-    on Json__Obj _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Null _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Bool _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Num _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Str _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Arr _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Obj _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
 
 fn std__json__render_step(frames: Seq<Json__Frame>, acc: str, fuel: int) -> Json__Text rev 1
   decreases fuel
-  emits [json.schema_mismatch, json.render_budget_exhausted]
+  emits []
   tests
-    exhaust(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "q", 0) => json.render_budget_exhausted()
+    exhaust(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "q", 0) => Ok("q")
     empty(Seq<Json__Frame>[], "q", 5) => Ok("q")
-    emit(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("x")
-    badtag(Seq<Json__Frame>[Json__Frame(9, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => json.schema_mismatch("bad frame tag")
-    vnull(Seq<Json__Frame>[Json__Frame(1, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("null")
-    vboolt(Seq<Json__Frame>[Json__Frame(1, "", Json__Bool(true), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("true")
-    vboolf(Seq<Json__Frame>[Json__Frame(1, "", Json__Bool(false), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("false")
-    vnum(Seq<Json__Frame>[Json__Frame(1, "", Json__Num("12"), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("12")
-    vstr(Seq<Json__Frame>[Json__Frame(1, "", Json__Str("a"), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok(e"\"a\"")
-    varr(Seq<Json__Frame>[Json__Frame(1, "", Json__Arr(Seq<Json__Doc>[]), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("[]")
-    vobj(Seq<Json__Frame>[Json__Frame(1, "", Json__Obj(Seq<Json__Field>[]), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("{}")
-    items0(Seq<Json__Frame>[Json__Frame(2, "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1"))], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("1")
-    items1(Seq<Json__Frame>[Json__Frame(2, "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1")), Json__Doc(Json__Num("2"))], 1, Seq<Json__Field>[], 0)], "1", 9) => Ok("1, 2")
-    itemsend(Seq<Json__Frame>[Json__Frame(2, "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1"))], 1, Seq<Json__Field>[], 0)], "1", 9) => Ok("1")
-    fields0(Seq<Json__Frame>[Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1"))], 0)], "", 12) => Ok(e"\"a\": 1")
-    fields1(Seq<Json__Frame>[Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1")), Json__Field("b", Json__Num("2"))], 1)], e"\"a\": 1", 12) => Ok(e"\"a\": 1, \"b\": 2")
-    fieldsend(Seq<Json__Frame>[Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1"))], 1)], e"\"a\": 1", 9) => Ok(e"\"a\": 1")
+    emit(Seq<Json__Frame>[Json__Frame(Json__TagEmit(), "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("x")
+    vnull(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("null")
+    vboolt(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Bool(true), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("true")
+    vboolf(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Bool(false), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("false")
+    vnum(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Num("12"), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("12")
+    vstr(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Str("a"), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok(e"\"a\"")
+    varr(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Arr(Seq<Json__Doc>[]), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("[]")
+    vobj(Seq<Json__Frame>[Json__Frame(Json__TagValue(), "", Json__Obj(Seq<Json__Field>[]), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("{}")
+    items0(Seq<Json__Frame>[Json__Frame(Json__TagItems(), "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1"))], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("1")
+    items1(Seq<Json__Frame>[Json__Frame(Json__TagItems(), "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1")), Json__Doc(Json__Num("2"))], 1, Seq<Json__Field>[], 0)], "1", 9) => Ok("1, 2")
+    itemsend(Seq<Json__Frame>[Json__Frame(Json__TagItems(), "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1"))], 1, Seq<Json__Field>[], 0)], "1", 9) => Ok("1")
+    fields0(Seq<Json__Frame>[Json__Frame(Json__TagFields(), "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1"))], 0)], "", 12) => Ok(e"\"a\": 1")
+    fields1(Seq<Json__Frame>[Json__Frame(Json__TagFields(), "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1")), Json__Field("b", Json__Num("2"))], 1)], e"\"a\": 1", 12) => Ok(e"\"a\": 1, \"b\": 2")
+    fieldsend(Seq<Json__Frame>[Json__Frame(Json__TagFields(), "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1"))], 1)], e"\"a\": 1", 9) => Ok(e"\"a\": 1")
   match fuel <= 0
-    true => json.render_budget_exhausted()
+    true => Ok(acc)
     false => match #frames == 0
       true => Ok(acc)
       false => match call std__json__pop(frames)
         on Ok pf => match frames[#frames - 1].tag
-          0 => forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)
-          1 => match frames[#frames - 1].val
+          on Json__TagEmit _ => forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)
+          on Json__TagValue _ => match frames[#frames - 1].val
             on Json__Null _ => forward call std__json__render_step(pf.frames, acc + "null", fuel - 1)
             on Json__Bool b => match b.value
               true => forward call std__json__render_step(pf.frames, acc + "true", fuel - 1)
@@ -164,20 +173,19 @@ fn std__json__render_step(frames: Seq<Json__Frame>, acc: str, fuel: int) -> Json
             on Json__Num n => forward call std__json__render_step(pf.frames, acc + n.text, fuel - 1)
             on Json__Str s => match call std__json__escape(s.value)
               on Ok e => forward call std__json__render_step(pf.frames, acc + e"\"" + e.value + e"\"", fuel - 1)
-            on Json__Arr a => forward call std__json__render_step((pf.frames + Json__Frame(0, "]", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(2, "", Json__Null(), a.items, 0, Seq<Json__Field>[], 0)) + Json__Frame(0, "[", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
-            on Json__Obj o => forward call std__json__render_step((pf.frames + Json__Frame(0, "}", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, o.fields, 0)) + Json__Frame(0, "{", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
-          2 => match frames[#frames - 1].ipos < #frames[#frames - 1].items
+            on Json__Arr a => forward call std__json__render_step((pf.frames + Json__Frame(Json__TagEmit(), "]", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(Json__TagItems(), "", Json__Null(), a.items, 0, Seq<Json__Field>[], 0)) + Json__Frame(Json__TagEmit(), "[", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+            on Json__Obj o => forward call std__json__render_step((pf.frames + Json__Frame(Json__TagEmit(), "}", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(Json__TagFields(), "", Json__Null(), Seq<Json__Doc>[], 0, o.fields, 0)) + Json__Frame(Json__TagEmit(), "{", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+          on Json__TagItems _ => match frames[#frames - 1].ipos < #frames[#frames - 1].items
             true => match frames[#frames - 1].ipos == 0
-              true => forward call std__json__render_step(pf.frames + Json__Frame(2, "", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq<Json__Field>[], 0) + Json__Frame(1, "", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
-              false => forward call std__json__render_step((pf.frames + Json__Frame(2, "", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq<Json__Field>[], 0) + Json__Frame(1, "", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)) + Json__Frame(0, ", ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+              true => forward call std__json__render_step(pf.frames + Json__Frame(Json__TagItems(), "", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq<Json__Field>[], 0) + Json__Frame(Json__TagValue(), "", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+              false => forward call std__json__render_step((pf.frames + Json__Frame(Json__TagItems(), "", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq<Json__Field>[], 0) + Json__Frame(Json__TagValue(), "", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)) + Json__Frame(Json__TagEmit(), ", ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
             false => forward call std__json__render_step(pf.frames, acc, fuel - 1)
-          3 => match frames[#frames - 1].fpos < #frames[#frames - 1].fields
+          on Json__TagFields _ => match frames[#frames - 1].fpos < #frames[#frames - 1].fields
             true => match call std__json__escape(frames[#frames - 1].fields[frames[#frames - 1].fpos].name)
               on Ok k => match frames[#frames - 1].fpos == 0
-                true => forward call std__json__render_step((pf.frames + Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, "", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(0, e"\"" + k.value + e"\": ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
-                false => forward call std__json__render_step(((pf.frames + Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, "", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)) + Json__Frame(0, ", " + e"\"" + k.value + e"\": ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+                true => forward call std__json__render_step((pf.frames + Json__Frame(Json__TagFields(), "", Json__Null(), Seq<Json__Doc>[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(Json__TagValue(), "", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(Json__TagEmit(), e"\"" + k.value + e"\": ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+                false => forward call std__json__render_step(((pf.frames + Json__Frame(Json__TagFields(), "", Json__Null(), Seq<Json__Doc>[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(Json__TagValue(), "", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)) + Json__Frame(Json__TagEmit(), ", " + e"\"" + k.value + e"\": ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
             false => forward call std__json__render_step(pf.frames, acc, fuel - 1)
-          _ => json.schema_mismatch("bad frame tag")
 
 fn std__json__escape(s: str) -> Json__Text rev 1
   emits []
@@ -532,3 +540,402 @@ fn std__json__dec__decode_value(value: Json__Value, schema: Json__DecSchema) -> 
     on Ok r => Ok(r.value)
     on json.schema_mismatch e => forward e
     on json.numeric_out_of_range e => forward e
+
+// Parse machine: text to Json__Doc in ONE self-recursive
+// function over an explicit PFrame stack (same mutual-recursion
+// ban as render). States are the Json__PTag cases; every
+// transition replaces the top frame, and completed values fuse
+// into parse_attach. Numbers validate through a 9-state
+// numcheck; duplicate object keys reject at key completion.
+// v1 limit: \uXXXX, \b and \f escapes reject as invalid_syntax
+// (v1 cannot construct arbitrary scalar values); raw non-ASCII
+// copies verbatim.
+variant Json__PTag rev 1 (
+  case PArrFirst()
+  case PArrVal()
+  case PArrNext()
+  case PObjFirst()
+  case PObjKey()
+  case PObjColon()
+  case PObjKeyVal()
+  case PObjNext()
+  case PStrKey()
+  case PStrVal()
+  case PNumAcc()
+  case PTail()
+)
+
+variant Json__HeadTag rev 1 (
+  case HeadBrace()
+  case HeadBracket()
+  case HeadStr()
+  case HeadLit()
+  case HeadNum()
+  case HeadBad()
+  case HeadEof()
+)
+
+type Json__PFrame rev 1 (
+  tag: Json__PTag
+  items: Seq<Json__Doc>
+  fields: Seq<Json__Field>
+  keys: Seq<str>
+  key: str
+  acc: str
+  val: Json__Value
+  ofields: Seq<Json__Field>
+  okeys: Seq<str>
+)
+
+type Json__PFrames rev 1 (
+  frames: Seq<Json__PFrame>
+)
+
+type Json__Head rev 1 (
+  tag: Json__HeadTag
+)
+
+type Json__LitOut rev 1 (
+  val: Json__Value
+  next: int
+)
+
+fn std__json__parse_ws_skip(text: str, pos: int) -> Int__Value rev 1
+  emits []
+  tests
+    plain("ab", 0) => Ok(0)
+    spaces("  a", 0) => Ok(2)
+    mixed(e" \t\n\ra", 0) => Ok(4)
+    over("a", 5) => Ok(5)
+    empty("", 0) => Ok(0)
+  match call std__json__parse_ws_skip_from(text, pos, #text, pos)
+    on Ok r => Ok(r.value)
+
+fn std__json__parse_ws_skip_from(text: str, pos: int, n: int, acc: int) -> Int__Value rev 1
+  decreases n
+  emits []
+  tests
+    done("  a", 2, 0, 2) => Ok(2)
+    over("a", 5, 2, 5) => Ok(5)
+    space("  a", 0, 3, 0) => Ok(2)
+    tab(e"\ta", 0, 2, 0) => Ok(1)
+    nl(e"\na", 0, 2, 0) => Ok(1)
+    cr(e"\ra", 0, 2, 0) => Ok(1)
+    stop("a", 0, 1, 0) => Ok(0)
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #text
+      true => match text[pos]
+        32 => match call std__json__parse_ws_skip_from(text, pos + 1, n - 1, pos + 1)
+          on Ok r => Ok(r.value)
+        9 => match call std__json__parse_ws_skip_from(text, pos + 1, n - 1, pos + 1)
+          on Ok r => Ok(r.value)
+        10 => match call std__json__parse_ws_skip_from(text, pos + 1, n - 1, pos + 1)
+          on Ok r => Ok(r.value)
+        13 => match call std__json__parse_ws_skip_from(text, pos + 1, n - 1, pos + 1)
+          on Ok r => Ok(r.value)
+        _ => Ok(pos)
+      false => Ok(acc)
+
+fn std__json__parse_head(text: str, pos: int) -> Json__Head rev 1
+  emits []
+  tests
+    brace("{", 0) => Ok(Json__HeadBrace())
+    bracket("[", 0) => Ok(Json__HeadBracket())
+    str(e"\"a\"", 0) => Ok(Json__HeadStr())
+    lit_t("true", 0) => Ok(Json__HeadLit())
+    lit_f("false", 0) => Ok(Json__HeadLit())
+    lit_n("null", 0) => Ok(Json__HeadLit())
+    digit("12", 0) => Ok(Json__HeadNum())
+    minus("-3", 0) => Ok(Json__HeadNum())
+    bad("x", 0) => Ok(Json__HeadBad())
+    bad_low("(", 0) => Ok(Json__HeadBad())
+    eof("a", 1) => Ok(Json__HeadEof())
+    over("a", 5) => Ok(Json__HeadEof())
+  match pos < #text
+    true => match text[pos]
+      123 => Ok(Json__HeadBrace())
+      91 => Ok(Json__HeadBracket())
+      34 => Ok(Json__HeadStr())
+      116 => Ok(Json__HeadLit())
+      102 => Ok(Json__HeadLit())
+      110 => Ok(Json__HeadLit())
+      45 => Ok(Json__HeadNum())
+      _ => match text[pos] >= 48
+        true => match text[pos] <= 57
+          true => Ok(Json__HeadNum())
+          false => Ok(Json__HeadBad())
+        false => Ok(Json__HeadBad())
+    false => Ok(Json__HeadEof())
+
+fn std__json__parse_literal(text: str, pos: int) -> Json__LitOut rev 1
+  emits [json.invalid_syntax]
+  tests
+    tru("true", 0) => Ok(Json__Bool(true), 4)
+    fals("false", 0) => Ok(Json__Bool(false), 5)
+    nul("null", 0) => Ok(Json__Null(), 4)
+    bad("truX", 0) => json.invalid_syntax("bad literal")
+    short("tru", 0) => json.invalid_syntax("bad literal")
+    badf("falsX", 0) => json.invalid_syntax("bad literal")
+    shortf("fals", 0) => json.invalid_syntax("bad literal")
+    badn("nulX", 0) => json.invalid_syntax("bad literal")
+    shortn("nul", 0) => json.invalid_syntax("bad literal")
+  match text[pos]
+    116 => match #text - pos >= 4
+      true => match text[pos:pos + 4] == "true"
+        true => Ok(Json__Bool(true), pos + 4)
+        false => json.invalid_syntax("bad literal")
+      false => json.invalid_syntax("bad literal")
+    102 => match #text - pos >= 5
+      true => match text[pos:pos + 5] == "false"
+        true => Ok(Json__Bool(false), pos + 5)
+        false => json.invalid_syntax("bad literal")
+      false => json.invalid_syntax("bad literal")
+    _ => match #text - pos >= 4
+      true => match text[pos:pos + 4] == "null"
+        true => Ok(Json__Null(), pos + 4)
+        false => json.invalid_syntax("bad literal")
+      false => json.invalid_syntax("bad literal")
+
+fn std__json__parse_unescape(c: str) -> Json__Text rev 1
+  emits [json.invalid_syntax]
+  tests
+    quote(e"\"") => Ok(e"\"")
+    backslash(e"\\") => Ok(e"\\")
+    slash("/") => Ok("/")
+    n("n") => Ok(e"\n")
+    r("r") => Ok(e"\r")
+    t("t") => Ok(e"\t")
+    b("b") => json.invalid_syntax("unsupported escape")
+    f("f") => json.invalid_syntax("unsupported escape")
+    u("u") => json.invalid_syntax("unsupported escape")
+    x("x") => json.invalid_syntax("bad escape")
+  match c
+    on e"\"" => Ok(e"\"")
+    on e"\\" => Ok(e"\\")
+    on "/" => Ok("/")
+    on "n" => Ok(e"\n")
+    on "r" => Ok(e"\r")
+    on "t" => Ok(e"\t")
+    on _ => match c == "u"
+      true => json.invalid_syntax("unsupported escape")
+      false => match c == "b"
+        true => json.invalid_syntax("unsupported escape")
+        false => match c == "f"
+          true => json.invalid_syntax("unsupported escape")
+          false => json.invalid_syntax("bad escape")
+
+fn std__json__parse_numcheck(text: str) -> Bool__Value rev 1
+  emits []
+  tests
+    ok("12.34") => Ok(true)
+    bad("01") => Ok(false)
+    empty("") => Ok(false)
+  match call std__json__parse_numcheck_from(text, 0, #text + 1, 0)
+    on Ok r => Ok(r.value)
+
+fn std__json__parse_numcheck_from(text: str, pos: int, n: int, state: int) -> Bool__Value rev 1
+  decreases n
+  emits []
+  tests
+    done("1", 0, 0, 3) => Ok(false)
+    over("a", 5, 2, 3) => Ok(true)
+    oor("1", 0, 9, 99) => Ok(false)
+    end2("0", 1, 9, 2) => Ok(true)
+    end3("1", 1, 9, 3) => Ok(true)
+    end5("1.5", 3, 9, 5) => Ok(true)
+    end8("1e2", 3, 9, 8) => Ok(true)
+    end0("(", 1, 9, 0) => Ok(false)
+    s0minus("-1", 0, 9, 0) => Ok(true)
+    s0zero("0", 0, 9, 0) => Ok(true)
+    s0digit("5", 0, 9, 0) => Ok(true)
+    s0bad("x", 0, 9, 0) => Ok(false)
+    s1zero("-0", 1, 9, 1) => Ok(true)
+    s1digit("-5", 1, 9, 1) => Ok(true)
+    s1bad("-x", 1, 9, 1) => Ok(false)
+    s2dot("0.", 1, 9, 2) => Ok(false)
+    s2e("0e1", 1, 9, 2) => Ok(true)
+    s2cap("0E1", 1, 9, 2) => Ok(true)
+    s2bad("0x", 1, 9, 2) => Ok(false)
+    s3dot("1.", 1, 9, 3) => Ok(false)
+    s3e("1e1", 1, 9, 3) => Ok(true)
+    s3cap("1E1", 1, 9, 3) => Ok(true)
+    s3digit("12", 1, 9, 3) => Ok(true)
+    s3bad("1x", 1, 9, 3) => Ok(false)
+    s4digit("1.5", 2, 9, 4) => Ok(true)
+    s4bad("1.x", 2, 9, 4) => Ok(false)
+    s5e("1.5e1", 3, 9, 5) => Ok(true)
+    s5cap("1.5E1", 3, 9, 5) => Ok(true)
+    s5digit("1.55", 3, 9, 5) => Ok(true)
+    s5bad("1.5x", 3, 9, 5) => Ok(false)
+    s6plus("1e+1", 2, 9, 6) => Ok(true)
+    s6minus("1e-1", 2, 9, 6) => Ok(true)
+    s6digit("1e2", 2, 9, 6) => Ok(true)
+    s6bad("1ex", 2, 9, 6) => Ok(false)
+    s7digit("1e+2", 3, 9, 7) => Ok(true)
+    s7bad("1e+x", 3, 9, 7) => Ok(false)
+    s8digit("1e22", 3, 9, 8) => Ok(true)
+    s8bad("1e2x", 3, 9, 8) => Ok(false)
+  match n <= 0
+    true => Ok(false)
+    false => match pos >= #text
+      true => match state == 2
+        true => Ok(true)
+        false => match state == 3
+          true => Ok(true)
+          false => match state == 5
+            true => Ok(true)
+            false => match state == 8
+              true => Ok(true)
+              false => Ok(false)
+      false => match state
+        0 => match text[pos]
+          45 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 1)
+            on Ok r => Ok(r.value)
+          48 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 2)
+            on Ok r => Ok(r.value)
+          _ => match (text[pos] >= 49) and (text[pos] <= 57)
+            true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 3)
+              on Ok r => Ok(r.value)
+            false => Ok(false)
+        1 => match text[pos]
+          48 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 2)
+            on Ok r => Ok(r.value)
+          _ => match (text[pos] >= 49) and (text[pos] <= 57)
+            true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 3)
+              on Ok r => Ok(r.value)
+            false => Ok(false)
+        2 => match text[pos]
+          46 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 4)
+            on Ok r => Ok(r.value)
+          101 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 6)
+            on Ok r => Ok(r.value)
+          69 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 6)
+            on Ok r => Ok(r.value)
+          _ => Ok(false)
+        3 => match text[pos]
+          46 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 4)
+            on Ok r => Ok(r.value)
+          101 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 6)
+            on Ok r => Ok(r.value)
+          69 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 6)
+            on Ok r => Ok(r.value)
+          _ => match (text[pos] >= 48) and (text[pos] <= 57)
+            true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 3)
+              on Ok r => Ok(r.value)
+            false => Ok(false)
+        4 => match (text[pos] >= 48) and (text[pos] <= 57)
+          true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 5)
+            on Ok r => Ok(r.value)
+          false => Ok(false)
+        5 => match text[pos]
+          101 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 6)
+            on Ok r => Ok(r.value)
+          69 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 6)
+            on Ok r => Ok(r.value)
+          _ => match (text[pos] >= 48) and (text[pos] <= 57)
+            true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 5)
+              on Ok r => Ok(r.value)
+            false => Ok(false)
+        6 => match text[pos]
+          43 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 7)
+            on Ok r => Ok(r.value)
+          45 => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 7)
+            on Ok r => Ok(r.value)
+          _ => match (text[pos] >= 48) and (text[pos] <= 57)
+            true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 8)
+              on Ok r => Ok(r.value)
+            false => Ok(false)
+        7 => match (text[pos] >= 48) and (text[pos] <= 57)
+          true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 8)
+            on Ok r => Ok(r.value)
+          false => Ok(false)
+        8 => match (text[pos] >= 48) and (text[pos] <= 57)
+          true => match call std__json__parse_numcheck_from(text, pos + 1, n - 1, 8)
+            on Ok r => Ok(r.value)
+          false => Ok(false)
+        _ => Ok(false)
+
+fn std__json__parse_contains_key(keys: Seq<str>, key: str) -> Bool__Value rev 1
+  emits []
+  tests
+    empty(Seq<str>[], "a") => Ok(false)
+    found(Seq<str>["a", "b"], "b") => Ok(true)
+    missing(Seq<str>["a"], "b") => Ok(false)
+  match call std__json__parse_contains_key_from(keys, key, 0, #keys)
+    on Ok r => Ok(r.value)
+
+fn std__json__parse_contains_key_from(keys: Seq<str>, key: str, pos: int, n: int) -> Bool__Value rev 1
+  decreases n
+  emits []
+  tests
+    done(Seq<str>["a"], "b", 1, 0) => Ok(false)
+    over(Seq<str>["a"], "b", 5, 2) => Ok(false)
+    hit(Seq<str>["a", "b"], "b", 0, 2) => Ok(true)
+    miss(Seq<str>["a"], "b", 0, 1) => Ok(false)
+  match n <= 0
+    true => Ok(false)
+    false => match pos < #keys
+      true => match keys[pos] == key
+        true => Ok(true)
+        false => match call std__json__parse_contains_key_from(keys, key, pos + 1, n - 1)
+          on Ok r => Ok(r.value)
+      false => Ok(false)
+
+fn std__json__parse_pop(frames: Seq<Json__PFrame>) -> Json__PFrames rev 1
+  emits []
+  tests
+    empty(Seq<Json__PFrame>[]) => Ok(Seq<Json__PFrame>[])
+    one(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])]) => Ok(Seq<Json__PFrame>[])
+    two(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[]), Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])]) => Ok(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])])
+  match call std__json__parse_pop_from(frames, 0, #frames - 1, Seq<Json__PFrame>[])
+    on Ok r => Ok(r.frames)
+
+fn std__json__parse_pop_from(frames: Seq<Json__PFrame>, pos: int, n: int, acc: Seq<Json__PFrame>) -> Json__PFrames rev 1
+  decreases n
+  emits []
+  tests
+    done(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], 1, 0, Seq<Json__PFrame>[]) => Ok(Seq<Json__PFrame>[])
+    over(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], 5, 2, Seq<Json__PFrame>[]) => Ok(Seq<Json__PFrame>[])
+    step(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[]), Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], 0, 1, Seq<Json__PFrame>[]) => Ok(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])])
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #frames
+      true => match call std__json__parse_pop_from(frames, pos + 1, n - 1, acc + frames[pos])
+        on Ok r => Ok(r.frames)
+      false => Ok(acc)
+
+fn std__json__parse_attach(frames: Seq<Json__PFrame>, v: Json__Value) -> Json__PFrames rev 1
+  emits [json.invalid_syntax]
+  tests
+    empty(Seq<Json__PFrame>[], Json__Num("1")) => Ok(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Num("1"), Seq<Json__Field>[], Seq<str>[])])
+    arrfirst(Seq<Json__PFrame>[Json__PFrame(Json__PArrFirst(), Seq<Json__Doc>[Json__Doc(Json__Num("7"))], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => Ok(Seq<Json__PFrame>[Json__PFrame(Json__PArrNext(), Seq<Json__Doc>[Json__Doc(Json__Num("7")), Json__Doc(Json__Num("1"))], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])])
+    arrval(Seq<Json__PFrame>[Json__PFrame(Json__PArrVal(), Seq<Json__Doc>[Json__Doc(Json__Num("7"))], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => Ok(Seq<Json__PFrame>[Json__PFrame(Json__PArrNext(), Seq<Json__Doc>[Json__Doc(Json__Num("7")), Json__Doc(Json__Num("1"))], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])])
+    objkeyval(Seq<Json__PFrame>[Json__PFrame(Json__PObjKeyVal(), Seq<Json__Doc>[], Seq<Json__Field>[Json__Field("a", Json__Num("1"))], Seq<str>["a"], "b", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Bool(true)) => Ok(Seq<Json__PFrame>[Json__PFrame(Json__PObjNext(), Seq<Json__Doc>[], Seq<Json__Field>[Json__Field("a", Json__Num("1")), Json__Field("b", Json__Bool(true))], Seq<str>["a", "b"], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])])
+    wild(Seq<Json__PFrame>[Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Num("7"), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_arrnext(Seq<Json__PFrame>[Json__PFrame(Json__PArrNext(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_objfirst(Seq<Json__PFrame>[Json__PFrame(Json__PObjFirst(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_objkey(Seq<Json__PFrame>[Json__PFrame(Json__PObjKey(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_objcolon(Seq<Json__PFrame>[Json__PFrame(Json__PObjColon(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_objnext(Seq<Json__PFrame>[Json__PFrame(Json__PObjNext(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_strkey(Seq<Json__PFrame>[Json__PFrame(Json__PStrKey(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_strval(Seq<Json__PFrame>[Json__PFrame(Json__PStrVal(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+    wild_numacc(Seq<Json__PFrame>[Json__PFrame(Json__PNumAcc(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[])], Json__Num("1")) => json.invalid_syntax("trailing value")
+  match #frames == 0
+    true => Ok(frames + Json__PFrame(Json__PTail(), Seq<Json__Doc>[], Seq<Json__Field>[], Seq<str>[], "", "", v, Seq<Json__Field>[], Seq<str>[]))
+    false => match frames[#frames - 1].tag
+      on Json__PArrFirst _ => match call std__json__parse_pop(frames)
+        on Ok pf => Ok(pf.frames + Json__PFrame(Json__PArrNext(), frames[#frames - 1].items + Json__Doc(v), Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[]))
+      on Json__PArrVal _ => match call std__json__parse_pop(frames)
+        on Ok pf => Ok(pf.frames + Json__PFrame(Json__PArrNext(), frames[#frames - 1].items + Json__Doc(v), Seq<Json__Field>[], Seq<str>[], "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[]))
+      on Json__PArrNext _ => json.invalid_syntax("trailing value")
+      on Json__PObjFirst _ => json.invalid_syntax("trailing value")
+      on Json__PObjKey _ => json.invalid_syntax("trailing value")
+      on Json__PObjColon _ => json.invalid_syntax("trailing value")
+      on Json__PObjKeyVal _ => match call std__json__parse_pop(frames)
+        on Ok pf => Ok(pf.frames + Json__PFrame(Json__PObjNext(), Seq<Json__Doc>[], frames[#frames - 1].fields + Json__Field(frames[#frames - 1].key, v), frames[#frames - 1].keys + frames[#frames - 1].key, "", "", Json__Null(), Seq<Json__Field>[], Seq<str>[]))
+      on Json__PObjNext _ => json.invalid_syntax("trailing value")
+      on Json__PStrKey _ => json.invalid_syntax("trailing value")
+      on Json__PStrVal _ => json.invalid_syntax("trailing value")
+      on Json__PNumAcc _ => json.invalid_syntax("trailing value")
+      on Json__PTail _ => json.invalid_syntax("trailing value")

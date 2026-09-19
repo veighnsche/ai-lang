@@ -157,6 +157,48 @@
     "hit_by_tests": []
   },
   {
+    "kind": "json.duplicate_key",
+    "fields": [
+      "key"
+    ],
+    "raised_by": [],
+    "handled_by": [],
+    "hit_by_tests": []
+  },
+  {
+    "kind": "json.invalid_syntax",
+    "fields": [
+      "detail"
+    ],
+    "raised_by": [
+      "json.std__json__parse_attach",
+      "json.std__json__parse_literal",
+      "json.std__json__parse_unescape"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "json.std__json__parse_attach/wild",
+      "json.std__json__parse_attach/wild_arrnext",
+      "json.std__json__parse_attach/wild_numacc",
+      "json.std__json__parse_attach/wild_objcolon",
+      "json.std__json__parse_attach/wild_objfirst",
+      "json.std__json__parse_attach/wild_objkey",
+      "json.std__json__parse_attach/wild_objnext",
+      "json.std__json__parse_attach/wild_strkey",
+      "json.std__json__parse_attach/wild_strval",
+      "json.std__json__parse_literal/bad",
+      "json.std__json__parse_literal/badf",
+      "json.std__json__parse_literal/badn",
+      "json.std__json__parse_literal/short",
+      "json.std__json__parse_literal/shortf",
+      "json.std__json__parse_literal/shortn",
+      "json.std__json__parse_unescape/b",
+      "json.std__json__parse_unescape/f",
+      "json.std__json__parse_unescape/u",
+      "json.std__json__parse_unescape/x"
+    ]
+  },
+  {
     "kind": "json.numeric_out_of_range",
     "fields": [
       "text"
@@ -197,95 +239,6 @@
     ]
   },
   {
-    "kind": "json.render_budget_exhausted",
-    "fields": [],
-    "raised_by": [
-      "json.std__json__render_step",
-      "json.std__json__render_value"
-    ],
-    "handled_by": [
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "0 =\u003e forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step(((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \" + e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step((pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc + \"false\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Arr a =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"]\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(2, \"\", Json__Null(), a.items, 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \"[\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(pf.frames, acc + \"null\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Num n =\u003e forward call std__json__render_step(pf.frames, acc + n.text, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Obj o =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"}\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, o.fields, 0)) + Json__Frame(0, \"{\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Ok e =\u003e forward call std__json__render_step(pf.frames, acc + e\"\\\"\" + e.value + e\"\\\"\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "true =\u003e forward call std__json__render_step((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(0, e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "true =\u003e forward call std__json__render_step(pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "true =\u003e forward call std__json__render_step(pf.frames, acc + \"true\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Arr _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Bool _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Num _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Obj _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Str _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      }
-    ],
-    "hit_by_tests": [
-      "json.std__json__render_step/exhaust"
-    ]
-  },
-  {
     "kind": "json.schema_mismatch",
     "fields": [
       "detail"
@@ -300,8 +253,6 @@
       "json.std__json__int__decode",
       "json.std__json__int__decode_apply",
       "json.std__json__int__decode_value",
-      "json.std__json__render_step",
-      "json.std__json__render_value",
       "json.std__json__str__decode",
       "json.std__json__str__decode_apply",
       "json.std__json__str__decode_value"
@@ -330,82 +281,6 @@
       {
         "fn": "json.std__json__int__decode_value",
         "arm": "on json.schema_mismatch e =\u003e forward e"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "0 =\u003e forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step(((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \" + e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step((pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc + \"false\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Arr a =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"]\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(2, \"\", Json__Null(), a.items, 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \"[\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(pf.frames, acc + \"null\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Num n =\u003e forward call std__json__render_step(pf.frames, acc + n.text, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Json__Obj o =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"}\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, o.fields, 0)) + Json__Frame(0, \"{\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "on Ok e =\u003e forward call std__json__render_step(pf.frames, acc + e\"\\\"\" + e.value + e\"\\\"\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "true =\u003e forward call std__json__render_step((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(0, e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "true =\u003e forward call std__json__render_step(pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_step",
-        "arm": "true =\u003e forward call std__json__render_step(pf.frames, acc + \"true\", fuel - 1)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Arr _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Bool _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Num _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Obj _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
-      },
-      {
-        "fn": "json.std__json__render_value",
-        "arm": "on Json__Str _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
       },
       {
         "fn": "json.std__json__str__decode_apply",
@@ -438,7 +313,6 @@
       "json.std__json__int__decode/is_str",
       "json.std__json__int__decode_apply/mistype",
       "json.std__json__int__decode_value/mistype",
-      "json.std__json__render_step/badtag",
       "json.std__json__str__decode/is_arr",
       "json.std__json__str__decode/is_bool",
       "json.std__json__str__decode/is_null",
