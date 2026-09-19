@@ -411,6 +411,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `fnref m__t(divisor = 3) or match invoke cb with n in an ordinary body.`,
 		fix:     "Call the target directly until the invocation slice lands. The annotation shape stays valid; only execution is deferred.",
 	},
+	CodeFnHeadInvalid: {
+		rule:    "A Fn head names a known input type, a record success carrier, and a distinct canonically ordered list of declared error kinds.",
+		violate: `Fn<int, int, [m.odd, m.err]>: int is not a record and the kinds are unordered.`,
+		fix:     "Name the Ok payload record for success, and list each declared error kind once in lexicographic order.",
+	},
 	CodeInvalidRelay: {
 		rule:    "Identity-relay certificates are checked, not trusted: a relay-shaped arm that fails the check (wrong kind, dropped field) is invalid.",
 		violate: `an on e => ... arm claiming relay shape with a mismatched kind or payload.`,

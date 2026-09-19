@@ -209,6 +209,67 @@ func fnTypeShape(t string) (string, string, string, bool) {
 	return a, r, e, true
 }
 
+// fnHeadDiags enforces b00 deep validity on one Fn annotation that
+// shape-accepted: the input names a known type, the success names a
+// record, every kind names a declared error, and the kinds are
+// distinct and canonically (lexicographically) ordered. Unknown
+// input reuses CAN6002 and unknown kinds reuse CAN4002; head-invalid
+// shapes (non-record success, duplicate or unordered kinds) are
+// CAN6019. Non-Fn annotations are a silent no-op, so call sites
+// need no shape gate. Transitive containment (Fn inside A or R
+// through records) and the error/variant/state/const position
+// exclusions land with invocation, which owns the target-admission
+// certificate; this cut validates the head everywhere it is written.
+func (c *tycker) fnHeadDiags(t, where string, line int, token string) []Diag {
+	a, r, e, ok := fnTypeShape(t)
+	if !ok {
+		return nil
+	}
+	var out []Diag
+	if !c.knownType(a) {
+		out = append(out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("unknown type %s in Fn input of %s", a, where), token, CodeUnknownType))
+	}
+	if _, ok := c.recs[r]; !ok {
+		out = append(out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("Fn success %s of %s is not a record: name the Ok payload record", r, where), token, CodeFnHeadInvalid))
+	}
+	raw := strings.TrimSpace(e[1 : len(e)-1])
+	if raw == "" {
+		return out
+	}
+	var kinds []string
+	for _, k := range strings.Split(raw, ",") {
+		kinds = append(kinds, strings.TrimSpace(k))
+	}
+	seen := map[string]bool{}
+	var checked []string
+	for _, k := range kinds {
+		if _, ok := c.errs[k]; !ok {
+			out = append(out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("unknown error kind %s in Fn list of %s", k, where), token, CodeUnknownKind))
+			continue
+		}
+		if seen[k] {
+			out = append(out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("duplicate error kind %s in Fn list of %s", k, where), token, CodeFnHeadInvalid))
+			continue
+		}
+		seen[k] = true
+		checked = append(checked, k)
+	}
+	want := slices.Clone(checked)
+	slices.Sort(want)
+	for i := range checked {
+		if checked[i] != want[i] {
+			out = append(out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("error kinds in Fn list of %s are not canonically ordered: want [%s]", where, strings.Join(want, ", ")), token, CodeFnHeadInvalid))
+			break
+		}
+	}
+	return out
+}
+
 // knownType reports whether a name is a legal annotation: a base type,
 // the Bytes primitive, a declared record, a declared brand, a
 // sequence over a plain element type, or a function-value head.
@@ -1609,11 +1670,13 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 			c.out = append(c.out, spanDiag(text, fn.Line, "error",
 				fmt.Sprintf("unknown type %s in param %s", p[1], p[0]), p[0], CodeUnknownType))
 		}
+		c.out = append(c.out, c.fnHeadDiags(p[1], "param "+p[0], fn.Line, p[0])...)
 	}
 	if !c.knownType(fn.Ret) {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("unknown type %s in returns", fn.Ret), fn.Ret, CodeUnknownType))
 	}
+	c.out = append(c.out, c.fnHeadDiags(fn.Ret, "returns", fn.Line, fn.Ret)...)
 	// a26: bare-brand returns are unsupported. checkCtor skips Ok
 	// payloads when the return is not a record, so a brand return
 	// would sail through static checking and die only at emit.
@@ -1645,6 +1708,13 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 	if c.variants[fn.Ret] {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns %s: bare-variant returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
+	}
+	// b00: bare-Fn returns are unsupported, like bare-brand,
+	// bare-Seq, bare-Bytes, and bare-variant returns. Callables
+	// travel as params and record fields; results name a record.
+	if _, _, _, ok := fnTypeShape(fn.Ret); ok {
+		c.out = append(c.out, spanDiag(text, fn.Line, "error",
+			fmt.Sprintf("%s returns %s: bare-Fn returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
 	}
 	env := map[string]string{}
 	for _, p := range fn.Params {
@@ -1727,7 +1797,9 @@ func checkExternSig(ex *ExternDecl, prog *Program, text string) []Diag {
 			c.out = append(c.out, spanDiag(text, ex.Line, "error",
 				fmt.Sprintf("unknown type %s in param %s", p[1], p[0]), p[0], CodeUnknownType))
 		}
+		c.out = append(c.out, c.fnHeadDiags(p[1], "param "+p[0], ex.Line, p[0])...)
 	}
+	c.out = append(c.out, c.fnHeadDiags(ex.Ret, "returns", ex.Line, ex.Ret)...)
 	if !c.knownType(ex.Ret) {
 		c.out = append(c.out, spanDiag(text, ex.Line, "error",
 			fmt.Sprintf("unknown type %s in returns", ex.Ret), ex.Ret, CodeUnknownType))
@@ -1767,6 +1839,7 @@ func checkDeclFields(name string, fields [][2]string, line int, prog *Program, t
 			out = append(out, spanDiag(text, line, "error",
 				fmt.Sprintf("unknown type %s in field %s", f[1], f[0]), f[0], CodeUnknownType))
 		}
+		out = append(out, c.fnHeadDiags(f[1], "field "+f[0], line, f[0])...)
 	}
 	return out
 }
