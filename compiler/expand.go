@@ -393,6 +393,7 @@ func everySmall(fn *FnDecl, yield func(smallSite)) {
 		for _, sc := range n.Scruts {
 			walk(sc, n.Line)
 		}
+		walk(n.InvokeArg, n.Line)
 		for _, a := range n.Arms {
 			walkNode(a.Rhs)
 		}
@@ -634,7 +635,11 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, tgens map[st
 			considerCtor(m, caller, site)
 			return
 		}
-		if s.Kind != "call" {
+		// A reference demands its target's stamp exactly like a
+		// call: same arity rules, same monomorphic rejection, same
+		// self-reference repetition. The reference never executes
+		// in stage 1, but its target must still exist.
+		if s.Kind != "call" && s.Kind != "fnref" {
 			return
 		}
 		g := genericOf(s.Fname)
@@ -657,7 +662,11 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, tgens map[st
 		if caller != nil && caller.Name == s.Fname {
 			for i, a := range s.TypeArgs {
 				if a != g.decl.TypeParams[i] {
-					emit(m, site.line, s.Fname, "recursive call of %s must repeat its own type arguments", s.Fname)
+					what := "call"
+					if s.Kind == "fnref" {
+						what = "reference"
+					}
+					emit(m, site.line, s.Fname, "recursive %s of %s must repeat its own type arguments", what, s.Fname)
 					return
 				}
 			}
@@ -997,6 +1006,7 @@ func cloneNode(n *Node) *Node {
 	}
 	c.Given = cloneGiven(n.Given)
 	c.Small = cloneSmall(n.Small)
+	c.InvokeArg = cloneSmall(n.InvokeArg)
 	if n.ChainSteps != nil {
 		c.ChainSteps = make([]ChainStep, len(n.ChainSteps))
 		for i, st := range n.ChainSteps {
@@ -1177,7 +1187,7 @@ func substTest(t *Test, sub map[string]string) {
 // args are concrete here too.
 func rewriteGenericCalls(mods []*Module, gens map[string]*genericInfo) {
 	rewrite := func(s *Small) {
-		if s == nil || s.Kind != "call" || len(s.TypeArgs) == 0 {
+		if s == nil || (s.Kind != "call" && s.Kind != "fnref") || len(s.TypeArgs) == 0 {
 			return
 		}
 		if _, ok := gens[s.Fname]; !ok {
@@ -1211,6 +1221,7 @@ func rewriteGenericCalls(mods []*Module, gens map[string]*genericInfo) {
 		for _, sc := range n.Scruts {
 			walk(sc)
 		}
+		walk(n.InvokeArg)
 		for _, a := range n.Arms {
 			walkNode(a.Rhs)
 		}
@@ -1281,7 +1292,7 @@ func rewriteGenericHeaders(mods []*Module, gens map[string]*genericInfo, known m
 	for _, m := range mods {
 		used := map[string]map[string]bool{}
 		note := func(s *Small) {
-			if s == nil || s.Kind != "call" || len(s.TypeArgs) == 0 {
+			if s == nil || (s.Kind != "call" && s.Kind != "fnref") || len(s.TypeArgs) == 0 {
 				return
 			}
 			if _, ok := gens[s.Fname]; !ok {
@@ -1389,14 +1400,19 @@ func mentionOf(t string) (string, []string, bool) {
 }
 
 // typeMentionsParam reports whether the type string names the
-// parameter: bare, Seq-wrapped, or inside a generic mention's
-// arguments, recursing so Box<Seq<T>> counts.
+// parameter: bare, Seq-wrapped, inside a generic mention's
+// arguments, or inside a function head's input or success,
+// recursing so Box<Seq<T>> and Fn<T, M__O, []> count.
 func typeMentionsParam(t, p string) bool {
 	if t == p {
 		return true
 	}
 	if elem, ok := seqElemName(t); ok {
 		return typeMentionsParam(elem, p)
+	}
+	if a, r, _, ok := fnTypeShape(t); ok {
+		return typeMentionsParam(strings.TrimSpace(a), p) ||
+			typeMentionsParam(strings.TrimSpace(r), p)
 	}
 	if _, args, ok := mentionOf(t); ok {
 		for _, a := range args {
@@ -1564,19 +1580,10 @@ func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, typ
 		args  []string
 	}
 	var relatives []relative
-	eachTypeSlot(mods, func(slot typeSlot) {
-		t := strings.TrimSpace(*slot.ref)
-		base, args, ok := mentionOf(t)
-		if !ok {
-			return
-		}
-		if slot.state {
-			// Same shape as checkStateDecl, pre-rewrite so the
-			// message names the source mention, never a stamp.
-			emit(slot.mod, slot.line, t, "state %s holds %s: cells hold str, int, bool, or dec", slot.token, t)
-			failed = true
-			return
-		}
+	// handleTypeMention records one generic mention found in a slot:
+	// closed mentions demand stamps now, template mentions carrying
+	// parameters resolve per enclosing instance below.
+	handleTypeMention := func(slot typeSlot, base string, args []string) {
 		if slot.tpl == nil {
 			seedClosed(slot.mod, slot.line, slot.token, base, args)
 			return
@@ -1626,6 +1633,32 @@ func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, typ
 			return
 		}
 		relatives = append(relatives, relative{slot.mod, slot.tpl, slot.line, slot.token, base, args})
+	}
+	eachTypeSlot(mods, func(slot typeSlot) {
+		t := strings.TrimSpace(*slot.ref)
+		// A function head is not itself a mention, but its input
+		// and success positions hold ordinary mentions that
+		// demand stamps exactly as top-level slots do.
+		if a, r, _, ok := fnTypeShape(t); ok {
+			for _, sub := range []string{a, r} {
+				if base, args, ok := mentionOf(strings.TrimSpace(sub)); ok {
+					handleTypeMention(slot, base, args)
+				}
+			}
+			return
+		}
+		base, args, ok := mentionOf(t)
+		if !ok {
+			return
+		}
+		if slot.state {
+			// Same shape as checkStateDecl, pre-rewrite so the
+			// message names the source mention, never a stamp.
+			emit(slot.mod, slot.line, t, "state %s holds %s: cells hold str, int, bool, or dec", slot.token, t)
+			failed = true
+			return
+		}
+		handleTypeMention(slot, base, args)
 	})
 	considerSmall := func(m *Module, s *Small, line int) {
 		if s == nil {
@@ -1816,7 +1849,18 @@ func rewriteTypeMentions(mods []*Module, tgens map[string]*genericTypeInfo, know
 			stampOf[pairKey(base, args)] = mangleInstance(base, args)
 		}
 	}
-	rewriteStr := func(t string) string {
+	var rewriteStr func(t string) string
+	rewriteStr = func(t string) string {
+		// Function heads rewrite through their input and success
+		// positions; untouched heads return byte-identical so no
+		// spacing churn reaches string-compared annotations.
+		if a, r, e, ok := fnTypeShape(t); ok {
+			ra, rb := rewriteStr(strings.TrimSpace(a)), rewriteStr(strings.TrimSpace(r))
+			if ra == strings.TrimSpace(a) && rb == strings.TrimSpace(r) {
+				return t
+			}
+			return "Fn<" + ra + "," + rb + "," + strings.TrimSpace(e) + ">"
+		}
 		base, args, ok := mentionOf(t)
 		if !ok {
 			return t

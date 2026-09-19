@@ -535,9 +535,10 @@ func walkSmallTrees(s *Small, f func(*Small)) {
 }
 
 // bodySmalls visits every Small in executable positions exactly once:
-// arm right-hand sides (at the arm's line) and plain expression bodies.
-// Match scrutinees are excluded (callers handle them separately). Given
-// stubs and test tables are mocks and expectations, not executed code, so
+// arm right-hand sides (at the arm's line), plain expression bodies,
+// and invoke arguments (evaluated, then applied). Match scrutinees
+// are excluded (callers handle them separately). Given stubs and
+// test tables are mocks and expectations, not executed code, so
 // they are excluded too.
 func bodySmalls(n *Node, f func(s *Small, line int)) {
 	var walk func(x *Node)
@@ -546,6 +547,12 @@ func bodySmalls(n *Node, f func(s *Small, line int)) {
 			return
 		}
 		if x.IsMatch {
+			// The invoke argument executes (it is evaluated, then the
+			// reference applies), so calls inside it are outside-call
+			// violations exactly like calls anywhere off a scrutinee.
+			if x.InvokeArg != nil {
+				walkSmallTrees(x.InvokeArg, func(s *Small) { f(s, x.Line) })
+			}
 			for _, a := range x.Arms {
 				walk(a.Rhs)
 			}

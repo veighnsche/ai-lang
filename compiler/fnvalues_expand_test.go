@@ -1,0 +1,228 @@
+package main
+
+import (
+	"sort"
+	"strings"
+	"testing"
+)
+
+func typeNames(tds map[string]*TypeDecl) []string {
+	var out []string
+	for k := range tds {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// B00 stage 1c expansion: fnref type arguments demand stamps like
+// calls, Fn heads descend for instance collection, and every
+// walker covers the new positions. Full-pipeline fixtures: the
+// CAN6018 deferrals fire alongside, so assertions target stamps
+// and slot strings, never a clean bill.
+
+const fnvaluesExpandLib = `mod m
+  provides [m__id, m__go, M__Box, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__Box<T> rev 1 (
+  item: T
+)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__id<T>(x: T) -> M__Box<T> rev 1
+  emits []
+  tests
+    i<T=int>(1) => Ok(1)
+  Ok(x)
+
+fn m__go(n: int) -> M__Box<int> rev 1
+  emits []
+  tests
+    g(1) => Ok(1)
+  Ok(fnref m__id<int>(x = n))
+`
+
+func TestExpandFnrefDemand(t *testing.T) {
+	prog, mods, _ := genericProgram(t, map[string]string{"m.can": fnvaluesExpandLib})
+	if prog == nil {
+		t.Fatal("expected program")
+	}
+	if _, ok := prog.Fns["m__id$T$int"]; !ok {
+		t.Fatalf("fnref demand missing; fns: %v", fnNames(prog))
+	}
+	// The reference site rewrites to the stamp like a call site.
+	var fn *FnDecl
+	for _, d := range mods[0].Decls {
+		if f, ok := d.(*FnDecl); ok && f.Name == "m__go" {
+			fn = f
+		}
+	}
+	if fn == nil {
+		t.Fatal("m__go missing")
+	}
+	ref := fn.Body.Small.Args[0].V
+	if ref.Kind != "fnref" || ref.Fname != "m__id$T$int" || len(ref.TypeArgs) != 0 {
+		t.Fatalf("ref = %+v, want rewritten fnref to m__id$T$int", ref)
+	}
+}
+
+func TestExpandFnrefBareGeneric(t *testing.T) {
+	src := `mod m
+  provides [m__id, m__go, M__Box]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  item: T
+)
+
+fn m__id<T>(x: T) -> M__Box<T> rev 1
+  emits []
+  tests
+    i<T=int>(1) => Ok(1)
+  Ok(x)
+
+fn m__go(n: int) -> M__Box<int> rev 1
+  emits []
+  tests
+    g(1) => Ok(1)
+  Ok(fnref m__id(x = n))
+`
+	_, _, collected := genericProgram(t, map[string]string{"m.can": src})
+	wantGenericDiag(t, collected, CodeGenericExpand, "needs explicit type arguments")
+}
+
+func TestExpandFnrefMonomorphicArgs(t *testing.T) {
+	src := `mod m
+  provides [m__t, m__go, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(n: int) -> M__O rev 1
+  emits []
+  tests
+    g(1) => Ok("q")
+  Ok(fnref m__t<int>(divisor = n))
+`
+	_, _, collected := genericProgram(t, map[string]string{"m.can": src})
+	wantGenericDiag(t, collected, CodeGenericExpand, "type arguments on monomorphic function")
+}
+
+const fnvaluesExpandSlots = `mod m
+  provides [m__hold, m__go, M__Box, M__Wrap, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__Box<T> rev 1 (
+  item: T
+)
+
+type M__Wrap<T> rev 1 (
+  cb: Fn<T, M__Box<T>, []>
+)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__hold(w: M__Wrap<int>) -> M__O rev 1
+  emits []
+  tests
+    h(1) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__Box<str>, []>) -> M__O rev 1
+  emits []
+  tests
+    g(1) => Ok("q")
+  Ok("q")
+`
+
+func TestExpandFnSlotDescent(t *testing.T) {
+	prog, mods, collected := genericProgram(t, map[string]string{"m.can": fnvaluesExpandSlots})
+	if prog == nil {
+		t.Fatal("expected program")
+	}
+	for _, e := range genericErrs(collected) {
+		if strings.Contains(e, "never used in its fields") {
+			t.Fatalf("Fn field must count as parameter use, got %v", genericErrs(collected))
+		}
+	}
+	tds := typeDecls(mods)
+	if _, ok := tds["M__Box$T$str"]; !ok {
+		t.Fatalf("closed Fn success demand missing; types: %v", typeNames(tds))
+	}
+	if _, ok := tds["M__Box$T$int"]; !ok {
+		t.Fatalf("relative Fn success demand missing; types: %v", typeNames(tds))
+	}
+	wrap, ok := tds["M__Wrap$T$int"]
+	if !ok {
+		t.Fatalf("wrap stamp missing; types: %v", typeNames(tds))
+	}
+	if wrap.Fields[0][1] != "Fn<int,M__Box$T$int,[]>" {
+		t.Fatalf("wrap field = %q, want substituted + rewritten Fn head", wrap.Fields[0][1])
+	}
+}
+
+const fnvaluesExpandInvoke = `mod m
+  provides [m__go, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__go<T>(cb: Fn<T, M__O, []>, n: T) -> M__O rev 1
+  emits [m.err]
+  tests
+    i<T=int>(1, 2) => Ok("q")
+    s<T=str>("a", "b") => Ok("q")
+  match invoke cb with n
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")
+`
+
+func TestExpandInvokeArgCloned(t *testing.T) {
+	prog, _, _ := genericProgram(t, map[string]string{"m.can": fnvaluesExpandInvoke})
+	if prog == nil {
+		t.Fatal("expected program")
+	}
+	intFn, ok := prog.Fns["m__go$T$int"]
+	if !ok {
+		t.Fatalf("int stamp missing; fns: %v", fnNames(prog))
+	}
+	strFn, ok := prog.Fns["m__go$T$str"]
+	if !ok {
+		t.Fatalf("str stamp missing; fns: %v", fnNames(prog))
+	}
+	if intFn.Body.InvokeArg == nil || strFn.Body.InvokeArg == nil {
+		t.Fatal("InvokeArg missing after stamping")
+	}
+	if intFn.Body.InvokeArg == strFn.Body.InvokeArg {
+		t.Fatal("stamps alias the template InvokeArg")
+	}
+}

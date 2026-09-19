@@ -127,3 +127,64 @@ func TestCheckInvokeDeferred(t *testing.T) {
 		t.Fatalf("expected exactly one proof fail-closed, got %v", diags)
 	}
 }
+
+// Calls in invoke-argument position are outside-call violations:
+// the argument executes off any scrutinee, so the v0 discipline
+// applies exactly as elsewhere.
+const fnvaluesCheckWithCall = `mod m
+  provides [m__go, m__h, m__t, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__h(x: int) -> M__O rev 1
+  emits []
+  tests
+    h(1) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    g(fnref m__t(divisor = 3), 4) => Ok("q")
+  match invoke cb with call m__h(n)
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")
+`
+
+func TestCheckInvokeWithCall(t *testing.T) {
+	files := map[string]string{"m.can": fnvaluesCheckWithCall}
+	dir := writeLSPDir(t, files)
+	diags := diagnose(dir, "m.can", files["m.can"])
+	deferred, outside, proof := 0, 0, 0
+	for _, d := range diags {
+		if d.Sev != "error" {
+			continue
+		}
+		switch {
+		case d.Code == CodeFnValueDeferred:
+			deferred++
+		case d.Code == CodeCallOutside:
+			outside++
+		case d.Code == CodeProofOther:
+			proof++
+		case d.Code == CodeTestFailed || d.Code == CodeInconsistentScript:
+		default:
+			t.Fatalf("unexpected cascade error, got %v", diags)
+		}
+	}
+	if deferred != 2 || outside != 1 || proof != 1 {
+		t.Fatalf("want 2 deferrals + outside call + proof guard, got %v", diags)
+	}
+}

@@ -377,6 +377,9 @@ func lintRedundantNames(lm lintModule, mods []lintModule) []lintFinding {
 			for _, sc := range m.Scruts {
 				checkCtorVal(sc, m.Line, "", false)
 			}
+			if m.InvokeArg != nil {
+				checkCtorVal(m.InvokeArg, m.Line, "", false)
+			}
 			if m.Kind != MatchCall || m.Given == nil {
 				continue
 			}
