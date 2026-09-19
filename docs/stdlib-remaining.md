@@ -25,7 +25,7 @@ landed, unblocking the §1.8 callback rows. Slices 7+ below.
 | 8 | `02495f4` | NEW `std/seq` sort/unique; 40 rows |
 | 9 | `43f0dfc` | NEW `std/json` value layer: AST + render frame machine + escape + 8 scalar codecs + monomorphic schema family with Fn dispatch; 125 rows |
 | 11a | `7092467` | `std/json`: render goes total (variant tags, fuel-exhaust `Ok(acc)`, budget error deleted) + parse leaves (ws/head/literal/unescape/9-state numcheck/contains/pop/attach); 234 rows |
-| 11b | TBD | `std/json`: byte-level parse — `parse_value` entry + `parse_step` 12-state machine (value states push, continuations replace, `StrKey` inherits fields/keys, `Tail` rejects trailers); 100 rows (15 value + 85 step), 334 file total |
+| 11b | `f4845bf` | `std/json`: byte-level parse — `parse_value` entry + `parse_step` 12-state machine (value states push, continuations replace, `StrKey` inherits fields/keys, `Tail` rejects trailers); 100 rows (15 value + 85 step), 334 file total |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
