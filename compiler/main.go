@@ -261,6 +261,10 @@ func compileAll(out string, paths []string, jsonOut bool, baselinePath string) e
 				}
 				fnUnions[d.Name] = u
 			case *ExternDecl:
+				// b02: externs join the stem table like
+				// functions, so shared-extern imports
+				// resolve to the declaring stem.
+				stemOf[d.Name] = m.Stem
 				u, err := externUnion(d, prog)
 				if err != nil {
 					return err

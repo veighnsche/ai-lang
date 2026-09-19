@@ -2147,7 +2147,10 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			continue
 		}
 		for _, c := range walkCalls(fn.Body) {
-			if prog.Uses[c.Fname] {
+			// b02: shared externs import from the
+			// declaring stem's .externs stub below, never
+			// from the module itself.
+			if prog.Uses[c.Fname] && prog.Externs[c.Fname] == nil {
 				if need[stemOf[c.Fname]] == nil {
 					need[stemOf[c.Fname]] = map[string]bool{}
 				}
@@ -2246,13 +2249,26 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			}
 		}
 	}
-	var exNames []string
+	// b02: called externs group by declaring stem — own externs
+	// keep the historical single line, shared ones import from
+	// their owner's stub. One line per stem, sorted.
+	exByStem := map[string][]string{}
 	for n := range exCalled {
-		exNames = append(exNames, n)
+		stem := stemOf[n]
+		if stem == "" {
+			stem = mod.Stem
+		}
+		exByStem[stem] = append(exByStem[stem], n)
 	}
-	sort.Strings(exNames)
-	if len(exNames) > 0 {
-		L = append(L, fmt.Sprintf("import { %s } from \"./%s.externs\";", strings.Join(exNames, ", "), mod.Stem))
+	var exStems []string
+	for s := range exByStem {
+		exStems = append(exStems, s)
+	}
+	sort.Strings(exStems)
+	for _, s := range exStems {
+		names := exByStem[s]
+		sort.Strings(names)
+		L = append(L, fmt.Sprintf("import { %s } from \"./%s.externs\";", strings.Join(names, ", "), s))
 	}
 	cap_ := capitalize(mod.Mod) + "Result"
 	var members []string

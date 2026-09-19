@@ -31,7 +31,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 | §1.8 `Map<K,V>` fully generic | Nested generic Seq elements | `seqElemName` rejects `<>` in elements (`compiler/types.go:164`); shipped str-keyed `Map__Entries<V>` instead |
 | §1.8 normalize_nfc, casefold, graphemes | Unicode data kernel | No pinned data, no host path (see host shelf) |
 | §1.8 json encode/decode, `schema__migrate` | Functions (+ Schema surface) | Migrate takes `Migration<Old,New>` fn; no Fn values |
-| Host shelf (clock/random/hash/secret/log/env) | Shared/callable externs | `calls extern ... from another module: declare your own extern` — externs are module-local by design; a `std/host` module compiles but is uncallable (probed 2026-09-19, artifact deleted per JEV 0.53) |
+| Host shelf (clock/random/hash/secret/log/env) | ~~Shared/callable externs~~ — UNBLOCKED by b02 (slices E1–E2): foreign externs admit via `name@rev` uses pins, emit imports from the declaring stem's `.externs` stub (JEV admission `uses_pin` 0.99, host `declaring_stem` 0.84) | Was: `calls extern ... from another module: declare your own extern` (probed 2026-09-19). The language dependency is landed; the shelf itself still needs writing as stdlib slices with host implementations. |
 | §3 HTTP (all) | Async + Resources + Functions | No async surface exists |
 | §4 SQL (all) | Async + Resources | Same |
 | §5 UI (all) | Functions + Async + Resources | Same |
@@ -53,4 +53,5 @@ a99 forward-looking 0.75; b00 staged 0.97; slice1 compare_trio
 collections_probe (tie 0.49, choice field); slice5 validate_schema
 0.65; schema monomorphic_family 1.0; slice6 mapset 0.97, str_keyed
 0.70, new_modules 0.56; host bare_externs 0.64; host artifact
-delete 0.53.
+delete 0.53; b02 extern admission uses_pin 0.99, host_resolution
+declaring_stem 0.84.
