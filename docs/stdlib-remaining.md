@@ -33,7 +33,7 @@ not claim the catalogue's option/outcome combinators.
 | 12 | `e7f7e5f` | `std/json`: 8 monomorphic text drivers (`int/str/bool/dec` × `encode_text`/`decode_text`) closing the schema round-trip; 28 rows, 362 file total |
 | B06 | `e7ac40c` | Language unblocker: explicit generic variants, case construction/matching, instance-specific tags, cross-module pins, payload dependency discovery; `sketches/generic-option` has 12 rows plus byte-identical TS/catalogue goldens and Node parity. No stdlib combinator slice claimed. |
 | B07 | `cb457c1` | Language unblocker: bare variant returns via checked `Ok(value)`, ordinary call binders expose `.value`, same-nominal forwarding, declared TS success shapes/imports; `sketches/variant-return` has 27 rows, TS/catalogue goldens, and Node parity. Fn successes and extern returns were still record-only at B07. |
-| B08 | TBD | Language unblocker: Fn successes admit records or variants, including generic stamps; reference admission/signature discovery, invocation binders/forwarding, and TS types agree on the B07 envelope. `sketches/fn-variant` has 26 rows, TS/catalogue goldens, linked/LSP/Node checks, and purity/cycle/coverage regressions. Externs and scalar successes are unchanged. |
+| B08 | `147260a` | Language unblocker: Fn successes admit records or variants, including generic stamps; reference admission/signature discovery, invocation binders/forwarding, and TS types agree on the B07 envelope. `sketches/fn-variant` has 26 rows, TS/catalogue goldens, linked/LSP/Node checks, and purity/cycle/coverage regressions. Externs and scalar successes are unchanged. |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
