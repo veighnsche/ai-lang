@@ -126,9 +126,9 @@ func TestVariantValueNominal(t *testing.T) {
 	}
 }
 
-// TestVariantBareReturnRejected pins the wrapper discipline:
-// functions return records, never a bare variant.
-func TestVariantBareReturnRejected(t *testing.T) {
+// B07 admits variant returns, but even a nullary case must be
+// supplied explicitly inside the Ok(value) envelope.
+func TestVariantReturnNeedsValue(t *testing.T) {
 	src := `mod m
   provides [m__id, Login__State]
   uses []
@@ -146,8 +146,8 @@ fn m__id(user: str) -> Login__State rev 1
 `
 	dir := writeLSPDir(t, map[string]string{"m.can": src})
 	diags := diagnose(dir, "m.can", src)
-	if !hasDiag(diags, "error", "bare-variant returns are unsupported, return a record") {
-		t.Fatalf("expected bare-variant return rejection, got %v", diags)
+	if !hasDiag(diags, "error", "Ok is missing field value") {
+		t.Fatalf("expected missing variant payload, got %v", diags)
 	}
 }
 

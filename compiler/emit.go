@@ -346,8 +346,8 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 }
 
 // declaredOkShape builds a function's Ok payload shape from its declared
-// return record, never from literals in the body or tests. The checker
-// already proves every Ok construction against that record (unknown,
+// return record or variant envelope, never from body/test literals. The
+// checker proves every Ok construction against that shape (unknown,
 // missing, and mistyped fields fail before emission), so the declaration
 // is the single source of types: changing evidence without changing the
 // signature or body cannot change the emitted type, and computed or
@@ -356,6 +356,9 @@ func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
 	fields, ok := recs[fn.Ret]
+	if variants[fn.Ret] != nil {
+		fields, ok = variantOkFields(fn.Ret), true
+	}
 	if !ok {
 		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
@@ -2462,6 +2465,9 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		case *FnDecl:
 			for _, p := range d.Params {
 				typeRefs(p[1])
+			}
+			if variants[d.Ret] != nil {
+				typeRefs(d.Ret)
 			}
 			if fs, ok := recs[d.Ret]; ok {
 				for _, f := range fs {

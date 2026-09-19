@@ -10,8 +10,9 @@ verdict as evidence.
 
 Continuation (post-b00, same contract): b00 function values
 landed, unblocking the §1.8 callback rows. Slices 7+ below.
-B06 subsequently lands explicit generic variants as a language unblocker;
-it does not yet claim the catalogue's option/outcome combinators.
+B06 subsequently lands explicit generic variants; B07 admits bare variant
+returns through the existing Ok(value) protocol. Neither language slice
+claims the catalogue's option/outcome combinators.
 
 ## Shipped (main, all gates green per commit)
 
@@ -30,6 +31,7 @@ it does not yet claim the catalogue's option/outcome combinators.
 | 11b | `f4845bf` | `std/json`: byte-level parse — `parse_value` entry + `parse_step` 12-state machine (value states push, continuations replace, `StrKey` inherits fields/keys, `Tail` rejects trailers); 100 rows (15 value + 85 step), 334 file total |
 | 12 | `e7f7e5f` | `std/json`: 8 monomorphic text drivers (`int/str/bool/dec` × `encode_text`/`decode_text`) closing the schema round-trip; 28 rows, 362 file total |
 | B06 | `e7ac40c` | Language unblocker: explicit generic variants, case construction/matching, instance-specific tags, cross-module pins, payload dependency discovery; `sketches/generic-option` has 12 rows plus byte-identical TS/catalogue goldens and Node parity. No stdlib combinator slice claimed. |
+| B07 | TBD | Language unblocker: bare variant returns via checked `Ok(value)`, ordinary call binders expose `.value`, same-nominal forwarding, declared TS success shapes/imports; `sketches/variant-return` has 27 rows, TS/catalogue goldens, and Node parity. Fn successes and extern returns remain record-only. |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
@@ -38,8 +40,8 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 
 | Roadmap item | Missing feature | Evidence |
 |--------------|-----------------|----------|
-| §1.7 outcome/option combinators | First-class outcomes + generic error algebra; option return/callback surface | PARTIAL UNBLOCK (B06): generic variants now support a genuine `Option__Value<T>` value, constructors, and exhaustive matching. No builtin `Option<T>` alias or stdlib combinators shipped. Exact option signatures still need return/callback work: probe `-> Option__Value<T>` yields `bare-variant returns are unsupported, return a record` (pinned by `TestGenericVariantScopeLimits`); existing generic scalar-vs-record return/call restrictions also remain. Outcome probe remains `unknown type Outcome`; b00 excludes generic error-set algebra and generic outcome values. No monomorphic fallback is being substituted for the catalogue. |
-| §1.8 seq map/filter/fold/find/all/any | SHIPPED (slice 7): generic workers invoke total callbacks; find reports `sequence.not_found()` (the original generic-variant blocker is removed by B06, but bare variant returns remain unsupported); predicates return per-module `Bool__Value` (std/set precedent) | 62 rows; 107 pass on compile; `TestStdSeqCompiles` gates. `find` is unchanged. |
+| §1.7 outcome/option combinators | First-class outcomes + generic error algebra; remaining scalar return/callback surface | PARTIAL UNBLOCK (B06–B07): user-declared optional variants now support construction, matching, direct source-function returns, and ordinary calls/forwarding without a declared wrapper record. No stdlib combinators claimed. Remaining evidence: `TestVariantReturnFnAndExternStillRefused` pins record-only Fn successes/reference targets and extern returns; the generic scalar re-probe `probe__identity<T>(value: T) -> T` at `T=int` passes its row but fails emit with `probe__identity$T$int returns unknown type int`. Outcome probe remains `unknown type Outcome`; b00 excludes generic error-set algebra and generic outcome values. Re-probe exact optional APIs individually before a stdlib slice; no monomorphic fallback is being substituted. |
+| §1.8 seq map/filter/fold/find/all/any | SHIPPED (slice 7): generic workers invoke total callbacks; find reports `sequence.not_found()` (B06–B07 remove the original generic-variant/return blockers; optional-return API migration has not been attempted); predicates return per-module `Bool__Value` (std/set precedent) | 62 rows; 107 pass on compile; `TestStdSeqCompiles` gates. `find` is unchanged. |
 | §1.8 seq sort/unique | SHIPPED (slice 8): `Seq__Order` value Asc/Desc over per-instance built-in order (insertion sort, stable by construction); unique keeps first occurrences via per-instance `==` | 40 rows; 147 pass on compile; lexicographic orders deferred. |
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
 | §1.8 normalize_nfc, casefold, graphemes | Unicode data kernel | No pinned data, no host path (see host shelf) |
@@ -67,7 +69,8 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - No `Ok` splat: `Ok(r)` binds the whole record to the first field (slice 10; generic migrate blocked).
 - No `Outcome<T,E>` / `Option<T>` builtins; no generic error-set algebra (slice 10). B06 now admits user-declared generic variants such as `Option__Value<T>`; exact §1.7 APIs are not yet claimed.
 - ~~Generic variants fail with `bad variant decl`~~ — B06 re-probed that exact error before implementation; declarations, explicit case constructors/patterns, and record-carried optional results now work. See `docs/b06-generic-variants.md`.
-- Bare variant returns remain unsupported after B06 (`bare-variant returns are unsupported, return a record`); nested instantiation as a type argument and variant sequences remain deferred. These are separate follow-up decisions, not implicitly widened by generic variants.
+- ~~Bare variant returns remain unsupported after B06 (`bare-variant returns are unsupported, return a record`)~~ — B07 re-probed and removed this restriction for source functions and ordinary calls/forwarding. Success is exactly `Ok(value)` and callers select the variant with `r.value`; no first-class outcome value was added. See `docs/b07-variant-returns.md`.
+- Fn successes/reference targets and extern returns remain record-only (B07 scope verdict and `TestVariantReturnFnAndExternStillRefused`). Generic scalar return emission is still incomplete (`probe__identity$T$int returns unknown type int` on re-probe). Nested instantiation as a type argument and variant sequences remain deferred.
 - Downstream-unwitnessable error arms are an API bug: render's budget/mismatch errors removed in slice 11a (fuel-exhaust now `Ok(acc)` per `int_to_str_from`).
 - Variant matches take case arms only, never `_` (slice 11a; attach carries all 12 PTag arms).
 - `and`/`or` stay eager, no short-circuit (slice 11a; guards nest instead).
@@ -97,4 +100,12 @@ B06 case-pattern surface (`jev-1.13.0`, Choice): `explicit`
 (probability 1.00, confidence 0.99; contextual inference 0.00,
 parse-only deferral 0.00). Require `on Option__Some<T> s` alongside
 `Option__Some<T>(value)`, extending the existing explicit monomorphizer.
-Outcomes, error algebra, async, and bare variant returns stay out of scope.
+Outcomes, error algebra, async, and bare variant returns stayed out of B06 scope.
+
+B07 return convention (`jev-1.13.0`, Choice): `ok_value`
+(probability 0.99, confidence 0.98; unwrap binder 0.01, raw case 0.00).
+Keep `Ok(variant)` and `on Ok r` with the variant at `r.value`.
+B07 scope (`jev-1.13.0`, Choice): `calls_only`
+(probability 0.75, confidence 0.63; calls + Fn successes 0.25, all channels
+including externs 0.00). Source returns, local/foreign calls, and same-nominal
+forwarding land together; Fn successes and extern returns remain record-only.

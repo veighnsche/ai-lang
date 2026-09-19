@@ -79,7 +79,6 @@ fn m__choose(value: Opt__Value<Seq<int>>) -> M__Out rev 1
 func TestGenericVariantScopeLimits(t *testing.T) {
 	src := genericOptionSource(t)
 	for _, tt := range []struct{ old, new, want string }{
-		{"-> Option__Box<T>", "-> Option__Value<T>", "bare-variant returns are unsupported"},
 		{"variant Option__Value<T>", "variant Option__Value<T,U>", "never used in its fields"},
 		{"variant Option__Value<T>", "variant Option<T>", "must match Domain__Name"},
 	} {

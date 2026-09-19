@@ -49,6 +49,10 @@ per-module demand tracking as generic records.
 
 ## Retained limits
 
+These were the B06 boundaries. [B07](b07-variant-returns.md) subsequently
+admits bare variant returns through `Ok(value)` for source functions and
+ordinary calls/forwarding; the B06 wrapper-based sketch stays unchanged.
+
 - Arguments are closed monomorphic types (including the existing permitted
   `Seq<X>` shape), or bare parameters passed through a generic function.
   Nested instantiation as an argument, such as `Box<Option__Value<int>>`,

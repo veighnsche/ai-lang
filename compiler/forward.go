@@ -104,11 +104,10 @@ func forwardCtor(kind string, fields []string, binder string) *Small {
 	return &Small{Kind: "ctor", Ctor: kind, Args: args}
 }
 
-// forwardOk resolves an Ok forward: the callee's success record
-// must hold exactly the enclosing function's success fields with
-// resolved types. Different wrapper-record names are fine; the
-// operation stays explicit field reconstruction, never a nominal
-// cast. Callee lookup covers local, foreign, and extern providers.
+// forwardOk resolves an Ok forward: records must hold exactly the
+// destination success fields; variants must have the same nominal type.
+// Different wrapper-record names are fine. Reconstruction is explicit,
+// never a nominal cast. Lookup covers local, foreign, and extern providers.
 func forwardOk(prog *Program, fn *FnDecl, callee, binder string) (*Small, error) {
 	calleeRet := ""
 	if f, ok := prog.Fns[callee]; ok {
@@ -121,12 +120,19 @@ func forwardOk(prog *Program, fn *FnDecl, callee, binder string) (*Small, error)
 	return forwardOkRet(prog, fn, callee, calleeRet, binder)
 }
 
-// forwardOkRet rebuilds an Ok payload from a known success record:
-// the record must hold exactly the enclosing function's success
-// fields with resolved types. Call matches resolve the record
-// through the callee; invoke matches read it off the resolved
-// callable signature.
+// forwardOkRet rebuilds an Ok payload from a known success type.
+// Calls resolve it through the callee; invoke matches read it from the
+// callable signature (currently record-only). Variant envelopes retain
+// nominal identity; records retain field-shape compatibility.
 func forwardOkRet(prog *Program, fn *FnDecl, who, calleeRet, binder string) (*Small, error) {
+	if prog.Variants[calleeRet] != nil || prog.Variants[fn.Ret] != nil {
+		// Variant success forwarding preserves nominal identity, never
+		// coerces between instances or a variant and a wrapper record.
+		if calleeRet != fn.Ret {
+			return nil, fmt.Errorf("forward needs the same variant return type: %s -> %s, %s -> %s", who, calleeRet, fn.Name, fn.Ret)
+		}
+		return forwardCtor("Ok", []string{"value"}, binder), nil
+	}
 	src := recordDecl(prog, calleeRet)
 	dst := recordDecl(prog, fn.Ret)
 	if src == nil || dst == nil {

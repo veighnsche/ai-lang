@@ -114,6 +114,11 @@ func newTycker(prog *Program, text, fn string) *tycker {
 			}
 		}
 	}
+	// B07: call binders carry the Ok payload, not the variant itself.
+	// These private checker-only record shapes cannot be named in source.
+	for name := range c.variants {
+		c.recs[variantOkType(name)] = variantOkFields(name)
+	}
 	// Asset bridge grants introduce the named foreign brands into scope
 	// so a sink module compiles standalone: params and error fields may
 	// name them, but bodies can never seal them (the claimed owner is
@@ -1012,6 +1017,11 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// cascade one broken line into many.
 			return
 		}
+		if strings.HasPrefix(t, "ok:") && len(s.Ref) == 1 {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("%s is a variant-return Ok payload: select %s.value", s.Ref[0], s.Ref[0]), s.Ref[0], CodeTypeMismatch))
+			return
+		}
 		if t == "empty-ok" {
 			// Bound to a put's empty Ok: it carries no fields and
 			// no value, so any use is a mistake at this line.
@@ -1504,7 +1514,7 @@ func (c *tycker) nodePartsArms(n *Node, env map[string]string, want string) {
 }
 
 // checkCtor validates a construction against its contract: Ok against
-// the wanted record, dotted errors against their ErrorDecl, named
+// the wanted record or variant envelope, dotted errors against their ErrorDecl, named
 // records against their TypeDecl. want="" (error-producing positions)
 // still checks error fields; unknown contracts belong to other codes,
 // so undeclared kinds are skipped, never double-reported. Positional
@@ -1521,6 +1531,9 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 			return
 		}
 		rec, ok := c.recs[want]
+		if c.variants[want] {
+			rec, ok = variantOkFields(want), true
+		}
 		if !ok {
 			// a92: scalar Ok takes exactly the conventional
 			// `value`: bind a lone positional, fault the
@@ -1687,6 +1700,12 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 					tok = tokenOf(a.V)
 				}
 				c.mismatch(line, flabel, got, ft, tok)
+			} else if !ok && name == "Ok" && c.variants[want] {
+				// Outcome constructors have no data type. They must not
+				// sneak into a newly admitted variant payload merely
+				// because legacy want-free positions leave them untyped.
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("%s needs a value of variant %s", flabel, want), tokenOf(a.V), CodeTypeMismatch))
 			}
 		}
 	}
@@ -1760,16 +1779,27 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		return
 	}
 	if !n.IsMatch {
+		// A variant is still data, not an outcome. Bare case/ref bodies
+		// must not bypass the Ok envelope just because their type fits.
+		if f := c.prog.Fns[c.fn]; f != nil && c.variants[f.Ret] {
+			if s := n.Small; s != nil {
+				_, isError := c.errs[s.Ctor]
+				if !(s.Kind == "ctor" && (s.Ctor == "Ok" || isError)) {
+					c.out = append(c.out, spanDiag(c.text, n.Line, "error",
+						"variant return must use Ok(value) or a declared error", tokenOf(s), CodeTypeMismatch))
+				}
+			}
+		}
 		w := want
 		if w == "" && n.Small != nil && n.Small.Kind == "ctor" && n.Small.Ctor == "Ok" {
 			// a92: an Ok arm top is return-positioned even
 			// under error arms (want-free by threading), so
-			// check it against the fn return record and
+			// check it against the fn success shape and
 			// positional args bind. typeOf stays silent for
 			// Ok, so no comparison is added: anything else
 			// keeps want-free checking.
 			if f, ok := c.prog.Fns[c.fn]; ok {
-				if _, ok := c.recs[f.Ret]; ok {
+				if _, ok := c.recs[f.Ret]; ok || c.variants[f.Ret] {
 					w = f.Ret
 				}
 			}
@@ -1809,6 +1839,9 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 				if p.Name == "Ok" {
 					if sig != nil && c.knownType(sig.ret) {
 						env2[p.Var] = sig.ret
+						if c.variants[sig.ret] {
+							env2[p.Var] = variantOkType(sig.ret)
+						}
 					} else {
 						env2[p.Var] = ""
 					}
@@ -2100,16 +2133,9 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
 			fmt.Sprintf("%s returns Bytes: bare-Bytes returns are unsupported, return a record", fn.Name), fn.Ret, CodeTypeMismatch))
 	}
-	// a74: bare-variant returns are unsupported, like bare-brand,
-	// bare-Seq, and bare-Bytes returns. Entries return wrapper
-	// records; the case constructor's parent type is data, not a
-	// function result shape.
-	if c.variants[fn.Ret] {
-		c.out = append(c.out, spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s returns %s: bare-variant returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
-	}
+	// B07 admits variant returns via a checked Ok(value) envelope.
 	// b00: bare-Fn returns are unsupported, like bare-brand,
-	// bare-Seq, bare-Bytes, and bare-variant returns. Callables
+	// bare-Seq and bare-Bytes returns. Callables
 	// travel as params and record fields; results name a record.
 	if _, _, _, ok := fnTypeShape(fn.Ret); ok {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
