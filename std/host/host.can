@@ -1,0 +1,54 @@
+// std/host/host.can — the host shelf: explicit foreign observations
+// behind uses-pinned externs (b02). Wall time is an observation, not
+// a pure value; monotonic ticks never silently substitute wall time.
+// Time points are millis ints (JEV instant_repr millis_int 0.97):
+// millis since the Unix epoch for wall, millis since an
+// unspecified origin for monotonic. Sub-millisecond precision is
+// out of scope for v1. Decision tables script the externs; the
+// host implementations in host.externs.ts are a separate
+// obligation, executed by TestStdHostNodeSmoke.
+
+mod host
+  provides [std__clock__wall_now, std__clock__monotonic_now, Clock__Instant, Clock__MonotonicTick, host__wall_now, host__mono_now]
+  uses []
+  emits [clock.unavailable]
+
+error clock.unavailable()
+
+type Clock__Instant rev 1 (
+  millis: int
+)
+
+type Clock__MonotonicTick rev 1 (
+  millis: int
+)
+
+extern host__wall_now() -> Clock__Instant rev 1
+  emits [clock.unavailable]
+
+extern host__mono_now() -> Clock__MonotonicTick rev 1
+  emits [clock.unavailable]
+
+fn std__clock__wall_now() -> Clock__Instant rev 1
+  emits [clock.unavailable]
+  tests
+    ok() => Ok(1726920000000)
+    down() => clock.unavailable()
+  match call host__wall_now()
+    given
+      ok => [exchange args () outcome Ok(1726920000000)]
+      down => [exchange args () outcome clock.unavailable()]
+    on clock.unavailable _ => clock.unavailable()
+    on Ok t => Ok(t.millis)
+
+fn std__clock__monotonic_now() -> Clock__MonotonicTick rev 1
+  emits [clock.unavailable]
+  tests
+    ok() => Ok(9000)
+    down() => clock.unavailable()
+  match call host__mono_now()
+    given
+      ok => [exchange args () outcome Ok(9000)]
+      down => [exchange args () outcome clock.unavailable()]
+    on clock.unavailable _ => clock.unavailable()
+    on Ok t => Ok(t.millis)

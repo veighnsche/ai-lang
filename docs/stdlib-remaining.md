@@ -54,4 +54,4 @@ collections_probe (tie 0.49, choice field); slice5 validate_schema
 0.65; schema monomorphic_family 1.0; slice6 mapset 0.97, str_keyed
 0.70, new_modules 0.56; host bare_externs 0.64; host artifact
 delete 0.53; b02 extern admission uses_pin 0.99, host_resolution
-declaring_stem 0.84.
+declaring_stem 0.84; H1 instant_repr millis_int 0.97.

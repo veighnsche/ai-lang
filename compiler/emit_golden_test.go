@@ -134,6 +134,31 @@ func TestGoldenNotify(t *testing.T) {
 	}
 }
 
+// TestGoldenHostClock freezes the first shared-host consumer: the
+// clock demo pins the std host wrapper, so host compiles
+// alongside; only clock.ts and errors.json are golden-kept.
+func TestGoldenHostClock(t *testing.T) {
+	dir := t.TempDir()
+	srcs := []string{
+		"../sketches/host-clock/clock.can",
+		"../std/host/host.can",
+	}
+	if err := compile(dir, srcs); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+	for _, f := range []string{"clock.ts", "errors.json"} {
+		got, err := os.ReadFile(filepath.Join(dir, f))
+		if err != nil {
+			t.Fatalf("read fresh %s: %v", f, err)
+		}
+		want, err := os.ReadFile(filepath.Join("../sketches/host-clock", f))
+		if err != nil {
+			t.Fatalf("read golden %s: %v", f, err)
+		}
+		checkGoldenFile(t, f, got, want)
+	}
+}
+
 // TestGoldenQuotaCounter freezes row 1 of the stdlib program: the
 // validation module plus its quota counter must transpile
 // byte-identical, so validator payloads and the multi-shape ok union
