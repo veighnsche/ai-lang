@@ -407,14 +407,34 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Restore the accepted expectation, or re-accept by updating the baseline. Unmarked rows churn freely; only the marker carries acceptance.",
 	},
 	CodeFnValueDeferred: {
-		rule:    "Function values are staged (b00): references and invocations parse but have no runtime yet, so both are refused until the invocation slice lands.",
-		violate: `fnref m__t(divisor = 3) or match invoke cb with n in an ordinary body.`,
-		fix:     "Call the target directly until the invocation slice lands. The annotation shape stays valid; only execution is deferred.",
+		rule:    "Function values are staged (b00): references check statically, but invocation has no runtime yet, so match invoke is refused until the invocation slice lands.",
+		violate: `match invoke cb with n in an ordinary body.`,
+		fix:     "Call the target directly until the invocation slice lands. Reference creation already checks; only dispatch is deferred.",
 	},
 	CodeFnHeadInvalid: {
 		rule:    "A Fn head names a known input type, a record success carrier, and a distinct canonically ordered list of declared error kinds.",
 		violate: `Fn<int, int, [m.odd, m.err]>: int is not a record and the kinds are unordered.`,
 		fix:     "Name the Ok payload record for success, and list each declared error kind once in lexicographic order.",
+	},
+	CodeFnResidualArity: {
+		rule:    "A reference binds all but exactly one target parameter: the unbound parameter becomes the callable input.",
+		violate: `fnref divmod() on a binary target, or binding both params.`,
+		fix:     "Bind every parameter except one by name; a zero-capture reference needs an already-unary target, and a full binding is a call, not a reference.",
+	},
+	CodeFnComputedCapture: {
+		rule:    "Captures are literals, variable/field references, seals, and data constructions: nothing that executes or computes.",
+		violate: `fnref f(x = g(1)) or fnref f(x = a + b).`,
+		fix:     "Compute the value with an ordinary checked function first and capture its bound result.",
+	},
+	CodeFnContainment: {
+		rule:    "Callables live in parameters and record fields only; captures, inputs, and success carriers are data without functions inside.",
+		violate: `A capture of Fn type, or Fn inside a sequence element, variant/error payload, const, or extern signature.`,
+		fix:     "Keep function values out of the nested position; pass them as direct parameters or record fields.",
+	},
+	CodeFnTargetRefused: {
+		rule:    "A reference target is a source function whose whole reachable graph is pure, effect-free, and precondition-free.",
+		violate: `fnref on an extern, a state toucher, or a target needing requires.`,
+		fix:     "Reference a pure source function; capabilities and preconditions cannot travel behind a reference.",
 	},
 	CodeInvalidRelay: {
 		rule:    "Identity-relay certificates are checked, not trusted: a relay-shaped arm that fails the check (wrong kind, dropped field) is invalid.",

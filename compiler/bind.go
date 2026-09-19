@@ -52,6 +52,48 @@ func bindSlots(fname string, args []Arg, params [][2]string) ([]int, error) {
 	return slots, nil
 }
 
+// bindRefSlots resolves a reference's capture list against the
+// target's parameter list: one slot index per source capture, plus
+// the indices left unbound. Unlike calls, captures are named-only
+// and must follow parameter-declaration order; unknown names,
+// duplicate captures, positionals, and disorder are all errors.
+// Omission is NOT an error here: the caller owns the residual
+// count (exactly one unbound) under its own rule.
+func bindRefSlots(fname string, args []Arg, params [][2]string) ([]int, []int, error) {
+	index := make(map[string]int, len(params))
+	for j, p := range params {
+		index[p[0]] = j
+	}
+	slots := make([]int, len(args))
+	assigned := make([]bool, len(params))
+	last := -1
+	for i, a := range args {
+		if !a.HasName {
+			return nil, nil, fmt.Errorf("reference to %s takes named captures only: capture %d is positional", fname, i+1)
+		}
+		j, ok := index[a.Name]
+		if !ok {
+			return nil, nil, fmt.Errorf("reference to %s has no param %s", fname, a.Name)
+		}
+		if assigned[j] {
+			return nil, nil, fmt.Errorf("reference to %s supplies capture %s twice", fname, a.Name)
+		}
+		if j < last {
+			return nil, nil, fmt.Errorf("reference to %s binds %s out of order: captures follow param declaration order", fname, a.Name)
+		}
+		last = j
+		assigned[j] = true
+		slots[i] = j
+	}
+	var unbound []int
+	for j := range params {
+		if !assigned[j] {
+			unbound = append(unbound, j)
+		}
+	}
+	return slots, unbound, nil
+}
+
 // bindCtorArgs names a constructor's positional arguments from the
 // declaration's field order (a92): positional i binds fields[i],
 // named arguments keep their names. It reports only positional

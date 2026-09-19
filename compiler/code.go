@@ -119,6 +119,10 @@ const (
 	CodePinnedWeakened           = "CAN6017"
 	CodeFnValueDeferred          = "CAN6018"
 	CodeFnHeadInvalid            = "CAN6019"
+	CodeFnResidualArity          = "CAN6020"
+	CodeFnComputedCapture        = "CAN6021"
+	CodeFnContainment            = "CAN6022"
+	CodeFnTargetRefused          = "CAN6023"
 	CodePrimitiveShadow          = "CAN6012"
 	CodeRevisionIdentity         = "CAN6013"
 	CodeContractMalformed        = "CAN4301"
@@ -158,4 +162,8 @@ var allCodes = []string{
 	CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePinnedWeakened,
 	CodeFnValueDeferred,
 	CodeFnHeadInvalid,
+	CodeFnResidualArity,
+	CodeFnComputedCapture,
+	CodeFnContainment,
+	CodeFnTargetRefused,
 }

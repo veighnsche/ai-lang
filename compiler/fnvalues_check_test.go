@@ -5,11 +5,13 @@ import (
 	"testing"
 )
 
-// B00 stage 1a check: fnref creation parses but is refused with
-// CAN6018 until invocation lands. The Fn annotation itself is
-// accepted by shape so the report stays singular.
+// B00 invocation slice I1: well-formed reference creation checks
+// clean. The factory returns a record holding the callable
+// (bare-Fn returns stay refused); the row then fails evaluation
+// (CAN4200) until the I3 runtime constructs values, which the
+// assertions below admit explicitly.
 const fnvaluesCheckBody = `mod m
-  provides [m__go, m__t, M__O]
+  provides [m__go, m__t, M__O, M__H]
   uses []
   emits [m.err]
 
@@ -19,28 +21,48 @@ type M__O rev 1 (
   value: str
 )
 
+type M__H rev 1 (
+  cb: Fn<int, M__O, [m.err]>
+)
+
 fn m__t(divisor: int, dividend: int) -> M__O rev 1
   emits [m.err]
   tests
     t(3, 7) => Ok("q")
   Ok("q")
 
-fn m__go(n: int) -> M__O rev 1
+fn m__go(n: int) -> M__H rev 1
   emits []
   tests
-    g(3) => Ok("q")
-  Ok(fnref m__t(divisor = 3))
+    g(3) => Ok(fnref m__t(divisor = 3))
+  M__H(fnref m__t(divisor = n))
 `
 
-func TestCheckFnrefDeferred(t *testing.T) {
-	seqCode(t, map[string]string{"m.can": fnvaluesCheckBody}, "m.can",
-		CodeFnValueDeferred, "deferred")
+// wantFnvaluesClean asserts static acceptance: every error is the
+// admitted runtime confirmation (the row cannot evaluate until
+// the I3 runtime lands), never a static rejection.
+func wantFnvaluesClean(t *testing.T, files map[string]string, name string) {
+	t.Helper()
+	dir := writeLSPDir(t, files)
+	diags := diagnose(dir, name, files[name])
+	for _, d := range diags {
+		if d.Sev != "error" {
+			continue
+		}
+		if d.Code == CodeTestFailed || d.Code == CodeInconsistentScript {
+			continue
+		}
+		t.Fatalf("expected static acceptance, got %v", diags)
+	}
 }
 
-// A row-held reference reports the same code: the Fn annotation
-// admits the argument by shape (no unknown-type cascade) while
-// creation itself is refused. The row then fails evaluation
-// (CAN4200), which seqCode admits as a cascade.
+func TestCheckFnrefFactory(t *testing.T) {
+	wantFnvaluesClean(t, map[string]string{"m.can": fnvaluesCheckBody}, "m.can")
+}
+
+// A row-held reference checks clean too: the denoted Fn type
+// matches the callback parameter, and only evaluation waits on
+// the runtime.
 const fnvaluesCheckRow = `mod m
   provides [m__go, m__t, M__O]
   uses []
@@ -65,16 +87,15 @@ fn m__go(cb: Fn<int, M__O, [m.err]>) -> M__O rev 1
   Ok("q")
 `
 
-func TestCheckFnrefRowDeferred(t *testing.T) {
-	seqCode(t, map[string]string{"m.can": fnvaluesCheckRow}, "m.can",
-		CodeFnValueDeferred, "deferred")
+func TestCheckFnrefRow(t *testing.T) {
+	wantFnvaluesClean(t, map[string]string{"m.can": fnvaluesCheckRow}, "m.can")
 }
 
-// Invocation is refused with the same stage code: the row-held
-// reference reports once, the match invoke node reports once, and
-// nothing else fires (no value-table proof, no exhaustiveness, no
-// given validation). The row then fails evaluation (CAN4200),
-// which is admitted below like seqCode admits it.
+// Invocation stays deferred in I1: the row-held reference now
+// checks clean (only its CAN4200 evaluation failure remains,
+// admitted below), the match invoke node reports once, and
+// nothing else fires (no value-table proof, no exhaustiveness,
+// no given validation).
 const fnvaluesCheckInvoke = `mod m
   provides [m__go, m__t, M__O]
   uses []
@@ -121,8 +142,8 @@ func TestCheckInvokeDeferred(t *testing.T) {
 			t.Fatalf("unexpected cascade error, got %v", diags)
 		}
 	}
-	if deferred != 2 {
-		t.Fatalf("expected exactly two deferrals (row + node), got %v", diags)
+	if deferred != 1 {
+		t.Fatalf("expected exactly one deferral (the invoke node), got %v", diags)
 	}
 	if proof != 1 {
 		t.Fatalf("expected exactly one proof fail-closed, got %v", diags)
@@ -165,9 +186,9 @@ fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
 `
 
 // wantFnHeadDiag asserts one error carries the code and fragment.
-// The fnref row arg always adds its own CAN6018 deferral (plus a
-// possible runtime confirmation), so only presence is asserted,
-// never singularity.
+// The fnref row arg always adds its own CAN4200 runtime
+// confirmation (references check but do not evaluate yet), so
+// only presence is asserted, never singularity.
 func wantFnHeadDiag(t *testing.T, body, code, sub string) {
 	t.Helper()
 	dir := writeLSPDir(t, map[string]string{"m.can": body})
@@ -301,8 +322,7 @@ fn m__go(cb: Fn<int, M__O, [m.err]>) -> M__O rev 1
 }
 
 // A valid multi-kind head with an empty-list field reports no head
-// diagnostic: only the row's CAN6018 deferral (and its runtime
-// confirmation) may fire.
+// diagnostic: only the row's runtime confirmation may fire.
 func TestCheckFnHeadValid(t *testing.T) {
 	body := strings.Replace(fnHeadBase, "provides [m__go, m__t, M__O]",
 		"provides [m__go, m__t, M__O, M__Box]", 1)
@@ -318,6 +338,247 @@ func TestCheckFnHeadValid(t *testing.T) {
 		switch d.Code {
 		case CodeFnHeadInvalid, CodeUnknownType, CodeUnknownKind:
 			t.Fatalf("unexpected head diagnostic, got %v", diags)
+		}
+	}
+}
+
+// I1 negatives: each creation rule reports its own code with a
+// singular report (seqCode admits only the runtime confirmation).
+const fnvaluesNegBase = `mod m
+  provides [m__go, m__t, m__h, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__h(x: int) -> M__O rev 1
+  emits []
+  tests
+    h(1) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>) -> M__O rev 1
+  emits []
+  tests
+    ROW
+  Ok("q")
+`
+
+func TestCheckFnrefNegatives(t *testing.T) {
+	cases := []struct {
+		name string
+		row  string
+		code string
+		sub  string
+	}{
+		{"empty leaves two unbound", `g(fnref m__t()) => Ok("q")`,
+			CodeFnResidualArity, "leaves 2 parameters unbound"},
+		{"full binding is a call", `g(fnref m__t(divisor = 3, dividend = 4)) => Ok("q")`,
+			CodeFnResidualArity, "binds every parameter"},
+		{"call capture is computed", `g(fnref m__t(divisor = call m__h(3))) => Ok("q")`,
+			CodeFnComputedCapture, "is computed (call)"},
+		{"captures follow declaration order", `g(fnref m__t(dividend = 4, divisor = 3)) => Ok("q")`,
+			CodeBadBinding, "out of order"},
+		{"unknown target", `g(fnref m__nope(divisor = 3)) => Ok("q")`,
+			CodeUnknownCall, "references unknown function"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			body := strings.Replace(fnvaluesNegBase, "ROW", c.row, 1)
+			seqCode(t, map[string]string{"m.can": body}, "m.can", c.code, c.sub)
+		})
+	}
+}
+
+// A capture of callback type is refused (CAN6022) alongside the
+// slot mismatch: captures are data-only.
+func TestCheckFnrefCaptureContainsFn(t *testing.T) {
+	body := `mod m
+  provides [m__go, m__t, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
+  emits []
+  tests
+    g(fnref m__t(divisor = cb), 4) => Ok("q")
+  Ok("q")
+`
+	wantFnHeadDiag(t, body, CodeFnContainment, "contains a function value: captures are data-only")
+}
+
+// Externs are not referenceable: only source functions take
+// addresses.
+func TestCheckFnrefExternRefused(t *testing.T) {
+	body := `mod m
+  provides [m__go, m__t, m__use, M__O, M__Verdict]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+type M__Verdict rev 1 (
+)
+
+extern m__use(n: int) -> M__Verdict rev 1
+  emits []
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>) -> M__O rev 1
+  emits []
+  tests
+    g(fnref m__use(n = 3)) => Ok("q")
+  Ok("q")
+`
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
+		CodeFnTargetRefused, "reference to extern m__use refused")
+}
+
+// An effectful target is refused through the whole-graph linked
+// criterion, even though the target itself checks clean. The
+// zero-capture reference against the unary target also proves the
+// residual rule needs no captures when one parameter is already
+// the whole input.
+func TestCheckFnrefEffectfulRefused(t *testing.T) {
+	body := `mod m
+  provides [m__go, m__bump, M__T]
+  uses []
+  emits []
+
+state M__C: int = 0
+
+type M__T rev 1 (
+  total: int
+)
+
+fn m__bump(by: int) -> M__T rev 1
+  effects [M__C.read, M__C.write]
+  emits []
+  tests
+    three(3) => Ok(3)
+  match call state__get(M__C)
+    on Ok c => match call state__put(M__C, c.value + by)
+      on Ok _ => Ok(c.value + by)
+
+fn m__go(cb: Fn<int, M__T, []>) -> M__T rev 1
+  emits []
+  tests
+    g(fnref m__bump()) => Ok(3)
+  Ok(0)
+`
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
+		CodeFnTargetRefused, "reference to m__bump refused: effectful function")
+}
+
+// A target with a required precondition is refused: captures
+// never discharge preconditions.
+func TestCheckFnrefRequiresRefused(t *testing.T) {
+	body := `mod m
+  provides [m__go, m__pick, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: int
+)
+
+fn m__pick(a: int, b: int) -> M__O rev 1
+  emits []
+  requires
+    a == 3
+  tests
+    v(3, 5) => Ok(8)
+  Ok(a + b)
+
+fn m__go(cb: Fn<int, M__O, []>) -> M__O rev 1
+  emits []
+  tests
+    g(fnref m__pick(a = 3)) => Ok(8)
+  Ok(0)
+`
+	wantFnHeadDiag(t, body, CodeFnTargetRefused, "has a required precondition")
+}
+
+// Q3a: a foreign reference needs the creator's own uses pin,
+// exactly like a foreign call.
+const fnvaluesForeignProv = `mod t
+  provides [t__dbl, T__O]
+  uses []
+  emits []
+
+type T__O rev 1 (
+  value: int
+)
+
+fn t__dbl(a: int, b: int) -> T__O rev 1
+  emits []
+  tests
+    d(3, 4) => Ok(7)
+  Ok(a + b)
+`
+
+const fnvaluesForeignBase = `mod m
+  provides [m__go]
+  uses [PINS]
+  emits []
+
+fn m__go(cb: Fn<int, T__O, []>) -> T__O rev 1
+  emits []
+  tests
+    g(fnref t__dbl(a = 3)) => Ok(7)
+  Ok(0)
+`
+
+func TestCheckFnrefForeignNeedsPin(t *testing.T) {
+	body := strings.Replace(fnvaluesForeignBase, "PINS", "", 1)
+	files := map[string]string{"t.can": fnvaluesForeignProv, "m.can": body}
+	seqCode(t, files, "m.can", CodeCallNotInUses, "references t__dbl which is not in uses")
+}
+
+// The pinned foreign reference checks clean, and the address
+// counts as use: no unused-pin warning fires even though no call
+// ever reaches the target.
+func TestCheckFnrefForeignPinClean(t *testing.T) {
+	body := strings.Replace(fnvaluesForeignBase, "PINS", "t__dbl@1", 1)
+	files := map[string]string{"t.can": fnvaluesForeignProv, "m.can": body}
+	wantFnvaluesClean(t, files, "m.can")
+	dir := writeLSPDir(t, files)
+	for _, d := range diagnose(dir, "m.can", body) {
+		if d.Code == CodeUnusedUses {
+			t.Fatalf("row-held address should count as use, got %v", d)
 		}
 	}
 }
@@ -343,7 +604,7 @@ func TestCheckInvokeWithCall(t *testing.T) {
 			t.Fatalf("unexpected cascade error, got %v", diags)
 		}
 	}
-	if deferred != 2 || outside != 1 || proof != 1 {
-		t.Fatalf("want 2 deferrals + outside call + proof guard, got %v", diags)
+	if deferred != 1 || outside != 1 || proof != 1 {
+		t.Fatalf("want 1 deferral + outside call + proof guard, got %v", diags)
 	}
 }

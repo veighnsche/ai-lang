@@ -566,13 +566,13 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 		case *StateDecl:
 			out = append(out, checkStateDecl(d, text)...)
 		case *TypeDecl:
-			out = append(out, checkDeclFields(d.Name, d.Fields, d.Line, prog, text)...)
+			out = append(out, checkDeclFields(d.Name, d.Fields, d.Line, prog, text, true)...)
 		case *VariantDecl:
 			for _, c := range d.Cases {
-				out = append(out, checkDeclFields(qualifyCase(d.Name, c.Short), c.Fields, c.Line, prog, text)...)
+				out = append(out, checkDeclFields(qualifyCase(d.Name, c.Short), c.Fields, c.Line, prog, text, false)...)
 			}
 		case *ErrorDecl:
-			out = append(out, checkDeclFields(d.Name, d.Fields, d.Line, prog, text)...)
+			out = append(out, checkDeclFields(d.Name, d.Fields, d.Line, prog, text, false)...)
 		}
 	}
 	out = append(out, checkConstDecls(open, prog, text)...)

@@ -2135,16 +2135,41 @@ func checkEmits(fn *FnDecl, prog *Program, text string) []Diag {
 }
 
 // calledFns is every statically visible call target, scrutinee or not.
+// Address-taken reference targets count as use (Q3a): taking an
+// address is a dependency even though creation never executes.
+// Rows count for references but not calls: a factory row is the
+// primary creation site, and without it a required pin for a
+// row-held foreign reference would warn as unused.
 func calledFns(fn *FnDecl) map[string]bool {
 	out := map[string]bool{}
+	refs := func(s *Small) {
+		walkSmallTrees(s, func(x *Small) {
+			if x.Kind == "fnref" {
+				out[x.Fname] = true
+			}
+		})
+	}
 	bodySmalls(fn.Body, func(s *Small, line int) {
-		if s.Kind == "call" {
+		if s.Kind == "call" || s.Kind == "fnref" {
 			out[s.Fname] = true
 		}
 	})
+	for _, t := range fn.Tests {
+		for _, a := range t.Args {
+			refs(a.V)
+		}
+		refs(t.Expected)
+	}
 	for _, m := range matchNodes(fn.Body) {
 		if m.Kind == MatchCall {
 			out[m.Scruts[0].Fname] = true
+		}
+		for _, s := range m.Scruts {
+			walkSmallTrees(s, func(x *Small) {
+				if x.Kind == "fnref" {
+					out[x.Fname] = true
+				}
+			})
 		}
 	}
 	return out

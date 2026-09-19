@@ -82,6 +82,9 @@ func checkCompositeConst(prog *Program, text string, c *ConstDecl) ([]Diag, bool
 	if !ck.knownType(c.Type) {
 		return fail("const %s declares unsupported sort %s: admit int, str, dec, bool, record, Seq, and brand sorts", c.Name, c.Type)
 	}
+	if ck.typeHasFn(c.Type) {
+		return fail("const %s declares %s containing a function value: constants are data-only", c.Name, c.Type)
+	}
 	// design3 excludes Bytes and variant-valued constants.
 	if c.Type == "Bytes" || ck.variants[c.Type] {
 		return fail("const %s declares excluded sort %s: Bytes and variant-valued constants stay inline", c.Name, c.Type)

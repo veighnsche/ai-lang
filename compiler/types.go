@@ -209,6 +209,242 @@ func fnTypeShape(t string) (string, string, string, bool) {
 	return a, r, e, true
 }
 
+// typeHasFn reports whether a type spelling contains a callable
+// anywhere: a direct Fn head, a Seq element, a generic argument,
+// or a record field transitively. The visited set keeps
+// Seq-recursive data graphs terminating. Brands, errors, variants,
+// and scalars are leaves: their declarations reject Fn payloads
+// at their own positions, so containment never needs to look
+// inside them — a violating declaration fails there regardless.
+func (c *tycker) typeHasFn(t string) bool {
+	seen := map[string]bool{}
+	var has func(x string) bool
+	has = func(x string) bool {
+		if _, _, _, ok := fnTypeShape(x); ok {
+			return true
+		}
+		if elem, ok := seqElemName(x); ok {
+			if seen[x] {
+				return false
+			}
+			seen[x] = true
+			return has(elem)
+		}
+		if strings.HasPrefix(x, "Seq<") && strings.HasSuffix(x, ">") {
+			if seen[x] {
+				return false
+			}
+			seen[x] = true
+			return has(x[len("Seq<") : len(x)-1])
+		}
+		if _, args, ok := splitMention(x); ok {
+			if seen[x] {
+				return false
+			}
+			seen[x] = true
+			for _, a := range args {
+				if has(strings.TrimSpace(a)) {
+					return true
+				}
+			}
+			return false
+		}
+		fields, ok := c.recs[x]
+		if !ok {
+			return false
+		}
+		if seen[x] {
+			return false
+		}
+		seen[x] = true
+		for _, f := range fields {
+			if has(f[1]) {
+				return true
+			}
+		}
+		return false
+	}
+	return has(t)
+}
+
+// captureDataKind reports whether a Small kind may appear in a
+// reference capture: literals, variable/field references, seals,
+// and data constructions. Anything executing or computing is
+// outside B00, as are nested references and script-only forms.
+func captureDataKind(kind string) bool {
+	switch kind {
+	case "str", "int", "bool", "dec", "float", "ref", "ctor", "seqlit", "seal":
+		return true
+	}
+	return false
+}
+
+// checkFnref validates one reference creation: the target resolves
+// to an admitted source function under the creator's authority,
+// captures bind by name in declaration order leaving exactly one
+// parameter unbound, every capture is data of its slot type with
+// no function inside, and the denoted input and success carrier
+// are data-only. The denoted Fn type lands on s.T; the generic
+// want tail compares it against the annotation through typeOf.
+func (c *tycker) checkFnref(s *Small, line int, env map[string]string, where string) {
+	show := s.Fname
+	if base, ok := c.prog.GenericBase[s.Fname]; ok {
+		show = base
+	}
+	structural := func() {
+		for _, a := range s.Args {
+			c.value(a.V, "", line, env, where)
+		}
+	}
+	tgt, ok := c.prog.Fns[s.Fname]
+	if !ok {
+		if c.prog.Externs[s.Fname] != nil {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("reference to extern %s refused: only source functions are referenceable", show), "fnref", CodeFnTargetRefused))
+		} else if kind := classifyCallee(c.prog, "", s.Fname); kind.IsIntrinsic() {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("reference to %s refused: compiler kernels are not referenceable", show), "fnref", CodeFnTargetRefused))
+		} else {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("%s references unknown function %s", c.fn, show), "fnref", CodeUnknownCall))
+		}
+		structural()
+		return
+	}
+	// Q3a: a foreign reference needs the creator's own uses pin,
+	// exactly like a foreign call; the pin names the base.
+	if localCallee(c.prog, c.fn, s.Fname) == nil && !c.prog.Uses[s.Fname] {
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("%s references %s which is not in uses: add name@rev to uses", c.fn, show), "fnref", CodeCallNotInUses))
+	}
+	slots, unbound, berr := bindRefSlots(s.Fname, s.Args, tgt.Params)
+	if berr != nil {
+		c.out = append(c.out, spanDiag(c.text, line, "error", berr.Error(), "fnref", CodeBadBinding))
+		structural()
+		c.checkFnrefTarget(s, tgt, show, line)
+		return
+	}
+	if len(unbound) != 1 {
+		if len(unbound) == 0 {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("reference to %s binds every parameter: leave exactly one unbound (a reference is not a call)", show), "fnref", CodeFnResidualArity))
+		} else {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("reference to %s leaves %d parameters unbound: bind all but exactly one", show, len(unbound)), "fnref", CodeFnResidualArity))
+		}
+	}
+	for i, a := range s.Args {
+		p := tgt.Params[slots[i]]
+		label := "reference to " + show + " capture " + p[0]
+		c.value(a.V, "", line, env, label)
+		walkSmallTrees(a.V, func(x *Small) {
+			if !captureDataKind(x.Kind) {
+				name := p[0]
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("capture %s of reference to %s is computed (%s): captures are literals, refs, seals, and data constructions", name, show, x.Kind), "fnref", CodeFnComputedCapture))
+			}
+		})
+		if c.knownType(p[1]) {
+			if got, ok := c.typeOf(a.V, env); ok && got != p[1] {
+				c.mismatch(line, label, got, p[1], tokenOf(a.V))
+			}
+		}
+		if got, ok := c.typeOf(a.V, env); ok && c.typeHasFn(got) {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("capture %s of reference to %s contains a function value: captures are data-only", p[0], show), "fnref", CodeFnContainment))
+		}
+	}
+	c.checkFnrefTarget(s, tgt, show, line)
+	if len(unbound) == 1 {
+		a := tgt.Params[unbound[0]][1]
+		if c.typeHasFn(a) {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("input %s of reference to %s contains a function value: inputs are data-only", a, show), "fnref", CodeFnContainment))
+		}
+		if _, ok := c.recs[tgt.Ret]; ok && c.typeHasFn(tgt.Ret) {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("success %s of reference to %s contains a function value: success carriers are data-only", tgt.Ret, show), "fnref", CodeFnContainment))
+		}
+		if t, ok := c.refFnType(s); ok {
+			s.T = t
+		}
+	}
+}
+
+// checkFnrefTarget enforces target admission: the return names a
+// record, the whole reachable graph is pure under the linked
+// criterion, and no reachable function needs a precondition.
+// Captures never discharge any of these.
+func (c *tycker) checkFnrefTarget(s *Small, tgt *FnDecl, show string, line int) {
+	if _, ok := c.recs[tgt.Ret]; !ok {
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("reference to %s refused: success %s is not a record", show, tgt.Ret), "fnref", CodeFnTargetRefused))
+	}
+	if err := checkLinkedGraph(c.prog, s.Fname); err != nil {
+		detail := strings.TrimPrefix(err.Error(), "linked execution refused: ")
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("reference to %s refused: %s", show, detail), "fnref", CodeFnTargetRefused))
+	}
+	seen := map[string]bool{s.Fname: true}
+	queue := []string{s.Fname}
+	for len(queue) > 0 {
+		name := queue[0]
+		queue = queue[1:]
+		fn, ok := c.prog.Fns[name]
+		if !ok {
+			continue
+		}
+		if len(fn.Requires) > 0 {
+			holder := name
+			if base, ok := c.prog.GenericBase[name]; ok {
+				holder = base
+			}
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("reference to %s refused: %s has a required precondition", show, holder), "fnref", CodeFnTargetRefused))
+			break
+		}
+		for _, cc := range walkCalls(fn.Body) {
+			if !seen[cc.Fname] {
+				seen[cc.Fname] = true
+				queue = append(queue, cc.Fname)
+			}
+		}
+	}
+}
+
+// fnSeqDiags reports a sequence element carrying a callable. The
+// annotation may be well-formed (a stamped element name); the
+// position still refuses function values transitively.
+func (c *tycker) fnSeqDiags(t, where string, line int, token string) []Diag {
+	if elem, ok := seqElemName(t); ok && c.typeHasFn(elem) {
+		return []Diag{spanDiag(c.text, line, "error",
+			fmt.Sprintf("sequence element %s of %s contains a function value: sequence elements are data-only", elem, where), token, CodeFnContainment)}
+	}
+	return nil
+}
+
+// refFnType computes the callable type a reference denotes: the
+// unbound parameter becomes A, the target return becomes R, and
+// the target emits become the canonically ordered error list.
+// ok=false means unresolvable; the value rule owns every
+// diagnostic, so shape failures stay silent here.
+func (c *tycker) refFnType(s *Small) (string, bool) {
+	tgt, ok := c.prog.Fns[s.Fname]
+	if !ok {
+		return "", false
+	}
+	_, unbound, err := bindRefSlots(s.Fname, s.Args, tgt.Params)
+	if err != nil || len(unbound) != 1 {
+		return "", false
+	}
+	if _, ok := c.recs[tgt.Ret]; !ok {
+		return "", false
+	}
+	errs := slices.Clone(tgt.Emits)
+	slices.Sort(errs)
+	return fmt.Sprintf("Fn<%s, %s, [%s]>", tgt.Params[unbound[0]][1], tgt.Ret, strings.Join(errs, ", ")), true
+}
+
 // fnHeadDiags enforces b00 deep validity on one Fn annotation that
 // shape-accepted: the input names a known type, the success names a
 // record, every kind names a declared error, and the kinds are
@@ -216,10 +452,10 @@ func fnTypeShape(t string) (string, string, string, bool) {
 // input reuses CAN6002 and unknown kinds reuse CAN4002; head-invalid
 // shapes (non-record success, duplicate or unordered kinds) are
 // CAN6019. Non-Fn annotations are a silent no-op, so call sites
-// need no shape gate. Transitive containment (Fn inside A or R
-// through records) and the error/variant/state/const position
-// exclusions land with invocation, which owns the target-admission
-// certificate; this cut validates the head everywhere it is written.
+// need no shape gate. This cut validates the head everywhere it
+// is written; transitive containment (Fn inside A or R through
+// records) and the sequence/variant/error/const/extern position
+// exclusions live in typeHasFn and its call sites.
 func (c *tycker) fnHeadDiags(t, where string, line int, token string) []Diag {
 	a, r, e, ok := fnTypeShape(t)
 	if !ok {
@@ -409,6 +645,8 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			return "", false
 		}
 		return s.Seal, true
+	case "fnref":
+		return c.refFnType(s)
 	case "seqlit":
 		// A typed literal carries its sequence type outward, exactly
 		// like a record constructor carries its record type, so outer
@@ -614,6 +852,8 @@ func tokenOf(s *Small) string {
 		return s.Ctor
 	case "exchange":
 		return "exchange"
+	case "fnref":
+		return "fnref"
 	}
 	return ""
 }
@@ -1029,16 +1269,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			c.value(it, "", line, env, where)
 		}
 	case "fnref":
-		// B00 stage 1: references parse but have no runtime yet,
-		// so creation is refused here instead of flowing into
-		// calls, graphs, or emit. Captures still check
-		// structurally so one deferred node never hides nested
-		// errors inside its bindings.
-		c.out = append(c.out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("function reference to %s is deferred: invocation has not landed yet", s.Fname), "fnref", CodeFnValueDeferred))
-		for _, a := range s.Args {
-			c.value(a.V, "", line, env, where)
-		}
+		c.checkFnref(s, line, env, where)
 	case "seqlit":
 		// a36 S1: values and element checking are one admission
 		// boundary. Every member checks against the written element
@@ -1049,6 +1280,14 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		if _, nested := seqElemName(s.Elem); nested || !c.knownType(s.Elem) {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("unknown type %s in Seq literal", s.Elem), "Seq", CodeUnknownType))
+			for _, it := range s.Items {
+				c.value(it, "", line, env, where)
+			}
+			return
+		}
+		if c.typeHasFn(s.Elem) {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("sequence element %s of Seq literal contains a function value: sequence elements are data-only", s.Elem), "Seq", CodeFnContainment))
 			for _, it := range s.Items {
 				c.value(it, "", line, env, where)
 			}
@@ -1710,6 +1949,7 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 				fmt.Sprintf("unknown type %s in param %s", p[1], p[0]), p[0], CodeUnknownType))
 		}
 		c.out = append(c.out, c.fnHeadDiags(p[1], "param "+p[0], fn.Line, p[0])...)
+		c.out = append(c.out, c.fnSeqDiags(p[1], "param "+p[0], fn.Line, p[0])...)
 	}
 	if !c.knownType(fn.Ret) {
 		c.out = append(c.out, spanDiag(text, fn.Line, "error",
@@ -1837,8 +2077,16 @@ func checkExternSig(ex *ExternDecl, prog *Program, text string) []Diag {
 				fmt.Sprintf("unknown type %s in param %s", p[1], p[0]), p[0], CodeUnknownType))
 		}
 		c.out = append(c.out, c.fnHeadDiags(p[1], "param "+p[0], ex.Line, p[0])...)
+		if c.typeHasFn(p[1]) {
+			c.out = append(c.out, spanDiag(text, ex.Line, "error",
+				fmt.Sprintf("param %s of extern %s contains a function value: extern signatures are data-only", p[0], ex.Name), p[0], CodeFnContainment))
+		}
 	}
 	c.out = append(c.out, c.fnHeadDiags(ex.Ret, "returns", ex.Line, ex.Ret)...)
+	if c.typeHasFn(ex.Ret) {
+		c.out = append(c.out, spanDiag(text, ex.Line, "error",
+			fmt.Sprintf("returns of extern %s contains a function value: extern signatures are data-only", ex.Name), ex.Ret, CodeFnContainment))
+	}
 	if !c.knownType(ex.Ret) {
 		c.out = append(c.out, spanDiag(text, ex.Line, "error",
 			fmt.Sprintf("unknown type %s in returns", ex.Ret), ex.Ret, CodeUnknownType))
@@ -1862,7 +2110,7 @@ func checkExternSig(ex *ExternDecl, prog *Program, text string) []Diag {
 // checkDeclFields validates record and error field annotations: every
 // field names a known type. Uses of an undeclared field type stay
 // silent (typeOf suppresses them), so the declaration owns the error.
-func checkDeclFields(name string, fields [][2]string, line int, prog *Program, text string) []Diag {
+func checkDeclFields(name string, fields [][2]string, line int, prog *Program, text string, allowFn bool) []Diag {
 	c := newTycker(prog, text, name)
 	var out []Diag
 	for _, f := range fields {
@@ -1879,6 +2127,12 @@ func checkDeclFields(name string, fields [][2]string, line int, prog *Program, t
 				fmt.Sprintf("unknown type %s in field %s", f[1], f[0]), f[0], CodeUnknownType))
 		}
 		out = append(out, c.fnHeadDiags(f[1], "field "+f[0], line, f[0])...)
+		if !allowFn && c.typeHasFn(f[1]) {
+			out = append(out, spanDiag(text, line, "error",
+				fmt.Sprintf("field %s of %s contains a function value: only record fields and params carry callables", f[0], name), f[0], CodeFnContainment))
+		} else if allowFn {
+			out = append(out, c.fnSeqDiags(f[1], "field "+f[0], line, f[0])...)
+		}
 	}
 	return out
 }

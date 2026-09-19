@@ -22,7 +22,7 @@ type Arg struct {
 }
 
 type Small struct {
-	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward,not,neg,proj
+	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward,not,neg,proj,fnref
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
 	// "this request received this permitted response" (a12).
