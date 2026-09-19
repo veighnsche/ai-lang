@@ -88,8 +88,8 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 	typeBase := map[string]*Module{}
 	for _, m := range mods {
 		for _, d := range m.Decls {
-			td, ok := d.(*TypeDecl)
-			if !ok {
+			td := typeTemplateView(d)
+			if td == nil {
 				continue
 			}
 			if _, dup := typeBase[td.Name]; dup {
@@ -101,13 +101,14 @@ func expandGenerics(mods []*Module, texts map[string]string) []Diag {
 			}
 			typeBase[td.Name] = m
 			if len(td.TypeParams) > 0 {
-				tgens[td.Name] = &genericTypeInfo{decl: td, mod: m}
+				tgens[td.Name] = &genericTypeInfo{decl: td, source: d, mod: m}
 			}
 		}
 	}
 	if len(gens) == 0 && len(tgens) == 0 && !hasGenericSyntax(mods) {
 		return nil
 	}
+	checkGenericCaseIdentities(mods, emit)
 	types := genericTypeRegistry(mods)
 	for base, g := range gens {
 		checkGenericTemplate(base, g, emit)
@@ -278,7 +279,9 @@ func genericTypeRegistry(mods []*Module) map[string]bool {
 			case *BrandDecl:
 				types[d.Name] = true
 			case *VariantDecl:
-				types[d.Name] = true
+				if len(d.TypeParams) == 0 {
+					types[d.Name] = true
+				}
 			}
 		}
 	}
@@ -364,9 +367,10 @@ type smallSite struct {
 	line int
 }
 
-// everySmall yields every Small rooted at fn (body, tests,
-// givens, contracts) plus module-level const and state
-// initializers are walked separately by everyModuleSmall.
+// everySmall yields every Small rooted at fn (body, tests, givens,
+// contracts), plus construction-shaped proxies for case patterns.
+// Updates to proxy heads/args write back to their patterns. Module-level
+// const and state initializers are walked by everyModuleSmall.
 func everySmall(fn *FnDecl, yield func(smallSite)) {
 	var walk func(s *Small, line int)
 	walk = func(s *Small, line int) {
@@ -394,7 +398,24 @@ func everySmall(fn *FnDecl, yield func(smallSite)) {
 			walk(sc, n.Line)
 		}
 		walk(n.InvokeArg, n.Line)
-		for _, a := range n.Arms {
+		for i := range n.Arms {
+			a := &n.Arms[i]
+			// Case heads share explicit-argument validation and stamping
+			// with constructors, but stay patterns in the downstream AST.
+			var walkPattern func(*Pattern)
+			walkPattern = func(p *Pattern) {
+				if p.isCase() {
+					s := &Small{Kind: "ctor", Ctor: p.Name, TypeArgs: p.TypeArgs}
+					yield(smallSite{s, a.Line})
+					p.Name, p.TypeArgs = s.Ctor, s.TypeArgs
+				}
+				for j := range p.Alts {
+					walkPattern(&p.Alts[j])
+				}
+			}
+			for j := range a.Pats {
+				walkPattern(&a.Pats[j])
+			}
 			walkNode(a.Rhs)
 		}
 		for _, g := range n.Given {
@@ -571,7 +592,7 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, tgens map[st
 	// this pass only rejects malformed shapes with caller scope.
 	considerCtor := func(m *Module, caller *FnDecl, site smallSite) {
 		s := site.s
-		g := tgens[s.Ctor]
+		g, _ := genericConstructor(tgens, s.Ctor)
 		if g == nil {
 			if len(s.TypeArgs) > 0 {
 				// Unlike calls (whose unknown callees fail
@@ -902,7 +923,20 @@ func substNode(n *Node, sub map[string]string) {
 	// consumer invoking with a constructed generic argument
 	// stamps closed args, never the template's parameters.
 	substSmall(n.InvokeArg, sub)
-	for _, a := range n.Arms {
+	for i := range n.Arms {
+		a := &n.Arms[i]
+		var substPattern func(*Pattern)
+		substPattern = func(p *Pattern) {
+			for j, arg := range p.TypeArgs {
+				p.TypeArgs[j] = substType(arg, sub)
+			}
+			for j := range p.Alts {
+				substPattern(&p.Alts[j])
+			}
+		}
+		for j := range a.Pats {
+			substPattern(&a.Pats[j])
+		}
 		substNode(a.Rhs, sub)
 	}
 	for _, g := range n.Given {
@@ -963,6 +997,7 @@ func cloneSmall(s *Small) *Small {
 
 func clonePattern(p Pattern) Pattern {
 	c := p
+	c.TypeArgs = append([]string{}, p.TypeArgs...)
 	c.Num = cloneBig(p.Num)
 	c.Hi = cloneBig(p.Hi)
 	if p.Alts != nil {
@@ -1352,10 +1387,10 @@ func rewriteGenericHeaders(mods []*Module, gens map[string]*genericInfo, known m
 	}
 }
 
-// G2 explicit generic records (a97): the type phase runs after
+// Explicit generic records (a97) and variants (b06): the type phase runs after
 // the fn phase, so every mention it sees is closed except inside
 // type templates, which resolve per enclosing instance to a
-// fixpoint. Stamps are plain records; every downstream phase
+// fixpoint. Stamps are plain records/variants; every downstream phase
 // consumes them untouched.
 
 // splitMention splits a whole type string of the shape Base<args>
@@ -1458,9 +1493,13 @@ func eachTypeSlot(mods []*Module, yield func(typeSlot)) {
 					yield(typeSlot{m, d.Line, d.Fields[i][0], tpl, false, &d.Fields[i][1]})
 				}
 			case *VariantDecl:
+				var tpl *TypeDecl
+				if len(d.TypeParams) > 0 {
+					tpl = typeTemplateView(d)
+				}
 				for ci := range d.Cases {
 					for i := range d.Cases[ci].Fields {
-						yield(typeSlot{m, d.Cases[ci].Line, d.Cases[ci].Fields[i][0], nil, false, &d.Cases[ci].Fields[i][1]})
+						yield(typeSlot{m, d.Cases[ci].Line, d.Cases[ci].Fields[i][0], tpl, false, &d.Cases[ci].Fields[i][1]})
 					}
 				}
 			case *ErrorDecl:
@@ -1481,17 +1520,93 @@ func eachTypeSlot(mods []*Module, yield func(typeSlot)) {
 	}
 }
 
+// typeTemplateView shares field/parameter validation and collection.
+// A variant's flattened fields are read-only; stamps retain its cases.
+func typeTemplateView(d Decl) *TypeDecl {
+	switch d := d.(type) {
+	case *TypeDecl:
+		return d
+	case *VariantDecl:
+		t := &TypeDecl{Name: d.Name, Rev: d.Rev, TypeParams: d.TypeParams, Line: d.Line}
+		for _, c := range d.Cases {
+			t.Fields = append(t.Fields, c.Fields...)
+		}
+		return t
+	}
+	return nil
+}
+
 type genericTypeInfo struct {
-	decl *TypeDecl
-	mod  *Module
+	decl   *TypeDecl // common view, never emitted for a variant
+	source Decl
+	mod    *Module
+}
+
+// A variant parent is a type, not a constructor; its qualified cases
+// resolve to the owning template for validation and instance demand.
+func genericConstructor(gens map[string]*genericTypeInfo, name string) (*genericTypeInfo, string) {
+	if g := gens[name]; g != nil {
+		if _, variant := g.source.(*VariantDecl); !variant {
+			return g, name
+		}
+	}
+	for base, g := range gens {
+		if v, ok := g.source.(*VariantDecl); ok {
+			for _, c := range v.Cases {
+				if qualifyCase(base, c.Short) == name {
+					return g, base
+				}
+			}
+		}
+	}
+	return nil, ""
+}
+
+// Source collisions must not disappear behind disjoint instance args.
+func checkGenericCaseIdentities(mods []*Module, emit func(*Module, int, string, string, ...any)) {
+	type owner struct {
+		name    string
+		generic bool
+	}
+	owners := map[string]owner{}
+	records := map[string]bool{}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			if d, ok := d.(*TypeDecl); ok {
+				records[d.Name] = true
+			}
+		}
+	}
+	for _, m := range mods {
+		for _, d := range m.Decls {
+			v, ok := d.(*VariantDecl)
+			if !ok {
+				continue
+			}
+			generic := len(v.TypeParams) > 0
+			for _, c := range v.Cases {
+				q := qualifyCase(v.Name, c.Short)
+				if old, exists := owners[q]; exists && (generic || old.generic) {
+					emit(m, c.Line, c.Short, "case identity collision: %s declared by both %s and %s", q, old.name, v.Name)
+				}
+				if generic && records[q] {
+					emit(m, c.Line, c.Short, "case identity collision: %s collides with record type %s", q, q)
+				}
+				owners[q] = owner{v.Name, generic}
+			}
+		}
+	}
 }
 
 // checkGenericTypeTemplate enforces the template rules for a generic
-// record: every parameter is used in the fields, and the template
+// record or variant: every parameter is used in the fields, and the template
 // never fields its own base directly. Types have no termination
 // argument, so direct recursion is rejected; Seq-wrapped
 // self-reference stays legal, exactly like monomorphic records.
 func checkGenericTypeTemplate(base string, g *genericTypeInfo, emit func(*Module, int, string, string, ...any)) {
+	if _, variant := g.source.(*VariantDecl); variant && !typeNameRe.MatchString(base) {
+		emit(g.mod, g.decl.Line, base, "variant name %q must match Domain__Name", base)
+	}
 	uses := map[string]bool{}
 	for _, f := range g.decl.Fields {
 		for _, p := range g.decl.TypeParams {
@@ -1672,7 +1787,8 @@ func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, typ
 		// validated in the fn pass; re-check closed args here
 		// so walker drift fails closed, never silently.
 		if s.Kind == "ctor" && len(s.TypeArgs) > 0 {
-			if _, ok := tgens[s.Ctor]; !ok {
+			_, base := genericConstructor(tgens, s.Ctor)
+			if base == "" {
 				return
 			}
 			for _, a := range s.TypeArgs {
@@ -1682,8 +1798,8 @@ func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, typ
 					return
 				}
 			}
-			add(s.Ctor, s.TypeArgs)
-			note(m, s.Ctor, s.TypeArgs)
+			add(base, s.TypeArgs)
+			note(m, base, s.TypeArgs)
 		}
 		if s.Elem != "" {
 			if base, args, ok := mentionOf(s.Elem); ok {
@@ -1735,7 +1851,7 @@ func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, typ
 }
 
 // stampGenericTypes replaces each type template with one plain
-// record per instance, substituting fields per instance. Stamps
+// record or variant per instance, substituting fields per instance. Stamps
 // take the template rev and splice by identity, so sibling order
 // never strands a template (a93 amendment 6 applies here too).
 func stampGenericTypes(tgens map[string]*genericTypeInfo, known map[string][][]string, mods []*Module) {
@@ -1756,15 +1872,27 @@ func stampGenericTypes(tgens map[string]*genericTypeInfo, known map[string][][]s
 				TypeParams: nil,
 				Line:       g.decl.Line,
 			}
-			for _, f := range g.decl.Fields {
-				st.Fields = append(st.Fields, [2]string{f[0], substType(f[1], sub)})
+			if v, ok := g.source.(*VariantDecl); ok {
+				vs := &VariantDecl{Name: st.Name, Rev: st.Rev, Line: st.Line}
+				for _, c := range v.Cases {
+					cs := VariantCase{Short: c.Short, Line: c.Line}
+					for _, f := range c.Fields {
+						cs.Fields = append(cs.Fields, [2]string{f[0], substType(f[1], sub)})
+					}
+					vs.Cases = append(vs.Cases, cs)
+				}
+				stamps = append(stamps, vs)
+			} else {
+				for _, f := range g.decl.Fields {
+					st.Fields = append(st.Fields, [2]string{f[0], substType(f[1], sub)})
+				}
+				stamps = append(stamps, st)
 			}
-			stamps = append(stamps, st)
 		}
 		m := g.mod
 		at := -1
 		for i, d := range m.Decls {
-			if d == Decl(g.decl) {
+			if d == g.source {
 				at = i
 				break
 			}
@@ -1886,9 +2014,9 @@ func rewriteTypeMentions(mods []*Module, tgens map[string]*genericTypeInfo, know
 			return
 		}
 		if s.Kind == "ctor" && len(s.TypeArgs) > 0 {
-			if _, ok := tgens[s.Ctor]; ok {
-				if stamp, ok := stampOf[pairKey(s.Ctor, s.TypeArgs)]; ok {
-					s.Ctor = stamp
+			if _, base := genericConstructor(tgens, s.Ctor); base != "" {
+				if _, ok := stampOf[pairKey(base, s.TypeArgs)]; ok {
+					s.Ctor = mangleInstance(s.Ctor, s.TypeArgs)
 					s.TypeArgs = nil
 				}
 			}

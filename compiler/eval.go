@@ -2238,7 +2238,7 @@ func checkNaming(m *Module, text string) []Diag {
 					fmt.Sprintf("type name %q must match Domain__Name", d.Name), d.Name, CodeTypeNaming))
 			}
 		case *VariantDecl:
-			if !typeNameRe.MatchString(d.Name) {
+			if _, isStamp := m.GenericBase[d.Name]; !isStamp && !typeNameRe.MatchString(d.Name) {
 				out = append(out, spanDiag(text, d.Line, "error",
 					fmt.Sprintf("variant name %q must match Domain__Name", d.Name), d.Name, CodeTypeNaming))
 			}

@@ -57,9 +57,9 @@ type Small struct {
 	// calls. Expansion rewrites the call to its stamped copy.
 	TypeArgs []string
 	Args     []Arg
-	Ctor  string
-	Items []*Small
-	Ref   []string
+	Ctor     string
+	Items    []*Small
+	Ref      []string
 	// ExportBrand names the granted brand on a certified
 	// bytes__utf8__export call node (a46 S2). Set only by
 	// certifyExports after full validation; empty means
@@ -68,11 +68,12 @@ type Small struct {
 }
 
 type Pattern struct {
-	Kind string // wild,bool,str,int,range,const,variant,variantWild,or
-	B    bool
-	Str  string
-	Name string
-	Var  string
+	Kind     string // wild,bool,str,int,range,const,variant,variantWild,or
+	B        bool
+	Str      string
+	Name     string
+	Var      string
+	TypeArgs []string // explicit generic case arguments; erased by expansion
 	// Alts holds `|` alternatives for Kind "or", in source
 	// order. Credit and coverage union over them; each
 	// alternative parses like a lone slot pattern, so ranges
@@ -132,13 +133,14 @@ type VariantCase struct {
 
 // VariantDecl is a closed tagged union declaration
 // (a73): a nominal parent with a fixed case set.
-// Registry foundation only; construction, patterns,
-// proof, and emit arrive in later slices.
+// Generic parents and their cases are stamped before checking;
+// downstream phases consume only monomorphic declarations.
 type VariantDecl struct {
-	Name  string
-	Rev   int
-	Cases []VariantCase
-	Line  int
+	Name       string
+	Rev        int
+	TypeParams []string
+	Cases      []VariantCase
+	Line       int
 }
 
 // qualifyCase elaborates a declaration-row short name to
@@ -149,6 +151,12 @@ func qualifyCase(variant, short string) string {
 	domain := variant
 	if i := strings.Index(variant, "__"); i >= 0 {
 		domain = variant[:i]
+	}
+	// A stamped parent carries its instance suffix on every case as
+	// well: Option__Value$T$int owns Option__Some$T$int, never the
+	// case of another instance. Source names cannot contain '$'.
+	if i := strings.Index(variant, "$T$"); i >= 0 {
+		return domain + "__" + short + variant[i:]
 	}
 	return domain + "__" + short
 }
@@ -215,9 +223,9 @@ type Node struct {
 	// InvokeArg holds the one `with` argument of a MatchInvoke;
 	// nil for every other kind.
 	InvokeArg *Small
-	Given  map[string]*Small // nil value node = retired "-" row, rejected in checkGiven (a91)
-	Small  *Small
-	Line   int
+	Given     map[string]*Small // nil value node = retired "-" row, rejected in checkGiven (a91)
+	Small     *Small
+	Line      int
 	// ChainSteps holds a86 chain links; ChainTail continues on full
 	// success and ChainElseText is the shared failure source text,
 	// parsed fresh per level at elaboration so no Small is aliased.
@@ -290,10 +298,10 @@ type FnDecl struct {
 	TypeParams []string
 	Params     [][2]string
 	Ret        string
-	Emits    []string
-	Tests    []Test
-	Body     *Node
-	UsesHere []string
+	Emits      []string
+	Tests      []Test
+	Body       *Node
+	UsesHere   []string
 	// Effects lists the cell capabilities this function may use,
 	// e.g. Count__total.read. Set from the effects metadata line.
 	Effects []string
@@ -451,7 +459,7 @@ func stripComment(line string) string {
 }
 
 func splitTop(s string, sep rune) []string {
-	return splitTopInner(s, sep, false, false)
+	return splitTopInner(s, sep, false, false, false)
 }
 
 // isCallGenericHead reports whether s[i] opens a generic call's
@@ -484,8 +492,9 @@ func isCallGenericHead(s string, i int) bool {
 // from the separator; comparisons and Seq heads are untouched.
 // Only scrutinee lists opt in — G1 generic calls are valid in
 // scrutinee position alone, and argument-list splitting keeps its
-// exact existing meaning everywhere else.
-func splitTopInner(s string, sep rune, keepEmpty bool, callAware bool) []string {
+// exact existing meaning everywhere else. patternAware protects case
+// type arguments on arm lists only, never on expression comparisons.
+func splitTopInner(s string, sep rune, keepEmpty bool, callAware bool, patternAware bool) []string {
 	var parts []string
 	var cur strings.Builder
 	var stack []byte
@@ -505,7 +514,7 @@ func splitTopInner(s string, sep rune, keepEmpty bool, callAware bool) []string 
 		} else if ch == '"' {
 			inStr = true
 			cur.WriteByte(ch)
-		} else if ch == '<' && (genericHeadLT(s, i) || (len(stack) > 0 && stack[len(stack)-1] == '>') || (callAware && isCallGenericHead(s, i))) {
+		} else if ch == '<' && (genericHeadLT(s, i) || (len(stack) > 0 && stack[len(stack)-1] == '>') || (callAware && isCallGenericHead(s, i)) || (patternAware && genericCaseHeadLT(s, i))) {
 			stack = append(stack, '>')
 			cur.WriteByte(ch)
 		} else if closer, ok := pairs[ch]; ok {
@@ -535,7 +544,11 @@ func splitTopInner(s string, sep rune, keepEmpty bool, callAware bool) []string 
 // rejecting empty slots: `match x,` and `true,, false` are malformed
 // syntax, not short rows. String- and paren-aware like splitTop.
 func splitMatchList(s string) ([]string, error) {
-	raw := splitTopInner(s, ',', true, true)
+	return splitMatchParts(s, false)
+}
+
+func splitMatchParts(s string, patterns bool) ([]string, error) {
+	raw := splitTopInner(s, ',', true, true, patterns)
 	out := make([]string, 0, len(raw))
 	for _, p := range raw {
 		if p == "" {
@@ -828,16 +841,16 @@ func balanced(s string, openI int) (int, error) {
 
 // ------------------------------------------------------- small exprs -------
 var (
-	reInt   = regexp.MustCompile(`^-?\d+$`)
-	reWord  = regexp.MustCompile(`^[\w.]+$`)
+	reInt  = regexp.MustCompile(`^-?\d+$`)
+	reWord = regexp.MustCompile(`^[\w.]+$`)
 	// reProjSeg matches one .field segment in the postfix loop
 	// (b03): the leading dot plus a strict identifier.
 	reProjSeg = regexp.MustCompile(`^\.([A-Za-z_]\w*)`)
-	reName  = regexp.MustCompile(`^\w+$`)
-	reDec   = regexp.MustCompile(`^d"([^"]*)"$`)
-	reFloat = regexp.MustCompile(`^-?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+)$`)
-	reDecNM = regexp.MustCompile(`^(-?)(\d+)\.(\d+)$`)
-	reSeal  = regexp.MustCompile(`^seal\s+(\w+)\((.*)\)$`)
+	reName    = regexp.MustCompile(`^\w+$`)
+	reDec     = regexp.MustCompile(`^d"([^"]*)"$`)
+	reFloat   = regexp.MustCompile(`^-?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+)$`)
+	reDecNM   = regexp.MustCompile(`^(-?)(\d+)\.(\d+)$`)
+	reSeal    = regexp.MustCompile(`^seal\s+(\w+)\((.*)\)$`)
 	// reSeqElem admits one plain element type name inside Seq<...>.
 	// No angle brackets: nested sequences are not a v1 shape, so a
 	// second < fails here with a precise diagnostic instead of a
@@ -1622,6 +1635,18 @@ func genericHeadLT(s string, i int) bool {
 	return false
 }
 
+// genericCaseHeadLT protects commas inside explicit case patterns only.
+// Expression scanners do not opt in, so comparison syntax is unchanged.
+func genericCaseHeadLT(s string, i int) bool {
+	j := i - 1
+	for j >= 0 && isWordChar(s[j]) {
+		j--
+	}
+	base := s[j+1 : i]
+	end := angleEnd(s, i)
+	return reName.MatchString(base) && strings.Contains(base, "__") && end >= 0 && end+1 < len(s) && (s[end+1] == ' ' || s[end+1] == '\t')
+}
+
 // parseGenericCtor parses one generic construction `Base<args>(...)`
 // (G2): the base names the record template, the args instantiate
 // it. Semantic validation (known base, arity, closed args) belongs
@@ -1834,7 +1859,7 @@ var (
 	reType    = regexp.MustCompile(`^type\s+(\w+)(?:<([\w\s,]+)>)?\s+rev\s+(\d+)\s*\($`)
 	// reVariant mirrors reType; reVariantCase heads a case row
 	// with kwargs payload fields (empty parens = nullary).
-	reVariant     = regexp.MustCompile(`^variant\s+(\w+)\s+rev\s+(\d+)\s*\($`)
+	reVariant     = regexp.MustCompile(`^variant\s+(\w+)(?:<([\w\s,]+)>)?\s+rev\s+(\d+)\s*\($`)
 	reVariantCase = regexp.MustCompile(`^case\s+(\w+)\((.*)\)$`)
 	reBrand       = regexp.MustCompile(`^brand\s+(\w+)\s+is\s+(\w+)\s+rev\s+(\d+)(\s+seals_from\s+\[([^\]]*)\])?$`)
 	reConst       = regexp.MustCompile(`^const\s+(\w+)\s*:\s*(\w+(?:<.+>)?)\s+rev\s+(\d+)\s*=\s*(.+)$`)
@@ -2172,8 +2197,12 @@ func parseModuleText(name, text string) (*Module, error) {
 				}
 				return nil, at(declLine, fmt.Errorf("bad variant decl: %s", code))
 			}
-			rev, _ := strconv.Atoi(m[2])
-			decl := &VariantDecl{Name: m[1], Rev: rev, Line: declLine}
+			rev, _ := strconv.Atoi(m[3])
+			typarams, err := parseTypeParams(m[2])
+			if err != nil {
+				return nil, at(declLine, err)
+			}
+			decl := &VariantDecl{Name: m[1], Rev: rev, TypeParams: typarams, Line: declLine}
 			i++
 			for i < len(rows) && rows[i].indent > 0 {
 				cm := reVariantCase.FindStringSubmatch(strings.TrimSuffix(rows[i].code, ","))
@@ -2524,7 +2553,7 @@ func isDigits(s string) bool {
 // Call-match `on` branches keep parsePattern: `|` stays a parse
 // error there, since V1 alternatives are value patterns only.
 func parseValuePattern(s string) (Pattern, error) {
-	parts := splitTopInner(s, '|', true, false)
+	parts := splitTopInner(s, '|', true, false, true)
 	if len(parts) == 1 {
 		return parsePattern(s)
 	}
@@ -2606,6 +2635,24 @@ func parsePattern(s string) (Pattern, error) {
 		// undeclared). Binder forms (with a trailing name)
 		// still parse as variant patterns below.
 		return Pattern{Kind: "const", Name: s}, nil
+	}
+	// Generic case patterns use the same explicit arguments as
+	// constructions. Outcome patterns (Ok and dotted errors) stay
+	// monomorphic; expansion validates case ownership and arity.
+	if i := strings.IndexByte(s, '<'); i > 0 {
+		if end := angleEnd(s, i); end > i && end+1 < len(s) && (s[end+1] == ' ' || s[end+1] == '\t') {
+			base, binder := s[:i], strings.TrimSpace(s[end+1:])
+			if reName.MatchString(base) && strings.Contains(base, "__") && reName.MatchString(binder) {
+				args, err := splitTypeArgs(s[i+1 : end])
+				if err != nil {
+					return Pattern{}, err
+				}
+				if len(args) == 0 {
+					return Pattern{}, fmt.Errorf("generic case pattern needs type arguments: %s", s)
+				}
+				return Pattern{Kind: "variant", Name: base, Var: binder, TypeArgs: args}, nil
+			}
+		}
 	}
 	if m := rePatVar.FindStringSubmatch(s); m != nil && (m[1] == "Ok" || strings.Contains(m[1], ".") || strings.Contains(m[1], "__")) {
 		// a75: qualified case names parse as patterns; the
@@ -2743,7 +2790,7 @@ func parseMatchArmsKind(rows []row, i, indent, mline int, scruts []*Small, kind 
 		if m == nil {
 			return nil, i, at(aline, fmt.Errorf("bad match arm: %s", c))
 		}
-		patParts, err := splitMatchList(m[1])
+		patParts, err := splitMatchParts(m[1], true)
 		if err != nil {
 			return nil, i, at(aline, err)
 		}
