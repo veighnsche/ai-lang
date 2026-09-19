@@ -3,6 +3,7 @@
     "kind": "clock.unavailable",
     "fields": [],
     "raised_by": [
+      "clockdemo.clockdemo__read_direct",
       "clockdemo.clockdemo__read_millis",
       "host.host__mono_now",
       "host.host__wall_now",
@@ -10,6 +11,10 @@
       "host.std__clock__wall_now"
     ],
     "handled_by": [
+      {
+        "fn": "clockdemo.clockdemo__read_direct",
+        "arm": "on clock.unavailable _ =\u003e clock.unavailable()"
+      },
       {
         "fn": "clockdemo.clockdemo__read_millis",
         "arm": "on clock.unavailable _ =\u003e clock.unavailable()"
@@ -24,6 +29,7 @@
       }
     ],
     "hit_by_tests": [
+      "clockdemo.clockdemo__read_direct/down",
       "clockdemo.clockdemo__read_millis/down",
       "host.std__clock__monotonic_now/down",
       "host.std__clock__wall_now/down"

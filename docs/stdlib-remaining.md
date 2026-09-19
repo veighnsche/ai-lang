@@ -31,7 +31,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
 | §1.8 normalize_nfc, casefold, graphemes | Unicode data kernel | No pinned data, no host path (see host shelf) |
 | §1.8 json encode/decode, `schema__migrate` | Functions (+ Schema surface) | Migrate takes `Migration<Old,New>` fn; no Fn values |
-| Host shelf (clock/random/hash/secret/log/env) | ~~Shared/callable externs~~ — UNBLOCKED by b02 (slices E1–E2): foreign externs admit via `name@rev` uses pins, emit imports from the declaring stem's `.externs` stub (JEV admission `uses_pin` 0.99, host `declaring_stem` 0.84) | Was: `calls extern ... from another module: declare your own extern` (probed 2026-09-19). The language dependency is landed; the shelf itself still needs writing as stdlib slices with host implementations. |
+| Host shelf (clock/random/hash/secret/log/env) | SHIPPED (slices H1–H5): `std/host` carries all 7 catalogue fns over pinned externs with real node-backed `host.externs.ts` impls; `TestStdHostNodeSmoke` executes every impl (incl. sha256 known vector); `sketches/host-clock` consumes both the wrapper and the shared extern directly | Millis instants (JEV 0.97); sealed profile/secret/env brands (JEV 0.98/1.0); denied + sub-millis documented v1 limits. |
 | §3 HTTP (all) | Async + Resources + Functions | No async surface exists |
 | §4 SQL (all) | Async + Resources | Same |
 | §5 UI (all) | Functions + Async + Resources | Same |
