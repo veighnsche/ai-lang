@@ -12,11 +12,12 @@ import (
 	"unicode/utf8"
 )
 
-// Values: Kind str,int,bool,dec,rec,ok,err,seq,bytes. Field access
-// works on rec/ok/err. Dec holds canonical digits; proofs compare
-// exactly via big.Rat, so canonical strings compare equal exactly
-// when numeric. Int holds an arbitrary-precision value (a10:
-// unbounded, never wraps).
+// Values: Kind str,int,bool,dec,rec,ok,err,seq,bytes,fn. Field
+// access works on rec/ok/err. Dec holds canonical digits; proofs
+// compare exactly via big.Rat, so canonical strings compare equal
+// exactly when numeric. Int holds an arbitrary-precision value
+// (a10: unbounded, never wraps). A fn value is opaque: only
+// invocation and the factory expectation comparator look inside.
 type Value struct {
 	Kind    string
 	S       string
@@ -42,6 +43,16 @@ type Value struct {
 	// the static identity vEq compares.
 	Arr  []*Value
 	Elem string
+	// FnTarget names the resolved target stamp of a fn value and
+	// FnRev its revision; FnSig is the denoted signature key;
+	// FnSlot names the one unbound parameter the input fills;
+	// FnCaps maps every other parameter to its captured value,
+	// evaluated once at creation, never re-read from the caller.
+	FnTarget string
+	FnRev    int
+	FnSig    string
+	FnSlot   string
+	FnCaps   map[string]*Value
 }
 
 // variantCaseDecl finds a case declaration by qualified name,
@@ -442,6 +453,125 @@ func vEq(a, b *Value) (bool, error) {
 	return false, fmt.Errorf("cannot compare %s", a.Kind)
 }
 
+// valueHasFn reports whether a value carries a callable anywhere:
+// directly or through a record, outcome, variant, or sequence.
+func valueHasFn(v *Value) bool {
+	if v == nil {
+		return false
+	}
+	switch v.Kind {
+	case "fn":
+		return true
+	case "rec", "ok", "err", "variant":
+		for _, m := range v.Dict {
+			if valueHasFn(m) {
+				return true
+			}
+		}
+	case "seq":
+		for _, m := range v.Arr {
+			if valueHasFn(m) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// expectEq compares a factory expectation against the computed
+// value: data positions compare exactly like vEq, while callable
+// positions compare by construction — target identity and
+// revision, denoted signature, residual slot, and captured data
+// values. It is deliberately not part of vEq: the language has
+// no callable equality, only this test-evidence comparison. The
+// detail names the first divergence with captured payloads
+// redacted, or "" when equal.
+func expectEq(want, got *Value) (bool, string, error) {
+	if want.Kind == "fn" || got.Kind == "fn" {
+		return fnExpectEq(want, got)
+	}
+	if want.Kind != got.Kind {
+		return false, "expected " + normalizeValue(want) + ", got " + normalizeValue(got), nil
+	}
+	switch want.Kind {
+	case "rec", "ok":
+		if len(want.Dict) != len(got.Dict) {
+			return false, "field count differs", nil
+		}
+		for k, wv := range want.Dict {
+			gv, ok := got.Dict[k]
+			if !ok {
+				return false, "missing field " + k, nil
+			}
+			eq, detail, err := expectEq(wv, gv)
+			if err != nil || !eq {
+				return eq, detail, err
+			}
+		}
+		return true, "", nil
+	case "err":
+		if want.ErrKind != got.ErrKind {
+			return false, "expected " + normalizeValue(want) + ", got " + normalizeValue(got), nil
+		}
+		return expectEq(&Value{Kind: "rec", Dict: want.Dict}, &Value{Kind: "rec", Dict: got.Dict})
+	case "variant":
+		if want.Tag != got.Tag {
+			return false, "expected " + normalizeValue(want) + ", got " + normalizeValue(got), nil
+		}
+		return expectEq(&Value{Kind: "rec", Dict: want.Dict}, &Value{Kind: "rec", Dict: got.Dict})
+	case "seq":
+		if want.Elem != got.Elem || len(want.Arr) != len(got.Arr) {
+			return false, "expected " + normalizeValue(want) + ", got " + normalizeValue(got), nil
+		}
+		for i := range want.Arr {
+			eq, detail, err := expectEq(want.Arr[i], got.Arr[i])
+			if err != nil || !eq {
+				return eq, detail, err
+			}
+		}
+		return true, "", nil
+	default:
+		eq, err := vEq(want, got)
+		return eq, "", err
+	}
+}
+
+// fnExpectEq compares two values where at least one is callable.
+// Identity, revision, signature, and slot name their divergence;
+// captured values compare by value but never render.
+func fnExpectEq(want, got *Value) (bool, string, error) {
+	if want.Kind != "fn" || got.Kind != "fn" {
+		return false, "expected " + normalizeValue(want) + ", got " + normalizeValue(got), nil
+	}
+	if want.FnTarget != got.FnTarget || want.FnRev != got.FnRev {
+		return false, fmt.Sprintf("callable target differs: want %s@%d, got %s@%d",
+			want.FnTarget, want.FnRev, got.FnTarget, got.FnRev), nil
+	}
+	if want.FnSig != got.FnSig {
+		return false, "callable signature differs: want " + want.FnSig + ", got " + got.FnSig, nil
+	}
+	if want.FnSlot != got.FnSlot {
+		return false, "callable input slot differs: want " + want.FnSlot + ", got " + got.FnSlot, nil
+	}
+	if len(want.FnCaps) != len(got.FnCaps) {
+		return false, "callable captures differ (values redacted)", nil
+	}
+	for name, wv := range want.FnCaps {
+		gv, ok := got.FnCaps[name]
+		if !ok {
+			return false, "callable capture " + name + " differs (value redacted)", nil
+		}
+		eq, err := vEq(wv, gv)
+		if err != nil || !eq {
+			if err != nil {
+				return false, "", err
+			}
+			return false, "callable capture " + name + " differs (value redacted)", nil
+		}
+	}
+	return true, "", nil
+}
+
 func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	switch node.Kind {
 	case "str":
@@ -823,8 +953,46 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			return nil, err
 		}
 		return vField(v, node.Ref[len(node.Ref)-1])
+	case "fnref":
+		return evFnref(node, env, ctx, owner)
 	}
 	return nil, fmt.Errorf("cannot evaluate: %s", node.Kind)
+}
+
+// evFnref creates one callable value: the target resolves to a
+// source body, captures bind by name leaving exactly one parameter
+// unbound, and every capture evaluates once, now, into a fresh
+// binding map. The value carries the target stamp, the denoted
+// signature, the residual slot, and the captured values —
+// everything invocation needs without re-reading the caller.
+// Checked programs passed the same binding rule statically, so a
+// failure below is a loud refusal, never a silent mis-creation.
+func evFnref(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if ctx == nil || ctx.Prog == nil {
+		return nil, fmt.Errorf("%s: reference to %s without a program", owner, node.Fname)
+	}
+	tgt, ok := ctx.Prog.Fns[node.Fname]
+	if !ok {
+		return nil, fmt.Errorf("%s: reference to unknown function %s", owner, node.Fname)
+	}
+	slots, unbound, err := bindRefSlots(node.Fname, node.Args, tgt.Params)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s", owner, err.Error())
+	}
+	if len(unbound) != 1 {
+		return nil, fmt.Errorf("%s: reference to %s leaves %d parameters unbound", owner, node.Fname, len(unbound))
+	}
+	caps := map[string]*Value{}
+	for i, a := range node.Args {
+		v, err := evSmall(a.V, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		caps[tgt.Params[slots[i]][0]] = v
+	}
+	return &Value{Kind: "fn", FnTarget: node.Fname, FnRev: tgt.Rev,
+		FnSig: sigKey(tgt.Params[unbound[0]][1], tgt.Ret, tgt.Emits),
+		FnSlot: tgt.Params[unbound[0]][0], FnCaps: caps}, nil
 }
 
 // localCallee resolves a same-file helper call: the callee must be a
@@ -856,11 +1024,6 @@ func localCallee(prog *Program, owner, fname string) *FnDecl {
 // marks land in the shared map, attributing helper arms to the
 // caller test that flowed through them.
 func evLocalCall(helper *FnDecl, scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
-	// Sandbox resource bound, loud on breach: the termination proof
-	// is static (cycle ban plus decreases), this only backstops it.
-	if ctx.Depth >= 1024 {
-		return nil, fmt.Errorf("%s: local call depth exceeded calling %s", owner, helper.Name)
-	}
 	// One binding rule (bindSlots): argument expressions evaluate in
 	// source order here, then land in the resolved parameter slots.
 	// Checked programs already passed the same rule, so a bind failure
@@ -876,6 +1039,18 @@ func evLocalCall(helper *FnDecl, scrut *Small, env map[string]*Value, ctx *Ctx, 
 			return nil, err
 		}
 		vals[slots[i]] = v
+	}
+	return evApply(helper, vals, ctx, owner)
+}
+
+// evApply runs a resolved body over already-evaluated parameter
+// values: the shared tail of local calls and invocations. The
+// sandbox depth bound backstops the static termination proof,
+// loud on breach; nested evaluation balances its own depth, so
+// checking here is exactly checking before argument evaluation.
+func evApply(helper *FnDecl, vals []*Value, ctx *Ctx, owner string) (*Value, error) {
+	if ctx.Depth >= 1024 {
+		return nil, fmt.Errorf("%s: local call depth exceeded calling %s", owner, helper.Name)
 	}
 	env2 := map[string]*Value{}
 	for i, p := range helper.Params {
@@ -1044,7 +1219,7 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 		return evCallMatch(node, env, ctx, owner)
 	}
 	if node.Kind == MatchInvoke {
-		return nil, fmt.Errorf("%s: function invocation is deferred", owner)
+		return evInvokeMatch(node, env, ctx, owner)
 	}
 	if !elaborated(node) {
 		// Reaching evaluation unelaborated is a compiler bug.
@@ -1589,6 +1764,14 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 		// closed rather than evaluating a non-call as an outcome.
 		return nil, fmt.Errorf("%s: call match without a call scrutinee", owner)
 	}
+	return evOutcomeArms(node, v, env, ctx, owner)
+}
+
+// evOutcomeArms dispatches one computed outcome over call-shaped
+// arms: the shared tail of call matches and invoke matches. The
+// winning arm marks taken in the passed context and binds its
+// payload; Ok and error binders both arrive as records.
+func evOutcomeArms(node *Node, v *Value, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
 	for i, arm := range node.Arms {
 		pat := arm.Pats[0]
 		switch pat.Kind {
@@ -1626,6 +1809,73 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 		}
 	}
 	return nil, fmt.Errorf("%s/%s: non-exhaustive match on %s", owner, ctx.Test, v.Kind)
+}
+
+// evInvokeMatch executes one `match invoke cb with n`: the target
+// value supplies the resolved body, the captures, and the residual
+// slot; the argument evaluates in the caller and fills that slot;
+// the body runs in a child context with linked-pure dispatch, no
+// script consumption, and no coverage credit; and the outcome
+// dispatches over the caller's arms, marking taken in the
+// parent's coverage. The child preserves the parent's depth and
+// store; the caller never flips into linked mode. A missing
+// static certificate, a non-callable target, a stale target
+// revision, or a signature mismatch fails closed here.
+func evInvokeMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value, error) {
+	if node.invokeSig == nil {
+		return nil, fmt.Errorf("%s: invoke without a checked signature", owner)
+	}
+	if node.Given != nil {
+		return nil, fmt.Errorf("%s: match invoke takes no given table", owner)
+	}
+	if len(node.Scruts) != 1 {
+		return nil, fmt.Errorf("%s: invoke without a target", owner)
+	}
+	s := node.Scruts[0]
+	if s.Kind != "ref" || len(s.Ref) != 1 {
+		return nil, fmt.Errorf("%s: invoke target is not a name", owner)
+	}
+	fv, ok := env[s.Ref[0]]
+	if !ok {
+		return nil, fmt.Errorf("unbound name: %s", s.Ref[0])
+	}
+	if fv.Kind != "fn" {
+		return nil, fmt.Errorf("%s: invoke target %s is not a function value", owner, s.Ref[0])
+	}
+	sig := node.invokeSig
+	if fv.FnSig != sigKey(sig.in, sig.ret, sig.errs) {
+		return nil, fmt.Errorf("%s: invoke target %s has the wrong signature", owner, s.Ref[0])
+	}
+	if node.InvokeArg == nil {
+		return nil, fmt.Errorf("%s: invoke without an argument", owner)
+	}
+	in, err := evSmall(node.InvokeArg, env, ctx, owner)
+	if err != nil {
+		return nil, err
+	}
+	tgt, ok := ctx.Prog.Fns[fv.FnTarget]
+	if !ok || tgt.Rev != fv.FnRev {
+		return nil, fmt.Errorf("%s: invoke target %s is stale", owner, fv.FnTarget)
+	}
+	vals := make([]*Value, len(tgt.Params))
+	for i, p := range tgt.Params {
+		if p[0] == fv.FnSlot {
+			vals[i] = in
+			continue
+		}
+		v, ok := fv.FnCaps[p[0]]
+		if !ok {
+			return nil, fmt.Errorf("%s: invoke of %s misses capture %s", owner, fv.FnTarget, p[0])
+		}
+		vals[i] = v
+	}
+	child := &Ctx{Prog: ctx.Prog, Test: ctx.Test, Depth: ctx.Depth,
+		Linked: true, Scripts: map[*Node]map[string][]*Small{}, Store: ctx.Store}
+	v, err := evApply(tgt, vals, child, owner)
+	if err != nil {
+		return nil, err
+	}
+	return evOutcomeArms(node, v, env, ctx, owner)
 }
 
 // describe renders a value's shape for failure messages: err(db.down), ok.
@@ -1743,6 +1993,10 @@ func normalizeValue(v *Value) string {
 			parts = append(parts, k+" = "+normalizeValue(v.Dict[k]))
 		}
 		return v.Tag + "(" + strings.Join(parts, ", ") + ")"
+	case "fn":
+		// Redacted by construction: mismatch messages may name
+		// the target, never the captured payloads.
+		return fmt.Sprintf("fnref %s@%d", v.FnTarget, v.FnRev)
 	default:
 		return "<unknown>"
 	}
@@ -1850,8 +2104,19 @@ func checkExchangeArgs(scrut, item *Small, prog *Program, env map[string]*Value,
 		if err != nil {
 			return err
 		}
-		eq, err := vEq(av, ev)
-		if err != nil || !eq {
+		if valueHasFn(av) || valueHasFn(ev) {
+			eq, detail, err := expectEq(ev, av)
+			if err != nil || !eq {
+				msg := fmt.Sprintf("%s/%s: call %s arg %s mismatch: expected %s", owner, ctx.Test, fname, a.Name, normalizeValue(ev))
+				if detail != "" {
+					msg += ": " + detail
+				}
+				if err != nil {
+					return err
+				}
+				return errors.New(msg)
+			}
+		} else if eq, err := vEq(av, ev); err != nil || !eq {
 			return fmt.Errorf("%s/%s: call %s arg %s mismatch: expected %s", owner, ctx.Test, fname, a.Name, normalizeValue(ev))
 		}
 	}
@@ -1878,6 +2143,20 @@ func runTest(fn *FnDecl, test Test, prog *Program, cov map[*Node]map[int]bool) e
 		if err != nil {
 			return err
 		}
+		if valueHasFn(got) || valueHasFn(exp) {
+			eq, detail, err := expectEq(exp, got)
+			if err != nil {
+				return err
+			}
+			if !eq {
+				msg := fmt.Sprintf("%s/%s: Ok payload mismatch", fn.Name, test.Name)
+				if detail != "" {
+					msg += ": " + detail
+				}
+				return errors.New(msg)
+			}
+			return nil
+		}
 		eq, err := vEq(got, exp)
 		if err != nil || !eq {
 			return fmt.Errorf("%s/%s: Ok payload mismatch", fn.Name, test.Name)
@@ -1893,6 +2172,20 @@ func runTest(fn *FnDecl, test Test, prog *Program, cov map[*Node]map[int]bool) e
 		exp, err := evSmall(want, env, ctx, fn.Name)
 		if err != nil {
 			return err
+		}
+		if valueHasFn(got) || valueHasFn(exp) {
+			eq, detail, err := expectEq(exp, got)
+			if err != nil {
+				return err
+			}
+			if !eq {
+				msg := fmt.Sprintf("%s/%s: error payload mismatch", fn.Name, test.Name)
+				if detail != "" {
+					msg += ": " + detail
+				}
+				return errors.New(msg)
+			}
+			return nil
 		}
 		eq, err := vEq(got, exp)
 		if err != nil || !eq {

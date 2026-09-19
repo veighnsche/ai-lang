@@ -209,6 +209,43 @@ func fnTypeShape(t string) (string, string, string, bool) {
 	return a, r, e, true
 }
 
+// sameType reports whether two type spellings denote the same
+// type. Plain spellings compare byte-identical (annotations are
+// never re-spaced); Fn heads compare structurally — input,
+// success, and error multiset — so one signature written tight
+// and one written loose still match. The input recurses (heads
+// nest); success is a bare record name.
+func sameType(a, b string) bool {
+	if a == b {
+		return true
+	}
+	aa, ar, ae, aok := fnTypeShape(a)
+	ba, br, be, bok := fnTypeShape(b)
+	if !aok || !bok {
+		return false
+	}
+	return sameType(aa, ba) && ar == br && sameFnErrs(ae, be)
+}
+
+// sameFnErrs compares two bracketed Fn error lists as multisets:
+// canonical order is enforced where heads are written, so any
+// residual difference here is spacing, never meaning.
+func sameFnErrs(a, b string) bool {
+	kinds := func(e string) []string {
+		raw := strings.TrimSpace(e[1 : len(e)-1])
+		if raw == "" {
+			return nil
+		}
+		var out []string
+		for _, k := range strings.Split(raw, ",") {
+			out = append(out, strings.TrimSpace(k))
+		}
+		slices.Sort(out)
+		return out
+	}
+	return slices.Equal(kinds(a), kinds(b))
+}
+
 // typeHasFn reports whether a type spelling contains a callable
 // anywhere: a direct Fn head, a Seq element, a generic argument,
 // or a record field transitively. The visited set keeps
@@ -345,7 +382,7 @@ func (c *tycker) checkFnref(s *Small, line int, env map[string]string, where str
 			}
 		})
 		if c.knownType(p[1]) {
-			if got, ok := c.typeOf(a.V, env); ok && got != p[1] {
+			if got, ok := c.typeOf(a.V, env); ok && !sameType(got, p[1]) {
 				c.mismatch(line, label, got, p[1], tokenOf(a.V))
 			}
 		}
@@ -978,7 +1015,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 				fmt.Sprintf("no field %s on %s", strings.Join(s.Ref[1:], "."), s.Ref[0]), tokenOf(s), CodeTypeMismatch))
 			return
 		}
-		if want != "" && !strings.HasPrefix(got, "err:") && got != want {
+		if want != "" && !strings.HasPrefix(got, "err:") && !sameType(got, want) {
 			c.mismatch(line, where, got, want, tokenOf(s))
 		}
 		// a10: record the resolved type for emit's typed dispatch.
@@ -986,7 +1023,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		return
 	}
 	if want != "" {
-		if got, ok := c.typeOf(s, env); ok && got != want {
+		if got, ok := c.typeOf(s, env); ok && !sameType(got, want) {
 			c.mismatch(line, where, got, want, tokenOf(s))
 		}
 	}
@@ -1096,7 +1133,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 							fmt.Sprintf("cannot add %s with %s: sequence concatenation is not in v1", l, r), s.Op, CodeTypeMismatch))
 						return
 					}
-					if r != le {
+					if !sameType(r, le) {
 						c.mismatch(line, where, r, le, s.Op)
 						return
 					}
@@ -1262,7 +1299,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			want, label := p[1], "call "+s.Fname+" arg "+p[0]
 			c.value(a.V, "", line, env, label)
 			if c.knownType(want) {
-				if got, ok := c.typeOf(a.V, env); ok && got != want {
+				if got, ok := c.typeOf(a.V, env); ok && !sameType(got, want) {
 					c.mismatch(line, label, got, want, tokenOf(a.V))
 				}
 			}
@@ -1314,7 +1351,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 				continue
 			}
 			c.value(it, "", line, env, where)
-			if got, ok := c.typeOf(it, env); ok && got != s.Elem {
+			if got, ok := c.typeOf(it, env); ok && !sameType(got, s.Elem) {
 				c.mismatch(line, where, got, s.Elem, tokenOf(it))
 			}
 		}
@@ -1623,7 +1660,7 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		flabel := fmt.Sprintf("%s field %s", label, a.Name)
 		c.value(a.V, "", line, env, flabel)
 		if c.knownType(ft) {
-			if got, ok := c.typeOf(a.V, env); ok && got != ft {
+			if got, ok := c.typeOf(a.V, env); ok && !sameType(got, ft) {
 				// a92: a bound name never appears in
 				// source, so the squiggle covers the
 				// offending value instead of nothing.
@@ -1856,7 +1893,7 @@ func (c *tycker) checkInvoke(n *Node, env map[string]string, want string) {
 		}
 	}
 	if sig != nil && n.InvokeArg != nil && c.knownType(sig.in) {
-		if got, ok := c.typeOf(n.InvokeArg, env); ok && got != sig.in {
+		if got, ok := c.typeOf(n.InvokeArg, env); ok && !sameType(got, sig.in) {
 			c.mismatch(n.Line, "invoke "+name+" argument", got, sig.in, tokenOf(n.InvokeArg))
 		}
 	}
@@ -1993,7 +2030,7 @@ func (c *tycker) checkStubs(fn *FnDecl, text string, env map[string]string) {
 						}
 					}
 					if want != "" && c.knownType(want) {
-						if got, ok := c.typeOf(a.V, env); ok && got != want {
+						if got, ok := c.typeOf(a.V, env); ok && !sameType(got, want) {
 							c.mismatch(line, "exchange arg "+a.Name+" for "+ms.Fname, got, want, tokenOf(a.V))
 						}
 					}
@@ -2075,7 +2112,7 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 			label := fmt.Sprintf("test %s arg %s", t.Name, a.Name)
 			c.value(a.V, "", t.Line, env, label)
 			if want != "" && c.knownType(want) {
-				if got, ok := c.typeOf(a.V, env); ok && got != want {
+				if got, ok := c.typeOf(a.V, env); ok && !sameType(got, want) {
 					c.mismatch(t.Line, label, got, want, tokenOf(a.V))
 				}
 			}

@@ -35,7 +35,7 @@ fn m__go(n: int) -> M__H rev 1
   emits []
   tests
     g(3) => Ok(fnref m__t(divisor = 3))
-  M__H(fnref m__t(divisor = n))
+  Ok(fnref m__t(divisor = n))
 `
 
 // wantFnvaluesClean asserts static acceptance: every error is the
@@ -110,12 +110,16 @@ fn m__t(divisor: int, dividend: int) -> M__O rev 1
   emits [m.err]
   tests
     t(3, 7) => Ok("q")
-  Ok("q")
+    tz(3, 0) => m.err("zero")
+  match dividend
+    on 0 => m.err("zero")
+    on _ => Ok("q")
 
 fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
   emits [m.err]
   tests
     g(fnref m__t(divisor = 3), 4) => Ok("q")
+    gz(fnref m__t(divisor = 3), 0) => Ok("e")
   match invoke cb with n
     on Ok _ => Ok("q")
     on m.err _ => Ok("e")
@@ -165,9 +169,8 @@ fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
 `
 
 // wantFnHeadDiag asserts one error carries the code and fragment.
-// The fnref row arg always adds its own CAN4200 runtime
-// confirmation (references check but do not evaluate yet), so
-// only presence is asserted, never singularity.
+// Only presence is asserted, never singularity: rows and arm
+// bodies may add their own failures around the head under test.
 func wantFnHeadDiag(t *testing.T, body, code, sub string) {
 	t.Helper()
 	dir := writeLSPDir(t, map[string]string{"m.can": body})
@@ -588,12 +591,16 @@ fn m__t(divisor: int, dividend: int) -> M__O rev 1
   emits [m.err]
   tests
     t(3, 7) => Ok("q")
-  Ok("q")
+    tz(3, 0) => m.err("zero")
+  match dividend
+    on 0 => m.err("zero")
+    on _ => Ok("q")
 
 fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
   emits [m.err]
   tests
     g(fnref m__t(divisor = 3), 4) => Ok("q")
+    gz(fnref m__t(divisor = 3), 0) => Ok("e")
 MATCH
 `
 
@@ -619,11 +626,6 @@ func TestCheckInvokeNegatives(t *testing.T) {
 		{"missing arm", `  match invoke cb with n
     on Ok _ => Ok("q")`,
 			CodeMissingArm, "non-exhaustive match, missing m.err"},
-		{"stale arm", `  match invoke cb with n
-    on Ok _ => Ok("q")
-    on m.err _ => Ok("e")
-    on m.odd _ => Ok("o")`,
-			CodeStaleArm, "stale match arm m.odd"},
 		{"given scripts nothing", `  match invoke cb with n
     given
       g => [exchange args (n = 4) outcome Ok("q")]
@@ -636,6 +638,21 @@ func TestCheckInvokeNegatives(t *testing.T) {
 			body := strings.Replace(fnvaluesInvokeBase, "MATCH", c.match, 1)
 			seqCode(t, map[string]string{"m.can": body}, "m.can", c.code, c.sub)
 		})
+	}
+}
+
+// A stale arm is presence-asserted like every other stale arm:
+// the untakeable arm also trips coverage, so the report is never
+// singular.
+func TestCheckInvokeStaleArm(t *testing.T) {
+	body := strings.Replace(fnvaluesInvokeBase, "MATCH", `  match invoke cb with n
+    on Ok _ => Ok("q")
+    on m.err _ => Ok("e")
+    on m.odd _ => Ok("o")`, 1)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
+	if !hasErrCode(diags, CodeStaleArm) || !hasDiag(diags, "error", "stale match arm m.odd") {
+		t.Fatalf("expected stale m.odd arm, got %v", diags)
 	}
 }
 
@@ -712,6 +729,23 @@ fn m__a(cb: Fn<int, M__O, []>, n: int) -> M__O rev 1
 func TestCheckInvokeCycle(t *testing.T) {
 	seqCode(t, map[string]string{"m.can": fnvaluesInvokeCycle}, "m.can",
 		CodeLocalCycle, "m__a invokes m__b through a function value; invocation cannot close a cycle")
+}
+
+// One signature written tight and one written loose still
+// match: Fn heads compare structurally, never byte-identical.
+func TestCheckFnrefTightSpacing(t *testing.T) {
+	body := strings.Replace(fnvaluesCheckBody, "cb: Fn<int, M__O, [m.err]>", "cb: Fn<int,M__O,[m.err]>", 1)
+	wantFnvaluesClean(t, map[string]string{"m.can": body}, "m.can")
+}
+
+// Source-level field access on a callable fails through the
+// ordinary projection rule: a function value has no fields.
+func TestCheckInvokeFieldRefused(t *testing.T) {
+	body := strings.Replace(fnvaluesInvokeBase, "MATCH", `  match invoke cb with n
+    on Ok r => Ok(cb.value)
+    on m.err _ => Ok("e")`, 1)
+	seqCode(t, map[string]string{"m.can": body}, "m.can",
+		CodeTypeMismatch, "no field value on cb")
 }
 
 // Only admissible addresses close cycles: a target with a

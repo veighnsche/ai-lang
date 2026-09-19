@@ -145,7 +145,7 @@ func forwardOkRet(prog *Program, fn *FnDecl, who, calleeRet, binder string) (*Sm
 		if !ok {
 			return nil, fmt.Errorf("forward needs exactly the destination success fields: %s has no %s", fn.Ret, f[0])
 		}
-		if t != f[1] {
+		if !sameType(t, f[1]) {
 			return nil, fmt.Errorf("forward field %s changes type: %s to %s", f[0], f[1], t)
 		}
 		fields = append(fields, f[0])
