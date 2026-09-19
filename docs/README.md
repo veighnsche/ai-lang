@@ -3,6 +3,19 @@
 Start here. This folder is the language's memory: plans, per-feature
 specs, and the rules each feature had to satisfy before it landed.
 
+## Current audit and implementation record
+
+- [Zero-compatibility syntax and ABI audit](can-language-audit.md) — whole-language
+  architecture review at `8312d85`: confirmed evidence/identity findings,
+  proposed simplifications, ABI boundaries, and staged migration. **Recommendation,
+  not an approved replacement specification.** Reproducible probes and JEV
+  distributions are in `audit-probes/`.
+- [Stdlib implementation record](stdlib-remaining.md) — shipped stdlib and
+  B06–B11 language slices, with remaining blockers and pending work.
+
+The status map below is historical and incomplete; it is not a current inventory
+of everything implemented. Older `aNN` documents generally live under `a/`.
+
 ## Status map
 
 | Doc | Status | One line |
