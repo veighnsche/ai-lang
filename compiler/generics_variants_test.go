@@ -101,7 +101,7 @@ func TestGenericVariantParseRejects(t *testing.T) {
 			t.Fatalf("accepted parameters %s", params)
 		}
 	}
-	for _, pattern := range []string{"Ok<int> r", "math.bad<int> e", "Option__Some<> s", "Option__Some<int>"} {
+	for _, pattern := range []string{"Ok<int, str> r", "math.bad<int> e", "Option__Some<> s", "Option__Some<int>"} {
 		if _, err := parsePattern(pattern); err == nil {
 			t.Fatalf("accepted %s", pattern)
 		}

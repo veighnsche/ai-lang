@@ -40,8 +40,9 @@ func successFields(ret string, records map[string][][2]string, nominalValue bool
 	return fields, ok
 }
 
-// successBinderType keeps ordinary calls and invoke on the same ABI:
+// successBinderType keeps untyped on-Ok call/invoke binders on the same ABI:
 // records expose their fields; value successes expose exactly .value.
+// Explicit on Ok<T> binders instead use patternSuccessType.
 func (c *tycker) successBinderType(ret string) string {
 	if c.valueSuccess(ret) {
 		// Lazy installation also covers instantiated Seq and Fn spellings.

@@ -1496,8 +1496,10 @@ func (c *tycker) nodeStoreArms(n *Node, env map[string]string, want string) {
 		armWant := ""
 		if p.Kind == "variant" && p.Name == "Ok" && p.Var != "" {
 			if n.Scruts[0].Fname == "state__get" && known {
+				c.rejectKernelWholeOk(p, a.Line)
 				env2[p.Var] = "cell:" + t
 			} else if n.Scruts[0].Fname == "state__put" {
+				c.rejectKernelWholeOk(p, a.Line)
 				env2[p.Var] = "empty-ok"
 			} else {
 				env2[p.Var] = ""
@@ -1524,6 +1526,7 @@ func (c *tycker) nodePartsArms(n *Node, env map[string]string, want string) {
 		}
 		armWant := ""
 		if p.Kind == "variant" && p.Name == "Ok" && p.Var != "" {
+			c.rejectKernelWholeOk(p, a.Line)
 			env2[p.Var] = "parts"
 			armWant = want
 		}
@@ -1545,6 +1548,10 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 	var fields [][2]string
 	label := where
 	if name == "Ok" {
+		if len(s.TypeArgs) > 0 {
+			c.checkWholeOk(s, want, line, env)
+			return
+		}
 		if want == "" || strings.HasPrefix(want, "err:") {
 			for _, a := range s.Args {
 				c.value(a.V, "", line, env, where)
@@ -1817,7 +1824,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 			if p.Kind == "variant" && p.Var != "" {
 				if p.Name == "Ok" {
 					if sig != nil && c.knownType(sig.ret) {
-						env2[p.Var] = c.successBinderType(sig.ret)
+						env2[p.Var] = c.patternSuccessType(p, sig.ret, a.Line)
 					} else {
 						env2[p.Var] = ""
 					}
@@ -1934,7 +1941,7 @@ func (c *tycker) checkInvoke(n *Node, env map[string]string, want string) {
 		if p.Kind == "variant" && p.Var != "" {
 			if p.Name == "Ok" {
 				if sig != nil && c.knownType(sig.ret) {
-					env2[p.Var] = c.successBinderType(sig.ret)
+					env2[p.Var] = c.patternSuccessType(p, sig.ret, a.Line)
 				} else {
 					env2[p.Var] = ""
 				}

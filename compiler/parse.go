@@ -73,7 +73,7 @@ type Pattern struct {
 	Str      string
 	Name     string
 	Var      string
-	TypeArgs []string // explicit generic case arguments; erased by expansion
+	TypeArgs []string // case args are erased; typed Ok retains its resolved success annotation
 	// Alts holds `|` alternatives for Kind "or", in source
 	// order. Credit and coverage union over them; each
 	// alternative parses like a lone slot pattern, so ranges
@@ -1644,7 +1644,7 @@ func genericCaseHeadLT(s string, i int) bool {
 	}
 	base := s[j+1 : i]
 	end := angleEnd(s, i)
-	return reName.MatchString(base) && strings.Contains(base, "__") && end >= 0 && end+1 < len(s) && (s[end+1] == ' ' || s[end+1] == '\t')
+	return reName.MatchString(base) && (base == "Ok" || strings.Contains(base, "__")) && end >= 0 && end+1 < len(s) && (s[end+1] == ' ' || s[end+1] == '\t')
 }
 
 // parseGenericCtor parses one generic construction `Base<args>(...)`
@@ -1664,6 +1664,9 @@ func parseGenericCtor(s string) (*Small, error) {
 	tyargs, err := splitTypeArgs(s[lt+1 : gt])
 	if err != nil {
 		return nil, err
+	}
+	if base == "Ok" && len(tyargs) != 1 {
+		return nil, fmt.Errorf("typed Ok takes exactly one success type")
 	}
 	rest := s[gt+1:]
 	end, err := balanced(rest, 0)
@@ -2637,18 +2640,18 @@ func parsePattern(s string) (Pattern, error) {
 		return Pattern{Kind: "const", Name: s}, nil
 	}
 	// Generic case patterns use the same explicit arguments as
-	// constructions. Outcome patterns (Ok and dotted errors) stay
-	// monomorphic; expansion validates case ownership and arity.
+	// constructions. Ok<T> binds the whole declared success value;
+	// dotted errors stay monomorphic.
 	if i := strings.IndexByte(s, '<'); i > 0 {
 		if end := angleEnd(s, i); end > i && end+1 < len(s) && (s[end+1] == ' ' || s[end+1] == '\t') {
 			base, binder := s[:i], strings.TrimSpace(s[end+1:])
-			if reName.MatchString(base) && strings.Contains(base, "__") && reName.MatchString(binder) {
+			if reName.MatchString(base) && (base == "Ok" || strings.Contains(base, "__")) && reName.MatchString(binder) {
 				args, err := splitTypeArgs(s[i+1 : end])
 				if err != nil {
 					return Pattern{}, err
 				}
-				if len(args) == 0 {
-					return Pattern{}, fmt.Errorf("generic case pattern needs type arguments: %s", s)
+				if len(args) == 0 || (base == "Ok" && len(args) != 1) {
+					return Pattern{}, fmt.Errorf("pattern needs exactly one success type for Ok, or case type arguments: %s", s)
 				}
 				return Pattern{Kind: "variant", Name: base, Var: binder, TypeArgs: args}, nil
 			}

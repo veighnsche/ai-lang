@@ -26,10 +26,10 @@ type invokeSig struct {
 
 // resolveInvokeSites stashes the callable signature on every
 // MatchInvoke in one module. The target is a bare name, so the
-// only possible callable denotation is an Fn-typed parameter of
-// the enclosing function: arm binders type as records and error
-// payloads, never as Fn, so a shadowed name is simply not
-// callable and the checker owns that error. Resolution is pure
+// admitted invocation head is still an Fn-typed parameter of
+// the enclosing function. B11 typed Ok binders can themselves carry Fn,
+// but do not extend this resolver: pass them to an ordinary consumer.
+// The checker also rejects binders shadowing parameters with a different type. Resolution is pure
 // (no diagnostics) and runs once in buildWorld, after expansion
 // and before elaboration, check, and proof in both pipelines —
 // the LSP runs proof before checkSem, so neither consumer may

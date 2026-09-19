@@ -26,6 +26,12 @@
 Clean means compiler-clean AND lint-clean: gallery sketches carry
 no findings of either kind (`canlc` passes, `canlc lint` exits 0).
 
+Language regression fixture: `success-values/` demonstrates B11 whole generic
+successes (`Ok<T>(value)` / `on Ok<T> value`), record-valued optional API
+prototypes, callbacks, and trusted host execution. Its 54 rows and committed
+TS/catalogue outputs are gated by `compiler/success_value_test.go`; see
+`docs/b11-generic-success-values.md` for scope and reproduction.
+
 Rules: `/REQUIREMENTS.md`. Design rationale: `CLEAN_ROOM_REVIEW.md`.
 
 Checks: `go run ./tools/modcheck` (every `uses` resolves to

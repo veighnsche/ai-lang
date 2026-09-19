@@ -814,6 +814,32 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 	case "exchange":
 		return nil, fmt.Errorf("exchange outside a script row is outside the v0 subset")
 	case "ctor":
+		if node.Ctor == "Ok" && len(node.TypeArgs) > 0 {
+			if len(node.TypeArgs) != 1 || len(node.Args) != 1 || (node.Args[0].HasName && node.Args[0].Name != "value") {
+				return nil, fmt.Errorf("typed Ok takes one type and one whole value")
+			}
+			v, err := evSmall(node.Args[0].V, env, ctx, owner)
+			if err != nil {
+				return nil, err
+			}
+			if decl := recordDecl(ctx.Prog, node.TypeArgs[0]); decl != nil {
+				if v.Kind != "rec" {
+					return nil, fmt.Errorf("typed Ok needs a record value")
+				}
+				fields := map[string]*Value{}
+				for _, f := range decl.Fields {
+					if v.Dict[f[0]] == nil {
+						return nil, fmt.Errorf("typed Ok missing record field %s", f[0])
+					}
+					fields[f[0]] = v.Dict[f[0]]
+				}
+				return &Value{Kind: "ok", Dict: fields}, nil
+			}
+			if v.Kind == "ok" || v.Kind == "err" {
+				return nil, fmt.Errorf("typed Ok needs data, not an outcome")
+			}
+			return &Value{Kind: "ok", Dict: map[string]*Value{"value": v}}, nil
+		}
 		if node.Ctor == "Bytes" {
 			// a45 S1: literal-only construction, validated before
 			// creating the value. The checker admits only Seq<int>
@@ -991,7 +1017,7 @@ func evFnref(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 		caps[tgt.Params[slots[i]][0]] = v
 	}
 	return &Value{Kind: "fn", FnTarget: node.Fname, FnRev: tgt.Rev,
-		FnSig: sigKey(tgt.Params[unbound[0]][1], tgt.Ret, tgt.Emits),
+		FnSig:  sigKey(tgt.Params[unbound[0]][1], tgt.Ret, tgt.Emits),
 		FnSlot: tgt.Params[unbound[0]][0], FnCaps: caps}, nil
 }
 
@@ -1159,7 +1185,7 @@ func evDecPartsOp(scrut *Small, env map[string]*Value, ctx *Ctx, owner string) (
 // matchSlot tests one value against one pattern, binding a variant
 // payload into bind. The per-slot semantics are the historical single
 // arm semantics, so arity 1 behaves exactly as the old shared loop.
-func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
+func matchSlot(v *Value, p Pattern, bind map[string]*Value, prog *Program) bool {
 	switch p.Kind {
 	case "wild":
 		return true
@@ -1179,13 +1205,17 @@ func matchSlot(v *Value, p Pattern, bind map[string]*Value) bool {
 		// Slice 4: first matching alternative wins the slot;
 		// alternatives are nonbinding, so one bind map serves.
 		for _, alt := range p.Alts {
-			if matchSlot(v, alt, bind) {
+			if matchSlot(v, alt, bind, prog) {
 				return true
 			}
 		}
 		return false
 	case "variant":
 		if p.Name == "Ok" && v.Kind == "ok" {
+			if len(p.TypeArgs) == 1 && recordDecl(prog, p.TypeArgs[0]) == nil {
+				bind[p.Var] = v.Dict["value"]
+				return bind[p.Var] != nil
+			}
 			bind[p.Var] = &Value{Kind: "rec", Dict: v.Dict}
 			return true
 		}
@@ -1259,7 +1289,7 @@ func evValueMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*V
 				rhsEnv = copyEnv(env)
 				bound = true
 			}
-			if !matchSlot(vals[j], p, rhsEnv) {
+			if !matchSlot(vals[j], p, rhsEnv, ctx.Prog) {
 				hit = false
 				break
 			}
@@ -1798,6 +1828,12 @@ func evOutcomeArms(node *Node, v *Value, env map[string]*Value, ctx *Ctx, owner 
 				markTaken(ctx, node, i)
 				env2 := copyEnv(env)
 				env2[pat.Var] = &Value{Kind: "rec", Dict: v.Dict}
+				if len(pat.TypeArgs) == 1 && recordDecl(ctx.Prog, pat.TypeArgs[0]) == nil {
+					env2[pat.Var] = v.Dict["value"]
+					if env2[pat.Var] == nil {
+						return nil, fmt.Errorf("typed Ok is missing value")
+					}
+				}
 				return evNode(arm.Rhs, env2, ctx, owner)
 			}
 			if v.Kind == "err" && v.ErrKind == pat.Name {

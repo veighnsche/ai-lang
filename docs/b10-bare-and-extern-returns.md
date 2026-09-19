@@ -2,6 +2,10 @@
 
 Status: implemented; commit recorded in `stdlib-remaining.md`.
 
+Follow-up: [B11](b11-generic-success-values.md) adds explicit `Ok<T>(value)`
+and `on Ok<T> value` for whole successes, including records. The B10
+`Ok(...)` / untyped `on Ok r` convention below remains unchanged.
+
 ## Scope and convention
 
 B10 completes the existing `Ok(value)` convention for the remaining

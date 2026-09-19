@@ -42,7 +42,7 @@ var cases = []sampleCase{
 	{"punctuation.definition.generic.can", []string{"<T>"}},
 	{"constant.numeric.integer.can", []string{"42"}},
 	{"constant.numeric.decimal.can", []string{`d"1.5"`}},
-	{"constant.language.can", []string{"true", "Ok", "_"}},
+	{"constant.language.can", []string{"true", "Ok", "_", "Ok<T>(value)", "on Ok<T> value"}},
 	{"keyword.operator.can", []string{"=>", "->", "==", "+", "-", "*", "/", "%"}},
 	{"entity.name.function.can", []string{"db__get_user", "auth__login"}},
 	{"entity.name.type.can", []string{"Db__User", "Auth__Session"}},

@@ -311,6 +311,12 @@ func (p *prover) smallBinding(s *Small, env map[string]*symVal) *symVal {
 		return leafVal(sbool(s.B))
 	case "ref":
 		return resolve(s.Ref, env)
+	case "proj":
+		base := p.smallBinding(s.L, env)
+		if base == nil {
+			return nil
+		}
+		return base.fields[s.Field]
 	case "binop":
 		if v, ok := p.smallVal(s, env); ok {
 			return leafVal(v)
@@ -537,7 +543,7 @@ func (p *prover) genExit(ctor *Small, st *execState, req []*smt, out *[]obligati
 		return false
 	}
 	payload := map[string]*symVal{}
-	for _, arg := range ctor.Args {
+	for _, arg := range wholeOkArgs(ctor, recordShapes(p.a.prog.Modules)) {
 		b := p.smallBinding(arg.V, st.env)
 		if b == nil {
 			return false
@@ -658,7 +664,11 @@ func (p *prover) genCall(node *Node, st *execState, req []*smt, out *[]obligatio
 		branch := &execState{env: copySymEnv(st.env), viaSummary: true, line: line}
 		branch.asserts = append(append([]*smt{}, st.asserts...), summaryAsserts(p, carm, sumEnv)...)
 		if armNode.Pats[0].Var != "" {
-			branch.env[armNode.Pats[0].Var] = fresh
+			bound := fresh
+			if outcome == "Ok" && len(armNode.Pats[0].TypeArgs) == 1 && p.a.types[callee.Ret] == nil {
+				bound = fresh.fields["value"]
+			}
+			branch.env[armNode.Pats[0].Var] = bound
 		}
 		if armNode.Line > 0 {
 			branch.line = armNode.Line

@@ -78,6 +78,10 @@ func elaborateForwards(open *Module, prog *Program, text string) []Diag {
 						fail(a.Line, "%s", err.Error())
 						continue
 					}
+					if len(pat.TypeArgs) == 1 && recordDecl(prog, pat.TypeArgs[0]) == nil && len(rewrite.Args) == 1 {
+						// Typed value-success binders already ARE the value.
+						rewrite.Args[0].V = &Small{Kind: "ref", Ref: []string{pat.Var}}
+					}
 					a.Rhs.Small = rewrite
 					continue
 				}

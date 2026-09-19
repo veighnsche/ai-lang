@@ -809,6 +809,9 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		e.strOps["slice"] = true
 		return fmt.Sprintf("$canStrSlice(%s, %s, %s)", b, lo, hi), nil
 	case "ctor":
+		if node.Ctor == "Ok" && len(node.TypeArgs) > 0 {
+			return e.emitWholeOk(node)
+		}
 		if node.Ctor == "Bytes" {
 			// a45 S1: validated byte lowering. Emit checked members
 			// as number literals, never through the Seq bigint path:
@@ -1753,7 +1756,11 @@ func (e *emitter) emitCallArms(node *Node, tmp string, out *[]string) error {
 			*out = append(*out, "}")
 		case pat.Kind == "variant" && pat.Name == "Ok":
 			*out = append(*out, `case "ok": {`)
-			*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+			binding, err := e.wholeSuccessBinding(pat, tmp)
+			if err != nil {
+				return err
+			}
+			*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, binding))
 			lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
 			if err != nil {
 				return err
@@ -2149,8 +2156,12 @@ func (e *emitter) stmtBytesEncode(node *Node, scrut *Small, out *[]string) error
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("bytes__utf8__export match arm must be Ok")
 		}
+		binding, err := e.wholeSuccessBinding(pat, tmp)
+		if err != nil {
+			return err
+		}
 		*out = append(*out, `case "ok": {`)
-		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, binding))
 		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
 		if err != nil {
 			return err
@@ -2294,8 +2305,12 @@ func (e *emitter) stmtBytesHexEncode(node *Node, scrut *Small, out *[]string) er
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("bytes__hex__encode match arm must be Ok")
 		}
+		binding, err := e.wholeSuccessBinding(pat, tmp)
+		if err != nil {
+			return err
+		}
 		*out = append(*out, `case "ok": {`)
-		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, binding))
 		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
 		if err != nil {
 			return err
@@ -2334,8 +2349,12 @@ func (e *emitter) stmtBytesB64Encode(node *Node, scrut *Small, out *[]string) er
 		if pat.Kind != "variant" || pat.Name != "Ok" {
 			return fmt.Errorf("bytes__base64__encode match arm must be Ok")
 		}
+		binding, err := e.wholeSuccessBinding(pat, tmp)
+		if err != nil {
+			return err
+		}
 		*out = append(*out, `case "ok": {`)
-		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, tmp))
+		*out = append(*out, fmt.Sprintf("  const %s = %s;", pat.Var, binding))
 		lines, err := e.retLines(arm.Rhs, map[string]string{pat.Var: pat.Var})
 		if err != nil {
 			return err

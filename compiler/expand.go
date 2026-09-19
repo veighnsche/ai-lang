@@ -404,7 +404,7 @@ func everySmall(fn *FnDecl, yield func(smallSite)) {
 			// with constructors, but stay patterns in the downstream AST.
 			var walkPattern func(*Pattern)
 			walkPattern = func(p *Pattern) {
-				if p.isCase() {
+				if p.isCase() || (p.Name == "Ok" && len(p.TypeArgs) > 0) {
 					s := &Small{Kind: "ctor", Ctor: p.Name, TypeArgs: p.TypeArgs}
 					yield(smallSite{s, a.Line})
 					p.Name, p.TypeArgs = s.Ctor, s.TypeArgs
@@ -592,6 +592,10 @@ func collectInstances(mods []*Module, gens map[string]*genericInfo, tgens map[st
 	// this pass only rejects malformed shapes with caller scope.
 	considerCtor := func(m *Module, caller *FnDecl, site smallSite) {
 		s := site.s
+		if s.Ctor == "Ok" {
+			// Ok<T> annotates a success boundary, not a generic data constructor.
+			return
+		}
 		g, _ := genericConstructor(tgens, s.Ctor)
 		if g == nil {
 			if len(s.TypeArgs) > 0 {
@@ -886,7 +890,9 @@ func substSmall(s *Small, sub map[string]string) {
 		return
 	}
 	for i, a := range s.TypeArgs {
-		if r, ok := sub[a]; ok {
+		if s.Ctor == "Ok" {
+			s.TypeArgs[i] = substType(a, sub)
+		} else if r, ok := sub[a]; ok {
 			s.TypeArgs[i] = r
 		}
 	}
@@ -1007,6 +1013,40 @@ func clonePattern(p Pattern) Pattern {
 		}
 	}
 	return c
+}
+
+// routeGivenRows mirrors test routing: a stamp must not typecheck scripts
+// belonging to another stamp. Unknown keys are deliberately retained so this
+// projection never hides a misspelled script key or manufactures a witness.
+func routeGivenRows(fn *FnDecl, original []Test) {
+	known, keep := map[string]bool{}, map[string]bool{}
+	for _, row := range original {
+		known[row.Name] = true
+	}
+	for _, row := range fn.Tests {
+		keep[row.Name] = true
+	}
+	filter := func(g map[string]*Small) {
+		for key := range g {
+			if known[key] && !keep[key] {
+				delete(g, key)
+			}
+		}
+	}
+	var walk func(*Node)
+	walk = func(n *Node) {
+		if n == nil {
+			return
+		}
+		filter(n.Given)
+		for _, step := range n.ChainSteps {
+			filter(step.Given)
+		}
+		for _, arm := range n.Arms {
+			walk(arm.Rhs)
+		}
+	}
+	walk(fn.Body)
 }
 
 func cloneGiven(g map[string]*Small) map[string]*Small {
@@ -1160,6 +1200,7 @@ func stampGenerics(gens map[string]*genericInfo, known map[string][][]string, ty
 				substTest(&rt, sub)
 				st.Tests = append(st.Tests, rt)
 			}
+			routeGivenRows(st, g.decl.Tests)
 			for _, r := range g.decl.Requires {
 				c := cloneSmall(r)
 				substSmall(c, sub)
@@ -1794,6 +1835,13 @@ func collectTypeInstances(mods []*Module, tgens map[string]*genericTypeInfo, typ
 		// so walker drift fails closed, never silently.
 		if s.Kind == "ctor" && len(s.TypeArgs) > 0 {
 			_, base := genericConstructor(tgens, s.Ctor)
+			if s.Ctor == "Ok" {
+				for _, typ := range s.TypeArgs {
+					if b, args, ok := mentionOf(typ); ok {
+						seedClosed(m, line, "Ok", b, args)
+					}
+				}
+			}
 			if base == "" {
 				return
 			}
@@ -2025,6 +2073,11 @@ func rewriteTypeMentions(mods []*Module, tgens map[string]*genericTypeInfo, know
 					s.Ctor = mangleInstance(s.Ctor, s.TypeArgs)
 					s.TypeArgs = nil
 				}
+			}
+		}
+		if s.Ctor == "Ok" {
+			for i, typ := range s.TypeArgs {
+				s.TypeArgs[i] = rewriteStr(typ)
 			}
 		}
 		if s.Elem != "" {
