@@ -32,12 +32,12 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 
 | Roadmap item | Missing feature | Evidence |
 |--------------|-----------------|----------|
-| §1.7 outcome/option combinators | First-class outcomes + Fn values | b00 staged by JEV (0.97); no `Outcome<T,E>` values exist |
+| §1.7 outcome/option combinators | First-class outcomes + generic error algebra | VERDICT (slice 10): still blocked. Catalogue: "Do not pretend these are available as generic libraries today." Every signature takes/returns `Outcome<T,…>`/`Option<T>`; probe: `unknown type Outcome`. b00 excludes "generic error-set algebra" and "generic outcome values" (`docs/b00-function-values-design.md`); generic variants do not exist (`bad variant decl`), so no `Option<T>` either. No monomorphic fallback matches the catalogue shape. |
 | §1.8 seq map/filter/fold/find/all/any | SHIPPED (slice 7): generic workers invoke total callbacks; find reports `sequence.not_found()` (generic variants do not exist — `bad variant decl` — so no `Option<T>`); predicates return per-module `Bool__Value` (std/set precedent) | 62 rows; 107 pass on compile; `TestStdSeqCompiles` gates. |
 | §1.8 seq sort/unique | SHIPPED (slice 8): `Seq__Order` value Asc/Desc over per-instance built-in order (insertion sort, stable by construction); unique keeps first occurrences via per-instance `==` | 40 rows; 147 pass on compile; lexicographic orders deferred. |
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
 | §1.8 normalize_nfc, casefold, graphemes | Unicode data kernel | No pinned data, no host path (see host shelf) |
-| §1.8 json encode/decode, `schema__migrate` | PARTIAL (slice 9): value layer shipped — `Json__Value` AST, fuel-bounded render machine, escape, 8 scalar codecs, monomorphic `Json__*Schema` family with schema-carried Fn dispatch; bytes-level parse (`invalid_syntax`, `duplicate_key`) + `std__json__encode`/`decode` drivers + `schema__migrate` remain | 125 rows; 548 pass on compile; `TestStdJsonCompiles` gates. |
+| §1.8 json encode/decode, `schema__migrate` | PARTIAL (slice 9): value layer shipped — `Json__Value` AST, fuel-bounded render machine, escape, 8 scalar codecs, monomorphic `Json__*Schema` family with schema-carried Fn dispatch; bytes-level parse + text drivers remain (slice 11). `schema__migrate`: VERDICT (slice 10) — generic migrate is inexpressible: no `Ok` splat (`Ok field y: got M__B, want int`) and `forward` is refused outside call-outcome arms, so no body returns an arbitrary `New` through invoke dispatch (b00's missing generic error algebra independently blocks `! E`). | 125 rows; 548 pass on compile; `TestStdJsonCompiles` gates. |
 | Host shelf (clock/random/hash/secret/log/env) | SHIPPED (slices H1–H5): `std/host` carries all 7 catalogue fns over pinned externs with real node-backed `host.externs.ts` impls; `TestStdHostNodeSmoke` executes every impl (incl. sha256 known vector); `sketches/host-clock` consumes both the wrapper and the shared extern directly | Millis instants (JEV 0.97); sealed profile/secret/env brands (JEV 0.98/1.0); denied + sub-millis documented v1 limits. |
 | §3 HTTP (all) | Async + Resources + Functions | No async surface exists |
 | §4 SQL (all) | Async + Resources | Same |
@@ -58,6 +58,8 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - Variant sequences not admitted; sequence concatenation not in v1; slice operator is str-only (slice 9) — worked around via tag-dispatched record frames, append-only back stack, copy-by-index `pop`.
 - `invoke` heads must be bare names (slice 9; field paths do not parse) — worked around via apply wrappers taking the Fn as a param.
 - `forward call` is arm-position-only, never a bare body (slice 9).
+- No `Ok` splat: `Ok(r)` binds the whole record to the first field (slice 10; generic migrate blocked).
+- No `Outcome<T,E>` / `Option<T>` types; no generic error-set algebra (slice 10; §1.7 blocked).
 
 ## JEV decision log (all via `jev-1.13.0`, Choice)
 
