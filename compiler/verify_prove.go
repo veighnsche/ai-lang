@@ -643,7 +643,7 @@ func (p *prover) genCall(node *Node, st *execState, req []*smt, out *[]obligatio
 		}
 		var shape admitSort
 		if outcome == "Ok" {
-			shape = p.a.sortOfType(callee.Ret)
+			shape = p.a.successSort(callee.Ret)
 		} else if es, ok := p.a.errorShape(outcome); ok {
 			shape = es
 		} else {

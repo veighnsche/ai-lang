@@ -114,10 +114,13 @@ func newTycker(prog *Program, text, fn string) *tycker {
 			}
 		}
 	}
-	// B07: call binders carry the Ok payload, not the variant itself.
+	// Call/invoke binders carry the Ok payload, not the returned value.
 	// These private checker-only record shapes cannot be named in source.
 	for name := range c.variants {
-		c.recs[variantOkType(name)] = variantOkFields(name)
+		c.recs[valueOkType(name)] = valueOkFields(name)
+	}
+	for _, name := range []string{"int", "str", "bool", "dec"} {
+		c.recs[valueOkType(name)] = valueOkFields(name)
 	}
 	// Asset bridge grants introduce the named foreign brands into scope
 	// so a sink module compiles standalone: params and error fields may
@@ -219,7 +222,7 @@ func fnTypeShape(t string) (string, string, string, bool) {
 // never re-spaced); Fn heads compare structurally — input,
 // success, and error multiset — so one signature written tight
 // and one written loose still match. The input recurses (heads
-// nest); success is a bare record name.
+// nest); success is a declared record/variant or primitive scalar.
 func sameType(a, b string) bool {
 	if a == b {
 		return true
@@ -414,13 +417,13 @@ func (c *tycker) checkFnref(s *Small, line int, env map[string]string, where str
 }
 
 // checkFnrefTarget enforces target admission: the return names a
-// record or variant, the whole reachable graph is pure under the linked
+// record, variant, or primitive scalar, the reachable graph is pure under the linked
 // criterion, and no reachable function needs a precondition.
 // Captures never discharge any of these.
 func (c *tycker) checkFnrefTarget(s *Small, tgt *FnDecl, show string, line int) {
 	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret]); !ok {
 		c.out = append(c.out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("reference to %s refused: success %s is not a record or variant", show, tgt.Ret), "fnref", CodeFnTargetRefused))
+			fmt.Sprintf("reference to %s refused: success %s is not a record, variant, or primitive scalar", show, tgt.Ret), "fnref", CodeFnTargetRefused))
 	}
 	if err := checkLinkedGraph(c.prog, s.Fname); err != nil {
 		detail := strings.TrimPrefix(err.Error(), "linked execution refused: ")
@@ -500,10 +503,10 @@ func (c *tycker) refFnType(s *Small) (string, bool) {
 
 // fnHeadDiags enforces b00 deep validity on one Fn annotation that
 // shape-accepted: the input names a known type, the success names a
-// record or variant, every kind names a declared error, and the kinds are
+// record, variant, or primitive scalar, every kind names a declared error, and the kinds are
 // distinct and canonically (lexicographically) ordered. Unknown
 // input reuses CAN6002 and unknown kinds reuse CAN4002; head-invalid
-// shapes (non-record/variant success, duplicate or unordered kinds) are
+// shapes (unsupported success, duplicate or unordered kinds) are
 // CAN6019. Non-Fn annotations are a silent no-op, so call sites
 // need no shape gate. This cut validates the head everywhere it
 // is written; transitive containment (Fn inside A or R through
@@ -521,7 +524,7 @@ func (c *tycker) fnHeadDiags(t, where string, line int, token string) []Diag {
 	}
 	if _, ok := successFields(r, c.recs, c.variants[r]); !ok {
 		out = append(out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("Fn success %s of %s is not a record or variant: name a declared success type", r, where), token, CodeFnHeadInvalid))
+			fmt.Sprintf("Fn success %s of %s is not a record, variant, or primitive scalar: name a supported success type", r, where), token, CodeFnHeadInvalid))
 	}
 	// Invocation inputs and success carriers are data-only (b00
 	// Q1d): a bearing head would smuggle callbacks through the
@@ -1019,7 +1022,7 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 		}
 		if strings.HasPrefix(t, "ok:") && len(s.Ref) == 1 {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("%s is a variant-return Ok payload: select %s.value", s.Ref[0], s.Ref[0]), s.Ref[0], CodeTypeMismatch))
+				fmt.Sprintf("%s is a value-return Ok payload: select %s.value", s.Ref[0], s.Ref[0]), s.Ref[0], CodeTypeMismatch))
 			return
 		}
 		if t == "empty-ok" {
@@ -1514,7 +1517,7 @@ func (c *tycker) nodePartsArms(n *Node, env map[string]string, want string) {
 }
 
 // checkCtor validates a construction against its contract: Ok against
-// the wanted record or variant envelope, dotted errors against their ErrorDecl, named
+// the wanted success shape, dotted errors against their ErrorDecl, named
 // records against their TypeDecl. want="" (error-producing positions)
 // still checks error fields; unknown contracts belong to other codes,
 // so undeclared kinds are skipped, never double-reported. Positional
@@ -1532,14 +1535,7 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 		}
 		rec, ok := successFields(want, c.recs, c.variants[want])
 		if !ok {
-			// a92: scalar Ok takes exactly the conventional
-			// `value`: bind a lone positional, fault the
-			// rest. All-named keeps today's pass-through
-			// (scalar payloads are unchecked); unknown wants
-			// keep it too (their owner reports).
-			if want == "int" || want == "str" || want == "bool" || want == "dec" {
-				c.checkScalarOk(s, line, env, where)
-			}
+			// Unsupported/unknown return types have their own diagnostics.
 			return
 		}
 		fields, label = rec, "Ok"
@@ -1697,12 +1693,16 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 					tok = tokenOf(a.V)
 				}
 				c.mismatch(line, flabel, got, ft, tok)
-			} else if !ok && name == "Ok" && c.variants[want] {
+			} else if !ok && name == "Ok" && (c.variants[want] || scalarSuccess(want)) {
 				// Outcome constructors have no data type. They must not
-				// sneak into a newly admitted variant payload merely
+				// sneak into a value payload merely
 				// because legacy want-free positions leave them untyped.
+				kind := "scalar"
+				if c.variants[want] {
+					kind = "variant"
+				}
 				c.out = append(c.out, spanDiag(c.text, line, "error",
-					fmt.Sprintf("%s needs a value of variant %s", flabel, want), tokenOf(a.V), CodeTypeMismatch))
+					fmt.Sprintf("%s needs a value of %s %s", flabel, kind, want), tokenOf(a.V), CodeTypeMismatch))
 			}
 		}
 	}
@@ -1721,52 +1721,6 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 	}
 }
 
-// checkScalarOk resolves Ok against a scalar want (a92): the
-// convention is exactly one field named `value`. A lone
-// positional binds it; anything else positional faults.
-// Values are never recursed, exactly like the bare return
-// this replaces: scalar payloads are unchecked (projections
-// like v.value on an int-typed binder are runtime-shaped),
-// and all-named keeps the pass-through untouched. Faulted
-// args stay unnamed: resolution-owned, already reported.
-func (c *tycker) checkScalarOk(s *Small, line int, env map[string]string, where string) {
-	hasPos := false
-	for _, a := range s.Args {
-		if !a.HasName {
-			hasPos = true
-			break
-		}
-	}
-	if !hasPos {
-		return
-	}
-	claimed := false
-	for _, a := range s.Args {
-		if a.HasName && a.Name == "value" {
-			claimed = true
-		}
-	}
-	for i := range s.Args {
-		a := &s.Args[i]
-		if a.HasName {
-			continue
-		}
-		if i >= 1 {
-			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("Ok takes %d args for 1 field", len(s.Args)), "Ok", CodeTypeMismatch))
-			continue
-		}
-		if claimed {
-			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("Ok supplies field value twice"), "value", CodeTypeMismatch))
-			continue
-		}
-		claimed = true
-		a.Name = "value"
-		a.HasName = true
-	}
-}
-
 // node walks a body threading the wanted type to final-value positions:
 // Ok arms and value matches produce the function's return, error arms
 // produce errors (checked against their decl, want-free). Bindings copy
@@ -1776,14 +1730,18 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		return
 	}
 	if !n.IsMatch {
-		// A variant is still data, not an outcome. Bare case/ref bodies
-		// must not bypass the Ok envelope just because their type fits.
-		if f := c.prog.Fns[c.fn]; f != nil && c.variants[f.Ret] {
+		// Scalars/variants are data, not outcomes. Bare values must not
+		// bypass the Ok envelope just because their type fits.
+		if f := c.prog.Fns[c.fn]; f != nil && (c.variants[f.Ret] || scalarSuccess(f.Ret)) {
 			if s := n.Small; s != nil {
 				_, isError := c.errs[s.Ctor]
 				if !(s.Kind == "ctor" && (s.Ctor == "Ok" || isError)) {
+					kind := "scalar"
+					if c.variants[f.Ret] {
+						kind = "variant"
+					}
 					c.out = append(c.out, spanDiag(c.text, n.Line, "error",
-						"variant return must use Ok(value) or a declared error", tokenOf(s), CodeTypeMismatch))
+						kind+" return must use Ok(value) or a declared error", tokenOf(s), CodeTypeMismatch))
 				}
 			}
 		}
@@ -1796,7 +1754,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 			// Ok, so no comparison is added: anything else
 			// keeps want-free checking.
 			if f, ok := c.prog.Fns[c.fn]; ok {
-				if _, ok := c.recs[f.Ret]; ok || c.variants[f.Ret] {
+				if _, ok := successFields(f.Ret, c.recs, c.variants[f.Ret]); ok {
 					w = f.Ret
 				}
 			}

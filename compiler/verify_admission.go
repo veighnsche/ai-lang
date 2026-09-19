@@ -21,9 +21,9 @@ import (
 // admitSort is a proof-fragment sort: int, bool, a nominal record
 // with its field shapes, or outside (with the reason named).
 type admitSort struct {
-	kind   string // "int", "bool", "rec", "outside"
-	rec    string // nominal record name when kind == "rec"
-	why    string // human reason when kind == "outside"
+	kind   string               // "int", "bool", "rec", "outside"
+	rec    string               // nominal record name when kind == "rec"
+	why    string               // human reason when kind == "outside"
 	fields map[string]admitSort // record field shapes (error payloads synthesize these)
 }
 
@@ -167,6 +167,15 @@ func (a *admission) sortOfType(t string) admitSort {
 		return s
 	}
 	return admitSort{kind: "outside", why: "unknown type " + t}
+}
+
+// successSort models the Ok binder, not the bare scalar it contains.
+// str/dec remain outside the existing proof fragment even inside .value.
+func (a *admission) successSort(ret string) admitSort {
+	if scalarSuccess(ret) {
+		return admitSort{kind: "rec", rec: valueOkType(ret), fields: map[string]admitSort{"value": a.sortOfType(ret)}}
+	}
+	return a.sortOfType(ret)
 }
 
 // errorShape synthesizes a record shape from an error declaration's
@@ -530,7 +539,7 @@ func (a *admission) checkArm(m *Module, fn *FnDecl, name, text string, scope map
 		ascope[k] = v
 	}
 	if arm.Outcome == "Ok" {
-		ascope[arm.Bind] = a.sortOfType(fn.Ret)
+		ascope[arm.Bind] = a.successSort(fn.Ret)
 	} else if shape, ok := a.errorShape(arm.Outcome); ok {
 		ascope[arm.Bind] = shape
 	} else {

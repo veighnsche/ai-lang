@@ -9,7 +9,8 @@ Verification status: **source-body inspection and static counterexample review o
 
 Implementation follow-up: [B08](b08-fn-variant-successes.md) extends the
 historical record-only success rule below to declared records **or variants**,
-using B07's `Ok(value)` envelope for variants. Other B00 constraints remain;
+using B07's `Ok(value)` envelope for variants. [B09](b09-scalar-successes.md)
+adds int/str/bool/dec successes with the same envelope. Other B00 constraints remain;
 `stdlib-remaining.md` records the shipped implementation and current gaps.
 
 ## 0. Evidence boundary and corrected premises

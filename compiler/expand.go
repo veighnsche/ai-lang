@@ -1308,8 +1308,8 @@ func rewriteGenericCalls(mods []*Module, gens map[string]*genericInfo) {
 
 // rewriteGenericHeaders swaps base names for stamps in provides
 // and per-module used stamps in uses. Runs before call
-// rewriting, so used sets read TypeArgs directly. A base pin no
-// body instantiates drops with the same warning a dead
+// rewriting, so used sets read TypeArgs directly. A base pin with no
+// pinned call/reference use drops with the same warning a dead
 // monomorphic pin gets (CodeUnusedUses, same severity).
 func rewriteGenericHeaders(mods []*Module, gens map[string]*genericInfo, known map[string][][]string, texts map[string]string, out *[]Diag) {
 	for base, g := range gens {
@@ -1344,12 +1344,18 @@ func rewriteGenericHeaders(mods []*Module, gens map[string]*genericInfo, known m
 		}
 		// Same positions calledFns polices: leaf Smalls plus
 		// MatchCall scrutinees. Test-arg and script calls need
-		// no pins, exactly like monomorphic calls.
+		// no pins, exactly like monomorphic calls. Function references
+		// do need pins in every position, including test data (B00).
 		for _, d := range m.Decls {
 			fn, ok := d.(*FnDecl)
 			if !ok {
 				continue
 			}
+			everySmall(fn, func(st smallSite) {
+				if st.s.Kind == "fnref" {
+					note(st.s)
+				}
+			})
 			bodySmalls(fn.Body, func(s *Small, line int) { note(s) })
 			for _, n := range matchNodes(fn.Body) {
 				if n.Kind == MatchCall && len(n.Scruts) > 0 {

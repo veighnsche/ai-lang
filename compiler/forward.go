@@ -105,7 +105,7 @@ func forwardCtor(kind string, fields []string, binder string) *Small {
 }
 
 // forwardOk resolves an Ok forward: records must hold exactly the
-// destination success fields; variants must have the same nominal type.
+// destination success fields; scalar/variant successes need identical types.
 // Different wrapper-record names are fine. Reconstruction is explicit,
 // never a nominal cast. Lookup covers local, foreign, and extern providers.
 func forwardOk(prog *Program, fn *FnDecl, callee, binder string) (*Small, error) {
@@ -122,14 +122,21 @@ func forwardOk(prog *Program, fn *FnDecl, callee, binder string) (*Small, error)
 
 // forwardOkRet rebuilds an Ok payload from a known success type.
 // Calls resolve it through the callee; invoke matches read it from the
-// callable signature. Variant envelopes retain
-// nominal identity; records retain field-shape compatibility.
+// callable signature. Scalar/variant envelopes retain exact type identity;
+// records retain field-shape compatibility.
 func forwardOkRet(prog *Program, fn *FnDecl, who, calleeRet, binder string) (*Small, error) {
 	if prog.Variants[calleeRet] != nil || prog.Variants[fn.Ret] != nil {
 		// Variant success forwarding preserves nominal identity, never
 		// coerces between instances or a variant and a wrapper record.
 		if calleeRet != fn.Ret {
 			return nil, fmt.Errorf("forward needs the same variant return type: %s -> %s, %s -> %s", who, calleeRet, fn.Name, fn.Ret)
+		}
+		return forwardCtor("Ok", []string{"value"}, binder), nil
+	}
+	if scalarSuccess(calleeRet) || scalarSuccess(fn.Ret) {
+		// A one-field wrapper is not a scalar; int and dec do not coerce.
+		if calleeRet != fn.Ret {
+			return nil, fmt.Errorf("forward needs the same scalar return type: %s -> %s, %s -> %s", who, calleeRet, fn.Name, fn.Ret)
 		}
 		return forwardCtor("Ok", []string{"value"}, binder), nil
 	}

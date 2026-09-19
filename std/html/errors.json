@@ -363,8 +363,7 @@
     "raised_by": [
       "html.html__attribute__id",
       "html.html__attribute__id_check",
-      "html.html__attribute__named_id",
-      "html.html__render__document"
+      "html.html__attribute__named_id"
     ],
     "handled_by": [
       {

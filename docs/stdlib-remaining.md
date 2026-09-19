@@ -12,8 +12,9 @@ Continuation (post-b00, same contract): b00 function values
 landed, unblocking the §1.8 callback rows. Slices 7+ below.
 B06 subsequently lands explicit generic variants; B07 admits bare variant
 returns through the existing Ok(value) protocol; B08 carries that success
-contract through Fn references and invocation. These language slices do
-not claim the catalogue's option/outcome combinators.
+contract through Fn references and invocation; B09 completes primitive
+scalar successes across source returns, calls, and Fn. These language
+slices do not claim the catalogue's option/outcome combinators.
 
 ## Shipped (main, all gates green per commit)
 
@@ -34,6 +35,7 @@ not claim the catalogue's option/outcome combinators.
 | B06 | `e7ac40c` | Language unblocker: explicit generic variants, case construction/matching, instance-specific tags, cross-module pins, payload dependency discovery; `sketches/generic-option` has 12 rows plus byte-identical TS/catalogue goldens and Node parity. No stdlib combinator slice claimed. |
 | B07 | `cb457c1` | Language unblocker: bare variant returns via checked `Ok(value)`, ordinary call binders expose `.value`, same-nominal forwarding, declared TS success shapes/imports; `sketches/variant-return` has 27 rows, TS/catalogue goldens, and Node parity. Fn successes and extern returns were still record-only at B07. |
 | B08 | `147260a` | Language unblocker: Fn successes admit records or variants, including generic stamps; reference admission/signature discovery, invocation binders/forwarding, and TS types agree on the B07 envelope. `sketches/fn-variant` has 26 rows, TS/catalogue goldens, linked/LSP/Node checks, and purity/cycle/coverage regressions. Externs and scalar successes are unchanged. |
+| B09 | TBD | Language unblocker: int/str/bool/dec successes through strict `Ok(value)` checking, generic source returns, calls, Fn references/invocation, exact-type forwarding, and TS emission. `sketches/fn-scalar` has 40 rows, goldens, linked/LSP/Node parity, and int/bool contract proof tests. Fixes test-only generic-reference pins and false error-projection raises; HTML catalogue corrected, emitted HTML unchanged. |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
@@ -42,7 +44,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 
 | Roadmap item | Missing feature | Evidence |
 |--------------|-----------------|----------|
-| §1.7 outcome/option combinators | First-class outcomes + generic error algebra; remaining scalar return/callback surface | PARTIAL UNBLOCK (B06–B08): user-declared optional variants now support construction, matching, direct source-function returns, ordinary calls/forwarding, and Fn successes/invocation without a declared wrapper record. No stdlib combinators claimed. Remaining evidence: `TestFnVariantScalarAndOtherSuccessesStillRefused` pins non-record/variant Fn success restrictions and `TestVariantReturnExternStillRefused` pins record-only extern returns; the generic scalar re-probe `probe__identity<T>(value: T) -> T` at `T=int` passes its row but fails emit with `probe__identity$T$int returns unknown type int`. Outcome probe remains `unknown type Outcome`; b00 excludes generic error-set algebra and generic outcome values. Re-probe exact optional APIs individually before a stdlib slice; no monomorphic fallback is being substituted. |
+| §1.7 outcome/option combinators | First-class outcomes + generic error algebra; generic record-success reconstruction | PARTIAL UNBLOCK (B06–B09): user-declared optional variants support construction, matching, source returns, calls/forwarding, and Fn successes/invocation. B09 also closes primitive scalar source/callback successes, including the generic identity emission probe. No stdlib combinators claimed. Outcome probe remains `unknown type Outcome`; b00 excludes generic error-set algebra and generic outcome values, and the no-Ok-splat limitation below remains for arbitrary record successes. `TestFnUnsupportedSuccessesStillRefused` pins other bare Fn restrictions; `TestScalarSuccessExternsStillRefused` and `TestVariantReturnExternStillRefused` pin record-only extern returns. Re-probe exact optional APIs individually before a stdlib slice; no monomorphic fallback is being substituted. |
 | §1.8 seq map/filter/fold/find/all/any | SHIPPED (slice 7): generic workers invoke total callbacks; find reports `sequence.not_found()` (B06–B07 remove the original generic-variant/return blockers; optional-return API migration has not been attempted); predicates return per-module `Bool__Value` (std/set precedent) | 62 rows; 107 pass on compile; `TestStdSeqCompiles` gates. `find` is unchanged. |
 | §1.8 seq sort/unique | SHIPPED (slice 8): `Seq__Order` value Asc/Desc over per-instance built-in order (insertion sort, stable by construction); unique keeps first occurrences via per-instance `==` | 40 rows; 147 pass on compile; lexicographic orders deferred. |
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
@@ -72,7 +74,10 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - No `Outcome<T,E>` / `Option<T>` builtins; no generic error-set algebra (slice 10). B06 now admits user-declared generic variants such as `Option__Value<T>`; exact §1.7 APIs are not yet claimed.
 - ~~Generic variants fail with `bad variant decl`~~ — B06 re-probed that exact error before implementation; declarations, explicit case constructors/patterns, and record-carried optional results now work. See `docs/b06-generic-variants.md`.
 - ~~Bare variant returns remain unsupported after B06 (`bare-variant returns are unsupported, return a record`)~~ — B07 re-probed and removed this restriction for source functions and ordinary calls/forwarding. Success is exactly `Ok(value)` and callers select the variant with `r.value`; no first-class outcome value was added. See `docs/b07-variant-returns.md`.
-- ~~Fn successes/reference targets remain record-only~~ — B08 admits declared record or variant successes end-to-end, with exact nominal/error-set matching. Extern returns remain record-only (`TestVariantReturnExternStillRefused`). Generic scalar return emission is still incomplete (`probe__identity$T$int returns unknown type int` on the B07 re-probe), and Fn scalar/other bare successes remain refused (`TestFnVariantScalarAndOtherSuccessesStillRefused`). Nested instantiation as a type argument and variant sequences remain deferred.
+- ~~Fn successes/reference targets remain record-only~~ — B08 admits declared record or variant successes end-to-end; B09 adds primitive scalar successes. Exact type/error-set matching remains. Extern returns remain record-only. Nested instantiation as a type argument and variant sequences remain deferred.
+- ~~Generic scalar return emission is incomplete~~ — B09 re-probed the four-type identity (four passing rows, then `probe__identity$T$bool returns unknown type bool`) and closed emission plus Fn/invocation/forwarding for int/str/bool/dec. The earlier B07 int-only blocker is closed. Other bare successes remain refused (`TestFnUnsupportedSuccessesStillRefused`). See `docs/b09-scalar-successes.md`.
+- ~~Test-only foreign generic references lose uses pins~~ — B09 fixes header rewriting to include reference sites in tests; no authority rule is relaxed. Missing/wrong pins still fail.
+- ~~Error payload reads count as raises~~ — B09 fixes `eachRaise`: `e.value` is data, not an error outcome. Identity relays still count. HTML's catalogue loses one falsely attributed raise; emitted code is unchanged.
 - Generic `forward call` sugar is late-parsed source text, not rewritten by expansion: `forward call use__apply<int>(...)` fails with `forward call cannot resolve callee use__apply` (`TestFnVariantGenericForwardCallStillRefused`). Explicit `match call ...<int>` plus `forward r` works. B08 fixes the relay linter's unsafe suggestion of that sugar; the language gap itself remains.
 - Downstream-unwitnessable error arms are an API bug: render's budget/mismatch errors removed in slice 11a (fuel-exhaust now `Ok(acc)` per `int_to_str_from`).
 - Variant matches take case arms only, never `_` (slice 11a; attach carries all 12 PTag arms).
@@ -120,4 +125,12 @@ Admit declared record/variant successes through references, signature discovery,
 invocation binders, forwarding, and emission together. Preserve B07's
 `Ok(value)` / `r.value` convention and all purity, nominal typing, concrete
 error-set, containment, cycle, and witness rules. Scalar/other bare successes
-and extern returns remain separate.
+and extern returns stayed separate at B08.
+
+B09 scalar-success scope (`jev-1.13.0`, Choice): `primitive_envelope`
+(probability 1.00, confidence 1.00; source-only, all-data/extern, raw-scalar
+alternatives 0.00). Complete int/str/bool/dec through strict `Ok(value)`
+checking, source/call emission, Fn, invocation, and exact-type forwarding;
+keep `r.value` binders. Close the legacy unchecked named-field path, rather
+than preserve an unsound exception. Brands/Bytes/sequences/Fn bare successes
+and extern ABI widening remain out of scope.

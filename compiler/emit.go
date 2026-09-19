@@ -125,7 +125,7 @@ func tsFnType(a, r, e string, brands map[string]string, recs map[string][][2]str
 	}
 	fields, ok := successFields(r, recs, variants[r] != nil)
 	if !ok {
-		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a record or variant", r)
+		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a record, variant, or primitive scalar", r)
 	}
 	type kv struct{ k, v string }
 	var kvs []kv
@@ -346,7 +346,7 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 }
 
 // declaredOkShape builds a function's Ok payload shape from its declared
-// return record or variant envelope, never from body/test literals. The
+// return record or value envelope, never from body/test literals. The
 // checker proves every Ok construction against that shape (unknown,
 // missing, and mistyped fields fail before emission), so the declaration
 // is the single source of types: changing evidence without changing the

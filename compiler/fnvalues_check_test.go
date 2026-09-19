@@ -221,7 +221,7 @@ func TestCheckFnHeadParams(t *testing.T) {
 		sub  string
 	}{
 		{"unknown input", `Fn<Nope, M__O, [m.err]>`, CodeUnknownType, "unknown type Nope in Fn input of param cb"},
-		{"int success", `Fn<int, int, [m.err]>`, CodeFnHeadInvalid, "Fn success int of param cb is not a record"},
+		{"Bytes success", `Fn<int, Bytes, [m.err]>`, CodeFnHeadInvalid, "Fn success Bytes of param cb is not a record"},
 		{"kind success", `Fn<int, m.err, [m.err]>`, CodeFnHeadInvalid, "Fn success m.err of param cb is not a record"},
 		{"unknown kind", `Fn<int, M__O, [m.nope]>`, CodeUnknownKind, "unknown error kind m.nope in Fn list of param cb"},
 		{"duplicate kind", `Fn<int, M__O, [m.err, m.err]>`, CodeFnHeadInvalid, "duplicate error kind m.err in Fn list of param cb"},
@@ -260,8 +260,8 @@ func TestCheckFnHeadReturns(t *testing.T) {
 	wantFnHeadDiag(t, bare, CodeTypeMismatch, "bare-Fn returns are unsupported, return a record")
 
 	bad := strings.Replace(bare,
-		"-> Fn<int, M__O, [m.err]> rev 1", "-> Fn<int, int, [m.err]> rev 1", 1)
-	wantFnHeadDiag(t, bad, CodeFnHeadInvalid, "Fn success int of returns is not a record")
+		"-> Fn<int, M__O, [m.err]> rev 1", "-> Fn<int, Bytes, [m.err]> rev 1", 1)
+	wantFnHeadDiag(t, bad, CodeFnHeadInvalid, "Fn success Bytes of returns is not a record")
 }
 
 // Record fields carry callables, so field heads are deep-checked

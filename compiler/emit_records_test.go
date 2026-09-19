@@ -263,9 +263,8 @@ fn audit__probe(which: int) -> Audit__Triple rev 1
 
 // TestPositionalScalarOk pins a92 scalar Ok: exactly the
 // conventional `value`. A lone positional binds it and runs;
-// all-named keeps the unchecked pass-through (a wild name
-// draws no static diagnostic, failing only at execution);
-// anything else positional faults.
+// B09 also checks named fields statically: a wild name is a
+// shape error, not just a failed example. Extra positionals fault.
 func TestPositionalScalarOk(t *testing.T) {
 	mod := `mod m
   provides [m__go]
@@ -297,8 +296,8 @@ fn m__go(x: int) -> int rev 1
 `
 	dir = writeLSPDir(t, map[string]string{"m.can": wild})
 	diags := diagnose(dir, "m.can", wild)
-	if len(diags) != 1 || diags[0].Code != CodeTestFailed {
-		t.Fatalf("wild scalar name must fail only at execution, got %v", diags)
+	if !hasDiag(diags, "error", "Ok has no field answer") || !hasDiag(diags, "error", "Ok is missing field value") {
+		t.Fatalf("wild scalar name must fail statically, got %v", diags)
 	}
 	faults := `mod m
   provides [m__go]

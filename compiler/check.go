@@ -2091,7 +2091,9 @@ func eachRaise(fn *FnDecl, f func(kind string, line int)) {
 			if s.Kind == "ctor" && strings.Contains(s.Ctor, ".") {
 				f(s.Ctor, line)
 			}
-			if s.Kind == "ref" && len(s.Ref) > 0 {
+			// Only the whole error value is a raise. Selecting e.field
+			// consumes payload data, e.g. recovery into a scalar success.
+			if s.Kind == "ref" && len(s.Ref) == 1 {
 				if kind, ok := bound[s.Ref[0]]; ok {
 					f(kind, line)
 				}

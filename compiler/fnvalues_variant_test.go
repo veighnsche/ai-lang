@@ -71,7 +71,7 @@ func TestFnVariantSignatures(t *testing.T) {
 func TestFnVariantRejects(t *testing.T) {
 	tests := []struct{ name, file, old, new, want string }{
 		{"wrong_instance", "use.can", "cb: Fn<T, Choice__Value<T>, []>\n", "cb: Fn<T, Choice__Value<str>, []>\n", "want Fn<int"},
-		{"scalar_success", "use.can", "cb: Fn<T, Choice__Value<T>, []>\n", "cb: Fn<T, int, []>\n", "Fn success int"},
+		{"scalar_mismatch", "use.can", "cb: Fn<T, Choice__Value<T>, []>\n", "cb: Fn<T, int, []>\n", "want Fn<int,int,[]>"},
 		{"wrong_input", "use.can", "cb: Fn<int, Choice__Value<int>, [choice.denied]>", "cb: Fn<str, Choice__Value<int>, [choice.denied]>", "want Fn<str"},
 		{"wrong_error_set", "use.can", "cb: Fn<int, Choice__Value<int>, [choice.denied]>", "cb: Fn<int, Choice__Value<int>, []>", "want Fn<int"},
 		{"whole_binder", "use.can", "on Ok r => match r.value", "on Ok r => match r", "select r.value"},
@@ -175,16 +175,16 @@ func TestFnVariantInvokeCycle(t *testing.T) {
 	seqCode(t, map[string]string{"m.can": src}, "m.can", CodeLocalCycle, "m__a invokes m__b through a function value; invocation cannot close a cycle")
 }
 
-func TestFnVariantScalarAndOtherSuccessesStillRefused(t *testing.T) {
+func TestFnUnsupportedSuccessesStillRefused(t *testing.T) {
 	files := fnVariantSources(t)
 	prog, _, ds := genericProgram(t, files)
 	if errs := genericErrs(ds); len(errs) != 0 {
 		t.Fatal(errs)
 	}
 	ck := newTycker(prog, "", "use__apply$T$int")
-	for _, r := range []string{"int", "str", "bool", "dec", "Bytes", "Seq<int>", "Fn<int,Choice__Value$T$int,[]>"} {
+	for _, r := range []string{"Bytes", "Seq<int>", "Fn<int,Choice__Value$T$int,[]>"} {
 		head := "Fn<int," + r + ",[]>"
-		if ds := ck.fnHeadDiags(head, "test", 1, "Fn"); !hasDiag(ds, "error", "is not a record or variant") {
+		if ds := ck.fnHeadDiags(head, "test", 1, "Fn"); !hasDiag(ds, "error", "is not a record, variant, or primitive scalar") {
 			t.Fatalf("admitted %s: %v", head, ds)
 		}
 		if _, err := tsTypeB(head, prog.Brands, recordShapes(prog.Modules), variantShapes(prog.Modules), errorShapes(prog.Modules)); err == nil {
