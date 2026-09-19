@@ -678,6 +678,15 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 		}
 		e.strOps["at"] = true
 		return fmt.Sprintf("$canStrAt(%s, %s)", b, ix), nil
+	case "proj":
+		// b03: bases are postfix ($canSeqAt/$canStrSlice
+		// calls or nested projections) — all safe under one
+		// appended property access.
+		b, err := e.emitValue(node.L)
+		if err != nil {
+			return "", err
+		}
+		return b + "." + node.Field, nil
 	case "strslice":
 		b, err := e.emitValue(node.L)
 		if err != nil {

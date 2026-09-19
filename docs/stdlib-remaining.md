@@ -38,7 +38,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 
 ## Language gaps discovered while slicing (future b-series)
 
-- No `seq[i].field` projection (slice 2; worked around via `_push`).
+- ~~No `seq[i].field` projection (slice 2; worked around via `_push`)~~ — LANDED as b03 (`proj` node; chains nest, `$canSeqAt(m, i).f` emit).
 - Bare `Seq<T>` returns rejected (slice 4; wrapper records required).
 - Per-instance arm coverage for generics (slice 4; row cost is real).
 - Explicit `<T>` required on recursive generic calls (slice 4).

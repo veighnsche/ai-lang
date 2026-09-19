@@ -43,7 +43,7 @@ func stubKindsOf(sm *Small, kinds map[string]bool) {
 		stubKindsOf(sm.Outcome, kinds)
 		return
 	}
-	if sm.Kind == "strlen" || sm.Kind == "stridx" || sm.Kind == "strslice" {
+	if sm.Kind == "strlen" || sm.Kind == "stridx" || sm.Kind == "strslice" || sm.Kind == "proj" {
 		stubKindsOf(sm.L, kinds)
 		stubKindsOf(sm.R, kinds)
 		stubKindsOf(sm.Hi, kinds)

@@ -22,7 +22,7 @@ type Arg struct {
 }
 
 type Small struct {
-	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward,not,neg
+	Kind string // str,int,bool,dec,float,wild,binop,call,ctor,list,ref,seal,exchange,strlen,stridx,strslice,seqlit,forward,not,neg,proj
 	Str  string
 	// Outcome holds a scripted result for Kind exchange: the row proves
 	// "this request received this permitted response" (a12).
@@ -47,7 +47,10 @@ type Small struct {
 	Op   string
 	L, R *Small
 	// Hi holds the slice end for Kind strslice (base L, start R).
-	Hi    *Small
+	Hi *Small
+	// Field holds the one projected segment for Kind proj (base
+	// L): m[i].a.b nests two proj nodes, never a path.
+	Field string
 	Fname string
 	// TypeArgs holds explicit instantiation arguments on a call
 	// node (G1): `call f<str>(...)`. Empty for monomorphic
@@ -820,6 +823,9 @@ func balanced(s string, openI int) (int, error) {
 var (
 	reInt   = regexp.MustCompile(`^-?\d+$`)
 	reWord  = regexp.MustCompile(`^[\w.]+$`)
+	// reProjSeg matches one .field segment in the postfix loop
+	// (b03): the leading dot plus a strict identifier.
+	reProjSeg = regexp.MustCompile(`^\.([A-Za-z_]\w*)`)
 	reName  = regexp.MustCompile(`^\w+$`)
 	reDec   = regexp.MustCompile(`^d"([^"]*)"$`)
 	reFloat = regexp.MustCompile(`^-?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+)$`)
@@ -1439,6 +1445,17 @@ func parseSmallMul(s string) (*Small, error) {
 		}
 		rest := s[i:]
 		for len(rest) > 0 {
+			// b03: a .field group projects off the bracket
+			// result, alternating with further brackets.
+			if rest[0] == '.' {
+				m := reProjSeg.FindStringSubmatch(rest)
+				if m == nil {
+					return nil, fmt.Errorf("bad projection %q: want .field after ]", rest)
+				}
+				base = &Small{Kind: "proj", L: base, Field: m[1]}
+				rest = strings.TrimSpace(rest[len(m[0]):])
+				continue
+			}
 			if rest[0] != '[' {
 				return nil, fmt.Errorf("unexpected %q after ]", rest)
 			}

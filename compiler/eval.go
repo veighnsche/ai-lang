@@ -644,6 +644,16 @@ func evSmall(node *Small, env map[string]*Value, ctx *Ctx, owner string) (*Value
 			return nil, fmt.Errorf("str index out of range")
 		}
 		return &Value{Kind: "int", N: big.NewInt(int64(rs[i]))}, nil
+	case "proj":
+		// b03: project one field off the evaluated base,
+		// exactly like the ref tail. vField fails closed on
+		// non-records and missing fields; checked code never
+		// reaches either.
+		b, err := evSmall(node.L, env, ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+		return vField(b, node.Field)
 	case "strslice":
 		b, err := evSmall(node.L, env, ctx, owner)
 		if err != nil {
@@ -2563,7 +2573,7 @@ func walkCalls(node *Node) []*Small {
 			walkSmall(s.L)
 			walkSmall(s.R)
 		}
-		if s.Kind == "strlen" || s.Kind == "stridx" || s.Kind == "strslice" {
+		if s.Kind == "strlen" || s.Kind == "stridx" || s.Kind == "strslice" || s.Kind == "proj" {
 			walkSmall(s.L)
 			walkSmall(s.R)
 			walkSmall(s.Hi)

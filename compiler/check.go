@@ -521,7 +521,7 @@ func walkSmallTrees(s *Small, f func(*Small)) {
 	if s.Kind == "neg" {
 		walkSmallTrees(s.L, f)
 	}
-	if s.Kind == "strlen" || s.Kind == "stridx" || s.Kind == "strslice" {
+	if s.Kind == "strlen" || s.Kind == "stridx" || s.Kind == "strslice" || s.Kind == "proj" {
 		walkSmallTrees(s.L, f)
 		walkSmallTrees(s.R, f)
 		walkSmallTrees(s.Hi, f)

@@ -181,6 +181,8 @@ func canonSmall(s *Small) string {
 		return "strlen(" + canonSmall(s.L) + ")"
 	case "stridx":
 		return "stridx(" + canonSmall(s.L) + "," + canonSmall(s.R) + ")"
+	case "proj":
+		return "proj(" + canonSmall(s.L) + "," + s.Field + ")"
 	case "strslice":
 		return "strslice(" + canonSmall(s.L) + "," + canonSmall(s.R) + "," + canonSmall(s.Hi) + ")"
 	case "exchange":

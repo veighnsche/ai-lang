@@ -485,6 +485,20 @@ func (c *tycker) typeOf(s *Small, env map[string]string) (string, bool) {
 			}
 		}
 		return "int", true
+	case "proj":
+		// b03: a projection carries its field's type outward.
+		// Unknown bases and non-records stay silent: the value
+		// rule owns both diagnostics.
+		if bt, ok := c.typeOf(s.L, env); ok {
+			if fields, ok := c.recs[bt]; ok {
+				for _, fd := range fields {
+					if fd[0] == s.Field {
+						return fd[1], true
+					}
+				}
+			}
+		}
+		return "", false
 	case "strslice":
 		return "str", true
 	case "not":
@@ -588,6 +602,8 @@ func tokenOf(s *Small) string {
 		return "#"
 	case "stridx":
 		return "[]"
+	case "proj":
+		return s.Field
 	case "strslice":
 		return "[:]"
 	case "seal":
@@ -927,6 +943,29 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			return
 		}
 		s.T = "int"
+	case "proj":
+		// b03: the base must be a record carrying the field.
+		// Unknown bases stay silent (the base owns the error);
+		// the want tail above compares through s.T.
+		c.value(s.L, "", line, env, "projection base")
+		bt, ok := c.typeOf(s.L, env)
+		if !ok {
+			return
+		}
+		fields, ok := c.recs[bt]
+		if !ok {
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot project .%s of %s: base must be a record", s.Field, bt), s.Field, CodeTypeMismatch))
+			return
+		}
+		for _, fd := range fields {
+			if fd[0] == s.Field {
+				s.T = fd[1]
+				return
+			}
+		}
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("no field %s on %s", s.Field, bt), s.Field, CodeTypeMismatch))
 	case "strslice":
 		c.value(s.L, "", line, env, "slice base")
 		c.value(s.R, "", line, env, "slice start")

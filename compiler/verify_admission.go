@@ -233,7 +233,7 @@ func (a *admission) term(s *Small, scope map[string]admitSort) admitTerm {
 		return admitTerm{flag: "unknown", what: "wildcard"}
 	case "call":
 		return admitTerm{flag: "call", what: s.Fname}
-	case "ctor", "seal", "exchange", "strlen", "stridx", "strslice", "seqlit", "list":
+	case "ctor", "seal", "exchange", "strlen", "stridx", "strslice", "seqlit", "list", "proj":
 		return admitTerm{flag: "outside", what: s.Kind + " operation"}
 	case "ref":
 		return a.projection(s, scope)
