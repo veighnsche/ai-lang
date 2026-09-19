@@ -406,6 +406,11 @@ var explainDocs = map[string]explainEntry{
 		violate: `a pinned expectation changed to match a new implementation.`,
 		fix:     "Restore the accepted expectation, or re-accept by updating the baseline. Unmarked rows churn freely; only the marker carries acceptance.",
 	},
+	CodeFnValueDeferred: {
+		rule:    "Function values are staged (b00): fnref creation parses but has no runtime yet, so any reference is refused until invocation lands.",
+		violate: `fnref m__t(divisor = 3) in an ordinary body.`,
+		fix:     "Call the target directly until the invocation slice lands. The annotation shape stays valid; only creation is deferred.",
+	},
 	CodeInvalidRelay: {
 		rule:    "Identity-relay certificates are checked, not trusted: a relay-shaped arm that fails the check (wrong kind, dropped field) is invalid.",
 		violate: `an on e => ... arm claiming relay shape with a mismatched kind or payload.`,

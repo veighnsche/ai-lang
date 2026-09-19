@@ -167,12 +167,63 @@ func seqElemName(t string) (string, bool) {
 	return elem, true
 }
 
+// fnTypeShape splits a function-value annotation Fn<A, R, [kinds]>
+// into its input type, success record, and error-list text.
+// ok=false for anything else, including a non-list third slot.
+// Shape only: member validation belongs to expansion.
+func fnTypeShape(t string) (string, string, string, bool) {
+	if !strings.HasPrefix(t, "Fn<") || !strings.HasSuffix(t, ">") {
+		return "", "", "", false
+	}
+	inner := t[len("Fn<") : len(t)-1]
+	var parts []string
+	depth, square := 0, 0
+	start := 0
+	for i := 0; i < len(inner); i++ {
+		switch inner[i] {
+		case '<':
+			depth++
+		case '>':
+			depth--
+		case '[':
+			square++
+		case ']':
+			square--
+		case ',':
+			if depth == 0 && square == 0 {
+				parts = append(parts, inner[start:i])
+				start = i + 1
+			}
+		}
+	}
+	parts = append(parts, inner[start:])
+	if len(parts) != 3 {
+		return "", "", "", false
+	}
+	a := strings.TrimSpace(parts[0])
+	r := strings.TrimSpace(parts[1])
+	e := strings.TrimSpace(parts[2])
+	if a == "" || r == "" || len(e) < 2 || e[0] != '[' || e[len(e)-1] != ']' {
+		return "", "", "", false
+	}
+	return a, r, e, true
+}
+
 // knownType reports whether a name is a legal annotation: a base type,
-// the Bytes primitive, a declared record, a declared brand, or a
-// sequence over a plain element type. Error kinds are not values.
+// the Bytes primitive, a declared record, a declared brand, a
+// sequence over a plain element type, or a function-value head.
+// Error kinds are not values.
 func (c *tycker) knownType(t string) bool {
 	switch t {
 	case "str", "int", "bool", "dec", "Bytes":
+		return true
+	}
+	if _, _, _, ok := fnTypeShape(t); ok {
+		// B00 stage 1: the head shape admits the annotation so
+		// deferred-creation reports CAN6018 instead of drowning
+		// in unknown-type noise. Deep validation (known input,
+		// record success, known/distinct/ordered kinds) lands
+		// with expansion.
 		return true
 	}
 	if elem, ok := seqElemName(t); ok {
@@ -876,6 +927,17 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			"bare [...] is script rows, not a sequence value: write Seq<T>[...] with an explicit element type", "[", CodeSeqLiteral))
 		for _, it := range s.Items {
 			c.value(it, "", line, env, where)
+		}
+	case "fnref":
+		// B00 stage 1: references parse but have no runtime yet,
+		// so creation is refused here instead of flowing into
+		// calls, graphs, or emit. Captures still check
+		// structurally so one deferred node never hides nested
+		// errors inside its bindings.
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("function reference to %s is deferred: invocation has not landed yet", s.Fname), "fnref", CodeFnValueDeferred))
+		for _, a := range s.Args {
+			c.value(a.V, "", line, env, where)
 		}
 	case "seqlit":
 		// a36 S1: values and element checking are one admission

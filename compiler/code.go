@@ -117,6 +117,7 @@ const (
 	CodeAssetBridgeShape         = "CAN6015"
 	CodeConstNonliteral          = "CAN6016"
 	CodePinnedWeakened           = "CAN6017"
+	CodeFnValueDeferred          = "CAN6018"
 	CodePrimitiveShadow          = "CAN6012"
 	CodeRevisionIdentity         = "CAN6013"
 	CodeContractMalformed        = "CAN4301"
@@ -154,4 +155,5 @@ var allCodes = []string{
 	CodeFloatLiteral, CodeUnknownType, CodeTypeMismatch, CodeSealForeign, CodeInexactDivision, CodeRecordCycle, CodeSeqLiteral,
 	CodeBytesLiteral, CodeBytesElementRange, CodeBytesExportAuthority, CodeBytesExportShape, CodePrimitiveShadow, CodeRevisionIdentity,
 	CodeAssetBridgeAuthority, CodeAssetBridgeShape, CodeConstNonliteral, CodePinnedWeakened,
+	CodeFnValueDeferred,
 }

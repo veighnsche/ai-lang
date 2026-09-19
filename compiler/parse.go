@@ -934,6 +934,36 @@ func parseCallHead(s string) (node *Small, err error, matched bool) {
 	return &Small{Kind: "call", Fname: m[1], TypeArgs: tyargs, Args: args}, nil, true
 }
 
+// parseFnrefHead parses one function reference `fnref
+// target<T>(name = value, ...)` (B00 stage 1): the parens hold
+// captures, not invocation arguments, so every capture is named.
+// A distinct Kind keeps reference semantics out of the call,
+// lint, and graph passes. Malformed heads report here, never
+// fall through to comparison parsing.
+func parseFnrefHead(s string) (node *Small, err error, matched bool) {
+	if !strings.HasPrefix(s, "fnref ") {
+		return nil, nil, false
+	}
+	m := regexp.MustCompile(`^fnref\s+(\w+)(?:<(.+?)>)?\((.*)\)$`).FindStringSubmatch(s)
+	if m == nil {
+		return nil, fmt.Errorf("bad fnref: want fnref target<T>(name = value, ...) , got %s", s), true
+	}
+	tyargs, err := splitTypeArgs(m[2])
+	if err != nil {
+		return nil, err, true
+	}
+	args, err := parseArgs(m[3])
+	if err != nil {
+		return nil, err, true
+	}
+	for _, a := range args {
+		if !a.HasName {
+			return nil, fmt.Errorf("bad fnref capture: every capture is named, got positional"), true
+		}
+	}
+	return &Small{Kind: "fnref", Fname: m[1], TypeArgs: tyargs, Args: args}, nil, true
+}
+
 func parseSmall(s string) (*Small, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -944,6 +974,12 @@ func parseSmall(s string) (*Small, error) {
 			return nil, err
 		}
 		return c, nil
+	}
+	if r, err, matched := parseFnrefHead(s); matched {
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
 	}
 	// a66: interpreted string literals e"...". Same str kind and
 	// runtime representation as ordinary literals; only the six
@@ -1166,6 +1202,12 @@ func parseSmallCmp(s string) (*Small, error) {
 			return nil, err
 		}
 		return c, nil
+	}
+	if r, err, matched := parseFnrefHead(s); matched {
+		if err != nil {
+			return nil, err
+		}
+		return r, nil
 	}
 	// Slice 5: prefix not binds tighter than comparisons
 	// (`not a == b` is `not (a == b)`), nesting freely.
@@ -1773,7 +1815,7 @@ func parseFields(s, what string) ([][2]string, error) {
 		return nil, nil
 	}
 	var out [][2]string
-	for _, part := range splitTop(s, ',') {
+	for _, part := range splitFieldList(s) {
 		m := reField.FindStringSubmatch(part)
 		if m == nil {
 			return nil, fmt.Errorf("bad %s field: %s", what, part)
@@ -1781,6 +1823,64 @@ func parseFields(s, what string) ([][2]string, error) {
 		out = append(out, [2]string{m[1], m[2]})
 	}
 	return out, nil
+}
+
+// splitFieldList splits a declaration field list (`name: Type`
+// pairs) on top-level commas. Unlike splitTop it treats every
+// `<` as a type-argument opener: field lists hold annotations,
+// never comparisons, so `Fn<int, M__O, [m.err]>` survives whole
+// while expression splitting keeps its exact existing meaning.
+func splitFieldList(s string) []string {
+	var parts []string
+	var cur strings.Builder
+	angle := 0
+	var stack []byte
+	pairs := map[byte]byte{'(': ')', '[': ']'}
+	inStr, esc := false, false
+	flush := func() {
+		parts = append(parts, cur.String())
+		cur.Reset()
+	}
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if inStr {
+			cur.WriteByte(ch)
+			if esc {
+				esc = false
+			} else if ch == '\\' {
+				esc = true
+			} else if ch == '"' {
+				inStr = false
+			}
+		} else if ch == '"' {
+			inStr = true
+			cur.WriteByte(ch)
+		} else if ch == '<' {
+			angle++
+			cur.WriteByte(ch)
+		} else if ch == '>' && angle > 0 {
+			angle--
+			cur.WriteByte(ch)
+		} else if closer, ok := pairs[ch]; ok {
+			stack = append(stack, closer)
+			cur.WriteByte(ch)
+		} else if len(stack) > 0 && ch == stack[len(stack)-1] {
+			stack = stack[:len(stack)-1]
+			cur.WriteByte(ch)
+		} else if angle == 0 && len(stack) == 0 && ch == ',' {
+			flush()
+		} else {
+			cur.WriteByte(ch)
+		}
+	}
+	flush()
+	var keep []string
+	for _, p := range parts {
+		if strings.TrimSpace(p) != "" {
+			keep = append(keep, strings.TrimSpace(p))
+		}
+	}
+	return keep
 }
 
 // dupParam names the first repeated parameter in a fn/extern

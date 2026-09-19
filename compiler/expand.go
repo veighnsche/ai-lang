@@ -1373,6 +1373,14 @@ func mentionOf(t string) (string, []string, bool) {
 			return "", nil, false
 		}
 	}
+	// B00 stage 1a: the Fn<head> is builtin, never a template to
+	// stamp, so it is not a mention. Descending into its input
+	// and success types for instance collection (and substituting
+	// through it) lands with expansion; until then a generic
+	// record field holding Fn keeps its literal parameters.
+	if _, _, _, ok := fnTypeShape(t); ok {
+		return "", nil, false
+	}
 	base, args, ok := splitMention(t)
 	if !ok || base == "Seq" {
 		return "", nil, false
