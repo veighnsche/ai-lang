@@ -235,6 +235,20 @@ func TestCheckFnHeadParams(t *testing.T) {
 	}
 }
 
+// Invocation inputs and success carriers are data-only: a head
+// bearing a callback through either side would smuggle it
+// across the invocation boundary.
+func TestCheckFnHeadContainment(t *testing.T) {
+	base := strings.Replace(fnHeadBase, "provides [m__go, m__t, M__O]",
+		"provides [m__go, m__t, M__O, M__H]", 1)
+	base = strings.Replace(base, "type M__O rev 1 (",
+		"type M__H rev 1 (\n  cb: Fn<int, M__O, []>\n)\n\ntype M__O rev 1 (", 1)
+	in := strings.Replace(base, "HEAD", `Fn<M__H, M__O, [m.err]>`, 1)
+	wantFnHeadDiag(t, in, CodeFnContainment, "Fn input M__H of param cb contains a function value")
+	out := strings.Replace(base, "HEAD", `Fn<int, M__H, [m.err]>`, 1)
+	wantFnHeadDiag(t, out, CodeFnContainment, "Fn success M__H of param cb contains a function value")
+}
+
 // Bare-Fn returns are unsupported like bare-Seq returns: results
 // name a record. An invalid head in return position still reports
 // its own head diagnostic.
@@ -643,6 +657,133 @@ func TestCheckInvokeNegatives(t *testing.T) {
 			seqCode(t, map[string]string{"m.can": body}, "m.can", c.code, c.sub)
 		})
 	}
+}
+
+// Every non-carrier position refuses callables, including
+// through named wrappers: the Seq spelling, the transitive
+// sequence walk, variants, errors, constants, state cells,
+// extern signatures, and direct generic arguments each report
+// their own rule.
+func TestCheckFnForbiddenPositions(t *testing.T) {
+	const skel = `mod m
+  provides [m__go, m__t, M__OEXTRA]
+  uses []
+  emits [m.err]
+
+ERR
+
+type M__O rev 1 (
+  value: str
+)
+
+DECL
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>) -> M__O rev 1
+  emits []
+  tests
+    g(fnref m__t(divisor = 3)) => Ok("q")
+  Ok("q")
+`
+	cases := []struct {
+		name  string
+		extra string
+		err   string
+		decl  string
+		code  string
+		sub   string
+	}{
+		{"seq element", ", M__Seq", "error m.err(detail: str)",
+			"type M__Seq rev 1 (\n  cbs: Seq<Fn<int, M__O, []>>\n)",
+			CodeUnknownType, "unknown type Seq<Fn<int, M__O, []>>"},
+		{"seq transitive", ", M__H, M__SeqH", "error m.err(detail: str)",
+			"type M__H rev 1 (\n  cb: Fn<int, M__O, []>\n)\n\ntype M__SeqH rev 1 (\n  hs: Seq<M__H>\n)",
+			CodeFnContainment, "sequence element M__H of field hs contains a function value"},
+		{"variant payload", ", M__V", "error m.err(detail: str)",
+			"variant M__V rev 1 (\n  case Hold(cb: Fn<int, M__O, []>)\n)",
+			CodeFnContainment, "field cb of M__Hold contains a function value"},
+		{"error payload", "", "error m.err(detail: str, cb: Fn<int, M__O, []>)",
+			"", CodeFnContainment, "field cb of m.err contains a function value"},
+		{"const", ", m__K", "error m.err(detail: str)",
+			"const m__K: Fn<int, M__O, []> rev 1 = 0",
+			CodeConstNonliteral, "constants are data-only"},
+		{"state", "", "error m.err(detail: str)",
+			"state M__cell: Fn<int, M__O, []> = 0",
+			CodeUnknownType, "cells hold str, int, bool, or dec"},
+		{"extern param", ", m__use", "error m.err(detail: str)",
+			"extern m__use(cb: Fn<int, M__O, []>) -> M__O rev 1\n  emits []",
+			CodeFnContainment, "extern signatures are data-only"},
+		{"generic argument", ", M__Box, M__Hold", "error m.err(detail: str)",
+			"type M__Box<T> rev 1 (\n  item: T\n)\n\ntype M__Hold rev 1 (\n  b: M__Box<Fn<int, M__O, []>>\n)",
+			CodeGenericExpand, "nested instantiation"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			body := strings.Replace(skel, "EXTRA", c.extra, 1)
+			body = strings.Replace(body, "ERR", c.err, 1)
+			body = strings.Replace(body, "DECL", c.decl, 1)
+			wantFnHeadDiag(t, body, c.code, c.sub)
+		})
+	}
+}
+
+// A Seq-recursive data graph with no callable still terminates
+// the containment walk: the head below forces the checker to
+// walk the cycle, and the suite hanging would fail the run.
+func TestCheckFnContainmentTerminates(t *testing.T) {
+	body := `mod m
+  provides [m__go, m__t, M__O, M__Chain]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+type M__Chain rev 1 (
+  next: Seq<M__Chain>
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__Chain, []>) -> M__O rev 1
+  emits []
+  tests
+    g(fnref m__t(divisor = 3)) => Ok("q")
+  Ok("q")
+`
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	for _, d := range diagnose(dir, "m.can", body) {
+		if d.Sev == "error" && d.Code == CodeFnContainment {
+			t.Fatalf("Fn-free cycle must not trip containment, got %v", d)
+		}
+	}
+}
+
+// A target with no rows fails even when a callback row would
+// execute it: invocation supplies no missing decision table.
+func TestCheckFnrefTargetNeedsRows(t *testing.T) {
+	body := strings.Replace(fnvaluesCheckInvoke, "    t(3, 7) => Ok(\"q\")\n    tz(3, 0) => m.err(\"zero\")\n", "", 1)
+	seqCode(t, map[string]string{"m.can": body}, "m.can", CodeMissingTests, "ships no tests")
+}
+
+// Callback execution grants the target no coverage credit:
+// removing the target's own zero row fails the target even
+// though the invoker's zero row executes that exact branch.
+func TestCheckInvokeGrantsNoTargetCredit(t *testing.T) {
+	body := strings.Replace(fnvaluesCheckInvoke, "    tz(3, 0) => m.err(\"zero\")\n", "", 1)
+	seqCode(t, map[string]string{"m.can": body}, "m.can", CodeArmUntaken, "no test takes")
 }
 
 // A stale arm is presence-asserted like every other stale arm:

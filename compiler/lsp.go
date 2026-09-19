@@ -451,7 +451,12 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	out = append(out, recCycles...)
 	invokeCycles := checkInvokeCycles(all, texts, prog)
 	out = append(out, invokeCycles...)
-	out = append(out, checkSem(open, text, prog, nil, hasErrors(global) || hasErrors(recCycles) || hasErrors(invokeCycles))...)
+	// Provider bodies prepare silently before any open-file row
+	// runs: cross-file invocation executes them, so their static
+	// phase (including constructor binding) must complete even
+	// though only the open file reports and executes.
+	providerBlocked := prepareProviders(all, open, prog, texts)
+	out = append(out, checkSem(open, text, prog, nil, hasErrors(global) || hasErrors(recCycles) || hasErrors(invokeCycles) || providerBlocked)...)
 	if base != nil && !hasErrors(out) {
 		out = append(out, CheckRevisionIdentity(prog, texts, base)...)
 	}
@@ -525,6 +530,68 @@ func checkStatic(open *Module, text string) []Diag {
 // editor passes nil). Only call on a clean world. extBlocked carries a
 // world-level refusal (a11: cross-file cycles) into the same
 // prove-first gate as the per-module termination proofs.
+// checkFnStatic runs one function's static phase: every checkSem
+// check except execution and coverage. checkSem runs it for the
+// open module; diagnose runs it silently for provider modules so
+// cross-file invocation executes prepared bodies (b00 Q2d: the
+// open module alone cannot authorize real execution of an
+// unprepared provider body).
+func checkFnStatic(fn *FnDecl, prog *Program, owner *Module, text string, localExtern, called map[string]bool) []Diag {
+	var out []Diag
+	for k := range calledFns(fn) {
+		called[k] = true
+	}
+	out = append(out, checkCalls(fn, prog, localExtern, text)...)
+	out = append(out, checkEagerScrutinee(fn, text)...)
+	out = append(out, checkDecreases(fn, prog, text)...)
+	out = append(out, checkEffects(fn, prog, text)...)
+	out = append(out, checkGiven(fn, prog, text)...)
+	// a92: checkTypes resolves positional construction by
+	// mutation, so it runs before anything evaluates
+	// (a18's sandbox): mutation-before-eval.
+	out = append(out, checkTypes(fn, prog, text)...)
+	out = append(out, checkEmits(fn, prog, text)...)
+	out = append(out, checkScriptConsistency(fn, prog, text)...)
+	out = append(out, checkUnusedParams(fn, text)...)
+	out = append(out, checkConstRefs(fn, prog, owner, text)...)
+	for k := range usedConsts(fn) {
+		called[k] = true
+	}
+	return out
+}
+
+// prepareProviders runs the static phase for every non-open
+// module. Findings stay silent (they surface when the provider
+// file opens), but any error blocks open-file execution: a
+// partial world may report source diagnostics but cannot execute
+// an uncertified callback. True means blocked.
+func prepareProviders(all []*Module, open *Module, prog *Program, texts map[string]string) bool {
+	for _, m := range all {
+		if m == open {
+			continue
+		}
+		localExtern := map[string]bool{}
+		for _, d := range m.Decls {
+			if ex, ok := d.(*ExternDecl); ok {
+				localExtern[ex.Name] = true
+			}
+		}
+		called := map[string]bool{}
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			for _, dg := range checkFnStatic(fn, prog, m, texts[m.ID], localExtern, called) {
+				if dg.Sev == "error" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func checkSem(open *Module, text string, prog *Program, onPass func(fn, test string), extBlocked bool) []Diag {
 	var out []Diag
 	// Slice 1: resolve const-named patterns to literals before
@@ -541,26 +608,7 @@ func checkSem(open *Module, text string, prog *Program, onPass func(fn, test str
 	for _, d := range open.Decls {
 		switch d := d.(type) {
 		case *FnDecl:
-			fn := d
-			for k := range calledFns(fn) {
-				called[k] = true
-			}
-			out = append(out, checkCalls(fn, prog, localExtern, text)...)
-			out = append(out, checkEagerScrutinee(fn, text)...)
-			out = append(out, checkDecreases(fn, prog, text)...)
-			out = append(out, checkEffects(fn, prog, text)...)
-			out = append(out, checkGiven(fn, prog, text)...)
-			// a92: checkTypes resolves positional construction by
-			// mutation, so it runs before anything evaluates
-			// (a18's sandbox): mutation-before-eval.
-			out = append(out, checkTypes(fn, prog, text)...)
-			out = append(out, checkEmits(fn, prog, text)...)
-			out = append(out, checkScriptConsistency(fn, prog, text)...)
-			out = append(out, checkUnusedParams(fn, text)...)
-			out = append(out, checkConstRefs(fn, prog, open, text)...)
-			for k := range usedConsts(fn) {
-				called[k] = true
-			}
+			out = append(out, checkFnStatic(d, prog, open, text, localExtern, called)...)
 		case *ExternDecl:
 			out = append(out, checkExternSig(d, prog, text)...)
 		case *BrandDecl:

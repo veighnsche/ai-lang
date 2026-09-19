@@ -518,6 +518,18 @@ func (c *tycker) fnHeadDiags(t, where string, line int, token string) []Diag {
 		out = append(out, spanDiag(c.text, line, "error",
 			fmt.Sprintf("Fn success %s of %s is not a record: name the Ok payload record", r, where), token, CodeFnHeadInvalid))
 	}
+	// Invocation inputs and success carriers are data-only (b00
+	// Q1d): a bearing head would smuggle callbacks through the
+	// invocation boundary. The reference side enforces the same
+	// rule on denoted types; the head side enforces it here.
+	if c.typeHasFn(a) {
+		out = append(out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("Fn input %s of %s contains a function value: inputs are data-only", a, where), token, CodeFnContainment))
+	}
+	if c.typeHasFn(r) {
+		out = append(out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("Fn success %s of %s contains a function value: success carriers are data-only", r, where), token, CodeFnContainment))
+	}
 	raw := strings.TrimSpace(e[1 : len(e)-1])
 	if raw == "" {
 		return out

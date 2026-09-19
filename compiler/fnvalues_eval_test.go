@@ -93,7 +93,8 @@ func TestInvokeErrorArm(t *testing.T) {
 
 // A factory row compares constructions: the created reference
 // equals the expected one by target, signature, slot, and
-// captured values, so the row passes.
+// captured values, so the row passes. The zero row constructs
+// without invoking: bind-zero succeeds, invoke-zero fails.
 const invokeFactoryBody = `mod m
   provides [m__go, m__t, M__O, M__H]
   uses []
@@ -119,6 +120,7 @@ fn m__go(n: int) -> M__H rev 1
   emits []
   tests
     g(3) => Ok(fnref m__t(divisor = 3))
+    gz(0) => Ok(fnref m__t(divisor = 0))
   Ok(fnref m__t(divisor = n))
 `
 

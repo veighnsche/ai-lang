@@ -2668,7 +2668,10 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 // ok=false falls through to ordinary scrutinee parsing, so a
 // variable named invoke keeps working exactly as before; only a
 // head-shaped line takes the invoke path, and then malformed
-// references report here.
+// references report here. The `with` form and bare-name target
+// are a JEV-settled deviation from the b00 design sketch
+// (`invoke path(input = v)`): field paths flow through Fn
+// parameters instead (see the fn-callback sketch).
 func parseInvokeHead(s string) (ref, arg *Small, err error, matched bool) {
 	m := regexp.MustCompile(`^invoke\s+(\w+)\s+with\s+(.+)$`).FindStringSubmatch(s)
 	if m == nil {

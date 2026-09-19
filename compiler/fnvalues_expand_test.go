@@ -128,6 +128,67 @@ fn m__go(n: int) -> M__Box<int> rev 1
 	wantGenericDiag(t, collected, CodeGenericExpand, "chain else")
 }
 
+// Two generic targets referenced in reverse declaration order
+// both stamp: demand collection is order-independent, and the
+// call site and the reference site each rewrite to their stamp.
+func TestExpandTwoGenericsReverseOrder(t *testing.T) {
+	src := `mod m
+  provides [m__first, m__second, m__go, M__Box]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  item: T
+)
+
+fn m__first<T>(x: T) -> M__Box<T> rev 1
+  emits []
+  tests
+    f<T=int>(1) => Ok(1)
+  Ok(x)
+
+fn m__second<T>(x: T) -> M__Box<T> rev 1
+  emits []
+  tests
+    s<T=int>(1) => Ok(1)
+  Ok(x)
+
+fn m__go(cb: Fn<int, M__Box<int>, []>, n: int) -> M__Box<int> rev 1
+  emits []
+  tests
+    g(fnref m__second<int>(x = 1), 2) => Ok(2)
+  match call m__first<int>(n)
+    on Ok r => match invoke cb with r.item
+      on Ok o => Ok(o.item)
+`
+	prog, mods, _ := genericProgram(t, map[string]string{"m.can": src})
+	if prog == nil {
+		t.Fatal("expected program")
+	}
+	for _, stamp := range []string{"m__first$T$int", "m__second$T$int"} {
+		if _, ok := prog.Fns[stamp]; !ok {
+			t.Fatalf("stamp %s missing; fns: %v", stamp, fnNames(prog))
+		}
+	}
+	var fn *FnDecl
+	for _, d := range mods[0].Decls {
+		if f, ok := d.(*FnDecl); ok && f.Name == "m__go" {
+			fn = f
+		}
+	}
+	if fn == nil {
+		t.Fatal("m__go missing")
+	}
+	call := fn.Body.Scruts[0]
+	if call.Kind != "call" || call.Fname != "m__first$T$int" {
+		t.Fatalf("call site = %+v, want rewritten call to m__first$T$int", call)
+	}
+	ref := fn.Tests[0].Args[0].V
+	if ref.Kind != "fnref" || ref.Fname != "m__second$T$int" || len(ref.TypeArgs) != 0 {
+		t.Fatalf("row ref = %+v, want rewritten fnref to m__second$T$int", ref)
+	}
+}
+
 func TestExpandFnrefMonomorphicArgs(t *testing.T) {
 	src := `mod m
   provides [m__t, m__go, M__O]

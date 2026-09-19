@@ -209,6 +209,23 @@ func TestParseMatchInvokeRejects(t *testing.T) {
 	}
 }
 
+// Invocation lives only in match heads: value expressions,
+// argument lists, and multi-scrutinee slots never reach the
+// invoke path, so each fails ordinary expression parsing.
+func TestParseInvokePositionsRefused(t *testing.T) {
+	const body = "  match invoke cb with n\n    on Ok v => Ok(v.value)\n    on m.err _ => Ok(\"e\")\n"
+	for _, b := range []string{
+		"  match n\n    _ => Ok(invoke cb with n)\n",
+		"  match n\n    _ => Ok(call m__t(invoke cb with n, 1))\n",
+		"  match n, invoke cb with n\n    _, _ => Ok(\"q\")\n",
+	} {
+		src := strings.Replace(fnvaluesInvokeGood, body, b, 1)
+		if _, err := parseModuleText("m.can", src); err == nil {
+			t.Fatalf("invoke in %q must be rejected at parse", b)
+		}
+	}
+}
+
 // A bare `match invoke` is not an invoke head: it falls through to
 // an ordinary value match, so a variable named invoke keeps working.
 func TestParseMatchInvokeBareFallsThrough(t *testing.T) {

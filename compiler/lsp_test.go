@@ -1534,3 +1534,86 @@ func TestDiagnoseGenericTypeErrorSurfaces(t *testing.T) {
 		t.Fatalf("expected CAN3014 unmentioned-template error, got %v", diags)
 	}
 }
+
+// The b00 callback sketch diagnoses clean in the editor: CLI and
+// LSP agree on callable acceptance through the shared buildWorld
+// barrier even though their phase order differs.
+func TestDiagnoseCallbackSketchClean(t *testing.T) {
+	files := map[string]string{}
+	for _, f := range []string{"ops.can", "use.can"} {
+		raw, err := os.ReadFile("../sketches/fn-callback/" + f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[f] = string(raw)
+	}
+	dir := writeLSPDir(t, files)
+	for _, f := range []string{"ops.can", "use.can"} {
+		for _, d := range diagnose(dir, f, files[f]) {
+			if d.Sev == "error" {
+				t.Fatalf("%s: unexpected error %v", f, d)
+			}
+		}
+	}
+}
+
+// A provider whose target body fails statics blocks open-file
+// execution: the editor reports no test failure from the
+// uncertified callback, and no provider diagnostic leaks onto
+// the open file (it surfaces when the provider opens).
+func TestDiagnoseBrokenProviderBlocksInvoke(t *testing.T) {
+	prov := `mod p
+  provides [p__t, P__O]
+  uses []
+  emits []
+
+type P__O rev 1 (
+  value: str
+)
+
+fn p__t(divisor: int, dividend: int) -> P__O rev 1
+  emits []
+  tests
+    t(3, 7) => Ok("q")
+  match call p__nope(dividend)
+    on Ok _ => Ok("q")
+`
+	open := `mod m
+  provides [m__go, M__O]
+  uses [p__t@1]
+  emits []
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__go(cb: Fn<int, P__O, []>) -> M__O rev 1
+  emits []
+  tests
+    g(fnref p__t(divisor = 3)) => Ok("q")
+  match invoke cb with 7
+    on Ok _ => Ok("q")
+`
+	files := map[string]string{"p.can": prov, "m.can": open}
+	dir := writeLSPDir(t, files)
+	diags := diagnose(dir, "m.can", open)
+	for _, d := range diags {
+		if d.Sev == "error" && strings.Contains(d.Msg, "fails") {
+			t.Fatalf("broken provider must block execution, got %v", d)
+		}
+		if d.Code == CodeUnknownCall {
+			t.Fatalf("provider finding leaked onto open file: %v", d)
+		}
+	}
+	// The open side still refuses the reference itself: layered
+	// defense, reported as the open file's own finding.
+	if !hasErrCode(diags, CodeFnTargetRefused) && !hasDiag(diags, "error", "reference to p__t refused") {
+		t.Fatalf("open side should refuse the broken target, got %v", diags)
+	}
+	// Sanity: the same world fails loudly on the CLI path, where
+	// the provider error is reported, not silent.
+	_, _, collected := genericProgram(t, files)
+	if !hasErrCode(collected, CodeUnknownCall) && !hasDiag(collected, "error", "p__nope") {
+		t.Fatalf("CLI should report the broken provider, got %v", collected)
+	}
+}

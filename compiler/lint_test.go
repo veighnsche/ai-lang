@@ -1744,3 +1744,25 @@ fn m__pick(b: M__Box<str>) -> M__O rev 1
 		t.Fatalf("expected no lint findings, got %v", diags)
 	}
 }
+
+// The b00 callback sketch lints fully clean: mandatory capture
+// names are not redundant positional names, the invoke match
+// takes no call-shaped rewrite, and both files parse (a skip
+// would hide a broken Fn parser behind exit zero).
+func TestLintCallbackSketchClean(t *testing.T) {
+	files := map[string]string{}
+	for _, f := range []string{"ops.can", "use.can"} {
+		raw, err := os.ReadFile("../sketches/fn-callback/" + f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[f] = string(raw)
+	}
+	got, skipped := lintFiles(files)
+	if len(skipped) != 0 {
+		t.Fatalf("sketch files skipped: %v", skipped)
+	}
+	if len(got) != 0 {
+		t.Fatalf("sketch findings = %v, want none", got)
+	}
+}
