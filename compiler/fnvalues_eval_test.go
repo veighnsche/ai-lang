@@ -297,3 +297,38 @@ fn m__go(cb: Fn<int, M__O, []>, n: int) -> M__O rev 1
 func TestInvokeGenericTarget(t *testing.T) {
 	wantInvokeClean(t, map[string]string{"m.can": invokeGenericBody}, "m.can")
 }
+
+// A pure target with a proved direct self-decrease stays
+// admissible: direct recursion is not an invocation cycle, and
+// the row below executes three levels through the reference.
+const invokeRecursiveBody = `mod m
+  provides [m__go, m__sum, M__O]
+  uses []
+  emits []
+
+type M__O rev 1 (
+  value: int
+)
+
+fn m__sum(step: int, n: int) -> M__O rev 1
+  decreases n
+  emits []
+  tests
+    s0(10, 0) => Ok(0)
+    s1(10, 1) => Ok(10)
+  match n <= 0
+    true => Ok(0)
+    false => match call m__sum(step, n - 1)
+      on Ok r => Ok(r.value + step)
+
+fn m__go(cb: Fn<int, M__O, []>) -> M__O rev 1
+  emits []
+  tests
+    g(fnref m__sum(step = 10)) => Ok(30)
+  match invoke cb with 3
+    on Ok r => Ok(r.value)
+`
+
+func TestInvokeRecursiveTarget(t *testing.T) {
+	wantInvokeClean(t, map[string]string{"m.can": invokeRecursiveBody}, "m.can")
+}

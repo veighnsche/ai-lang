@@ -389,6 +389,8 @@ func TestCheckFnrefNegatives(t *testing.T) {
 			CodeBadBinding, "out of order"},
 		{"capture value shares unbound-name rule", `g(fnref m__t(divisor = nope)) => Ok("q")`,
 			CodeTypeMismatch, "unbound name nope in m__go"},
+		{"denoted head must match exactly", `g(fnref m__h()) => Ok("q")`,
+			CodeTypeMismatch, "got Fn<int, M__O, []>, want Fn<int, M__O, [m.err]>"},
 		{"unknown target", `g(fnref m__nope(divisor = 3)) => Ok("q")`,
 			CodeUnknownCall, "references unknown function"},
 	}
