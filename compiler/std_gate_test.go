@@ -32,8 +32,10 @@ func TestStdHostCompiles(t *testing.T) {
 
 // TestStdHostNodeSmoke executes the committed host implementations
 // under node: wall returns positive bigint millis, monotonic never
-// goes backwards. Node is required, never skipped (parity
-// precedent): an unexecuted host obligation is a gap, not a pass.
+// goes backwards, random returns exact-length bytes and rejects
+// negative counts, sha256 matches the abc known vector and md5 is
+// refused. Node is required, never skipped (parity precedent): an
+// unexecuted host obligation is a gap, not a pass.
 func TestStdHostNodeSmoke(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Fatalf("node missing: host smoke refuses to skip: %v", err)
@@ -46,7 +48,7 @@ func TestStdHostNodeSmoke(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "host.externs.ts"), raw, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	harness := `import { host__wall_now, host__mono_now } from "./host.externs.ts";
+	harness := `import { host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest } from "./host.externs.ts";
 const w = host__wall_now();
 if (w.$can_kind !== "ok" || typeof w.millis !== "bigint" || w.millis <= 0n) {
   console.error("wall clock bad: " + JSON.stringify(w, (_, v) => typeof v === "bigint" ? v.toString() : v));
@@ -63,6 +65,28 @@ for (const t of [a, b]) {
 }
 if (b.millis < a.millis) {
   console.error("mono clock went backwards");
+  process.exit(1);
+}
+const r = host__rand_bytes(16n);
+if (r.$can_kind !== "ok" || !(r.bytes instanceof Uint8Array) || r.bytes.length !== 16) {
+  console.error("random bytes bad");
+  process.exit(1);
+}
+const neg = host__rand_bytes(-1n);
+if (neg.$can_kind !== "random.invalid_count") {
+  console.error("random negative count not rejected");
+  process.exit(1);
+}
+const abc = new Uint8Array([97, 98, 99]);
+const h = host__hash_digest(abc, "sha256");
+const hex = [...h.bytes].map((x) => x.toString(16).padStart(2, "0")).join("");
+if (h.$can_kind !== "ok" || hex !== "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad") {
+  console.error("sha256 abc vector mismatch: " + hex);
+  process.exit(1);
+}
+const md5 = host__hash_digest(abc, "md5");
+if (md5.$can_kind !== "hash.unsupported_profile") {
+  console.error("md5 not rejected");
   process.exit(1);
 }
 console.log("HOST_SMOKE_OK");

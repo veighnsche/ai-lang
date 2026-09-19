@@ -61,5 +61,74 @@
     ],
     "handled_by": [],
     "hit_by_tests": []
+  },
+  {
+    "kind": "hash.unavailable",
+    "fields": [],
+    "raised_by": [
+      "host.host__hash_digest",
+      "host.std__hash__digest"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__hash__digest",
+        "arm": "on hash.unavailable _ =\u003e hash.unavailable()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__hash__digest/down"
+    ]
+  },
+  {
+    "kind": "hash.unsupported_profile",
+    "fields": [],
+    "raised_by": [
+      "host.host__hash_digest",
+      "host.std__hash__digest"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__hash__digest",
+        "arm": "on hash.unsupported_profile _ =\u003e hash.unsupported_profile()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__hash__digest/unknown"
+    ]
+  },
+  {
+    "kind": "random.invalid_count",
+    "fields": [],
+    "raised_by": [
+      "host.host__rand_bytes",
+      "host.std__random__bytes"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__random__bytes",
+        "arm": "on random.invalid_count _ =\u003e random.invalid_count()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__random__bytes/capped",
+      "host.std__random__bytes/negative"
+    ]
+  },
+  {
+    "kind": "random.unavailable",
+    "fields": [],
+    "raised_by": [
+      "host.host__rand_bytes",
+      "host.std__random__bytes"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__random__bytes",
+        "arm": "on random.unavailable _ =\u003e random.unavailable()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__random__bytes/down"
+    ]
   }
 ]

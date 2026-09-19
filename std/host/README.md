@@ -5,6 +5,10 @@
   `host__mono_now` externs. Time points are millis ints
   (JEV instant_repr millis_int 0.97): Unix-epoch millis for
   wall, unspecified-origin millis for monotonic.
+  `std__random__bytes` (CSPRNG, 1MB cap) and `std__hash__digest`
+  (sealed `Hash__Profile` brand: sha256, sha512; JEV
+  hash_profile brand 0.98) over `host__rand_bytes` /
+  `host__hash_digest`.
 - `host.externs.ts` — real host implementations (not throwing
   stubs). Same-slice maintenance with the extern decls.
 - `host.ts` + `errors.json` — committed golden TS prod emit
