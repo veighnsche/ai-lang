@@ -8,7 +8,7 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, std__validate__length_check, std__validate__range_check, std__validate__membership_check, std__validate__all_from, std__validate__all_push, std__validate__all, std__validate__schema__str, std__validate__schema__int, Validate__StrSchema, Validate__IntSchema, Validate__Length, Validate__Range, Validate__Membership, Validate__Outcome, Validate__Failure, Validate__Failures, Validate__Report, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, std__validate__length_check, std__validate__range_check, std__validate__membership_check, std__validate__all_from, std__validate__all, std__validate__schema__str, std__validate__schema__int, Validate__StrSchema, Validate__IntSchema, Validate__Length, Validate__Range, Validate__Membership, Validate__Outcome, Validate__Failure, Validate__Report, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
   uses [std__convert__int_to_str@1]
   emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice, validation.not_allowed, validation.schema_violation]
 
@@ -92,13 +92,6 @@ type Validate__Failure rev 1 (
 type Validate__Report rev 1 (
   passed: bool
   failures: Seq<Validate__Failure>
-)
-
-// Accumulator carrier: the grammar has no seq[i].field, so the
-// indexed outcome travels whole into _push and its fields are
-// read there; the folded failures return wrapped.
-type Validate__Failures rev 1 (
-  values: Seq<Validate__Failure>
 )
 
 type Quota__Request rev 1 (
@@ -418,21 +411,12 @@ fn std__validate__all_from(checks: Seq<Validate__Outcome>, pos: int, n: int, acc
   match n <= 0
     true => Ok(#acc == 0, acc)
     false => match pos < #checks
-      true => match call std__validate__all_push(checks[pos], acc)
-        on Ok p => match call std__validate__all_from(checks, pos + 1, n - 1, p.values)
+      true => match checks[pos].passed
+        true => match call std__validate__all_from(checks, pos + 1, n - 1, acc)
+          on Ok r => Ok(r.passed, r.failures)
+        false => match call std__validate__all_from(checks, pos + 1, n - 1, acc + Validate__Failure(checks[pos].path, checks[pos].rule, checks[pos].detail))
           on Ok r => Ok(r.passed, r.failures)
       false => Ok(#acc == 0, acc)
-
-fn std__validate__all_push(current: Validate__Outcome, acc: Seq<Validate__Failure>) -> Validate__Failures rev 1
-  emits []
-  tests
-    keep(Validate__Outcome(true, "a", "r", "d"), Seq<Validate__Failure>[]) => Ok(Seq<Validate__Failure>[])
-    keep_nonempty(Validate__Outcome(true, "b", "r2", "d2"), Seq<Validate__Failure>[Validate__Failure("a", "r1", "d1")]) => Ok(Seq<Validate__Failure>[Validate__Failure("a", "r1", "d1")])
-    push(Validate__Outcome(false, "a", "r", "d"), Seq<Validate__Failure>[]) => Ok(Seq<Validate__Failure>[Validate__Failure("a", "r", "d")])
-    push_appends(Validate__Outcome(false, "b", "r2", "d2"), Seq<Validate__Failure>[Validate__Failure("a", "r1", "d1")]) => Ok(Seq<Validate__Failure>[Validate__Failure("a", "r1", "d1"), Validate__Failure("b", "r2", "d2")])
-  match current.passed
-    true => Ok(acc)
-    false => Ok(acc + Validate__Failure(current.path, current.rule, current.detail))
 
 fn std__validate__all(checks: Seq<Validate__Outcome>) -> Validate__Report rev 1
   emits []

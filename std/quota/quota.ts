@@ -1,7 +1,7 @@
 // GENERATED from quota.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
 import { std__convert__int_to_str, type ScalarsResult } from "./scalars";
-export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; failures: Validate__Failure[]; passed: boolean } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: Quota__Envelope } | { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "ok"; values: Validate__Failure[] } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string };
+export type QuotaResult = { $can_kind: "ok" } | { $can_kind: "ok"; failures: Validate__Failure[]; passed: boolean } | { $can_kind: "ok"; remaining: bigint; used: bigint } | { $can_kind: "ok"; value: Quota__Envelope } | { $can_kind: "ok"; value: Quota__Request } | { $can_kind: "ok"; value: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "validation.failed"; field: string; rule: string } | { $can_kind: "validation.invalid_bounds"; lower: bigint; upper: bigint } | { $can_kind: "validation.out_of_range"; value: bigint; lower: bigint; upper: bigint } | { $can_kind: "validation.not_positive"; value: bigint } | { $can_kind: "validation.negative_value"; value: bigint } | { $can_kind: "validation.dec_invalid_bounds"; lower: string; upper: string } | { $can_kind: "validation.dec_out_of_range"; value: string; lower: string; upper: string } | { $can_kind: "validation.dec_not_positive"; value: string } | { $can_kind: "validation.dec_negative_value"; value: string } | { $can_kind: "validation.invalid_length"; value: string; minimum: bigint; maximum: bigint } | { $can_kind: "validation.empty_value"; value: string } | { $can_kind: "validation.exclusive_choice" } | { $can_kind: "validation.not_allowed"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string };
 export type Quota__Usage = { used: bigint; remaining: bigint };
 export type Validate__Pass = {};
 export type Int__Value = { value: bigint };
@@ -13,7 +13,6 @@ export type Validate__Membership = { path: string; allowed: string[] };
 export type Validate__Outcome = { passed: boolean; path: string; rule: string; detail: string };
 export type Validate__Failure = { path: string; rule: string; detail: string };
 export type Validate__Report = { passed: boolean; failures: Validate__Failure[] };
-export type Validate__Failures = { values: Validate__Failure[] };
 export type Quota__Request = { label: string; amount: bigint; mode: string };
 export type Validate__StrSchema = { path: string; tag: string; minimum: bigint; maximum: bigint; allowed: string[]; restrict: boolean };
 export type Validate__IntSchema = { path: string; tag: string; lower: bigint; upper: bigint };
@@ -369,11 +368,20 @@ export function std__validate__all_from(checks: Validate__Outcome[], pos: bigint
   }
   else {
     if ((pos < (BigInt([...checks].length)))) {
-      const $can_m1: { $can_kind: "ok"; values: Validate__Failure[] } = std__validate__all_push($canSeqAt(checks, pos), acc);
-      switch ($can_m1.$can_kind) {
-      case "ok": {
-        const p = $can_m1;
-        const $can_m2: { $can_kind: "ok"; failures: Validate__Failure[]; passed: boolean } = std__validate__all_from(checks, (pos + 1n), (n - 1n), p.values);
+      if ($canSeqAt(checks, pos).passed) {
+        const $can_m1: { $can_kind: "ok"; failures: Validate__Failure[]; passed: boolean } = std__validate__all_from(checks, (pos + 1n), (n - 1n), acc);
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", passed: r.passed, failures: r.failures };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else {
+        const $can_m2: { $can_kind: "ok"; failures: Validate__Failure[]; passed: boolean } = std__validate__all_from(checks, (pos + 1n), (n - 1n), [...acc, { path: $canSeqAt(checks, pos).path, rule: $canSeqAt(checks, pos).rule, detail: $canSeqAt(checks, pos).detail }]);
         switch ($can_m2.$can_kind) {
         case "ok": {
           const r = $can_m2;
@@ -384,22 +392,10 @@ export function std__validate__all_from(checks: Validate__Outcome[], pos: bigint
         }
         }
       }
-      default: {
-        throw new Error("unreachable");
-      }
-      }
     }
     else {
       return { $can_kind: "ok", passed: ((BigInt([...acc].length)) === 0n), failures: acc };
     }
-  }
-}
-export function std__validate__all_push(current: Validate__Outcome, acc: Validate__Failure[]): { $can_kind: "ok"; values: Validate__Failure[] } {
-  if (current.passed) {
-    return { $can_kind: "ok", values: acc };
-  }
-  else {
-    return { $can_kind: "ok", values: [...acc, { path: current.path, rule: current.rule, detail: current.detail }] };
   }
 }
 export function std__validate__all(checks: Validate__Outcome[]): { $can_kind: "ok"; failures: Validate__Failure[]; passed: boolean } {
