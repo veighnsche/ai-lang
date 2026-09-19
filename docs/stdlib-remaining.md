@@ -25,6 +25,7 @@ landed, unblocking the §1.8 callback rows. Slices 7+ below.
 | 8 | `02495f4` | NEW `std/seq` sort/unique; 40 rows |
 | 9 | `43f0dfc` | NEW `std/json` value layer: AST + render frame machine + escape + 8 scalar codecs + monomorphic schema family with Fn dispatch; 125 rows |
 | 11a | `7092467` | `std/json`: render goes total (variant tags, fuel-exhaust `Ok(acc)`, budget error deleted) + parse leaves (ws/head/literal/unescape/9-state numcheck/contains/pop/attach); 234 rows |
+| 11b | TBD | `std/json`: byte-level parse — `parse_value` entry + `parse_step` 12-state machine (value states push, continuations replace, `StrKey` inherits fields/keys, `Tail` rejects trailers); 100 rows (15 value + 85 step), 334 file total |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
@@ -38,7 +39,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 | §1.8 seq sort/unique | SHIPPED (slice 8): `Seq__Order` value Asc/Desc over per-instance built-in order (insertion sort, stable by construction); unique keeps first occurrences via per-instance `==` | 40 rows; 147 pass on compile; lexicographic orders deferred. |
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
 | §1.8 normalize_nfc, casefold, graphemes | Unicode data kernel | No pinned data, no host path (see host shelf) |
-| §1.8 json encode/decode, `schema__migrate` | PARTIAL (slice 9): value layer shipped — `Json__Value` AST, fuel-bounded render machine, escape, 8 scalar codecs, monomorphic `Json__*Schema` family with schema-carried Fn dispatch; bytes-level parse + text drivers remain (slice 11). `schema__migrate`: VERDICT (slice 10) — generic migrate is inexpressible: no `Ok` splat (`Ok field y: got M__B, want int`) and `forward` is refused outside call-outcome arms, so no body returns an arbitrary `New` through invoke dispatch (b00's missing generic error algebra independently blocks `! E`). | 125 rows; 548 pass on compile; `TestStdJsonCompiles` gates. |
+| §1.8 json encode/decode, `schema__migrate` | PARTIAL (slices 9+11): value layer + byte-level parse shipped — `Json__Value` AST, fuel-bounded render machine, escape, 8 scalar codecs, monomorphic `Json__*Schema` family with schema-carried Fn dispatch, `parse_value`/`parse_step` 12-state machine; text drivers remain (slice 12). `schema__migrate`: VERDICT (slice 10) — generic migrate is inexpressible: no `Ok` splat (`Ok field y: got M__B, want int`) and `forward` is refused outside call-outcome arms, so no body returns an arbitrary `New` through invoke dispatch (b00's missing generic error algebra independently blocks `! E`). | 125 rows; 548 pass on compile; `TestStdJsonCompiles` gates. |
 | Host shelf (clock/random/hash/secret/log/env) | SHIPPED (slices H1–H5): `std/host` carries all 7 catalogue fns over pinned externs with real node-backed `host.externs.ts` impls; `TestStdHostNodeSmoke` executes every impl (incl. sha256 known vector); `sketches/host-clock` consumes both the wrapper and the shared extern directly | Millis instants (JEV 0.97); sealed profile/secret/env brands (JEV 0.98/1.0); denied + sub-millis documented v1 limits. |
 | §3 HTTP (all) | Async + Resources + Functions | No async surface exists |
 | §4 SQL (all) | Async + Resources | Same |
@@ -64,6 +65,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - Downstream-unwitnessable error arms are an API bug: render's budget/mismatch errors removed in slice 11a (fuel-exhaust now `Ok(acc)` per `int_to_str_from`).
 - Variant matches take case arms only, never `_` (slice 11a; attach carries all 12 PTag arms).
 - `and`/`or` stay eager, no short-circuit (slice 11a; guards nest instead).
+- `forward call` expands to `Ok` + one arm per emits kind, and arm coverage witnesses the expansion (slice 11b; `no test takes on Ok r` on a cannot-succeed arm — the empty-entry arm returns its error directly).
 
 ## JEV decision log (all via `jev-1.13.0`, Choice)
 

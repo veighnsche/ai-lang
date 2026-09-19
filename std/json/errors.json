@@ -161,9 +161,100 @@
     "fields": [
       "key"
     ],
-    "raised_by": [],
-    "handled_by": [],
-    "hit_by_tests": []
+    "raised_by": [
+      "json.std__json__parse_step",
+      "json.std__json__parse_value"
+    ],
+    "handled_by": [
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadBrace _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PObjFirst(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadBracket _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PArrFirst(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadNum _ =\u003e forward call std__json__parse_step(text, w.value, fuel - 1, stack + Json__PFrame(Json__PNumAcc(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadStr _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PStrVal(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok a =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, a.frames)"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok a =\u003e forward call std__json__parse_step(text, pos, fuel - 1, a.frames)"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok a =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, a.frames)"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok l =\u003e forward call std__json__parse_step(text, l.next, fuel - 1, stack + Json__PFrame(Json__PTail(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", l.val, Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, l.next, fuel - 1, pf.frames + Json__PFrame(Json__PArrNext(), stack[#stack - 1].items + Json__Doc(l.val), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, l.next, fuel - 1, pf.frames + Json__PFrame(Json__PObjNext(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].fields + Json__Field(stack[#stack - 1].key, l.val), stack[#stack - 1].keys + stack[#stack - 1].key, \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PNumAcc(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + text[pos:pos + 1], Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PObjColon(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].ofields, stack[#stack - 1].okeys, stack[#stack - 1].acc, \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PStrKey(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + text[pos:pos + 1], Json__Null(), stack[#stack - 1].ofields, stack[#stack - 1].okeys))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PStrVal(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + text[pos:pos + 1], Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 2, fuel - 1, pf.frames + Json__PFrame(Json__PStrKey(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + u.value, Json__Null(), stack[#stack - 1].ofields, stack[#stack - 1].okeys))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 2, fuel - 1, pf.frames + Json__PFrame(Json__PStrVal(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + u.value, Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PArrVal(), stack[#stack - 1].items, Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PObjKey(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].fields, stack[#stack - 1].keys, \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PObjKeyVal(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].fields, stack[#stack - 1].keys, stack[#stack - 1].key, \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PStrKey(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), stack[#stack - 1].fields, stack[#stack - 1].keys))"
+      },
+      {
+        "fn": "json.std__json__parse_value",
+        "arm": "false =\u003e forward call std__json__parse_step(text, 0, std__json__PARSE_FUEL, Seq\u003cJson__PFrame\u003e[])"
+      }
+    ],
+    "hit_by_tests": [
+      "json.std__json__parse_step/sk_dup",
+      "json.std__json__parse_value/dup"
+    ]
   },
   {
     "kind": "json.invalid_syntax",
@@ -173,9 +264,100 @@
     "raised_by": [
       "json.std__json__parse_attach",
       "json.std__json__parse_literal",
-      "json.std__json__parse_unescape"
+      "json.std__json__parse_step",
+      "json.std__json__parse_unescape",
+      "json.std__json__parse_value"
     ],
-    "handled_by": [],
+    "handled_by": [
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadBrace _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PObjFirst(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadBracket _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PArrFirst(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadNum _ =\u003e forward call std__json__parse_step(text, w.value, fuel - 1, stack + Json__PFrame(Json__PNumAcc(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Json__HeadStr _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PStrVal(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok a =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, a.frames)"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok a =\u003e forward call std__json__parse_step(text, pos, fuel - 1, a.frames)"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok a =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, a.frames)"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok l =\u003e forward call std__json__parse_step(text, l.next, fuel - 1, stack + Json__PFrame(Json__PTail(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", l.val, Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, l.next, fuel - 1, pf.frames + Json__PFrame(Json__PArrNext(), stack[#stack - 1].items + Json__Doc(l.val), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, l.next, fuel - 1, pf.frames + Json__PFrame(Json__PObjNext(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].fields + Json__Field(stack[#stack - 1].key, l.val), stack[#stack - 1].keys + stack[#stack - 1].key, \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PNumAcc(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + text[pos:pos + 1], Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PObjColon(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].ofields, stack[#stack - 1].okeys, stack[#stack - 1].acc, \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PStrKey(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + text[pos:pos + 1], Json__Null(), stack[#stack - 1].ofields, stack[#stack - 1].okeys))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 1, fuel - 1, pf.frames + Json__PFrame(Json__PStrVal(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + text[pos:pos + 1], Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 2, fuel - 1, pf.frames + Json__PFrame(Json__PStrKey(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + u.value, Json__Null(), stack[#stack - 1].ofields, stack[#stack - 1].okeys))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, pos + 2, fuel - 1, pf.frames + Json__PFrame(Json__PStrVal(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", stack[#stack - 1].acc + u.value, Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PArrVal(), stack[#stack - 1].items, Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PObjKey(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].fields, stack[#stack - 1].keys, \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PObjKeyVal(), Seq\u003cJson__Doc\u003e[], stack[#stack - 1].fields, stack[#stack - 1].keys, stack[#stack - 1].key, \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on Ok pf =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, pf.frames + Json__PFrame(Json__PStrKey(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), stack[#stack - 1].fields, stack[#stack - 1].keys))"
+      },
+      {
+        "fn": "json.std__json__parse_step",
+        "arm": "on json.invalid_syntax e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__parse_value",
+        "arm": "false =\u003e forward call std__json__parse_step(text, 0, std__json__PARSE_FUEL, Seq\u003cJson__PFrame\u003e[])"
+      }
+    ],
     "hit_by_tests": [
       "json.std__json__parse_attach/wild",
       "json.std__json__parse_attach/wild_arrnext",
@@ -192,10 +374,57 @@
       "json.std__json__parse_literal/short",
       "json.std__json__parse_literal/shortf",
       "json.std__json__parse_literal/shortn",
+      "json.std__json__parse_step/af_bad",
+      "json.std__json__parse_step/af_eof",
+      "json.std__json__parse_step/af_litbad",
+      "json.std__json__parse_step/an_bad",
+      "json.std__json__parse_step/an_eof",
+      "json.std__json__parse_step/av_bad",
+      "json.std__json__parse_step/av_eof",
+      "json.std__json__parse_step/av_litbad",
+      "json.std__json__parse_step/exhaust",
+      "json.std__json__parse_step/na_bad",
+      "json.std__json__parse_step/na_badmid",
+      "json.std__json__parse_step/oc_bad",
+      "json.std__json__parse_step/oc_eof",
+      "json.std__json__parse_step/of_bad",
+      "json.std__json__parse_step/of_eof",
+      "json.std__json__parse_step/okey_bad",
+      "json.std__json__parse_step/okey_eof",
+      "json.std__json__parse_step/okv_bad",
+      "json.std__json__parse_step/okv_eof",
+      "json.std__json__parse_step/okv_litbad",
+      "json.std__json__parse_step/on_bad",
+      "json.std__json__parse_step/on_eof",
+      "json.std__json__parse_step/sk_c0",
+      "json.std__json__parse_step/sk_eof",
+      "json.std__json__parse_step/sk_escbad",
+      "json.std__json__parse_step/sk_esceof",
+      "json.std__json__parse_step/sv_c0",
+      "json.std__json__parse_step/sv_eof",
+      "json.std__json__parse_step/sv_escbad",
+      "json.std__json__parse_step/sv_esceof",
+      "json.std__json__parse_step/t_bad",
+      "json.std__json__parse_step/t_eof",
+      "json.std__json__parse_step/t_litbad",
+      "json.std__json__parse_step/tail_bad",
+      "json.std__json__parse_step/tail_brace",
+      "json.std__json__parse_step/tail_bracket",
+      "json.std__json__parse_step/tail_lit",
+      "json.std__json__parse_step/tail_litbad",
+      "json.std__json__parse_step/tail_num",
+      "json.std__json__parse_step/tail_str",
       "json.std__json__parse_unescape/b",
       "json.std__json__parse_unescape/f",
       "json.std__json__parse_unescape/u",
-      "json.std__json__parse_unescape/x"
+      "json.std__json__parse_unescape/x",
+      "json.std__json__parse_value/empty",
+      "json.std__json__parse_value/trail_arr",
+      "json.std__json__parse_value/trail_arr2",
+      "json.std__json__parse_value/trail_num",
+      "json.std__json__parse_value/trail_obj",
+      "json.std__json__parse_value/trail_obj2",
+      "json.std__json__parse_value/trail_str"
     ]
   },
   {

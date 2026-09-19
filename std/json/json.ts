@@ -1690,3 +1690,1623 @@ export function std__json__parse_attach(frames: Json__PFrame[], v: Json__Value):
     }
   }
 }
+export function std__json__parse_value(text: string): { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } {
+  if (((BigInt([...text].length)) === 0n)) {
+    return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+  }
+  else {
+    const $can_m1: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, 0n, 1000000n, []);
+    switch ($can_m1.$can_kind) {
+    case "ok": {
+      const r = $can_m1;
+      return { $can_kind: "ok", value: r.value };
+    }
+    case "json.invalid_syntax": {
+      const e = $can_m1;
+      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+    }
+    case "json.duplicate_key": {
+      const e = $can_m1;
+      return { $can_kind: "json.duplicate_key", key: e.key };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}
+export function std__json__parse_step(text: string, pos: bigint, fuel: bigint, stack: Json__PFrame[]): { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } {
+  if ((fuel <= 0n)) {
+    return { $can_kind: "json.invalid_syntax", detail: "fuel exhausted" };
+  }
+  else {
+    const $can_m1: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip(text, pos);
+    switch ($can_m1.$can_kind) {
+    case "ok": {
+      const w = $can_m1;
+      if (((BigInt([...stack].length)) === 0n)) {
+        const $can_m2: { $can_kind: "ok"; tag: Json__HeadTag } = std__json__parse_head(text, w.value);
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const h = $can_m2;
+          const $can_m3 = h.tag;
+          switch ($can_m3.$can_kind) {
+          case "Json__HeadBrace": {
+            const _ = $can_m3;
+            const $can_m4: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PObjFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+            switch ($can_m4.$can_kind) {
+            case "ok": {
+              const r = $can_m4;
+              return { $can_kind: "ok", value: r.value };
+            }
+            case "json.invalid_syntax": {
+              const e = $can_m4;
+              return { $can_kind: "json.invalid_syntax", detail: e.detail };
+            }
+            case "json.duplicate_key": {
+              const e = $can_m4;
+              return { $can_kind: "json.duplicate_key", key: e.key };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          case "Json__HeadBracket": {
+            const _ = $can_m3;
+            const $can_m5: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PArrFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+            switch ($can_m5.$can_kind) {
+            case "ok": {
+              const r = $can_m5;
+              return { $can_kind: "ok", value: r.value };
+            }
+            case "json.invalid_syntax": {
+              const e = $can_m5;
+              return { $can_kind: "json.invalid_syntax", detail: e.detail };
+            }
+            case "json.duplicate_key": {
+              const e = $can_m5;
+              return { $can_kind: "json.duplicate_key", key: e.key };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          case "Json__HeadStr": {
+            const _ = $can_m3;
+            const $can_m6: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PStrVal" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+            switch ($can_m6.$can_kind) {
+            case "ok": {
+              const r = $can_m6;
+              return { $can_kind: "ok", value: r.value };
+            }
+            case "json.invalid_syntax": {
+              const e = $can_m6;
+              return { $can_kind: "json.invalid_syntax", detail: e.detail };
+            }
+            case "json.duplicate_key": {
+              const e = $can_m6;
+              return { $can_kind: "json.duplicate_key", key: e.key };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          case "Json__HeadLit": {
+            const _ = $can_m3;
+            const $can_m7: { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_literal(text, w.value);
+            switch ($can_m7.$can_kind) {
+            case "ok": {
+              const l = $can_m7;
+              const $can_m8: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, l.next, (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PTail" }, items: [], fields: [], keys: [], key: "", acc: "", val: l.val, ofields: [], okeys: [] }]);
+              switch ($can_m8.$can_kind) {
+              case "ok": {
+                const r = $can_m8;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m8;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m8;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "json.invalid_syntax": {
+              const e = $can_m7;
+              return { $can_kind: "json.invalid_syntax", detail: e.detail };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          case "Json__HeadNum": {
+            const _ = $can_m3;
+            const $can_m9: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, w.value, (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+            switch ($can_m9.$can_kind) {
+            case "ok": {
+              const r = $can_m9;
+              return { $can_kind: "ok", value: r.value };
+            }
+            case "json.invalid_syntax": {
+              const e = $can_m9;
+              return { $can_kind: "json.invalid_syntax", detail: e.detail };
+            }
+            case "json.duplicate_key": {
+              const e = $can_m9;
+              return { $can_kind: "json.duplicate_key", key: e.key };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          case "Json__HeadBad": {
+            const _ = $can_m3;
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected char" };
+          }
+          case "Json__HeadEof": {
+            const _ = $can_m3;
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      else {
+        const $can_m10 = $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).tag;
+        switch ($can_m10.$can_kind) {
+        case "Json__PArrFirst": {
+          const _ = $can_m10;
+          const $can_m11: { $can_kind: "ok"; tag: Json__HeadTag } = std__json__parse_head(text, w.value);
+          switch ($can_m11.$can_kind) {
+          case "ok": {
+            const h = $can_m11;
+            const $can_m12 = h.tag;
+            switch ($can_m12.$can_kind) {
+            case "Json__HeadBrace": {
+              const _ = $can_m12;
+              const $can_m13: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PObjFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m13.$can_kind) {
+              case "ok": {
+                const r = $can_m13;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m13;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m13;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadBracket": {
+              const _ = $can_m12;
+              const $can_m14: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PArrFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m14.$can_kind) {
+              case "ok": {
+                const r = $can_m14;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m14;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m14;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadStr": {
+              const _ = $can_m12;
+              const $can_m15: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PStrVal" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m15.$can_kind) {
+              case "ok": {
+                const r = $can_m15;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m15;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m15;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadLit": {
+              const _ = $can_m12;
+              const $can_m16: { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_literal(text, w.value);
+              switch ($can_m16.$can_kind) {
+              case "ok": {
+                const l = $can_m16;
+                const $can_m17: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                switch ($can_m17.$can_kind) {
+                case "ok": {
+                  const pf = $can_m17;
+                  const $can_m18: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, l.next, (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PArrNext" }, items: [...$canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).items, { value: l.val }], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                  switch ($can_m18.$can_kind) {
+                  case "ok": {
+                    const r = $can_m18;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m18;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m18;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m16;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadNum": {
+              const _ = $can_m12;
+              const $can_m19: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, w.value, (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m19.$can_kind) {
+              case "ok": {
+                const r = $can_m19;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m19;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m19;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadBad": {
+              const _ = $can_m12;
+              if (($canStrAt(text, w.value) === 93n)) {
+                const $can_m20: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                switch ($can_m20.$can_kind) {
+                case "ok": {
+                  const pf = $can_m20;
+                  const $can_m21: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Arr", items: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).items });
+                  switch ($can_m21.$can_kind) {
+                  case "ok": {
+                    const a = $can_m21;
+                    const $can_m22: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), a.frames);
+                    switch ($can_m22.$can_kind) {
+                    case "ok": {
+                      const r = $can_m22;
+                      return { $can_kind: "ok", value: r.value };
+                    }
+                    case "json.invalid_syntax": {
+                      const e = $can_m22;
+                      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                    }
+                    case "json.duplicate_key": {
+                      const e = $can_m22;
+                      return { $can_kind: "json.duplicate_key", key: e.key };
+                    }
+                    default: {
+                      throw new Error("unreachable");
+                    }
+                    }
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m21;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              else {
+                return { $can_kind: "json.invalid_syntax", detail: "unexpected char" };
+              }
+            }
+            case "Json__HeadEof": {
+              const _ = $can_m12;
+              return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        case "Json__PArrVal": {
+          const _ = $can_m10;
+          const $can_m23: { $can_kind: "ok"; tag: Json__HeadTag } = std__json__parse_head(text, w.value);
+          switch ($can_m23.$can_kind) {
+          case "ok": {
+            const h = $can_m23;
+            const $can_m24 = h.tag;
+            switch ($can_m24.$can_kind) {
+            case "Json__HeadBrace": {
+              const _ = $can_m24;
+              const $can_m25: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PObjFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m25.$can_kind) {
+              case "ok": {
+                const r = $can_m25;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m25;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m25;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadBracket": {
+              const _ = $can_m24;
+              const $can_m26: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PArrFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m26.$can_kind) {
+              case "ok": {
+                const r = $can_m26;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m26;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m26;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadStr": {
+              const _ = $can_m24;
+              const $can_m27: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PStrVal" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m27.$can_kind) {
+              case "ok": {
+                const r = $can_m27;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m27;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m27;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadLit": {
+              const _ = $can_m24;
+              const $can_m28: { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_literal(text, w.value);
+              switch ($can_m28.$can_kind) {
+              case "ok": {
+                const l = $can_m28;
+                const $can_m29: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                switch ($can_m29.$can_kind) {
+                case "ok": {
+                  const pf = $can_m29;
+                  const $can_m30: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, l.next, (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PArrNext" }, items: [...$canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).items, { value: l.val }], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                  switch ($can_m30.$can_kind) {
+                  case "ok": {
+                    const r = $can_m30;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m30;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m30;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m28;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadNum": {
+              const _ = $can_m24;
+              const $can_m31: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, w.value, (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m31.$can_kind) {
+              case "ok": {
+                const r = $can_m31;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m31;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m31;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadBad": {
+              const _ = $can_m24;
+              return { $can_kind: "json.invalid_syntax", detail: "unexpected char" };
+            }
+            case "Json__HeadEof": {
+              const _ = $can_m24;
+              return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        case "Json__PObjKeyVal": {
+          const _ = $can_m10;
+          const $can_m32: { $can_kind: "ok"; tag: Json__HeadTag } = std__json__parse_head(text, w.value);
+          switch ($can_m32.$can_kind) {
+          case "ok": {
+            const h = $can_m32;
+            const $can_m33 = h.tag;
+            switch ($can_m33.$can_kind) {
+            case "Json__HeadBrace": {
+              const _ = $can_m33;
+              const $can_m34: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PObjFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m34.$can_kind) {
+              case "ok": {
+                const r = $can_m34;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m34;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m34;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadBracket": {
+              const _ = $can_m33;
+              const $can_m35: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PArrFirst" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m35.$can_kind) {
+              case "ok": {
+                const r = $can_m35;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m35;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m35;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadStr": {
+              const _ = $can_m33;
+              const $can_m36: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PStrVal" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m36.$can_kind) {
+              case "ok": {
+                const r = $can_m36;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m36;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m36;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadLit": {
+              const _ = $can_m33;
+              const $can_m37: { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_literal(text, w.value);
+              switch ($can_m37.$can_kind) {
+              case "ok": {
+                const l = $can_m37;
+                const $can_m38: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                switch ($can_m38.$can_kind) {
+                case "ok": {
+                  const pf = $can_m38;
+                  const $can_m39: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, l.next, (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PObjNext" }, items: [], fields: [...$canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields, { name: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).key, value: l.val }], keys: [...$canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).keys, $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).key], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                  switch ($can_m39.$can_kind) {
+                  case "ok": {
+                    const r = $can_m39;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m39;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m39;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m37;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadNum": {
+              const _ = $can_m33;
+              const $can_m40: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, w.value, (fuel - 1n), [...stack, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+              switch ($can_m40.$can_kind) {
+              case "ok": {
+                const r = $can_m40;
+                return { $can_kind: "ok", value: r.value };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m40;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              case "json.duplicate_key": {
+                const e = $can_m40;
+                return { $can_kind: "json.duplicate_key", key: e.key };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadBad": {
+              const _ = $can_m33;
+              return { $can_kind: "json.invalid_syntax", detail: "unexpected char" };
+            }
+            case "Json__HeadEof": {
+              const _ = $can_m33;
+              return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        case "Json__PArrNext": {
+          const _ = $can_m10;
+          if ((w.value < (BigInt([...text].length)))) {
+            if ($canStrAt(text, w.value) === 44n) {
+              const $can_m41: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m41.$can_kind) {
+              case "ok": {
+                const pf = $can_m41;
+                const $can_m42: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PArrVal" }, items: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).items, fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m42.$can_kind) {
+                case "ok": {
+                  const r = $can_m42;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m42;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m42;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, w.value) === 93n) {
+              const $can_m43: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m43.$can_kind) {
+              case "ok": {
+                const pf = $can_m43;
+                const $can_m44: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Arr", items: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).items });
+                switch ($can_m44.$can_kind) {
+                case "ok": {
+                  const a = $can_m44;
+                  const $can_m45: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), a.frames);
+                  switch ($can_m45.$can_kind) {
+                  case "ok": {
+                    const r = $can_m45;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m45;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m45;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m44;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            return { $can_kind: "json.invalid_syntax", detail: "expected comma" };
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PObjFirst": {
+          const _ = $can_m10;
+          if ((w.value < (BigInt([...text].length)))) {
+            if ($canStrAt(text, w.value) === 125n) {
+              const $can_m46: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m46.$can_kind) {
+              case "ok": {
+                const pf = $can_m46;
+                const $can_m47: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Obj", fields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields });
+                switch ($can_m47.$can_kind) {
+                case "ok": {
+                  const a = $can_m47;
+                  const $can_m48: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), a.frames);
+                  switch ($can_m48.$can_kind) {
+                  case "ok": {
+                    const r = $can_m48;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m48;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m48;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m47;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, w.value) === 34n) {
+              const $can_m49: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m49.$can_kind) {
+              case "ok": {
+                const pf = $can_m49;
+                const $can_m50: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PStrKey" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields, okeys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).keys }]);
+                switch ($can_m50.$can_kind) {
+                case "ok": {
+                  const r = $can_m50;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m50;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m50;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            return { $can_kind: "json.invalid_syntax", detail: "expected key" };
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PObjKey": {
+          const _ = $can_m10;
+          if ((w.value < (BigInt([...text].length)))) {
+            if ($canStrAt(text, w.value) === 34n) {
+              const $can_m51: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m51.$can_kind) {
+              case "ok": {
+                const pf = $can_m51;
+                const $can_m52: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PStrKey" }, items: [], fields: [], keys: [], key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields, okeys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).keys }]);
+                switch ($can_m52.$can_kind) {
+                case "ok": {
+                  const r = $can_m52;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m52;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m52;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            return { $can_kind: "json.invalid_syntax", detail: "expected key" };
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PObjColon": {
+          const _ = $can_m10;
+          if ((w.value < (BigInt([...text].length)))) {
+            if ($canStrAt(text, w.value) === 58n) {
+              const $can_m53: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m53.$can_kind) {
+              case "ok": {
+                const pf = $can_m53;
+                const $can_m54: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PObjKeyVal" }, items: [], fields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields, keys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).keys, key: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).key, acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m54.$can_kind) {
+                case "ok": {
+                  const r = $can_m54;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m54;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m54;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            return { $can_kind: "json.invalid_syntax", detail: "expected colon" };
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PObjNext": {
+          const _ = $can_m10;
+          if ((w.value < (BigInt([...text].length)))) {
+            if ($canStrAt(text, w.value) === 44n) {
+              const $can_m55: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m55.$can_kind) {
+              case "ok": {
+                const pf = $can_m55;
+                const $can_m56: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PObjKey" }, items: [], fields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields, keys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).keys, key: "", acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m56.$can_kind) {
+                case "ok": {
+                  const r = $can_m56;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m56;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m56;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, w.value) === 125n) {
+              const $can_m57: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m57.$can_kind) {
+              case "ok": {
+                const pf = $can_m57;
+                const $can_m58: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Obj", fields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).fields });
+                switch ($can_m58.$can_kind) {
+                case "ok": {
+                  const a = $can_m58;
+                  const $can_m59: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (w.value + 1n), (fuel - 1n), a.frames);
+                  switch ($can_m59.$can_kind) {
+                  case "ok": {
+                    const r = $can_m59;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m59;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m59;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m58;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            return { $can_kind: "json.invalid_syntax", detail: "expected comma" };
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PStrKey": {
+          const _ = $can_m10;
+          if ((pos < (BigInt([...text].length)))) {
+            if ($canStrAt(text, pos) === 34n) {
+              const $can_m60: { $can_kind: "ok"; value: boolean } = std__json__parse_contains_key($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).okeys, $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc);
+              switch ($can_m60.$can_kind) {
+              case "ok": {
+                const c = $can_m60;
+                if (c.value) {
+                  return { $can_kind: "json.duplicate_key", key: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc };
+                }
+                else {
+                  const $can_m61: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                  switch ($can_m61.$can_kind) {
+                  case "ok": {
+                    const pf = $can_m61;
+                    const $can_m62: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PObjColon" }, items: [], fields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).ofields, keys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).okeys, key: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc, acc: "", val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                    switch ($can_m62.$can_kind) {
+                    case "ok": {
+                      const r = $can_m62;
+                      return { $can_kind: "ok", value: r.value };
+                    }
+                    case "json.invalid_syntax": {
+                      const e = $can_m62;
+                      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                    }
+                    case "json.duplicate_key": {
+                      const e = $can_m62;
+                      return { $can_kind: "json.duplicate_key", key: e.key };
+                    }
+                    default: {
+                      throw new Error("unreachable");
+                    }
+                    }
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, pos) === 92n) {
+              if (((pos + 1n) < (BigInt([...text].length)))) {
+                const $can_m63: { $can_kind: "ok"; value: string } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_unescape($canStrSlice(text, (pos + 1n), (pos + 2n)));
+                switch ($can_m63.$can_kind) {
+                case "ok": {
+                  const u = $can_m63;
+                  const $can_m64: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                  switch ($can_m64.$can_kind) {
+                  case "ok": {
+                    const pf = $can_m64;
+                    const $can_m65: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 2n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PStrKey" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + u.value), val: { $can_kind: "Json__Null" }, ofields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).ofields, okeys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).okeys }]);
+                    switch ($can_m65.$can_kind) {
+                    case "ok": {
+                      const r = $can_m65;
+                      return { $can_kind: "ok", value: r.value };
+                    }
+                    case "json.invalid_syntax": {
+                      const e = $can_m65;
+                      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                    }
+                    case "json.duplicate_key": {
+                      const e = $can_m65;
+                      return { $can_kind: "json.duplicate_key", key: e.key };
+                    }
+                    default: {
+                      throw new Error("unreachable");
+                    }
+                    }
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m63;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              else {
+                return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+              }
+            }
+            if (($canStrAt(text, pos) < 32n)) {
+              return { $can_kind: "json.invalid_syntax", detail: "control char" };
+            }
+            else {
+              const $can_m66: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m66.$can_kind) {
+              case "ok": {
+                const pf = $can_m66;
+                const $can_m67: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PStrKey" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).ofields, okeys: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).okeys }]);
+                switch ($can_m67.$can_kind) {
+                case "ok": {
+                  const r = $can_m67;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m67;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m67;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PStrVal": {
+          const _ = $can_m10;
+          if ((pos < (BigInt([...text].length)))) {
+            if ($canStrAt(text, pos) === 34n) {
+              const $can_m68: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m68.$can_kind) {
+              case "ok": {
+                const pf = $can_m68;
+                const $can_m69: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Str", value: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc });
+                switch ($can_m69.$can_kind) {
+                case "ok": {
+                  const a = $can_m69;
+                  const $can_m70: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), a.frames);
+                  switch ($can_m70.$can_kind) {
+                  case "ok": {
+                    const r = $can_m70;
+                    return { $can_kind: "ok", value: r.value };
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m70;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  case "json.duplicate_key": {
+                    const e = $can_m70;
+                    return { $can_kind: "json.duplicate_key", key: e.key };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m69;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, pos) === 92n) {
+              if (((pos + 1n) < (BigInt([...text].length)))) {
+                const $can_m71: { $can_kind: "ok"; value: string } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_unescape($canStrSlice(text, (pos + 1n), (pos + 2n)));
+                switch ($can_m71.$can_kind) {
+                case "ok": {
+                  const u = $can_m71;
+                  const $can_m72: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                  switch ($can_m72.$can_kind) {
+                  case "ok": {
+                    const pf = $can_m72;
+                    const $can_m73: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 2n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PStrVal" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + u.value), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                    switch ($can_m73.$can_kind) {
+                    case "ok": {
+                      const r = $can_m73;
+                      return { $can_kind: "ok", value: r.value };
+                    }
+                    case "json.invalid_syntax": {
+                      const e = $can_m73;
+                      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                    }
+                    case "json.duplicate_key": {
+                      const e = $can_m73;
+                      return { $can_kind: "json.duplicate_key", key: e.key };
+                    }
+                    default: {
+                      throw new Error("unreachable");
+                    }
+                    }
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m71;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              else {
+                return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+              }
+            }
+            if (($canStrAt(text, pos) < 32n)) {
+              return { $can_kind: "json.invalid_syntax", detail: "control char" };
+            }
+            else {
+              const $can_m74: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m74.$can_kind) {
+              case "ok": {
+                const pf = $can_m74;
+                const $can_m75: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PStrVal" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m75.$can_kind) {
+                case "ok": {
+                  const r = $can_m75;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m75;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m75;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+          }
+          else {
+            return { $can_kind: "json.invalid_syntax", detail: "unexpected end" };
+          }
+        }
+        case "Json__PNumAcc": {
+          const _ = $can_m10;
+          if ((pos < (BigInt([...text].length)))) {
+            if ($canStrAt(text, pos) === 46n) {
+              const $can_m76: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m76.$can_kind) {
+              case "ok": {
+                const pf = $can_m76;
+                const $can_m77: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m77.$can_kind) {
+                case "ok": {
+                  const r = $can_m77;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m77;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m77;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, pos) === 101n) {
+              const $can_m78: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m78.$can_kind) {
+              case "ok": {
+                const pf = $can_m78;
+                const $can_m79: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m79.$can_kind) {
+                case "ok": {
+                  const r = $can_m79;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m79;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m79;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, pos) === 69n) {
+              const $can_m80: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m80.$can_kind) {
+              case "ok": {
+                const pf = $can_m80;
+                const $can_m81: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m81.$can_kind) {
+                case "ok": {
+                  const r = $can_m81;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m81;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m81;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, pos) === 43n) {
+              const $can_m82: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m82.$can_kind) {
+              case "ok": {
+                const pf = $can_m82;
+                const $can_m83: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m83.$can_kind) {
+                case "ok": {
+                  const r = $can_m83;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m83;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m83;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else if ($canStrAt(text, pos) === 45n) {
+              const $can_m84: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m84.$can_kind) {
+              case "ok": {
+                const pf = $can_m84;
+                const $can_m85: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m85.$can_kind) {
+                case "ok": {
+                  const r = $can_m85;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m85;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m85;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            if ($canBoolAnd(($canStrAt(text, pos) >= 48n), ($canStrAt(text, pos) <= 57n))) {
+              const $can_m86: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+              switch ($can_m86.$can_kind) {
+              case "ok": {
+                const pf = $can_m86;
+                const $can_m87: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, (pos + 1n), (fuel - 1n), [...pf.frames, { tag: { $can_kind: "Json__PNumAcc" }, items: [], fields: [], keys: [], key: "", acc: ($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc + $canStrSlice(text, pos, (pos + 1n))), val: { $can_kind: "Json__Null" }, ofields: [], okeys: [] }]);
+                switch ($can_m87.$can_kind) {
+                case "ok": {
+                  const r = $can_m87;
+                  return { $can_kind: "ok", value: r.value };
+                }
+                case "json.invalid_syntax": {
+                  const e = $can_m87;
+                  return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                }
+                case "json.duplicate_key": {
+                  const e = $can_m87;
+                  return { $can_kind: "json.duplicate_key", key: e.key };
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            else {
+              const $can_m88: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc);
+              switch ($can_m88.$can_kind) {
+              case "ok": {
+                const n = $can_m88;
+                if (n.value) {
+                  const $can_m89: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                  switch ($can_m89.$can_kind) {
+                  case "ok": {
+                    const pf = $can_m89;
+                    const $can_m90: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Num", text: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc });
+                    switch ($can_m90.$can_kind) {
+                    case "ok": {
+                      const a = $can_m90;
+                      const $can_m91: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, pos, (fuel - 1n), a.frames);
+                      switch ($can_m91.$can_kind) {
+                      case "ok": {
+                        const r = $can_m91;
+                        return { $can_kind: "ok", value: r.value };
+                      }
+                      case "json.invalid_syntax": {
+                        const e = $can_m91;
+                        return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                      }
+                      case "json.duplicate_key": {
+                        const e = $can_m91;
+                        return { $can_kind: "json.duplicate_key", key: e.key };
+                      }
+                      default: {
+                        throw new Error("unreachable");
+                      }
+                      }
+                    }
+                    case "json.invalid_syntax": {
+                      const e = $can_m90;
+                      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                    }
+                    default: {
+                      throw new Error("unreachable");
+                    }
+                    }
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                else {
+                  return { $can_kind: "json.invalid_syntax", detail: "bad number" };
+                }
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+          }
+          else {
+            const $can_m92: { $can_kind: "ok"; value: boolean } = std__json__parse_numcheck($canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc);
+            switch ($can_m92.$can_kind) {
+            case "ok": {
+              const n = $can_m92;
+              if (n.value) {
+                const $can_m93: { $can_kind: "ok"; frames: Json__PFrame[] } = std__json__parse_pop(stack);
+                switch ($can_m93.$can_kind) {
+                case "ok": {
+                  const pf = $can_m93;
+                  const $can_m94: { $can_kind: "ok"; frames: Json__PFrame[] } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_attach(pf.frames, { $can_kind: "Json__Num", text: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).acc });
+                  switch ($can_m94.$can_kind) {
+                  case "ok": {
+                    const a = $can_m94;
+                    const $can_m95: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_step(text, pos, (fuel - 1n), a.frames);
+                    switch ($can_m95.$can_kind) {
+                    case "ok": {
+                      const r = $can_m95;
+                      return { $can_kind: "ok", value: r.value };
+                    }
+                    case "json.invalid_syntax": {
+                      const e = $can_m95;
+                      return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                    }
+                    case "json.duplicate_key": {
+                      const e = $can_m95;
+                      return { $can_kind: "json.duplicate_key", key: e.key };
+                    }
+                    default: {
+                      throw new Error("unreachable");
+                    }
+                    }
+                  }
+                  case "json.invalid_syntax": {
+                    const e = $can_m94;
+                    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+                  }
+                  default: {
+                    throw new Error("unreachable");
+                  }
+                  }
+                }
+                default: {
+                  throw new Error("unreachable");
+                }
+                }
+              }
+              else {
+                return { $can_kind: "json.invalid_syntax", detail: "bad number" };
+              }
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+        }
+        case "Json__PTail": {
+          const _ = $can_m10;
+          const $can_m96: { $can_kind: "ok"; tag: Json__HeadTag } = std__json__parse_head(text, w.value);
+          switch ($can_m96.$can_kind) {
+          case "ok": {
+            const h = $can_m96;
+            const $can_m97 = h.tag;
+            switch ($can_m97.$can_kind) {
+            case "Json__HeadBrace": {
+              const _ = $can_m97;
+              return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+            }
+            case "Json__HeadBracket": {
+              const _ = $can_m97;
+              return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+            }
+            case "Json__HeadStr": {
+              const _ = $can_m97;
+              return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+            }
+            case "Json__HeadLit": {
+              const _ = $can_m97;
+              const $can_m98: { $can_kind: "ok"; next: bigint; val: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } = std__json__parse_literal(text, w.value);
+              switch ($can_m98.$can_kind) {
+              case "ok": {
+                const l = $can_m98;
+                return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+              }
+              case "json.invalid_syntax": {
+                const e = $can_m98;
+                return { $can_kind: "json.invalid_syntax", detail: e.detail };
+              }
+              default: {
+                throw new Error("unreachable");
+              }
+              }
+            }
+            case "Json__HeadNum": {
+              const _ = $can_m97;
+              return { $can_kind: "json.invalid_syntax", detail: "trailing value" };
+            }
+            case "Json__HeadBad": {
+              const _ = $can_m97;
+              return { $can_kind: "json.invalid_syntax", detail: "unexpected char" };
+            }
+            case "Json__HeadEof": {
+              const _ = $can_m97;
+              return { $can_kind: "ok", value: $canSeqAt(stack, ((BigInt([...stack].length)) - 1n)).val };
+            }
+            default: {
+              throw new Error("unreachable");
+            }
+            }
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+}

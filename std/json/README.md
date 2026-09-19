@@ -27,5 +27,16 @@
   `json.ts` + `errors.json`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/ASTRA_STDLIB.md` §1.8.
-Byte-level parse (`invalid_syntax`, `duplicate_key`) and the
-`std__json__encode`/`decode` drivers land in a later slice.
+Byte-level parse landed in S11b: `std__json__parse_value`
+guards empty input, then `std__json__parse_step` runs a
+single self-recursive 12-state machine over `Seq<Json__PFrame>`
+(empty dispatch + `ArrFirst`/`ArrVal`/`ArrNext` + `ObjFirst`/
+`ObjKey`/`ObjColon`/`ObjKeyVal`/`ObjNext` + `StrKey`/`StrVal`/
+`NumAcc` + `Tail`). Value states push nested frames; key and
+punctuation continuations replace the top frame (a lingering
+`ObjFirst` under `StrKey` breaks `parse_attach`, found
+in-slice). `StrKey` inherits the parent's fields/keys for
+duplicate detection; numbers accumulate raw and validate
+through the 9-state numcheck; `Tail` rejects trailing values.
+Only the `std__json__encode`/`decode` text drivers remain
+(slice 12).
