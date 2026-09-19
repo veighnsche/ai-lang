@@ -449,7 +449,9 @@ func diagnoseWith(dir, name, text string, base *RevisionBaseline) []Diag {
 	out = append(out, global...)
 	recCycles := checkRecordCycles(all, texts)
 	out = append(out, recCycles...)
-	out = append(out, checkSem(open, text, prog, nil, hasErrors(global) || hasErrors(recCycles))...)
+	invokeCycles := checkInvokeCycles(all, texts, prog)
+	out = append(out, invokeCycles...)
+	out = append(out, checkSem(open, text, prog, nil, hasErrors(global) || hasErrors(recCycles) || hasErrors(invokeCycles))...)
 	if base != nil && !hasErrors(out) {
 		out = append(out, CheckRevisionIdentity(prog, texts, base)...)
 	}

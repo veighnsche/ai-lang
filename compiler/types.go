@@ -385,23 +385,33 @@ func (c *tycker) checkFnrefTarget(s *Small, tgt *FnDecl, show string, line int) 
 		c.out = append(c.out, spanDiag(c.text, line, "error",
 			fmt.Sprintf("reference to %s refused: %s", show, detail), "fnref", CodeFnTargetRefused))
 	}
-	seen := map[string]bool{s.Fname: true}
-	queue := []string{s.Fname}
+	if holder := firstRequiresHolder(c.prog, s.Fname); holder != "" {
+		disp := holder
+		if base, ok := c.prog.GenericBase[holder]; ok {
+			disp = base
+		}
+		c.out = append(c.out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("reference to %s refused: %s has a required precondition", show, disp), "fnref", CodeFnTargetRefused))
+	}
+}
+
+// firstRequiresHolder returns the first function with a required
+// precondition reachable from root (itself included) over direct
+// calls, or "" when the reachable graph is precondition-free.
+// Shared by reference-target admission and invoke-cycle
+// admissibility: captures never discharge preconditions in either.
+func firstRequiresHolder(prog *Program, root string) string {
+	seen := map[string]bool{root: true}
+	queue := []string{root}
 	for len(queue) > 0 {
 		name := queue[0]
 		queue = queue[1:]
-		fn, ok := c.prog.Fns[name]
+		fn, ok := prog.Fns[name]
 		if !ok {
 			continue
 		}
 		if len(fn.Requires) > 0 {
-			holder := name
-			if base, ok := c.prog.GenericBase[name]; ok {
-				holder = base
-			}
-			c.out = append(c.out, spanDiag(c.text, line, "error",
-				fmt.Sprintf("reference to %s refused: %s has a required precondition", show, holder), "fnref", CodeFnTargetRefused))
-			break
+			return name
 		}
 		for _, cc := range walkCalls(fn.Body) {
 			if !seen[cc.Fname] {
@@ -410,6 +420,7 @@ func (c *tycker) checkFnrefTarget(s *Small, tgt *FnDecl, show string, line int) 
 			}
 		}
 	}
+	return ""
 }
 
 // fnSeqDiags reports a sequence element carrying a callable. The

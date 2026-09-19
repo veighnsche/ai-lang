@@ -672,3 +672,63 @@ func TestCheckInvokeForwardRejects(t *testing.T) {
 		t.Fatalf("mistargeted invoke forward reported no CAN3011: %v", diags)
 	}
 }
+
+// I2b: an invocation-closed cycle is refused. A invokes its
+// callback, the rows take addresses of B for that signature, B
+// calls C, and C calls A back: every static check passes, but
+// the loop through the function value cannot terminate, so
+// CAN3005 reports at the invoke site and execution stays gated.
+const fnvaluesInvokeCycle = `mod m
+  provides [m__a, m__b, m__c, M__O]
+  uses []
+  emits []
+
+type M__O rev 1 (
+  value: int
+)
+
+fn m__b(a: int, b: int) -> M__O rev 1
+  emits []
+  tests
+    b(1, 2) => Ok(3)
+  match call m__c(a)
+    on Ok r => Ok(r.value + b)
+
+fn m__c(x: int) -> M__O rev 1
+  emits []
+  tests
+    c(1) => Ok(1)
+  match call m__a(fnref m__b(a = 1), x)
+    on Ok r => Ok(r.value)
+
+fn m__a(cb: Fn<int, M__O, []>, n: int) -> M__O rev 1
+  emits []
+  tests
+    a(fnref m__b(a = 1), 2) => Ok(3)
+  match invoke cb with n
+    on Ok r => Ok(r.value)
+`
+
+func TestCheckInvokeCycle(t *testing.T) {
+	seqCode(t, map[string]string{"m.can": fnvaluesInvokeCycle}, "m.can",
+		CodeLocalCycle, "m__a invokes m__b through a function value; invocation cannot close a cycle")
+}
+
+// Only admissible addresses close cycles: a target with a
+// required precondition contributes no edge, so the same shape
+// reports the target refusal without any cycle.
+func TestCheckInvokeCycleRequiresTargetClean(t *testing.T) {
+	body := strings.Replace(fnvaluesInvokeCycle,
+		"fn m__b(a: int, b: int) -> M__O rev 1\n  emits []",
+		"fn m__b(a: int, b: int) -> M__O rev 1\n  emits []\n  requires\n    a == 1", 1)
+	dir := writeLSPDir(t, map[string]string{"m.can": body})
+	diags := diagnose(dir, "m.can", body)
+	if !hasCode(diags, CodeFnTargetRefused) {
+		t.Fatalf("requires target reported no CAN6023: %v", diags)
+	}
+	for _, d := range diags {
+		if d.Sev == "error" && d.Code == CodeLocalCycle {
+			t.Fatalf("inadmissible address must not close a cycle, got %v", diags)
+		}
+	}
+}

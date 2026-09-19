@@ -481,7 +481,11 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	// tests or output through the same execution gate.
 	recCycles := checkRecordCycles(mods, texts)
 	collected = append(collected, recCycles...)
-	gblocked := hasErrors(global) || hasErrors(recCycles)
+	// Invocation-closed cycles refuse termination through the same
+	// gate: dynamic dispatch admits no decreases proof.
+	invokeCycles := checkInvokeCycles(mods, texts, prog)
+	collected = append(collected, invokeCycles...)
+	gblocked := hasErrors(global) || hasErrors(recCycles) || hasErrors(invokeCycles)
 	for _, m := range mods {
 		text := texts[m.ID]
 		var hook func(fn, test string)
