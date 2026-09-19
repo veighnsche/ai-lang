@@ -8,7 +8,7 @@
 // error. It never clamps, trims, or supplies a default.
 
 mod quota
-  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, std__validate__length_check, std__validate__range_check, std__validate__membership_check, std__validate__all_from, std__validate__all_push, std__validate__all, Validate__Length, Validate__Range, Validate__Membership, Validate__Outcome, Validate__Failure, Validate__Failures, Validate__Report, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
+  provides [quota__consume, quota__usage, std__validate__require, std__validate__int_range, std__validate__int_positive, std__validate__int_nonnegative, std__validate__dec_range, std__validate__dec_positive, std__validate__dec_nonnegative, std__validate__str_nonempty, std__validate__str_length, std__validate__exclusive_pair, std__validate__str_one_of_from, std__validate__str_one_of, std__validate__length_check, std__validate__range_check, std__validate__membership_check, std__validate__all_from, std__validate__all_push, std__validate__all, std__validate__schema__str, std__validate__schema__int, Validate__StrSchema, Validate__IntSchema, Validate__Length, Validate__Range, Validate__Membership, Validate__Outcome, Validate__Failure, Validate__Failures, Validate__Report, quota__request__validate, quota__request__admit, quota__envelope__validate, Quota__Usage, Validate__Pass, Int__Value, Dec__Value, Str__Value, Quota__Request, Quota__RequestSchema, Quota__RequestValue, Quota__Envelope, Quota__EnvelopeValue]
   uses [std__convert__int_to_str@1]
   emits [validation.failed, validation.invalid_bounds, validation.out_of_range, validation.not_positive, validation.negative_value, validation.dec_invalid_bounds, validation.dec_out_of_range, validation.dec_not_positive, validation.dec_negative_value, validation.invalid_length, validation.empty_value, validation.exclusive_choice, validation.not_allowed, validation.schema_violation]
 
@@ -105,6 +105,28 @@ type Quota__Request rev 1 (
   label: str
   amount: int
   mode: str
+)
+
+// Reusable schema bundles (roadmap 1.5, monomorphic family per
+// design verdict: a generic body cannot branch on its type
+// parameter, so each type owns its constraint bundle). A schema
+// runs its checks in field order and returns the accepted value.
+// StrSchema membership applies only when restrict is true; with
+// restrict and an empty allowed list nothing passes.
+type Validate__StrSchema rev 1 (
+  path: str
+  tag: str
+  minimum: int
+  maximum: int
+  allowed: Seq<str>
+  restrict: bool
+)
+
+type Validate__IntSchema rev 1 (
+  path: str
+  tag: str
+  lower: int
+  upper: int
 )
 
 type Quota__RequestSchema rev 1 (
@@ -311,6 +333,7 @@ fn std__validate__length_check(value: str, constraint: Validate__Length) -> Str_
           len_bigint_bounds => [exchange args (value = 9007199254740993) outcome Ok("9007199254740993")]
           label_bounds => [exchange args (value = 5) outcome Ok("5")]
           env_root => [exchange args (value = 5) outcome Ok("5")]
+          bad_bounds => [exchange args (value = 5) outcome Ok("5")]
         on Ok lo => match call std__convert__int_to_str(constraint.maximum)
           given
             len_bounds => [exchange args (value = 1) outcome Ok("1")]
@@ -318,6 +341,7 @@ fn std__validate__length_check(value: str, constraint: Validate__Length) -> Str_
             len_bigint_bounds => [exchange args (value = 1) outcome Ok("1")]
             label_bounds => [exchange args (value = 1) outcome Ok("1")]
             env_root => [exchange args (value = 1) outcome Ok("1")]
+            bad_bounds => [exchange args (value = 1) outcome Ok("1")]
           on Ok hi => validation.schema_violation("", "schema." + constraint.tag + "_bounds", "minimum=" + lo.value + ";maximum=" + hi.value)
       on validation.invalid_length _ => validation.schema_violation(constraint.path, "str.length_scalars", value)
       on Ok v => Ok(v.value)
@@ -344,11 +368,13 @@ fn std__validate__range_check(value: int, constraint: Validate__Range) -> Int__V
         range_bounds => [exchange args (value = 8) outcome Ok("8")]
         range_other_bounds => [exchange args (value = 10) outcome Ok("10")]
         amount_bounds => [exchange args (value = 10) outcome Ok("10")]
+        bounds => [exchange args (value = 8) outcome Ok("8")]
       on Ok lo => match call std__convert__int_to_str(constraint.upper)
         given
           range_bounds => [exchange args (value = 1) outcome Ok("1")]
           range_other_bounds => [exchange args (value = 0) outcome Ok("0")]
           amount_bounds => [exchange args (value = 0) outcome Ok("0")]
+          bounds => [exchange args (value = 1) outcome Ok("1")]
         on Ok hi => validation.schema_violation("", "schema." + constraint.tag + "_bounds", "lower=" + lo.value + ";upper=" + hi.value)
     on validation.out_of_range _ => match call std__convert__int_to_str(value)
       given
@@ -361,6 +387,9 @@ fn std__validate__range_check(value: int, constraint: Validate__Range) -> Int__V
         amount_beats_mode => [exchange args (value = 99) outcome Ok("99")]
         bigint => [exchange args (value = -9007199254740993) outcome Ok("-9007199254740993")]
         env_rendered => [exchange args (value = 11) outcome Ok("11")]
+        below => [exchange args (value = 0) outcome Ok("0")]
+        above => [exchange args (value = 9) outcome Ok("9")]
+        other_path => [exchange args (value = 11) outcome Ok("11")]
       on Ok r => validation.schema_violation(constraint.path, "int.closed_range", r.value)
     on Ok v => Ok(v.value)
 
@@ -415,6 +444,38 @@ fn std__validate__all(checks: Seq<Validate__Outcome>) -> Validate__Report rev 1
     all_fail(Seq<Validate__Outcome>[Validate__Outcome(false, "a", "r1", "d1"), Validate__Outcome(false, "b", "r2", "d2")]) => Ok(false, Seq<Validate__Failure>[Validate__Failure("a", "r1", "d1"), Validate__Failure("b", "r2", "d2")])
   match call std__validate__all_from(checks, 0, #checks, Seq<Validate__Failure>[])
     on Ok r => Ok(r.passed, r.failures)
+
+fn std__validate__schema__str(value: str, schema: Validate__StrSchema) -> Str__Value rev 1
+  emits [validation.schema_violation]
+  tests
+    ok_open("Ada", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>[], false)) => Ok("Ada")
+    ok_member("Ada", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>["Ada", "Bo"], true)) => Ok("Ada")
+    short("", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>[], false)) => validation.schema_violation("guest", "str.length_scalars", "")
+    long("abcdefghijklmnopqrstuvwxy", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>[], false)) => validation.schema_violation("guest", "str.length_scalars", "abcdefghijklmnopqrstuvwxy")
+    outsider("Zed", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>["Ada", "Bo"], true)) => validation.schema_violation("guest", "str.one_of", "Zed")
+    ignored_when_open("Zed", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>["Ada"], false)) => Ok("Zed")
+    empty_allowed_bars_all("Ada", Validate__StrSchema("guest", "guest", 1, 24, Seq<str>[], true)) => validation.schema_violation("guest", "str.one_of", "Ada")
+    bad_bounds("Ada", Validate__StrSchema("guest", "guest", 5, 1, Seq<str>[], false)) => validation.schema_violation("", "schema.guest_bounds", "minimum=5;maximum=1")
+    other_path("", Validate__StrSchema("label", "label", 1, 12, Seq<str>[], false)) => validation.schema_violation("label", "str.length_scalars", "")
+  match call std__validate__length_check(value, Validate__Length(schema.path, schema.tag, schema.minimum, schema.maximum))
+    on validation.schema_violation e => forward e
+    on Ok v => match schema.restrict
+      true => match call std__validate__membership_check(v.value, Validate__Membership(schema.path, schema.allowed))
+        on validation.schema_violation e => forward e
+        on Ok m => Ok(m.value)
+      false => Ok(v.value)
+
+fn std__validate__schema__int(value: int, schema: Validate__IntSchema) -> Int__Value rev 1
+  emits [validation.schema_violation]
+  tests
+    ok(3, Validate__IntSchema("party", "party", 1, 8)) => Ok(3)
+    below(0, Validate__IntSchema("party", "party", 1, 8)) => validation.schema_violation("party", "int.closed_range", "0")
+    above(9, Validate__IntSchema("party", "party", 1, 8)) => validation.schema_violation("party", "int.closed_range", "9")
+    bounds(3, Validate__IntSchema("party", "party", 8, 1)) => validation.schema_violation("", "schema.party_bounds", "lower=8;upper=1")
+    other_path(11, Validate__IntSchema("amount", "amount", 1, 10)) => validation.schema_violation("amount", "int.closed_range", "11")
+  match call std__validate__range_check(value, Validate__Range(schema.path, schema.tag, schema.lower, schema.upper))
+    on validation.schema_violation e => forward e
+    on Ok v => Ok(v.value)
 
 fn quota__request__validate(request: Quota__Request, schema: Quota__RequestSchema) -> Quota__RequestValue rev 1
   emits [validation.schema_violation]

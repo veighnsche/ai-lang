@@ -15,6 +15,8 @@ export type Validate__Failure = { path: string; rule: string; detail: string };
 export type Validate__Report = { passed: boolean; failures: Validate__Failure[] };
 export type Validate__Failures = { values: Validate__Failure[] };
 export type Quota__Request = { label: string; amount: bigint; mode: string };
+export type Validate__StrSchema = { path: string; tag: string; minimum: bigint; maximum: bigint; allowed: string[]; restrict: boolean };
+export type Validate__IntSchema = { path: string; tag: string; lower: bigint; upper: bigint };
 export type Quota__RequestSchema = { label_minimum: bigint; label_maximum: bigint; amount_lower: bigint; amount_upper: bigint; allowed_modes: string[] };
 export type Quota__RequestValue = { value: Quota__Request };
 export type Quota__Envelope = { request: Quota__Request };
@@ -406,6 +408,56 @@ export function std__validate__all(checks: Validate__Outcome[]): { $can_kind: "o
   case "ok": {
     const r = $can_m1;
     return { $can_kind: "ok", passed: r.passed, failures: r.failures };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__validate__schema__str(value: string, schema: Validate__StrSchema): { $can_kind: "ok"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } = std__validate__length_check(value, { path: schema.path, tag: schema.tag, minimum: schema.minimum, maximum: schema.maximum });
+  switch ($can_m1.$can_kind) {
+  case "validation.schema_violation": {
+    const e = $can_m1;
+    return { $can_kind: "validation.schema_violation", path: e.path, rule: e.rule, value: e.value };
+  }
+  case "ok": {
+    const v = $can_m1;
+    if (schema.restrict) {
+      const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } = std__validate__membership_check(v.value, { path: schema.path, allowed: schema.allowed });
+      switch ($can_m2.$can_kind) {
+      case "validation.schema_violation": {
+        const e = $can_m2;
+        return { $can_kind: "validation.schema_violation", path: e.path, rule: e.rule, value: e.value };
+      }
+      case "ok": {
+        const m = $can_m2;
+        return { $can_kind: "ok", value: m.value };
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: v.value };
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__validate__schema__int(value: bigint, schema: Validate__IntSchema): { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: bigint } | { $can_kind: "validation.schema_violation"; path: string; rule: string; value: string } = std__validate__range_check(value, { path: schema.path, tag: schema.tag, lower: schema.lower, upper: schema.upper });
+  switch ($can_m1.$can_kind) {
+  case "validation.schema_violation": {
+    const e = $can_m1;
+    return { $can_kind: "validation.schema_violation", path: e.path, rule: e.rule, value: e.value };
+  }
+  case "ok": {
+    const v = $can_m1;
+    return { $can_kind: "ok", value: v.value };
   }
   default: {
     throw new Error("unreachable");
