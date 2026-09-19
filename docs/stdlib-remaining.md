@@ -23,7 +23,7 @@ landed, unblocking the §1.8 callback rows. Slices 7+ below.
 | 6 | `a80e1f5` | NEW `std/map`, `std/set`; 95 rows |
 | 7 | `44b188b` | NEW `std/seq` map/filter/fold/all/any/find; 62 rows |
 | 8 | `02495f4` | NEW `std/seq` sort/unique; 40 rows |
-| 9 | TBD | NEW `std/json` value layer: AST + render frame machine + escape + 8 scalar codecs + monomorphic schema family with Fn dispatch; 125 rows |
+| 9 | `43f0dfc` | NEW `std/json` value layer: AST + render frame machine + escape + 8 scalar codecs + monomorphic schema family with Fn dispatch; 125 rows |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
