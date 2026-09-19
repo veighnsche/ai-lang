@@ -139,6 +139,117 @@ func TestParseFnrefRejectsPositional(t *testing.T) {
 	}
 }
 
+const fnvaluesInvokeGood = `mod m
+  provides [m__go, m__t, M__O]
+  uses []
+  emits [m.err]
+
+error m.err(detail: str)
+
+type M__O rev 1 (
+  value: str
+)
+
+fn m__t(divisor: int, dividend: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    t(3, 7) => Ok("q")
+  Ok("q")
+
+fn m__go(cb: Fn<int, M__O, [m.err]>, n: int) -> M__O rev 1
+  emits [m.err]
+  tests
+    g(3, 4) => Ok("q")
+  match invoke cb with n
+    on Ok v => Ok(v.value)
+    on m.err _ => Ok("e")
+`
+
+func TestParseMatchInvoke(t *testing.T) {
+	m, err := parseModuleText("m.can", fnvaluesInvokeGood)
+	if err != nil {
+		t.Fatalf("match invoke must parse: %v", err)
+	}
+	var body *Node
+	for _, d := range m.Decls {
+		if f, ok := d.(*FnDecl); ok && f.Name == "m__go" {
+			body = f.Body
+		}
+	}
+	if body == nil || !body.IsMatch || body.Kind != MatchInvoke {
+		t.Fatalf("body kind = %+v, want MatchInvoke", body)
+	}
+	if len(body.Scruts) != 1 || body.Scruts[0].Kind != "ref" {
+		t.Fatalf("scruts = %+v, want one ref", body.Scruts)
+	}
+	if body.InvokeArg == nil {
+		t.Fatal("InvokeArg missing")
+	}
+	if len(body.Arms) != 2 {
+		t.Fatalf("arms = %d, want 2", len(body.Arms))
+	}
+	if body.Arms[0].Pats[0].Name != "Ok" || body.Arms[1].Pats[0].Name != "m.err" {
+		t.Fatalf("arm patterns parsed as values, want call-style: %+v", body.Arms)
+	}
+}
+
+func TestParseMatchInvokeRejects(t *testing.T) {
+	for _, head := range []string{
+		"  match invoke cb\n",
+		"  match invoke cb with 6, 7\n",
+		"  match invoke call m__t(1) with 2\n",
+		"  match invoke 6 with 7\n",
+	} {
+		src := fnvaluesInvokeGood
+		start := strings.Index(src, "  match invoke cb with n\n")
+		src = src[:start] + head + "    on Ok v => Ok(v.value)\n    on m.err _ => Ok(\"e\")\n"
+		if _, err := parseModuleText("m.can", src); err == nil {
+			t.Fatalf("invoke head %q must be rejected at parse", head)
+		}
+	}
+}
+
+// A bare `match invoke` is not an invoke head: it falls through to
+// an ordinary value match, so a variable named invoke keeps working.
+func TestParseMatchInvokeBareFallsThrough(t *testing.T) {
+	src := fnvaluesInvokeGood
+	start := strings.Index(src, "  match invoke cb with n\n")
+	arms := "    true => Ok(\"q\")\n    false => Ok(\"e\")\n"
+	src = src[:start] + "  match invoke\n" + arms
+	m, err := parseModuleText("m.can", src)
+	if err != nil {
+		t.Fatalf("bare match invoke must fall through: %v", err)
+	}
+	for _, d := range m.Decls {
+		if f, ok := d.(*FnDecl); ok && f.Name == "m__go" {
+			if !f.Body.IsMatch || f.Body.Kind != MatchValue {
+				t.Fatalf("kind = %v, want MatchValue", f.Body.Kind)
+			}
+			return
+		}
+	}
+	t.Fatal("m__go missing after parse")
+}
+
+func TestParseMatchInvokeGiven(t *testing.T) {
+	src := strings.Replace(fnvaluesInvokeGood,
+		"  match invoke cb with n\n",
+		"  match invoke cb with n\n    given\n      g => [exchange args (n = 4) outcome Ok(\"q\")]\n", 1)
+	m, err := parseModuleText("m.can", src)
+	if err != nil {
+		t.Fatalf("given on invoke must parse: %v", err)
+	}
+	for _, d := range m.Decls {
+		if f, ok := d.(*FnDecl); ok && f.Name == "m__go" {
+			if f.Body.Given == nil {
+				t.Fatal("Given missing on invoke node")
+			}
+			return
+		}
+	}
+	t.Fatal("m__go missing after parse")
+}
+
 func TestParseFnrefRejectsMalformed(t *testing.T) {
 	for _, bad := range []string{
 		"  Ok(fnref m__t(divisor = ))\n",

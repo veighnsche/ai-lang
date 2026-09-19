@@ -1434,6 +1434,9 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 		// Reaching codegen unelaborated is a compiler bug.
 		return fmt.Errorf("match chain reached emit unelaborated")
 	}
+	if node.Kind == MatchInvoke {
+		return fmt.Errorf("function invocation is deferred")
+	}
 	if node.Kind != MatchCall {
 		return e.emitValueMatch(node, out)
 	}

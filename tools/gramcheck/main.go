@@ -34,7 +34,7 @@ type sampleCase struct {
 }
 
 var cases = []sampleCase{
-	{"keyword.control.can", []string{"on", "rev", "match", "given", "brand", "const", "forward", "fnref", "extern", "seal", "seals_from", "decreases", "requires", "ensures", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge", "and", "or", "not", "as", "variant"}},
+	{"keyword.control.can", []string{"on", "rev", "match", "given", "brand", "const", "forward", "fnref", "invoke", "extern", "seal", "seals_from", "decreases", "requires", "ensures", "state", "effects", "exchange", "args", "outcome", "exports_utf8", "asset_bridge", "and", "or", "not", "as", "variant"}},
 	{"storage.type.primitive.can", []string{"str", "int", "dec"}},
 	{"storage.type.builtin.can", []string{"Seq", "Bytes", "Fn"}},
 	{"storage.type.generic.can", []string{"<T>", "<T=str>", "<str>", "<str,int>"}},

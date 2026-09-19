@@ -35,6 +35,9 @@ func elaborateForwards(open *Module, prog *Program, text string) []Diag {
 					continue
 				}
 				operand := strings.TrimSpace(a.Rhs.Small.Str)
+				if m.Kind == MatchInvoke {
+					continue // invoke arms are call-shaped; forward validity lands with invocation
+				}
 				if m.Kind != MatchCall || len(m.Scruts) != 1 || m.Scruts[0].Kind != "call" {
 					fail(a.Line, "forward is a call-outcome arm shape: value matches cannot forward")
 					continue

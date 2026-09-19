@@ -1372,6 +1372,26 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		c.value(n.Small, w, n.Line, env, "returns")
 		return
 	}
+	if n.Kind == MatchInvoke {
+		// B00 stage 1: invocation parses but has no proof, run,
+		// or emit yet, so the node is refused before any value
+		// or exhaustiveness logic could misread its call-shaped
+		// arms. Reference, argument, and arm bodies still check
+		// structurally; Ok binders stay unbound until the
+		// invocation slice threads the reference type through.
+		c.out = append(c.out, spanDiag(c.text, n.Line, "error",
+			"function invocation is deferred: invocation has not landed yet", "invoke", CodeFnValueDeferred))
+		for _, s := range n.Scruts {
+			c.value(s, "", n.Line, env, "match scrutinee")
+		}
+		if n.InvokeArg != nil {
+			c.value(n.InvokeArg, "", n.Line, env, "invoke argument")
+		}
+		for _, a := range n.Arms {
+			c.node(a.Rhs, env, want)
+		}
+		return
+	}
 	// Every scrutinee is valued, so a bad reference in any slot is
 	// caught here exactly as it is at runtime. Only call matches take
 	// arm bindings, and they always carry one scrutinee.

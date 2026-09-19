@@ -176,6 +176,12 @@ const (
 	// meet the two shapes above; an unelaborated chain reaching them
 	// is a compiler bug and fails closed wherever Kind switches.
 	MatchChain
+	// MatchInvoke discriminates one function-value invocation: a
+	// bare-name reference plus a single `with` argument, Ok or
+	// emitted error variants (B00). Stage 1 parses the shape and
+	// refuses it statically; proof, run, and emit fail closed on
+	// the kind until invocation lands.
+	MatchInvoke
 )
 
 // ChainStep is one chain link: a call, its Ok-payload binder, and an
@@ -199,9 +205,13 @@ type Node struct {
 	// arity or scrutinee shape.
 	Kind MatchKind
 	// Scruts holds the match scrutinees: exactly one for MatchCall,
-	// one or more for MatchValue.
+	// one or more for MatchValue, the bare-name reference for
+	// MatchInvoke (whose single argument rides InvokeArg).
 	Scruts []*Small
 	Arms   []Arm
+	// InvokeArg holds the one `with` argument of a MatchInvoke;
+	// nil for every other kind.
+	InvokeArg *Small
 	Given  map[string]*Small // nil value node = retired "-" row, rejected in checkGiven (a91)
 	Small  *Small
 	Line   int
@@ -2578,7 +2588,20 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 		if strings.TrimSpace(code) == "match chain" && isChainBlock(rows, i+1, indent) {
 			return parseChainBlock(rows, i+1, indent, mline)
 		}
-		scruts, err := parseScrutList(strings.TrimSpace(code[len("match "):]))
+		head := strings.TrimSpace(code[len("match "):])
+		if ref, arg, err, matched := parseInvokeHead(head); matched {
+			if err != nil {
+				return nil, i, at(mline, err)
+			}
+			node, next, err := parseMatchArmsKind(rows, i+1, indent, mline, []*Small{ref}, MatchInvoke)
+			if err != nil {
+				return nil, next, err
+			}
+			node.InvokeArg = arg
+			node.Line = mline
+			return node, next, nil
+		}
+		scruts, err := parseScrutList(head)
 		if err != nil {
 			return nil, i, at(mline, err)
 		}
@@ -2594,6 +2617,32 @@ func parseExprBlock(rows []row, i, parentIndent int) (*Node, int, error) {
 		return nil, i, at(mline, err)
 	}
 	return &Node{Small: sm, Line: mline}, i + 1, nil
+}
+
+// parseInvokeHead parses `invoke <ref> with <arg>` (B00): the
+// reference is a bare name, the argument one value expression
+// (singleton by construction: a comma fails Small parsing).
+// ok=false falls through to ordinary scrutinee parsing, so a
+// variable named invoke keeps working exactly as before; only a
+// head-shaped line takes the invoke path, and then malformed
+// references report here.
+func parseInvokeHead(s string) (ref, arg *Small, err error, matched bool) {
+	m := regexp.MustCompile(`^invoke\s+(\w+)\s+with\s+(.+)$`).FindStringSubmatch(s)
+	if m == nil {
+		return nil, nil, nil, false
+	}
+	ref, err = parseSmall(m[1])
+	if err != nil {
+		return nil, nil, err, true
+	}
+	if ref.Kind != "ref" || len(ref.Ref) != 1 {
+		return nil, nil, fmt.Errorf("bad invoke target: want a bare name, got %s", m[1]), true
+	}
+	arg, err = parseSmall(m[2])
+	if err != nil {
+		return nil, nil, err, true
+	}
+	return ref, arg, nil, true
 }
 
 // parseScrutList parses a match scrutinee list: one value/call expression,
@@ -2621,6 +2670,14 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 	if len(scruts) == 1 && scruts[0].Kind == "call" {
 		kind = MatchCall
 	}
+	return parseMatchArmsKind(rows, i, indent, mline, scruts, kind)
+}
+
+// parseMatchArmsKind parses arms for a pre-decided kind. Invoke
+// heads decide MatchInvoke before scrutinee shape could (a bare
+// reference is not a call); every other site derives the kind
+// from shape exactly as before.
+func parseMatchArmsKind(rows []row, i, indent, mline int, scruts []*Small, kind MatchKind) (*Node, int, error) {
 	node := &Node{IsMatch: true, Kind: kind, Scruts: scruts, Line: mline}
 	for i < len(rows) && rows[i].indent > indent {
 		ind, c := rows[i].indent, rows[i].code
@@ -2648,7 +2705,7 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 		for _, p := range patParts {
 			var pat Pattern
 			var err error
-			if kind == MatchCall {
+			if kind == MatchCall || kind == MatchInvoke {
 				pat, err = parsePattern(p)
 			} else {
 				pat, err = parseValuePattern(p)
@@ -2673,7 +2730,8 @@ func parseMatchArms(rows []row, i, indent, mline int, scruts []*Small) (*Node, i
 	// Single non-call matches take no given table. Multi matches with a
 	// given table parse and fail in checkGiven with CodeGivenOnLocal, so
 	// the diagnostic names the rule instead of a coarse parse error.
-	if node.Given != nil && len(node.Scruts) == 1 && node.Scruts[0].Kind != "call" {
+	// Invoke matches keep their table: scripting lands with invocation.
+	if node.Given != nil && node.Kind == MatchValue && len(node.Scruts) == 1 {
 		return nil, i, at(node.Line, fmt.Errorf("given table on a non-call match"))
 	}
 	return node, i, nil

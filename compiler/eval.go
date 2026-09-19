@@ -1033,6 +1033,9 @@ func evMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Value,
 	if node.Kind == MatchCall {
 		return evCallMatch(node, env, ctx, owner)
 	}
+	if node.Kind == MatchInvoke {
+		return nil, fmt.Errorf("%s: function invocation is deferred", owner)
+	}
 	if !elaborated(node) {
 		// Reaching evaluation unelaborated is a compiler bug.
 		return nil, fmt.Errorf("%s: match chain reached evaluation unelaborated", owner)
@@ -2051,6 +2054,10 @@ func verifyExhaustiveAll(mods []*Module, prog *Program) []error {
 		if !elaborated(n) {
 			// Reaching verification unelaborated is a compiler bug.
 			out = append(out, at(n.Line, proofErrf(CodeProofOther, "%s: match chain reached proof unelaborated", owner)))
+			return
+		}
+		if n.Kind == MatchInvoke {
+			out = append(out, at(n.Line, proofErrf(CodeProofOther, "%s: function invocation is deferred", owner)))
 			return
 		}
 		if n.Kind == MatchCall {
