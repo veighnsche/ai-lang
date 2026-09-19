@@ -38,5 +38,8 @@ punctuation continuations replace the top frame (a lingering
 in-slice). `StrKey` inherits the parent's fields/keys for
 duplicate detection; numbers accumulate raw and validate
 through the 9-state numcheck; `Tail` rejects trailing values.
-Only the `std__json__encode`/`decode` text drivers remain
-(slice 12).
+Text drivers landed in S12: per-scalar `encode_text`
+(value → schema Doc → render) and `decode_text`
+(parse → schema Doc decode) for `int`/`str`/`bool`/`dec`,
+reusing the S9 `given` exchanges by test name (`frac`/`exp`
+rows added for the int/dec out-of-range paths).

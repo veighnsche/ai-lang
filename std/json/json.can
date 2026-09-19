@@ -19,7 +19,7 @@
 // carries its exact encode/decode callbacks.
 
 mod json
-  provides [std__json__RENDER_FUEL, std__json__PARSE_FUEL, std__json__render_value, std__json__render_step, std__json__pop, std__json__pop_from, std__json__escape, std__json__escape_from, std__json__escape_hex, std__json__hexdigit, std__json__int__encode, std__json__int__decode, std__json__str__encode, std__json__str__decode, std__json__bool__encode, std__json__bool__decode, std__json__dec__encode, std__json__dec__decode, std__json__int__encode_apply, std__json__int__decode_apply, std__json__str__encode_apply, std__json__str__decode_apply, std__json__bool__encode_apply, std__json__bool__decode_apply, std__json__dec__encode_apply, std__json__dec__decode_apply, std__json__int__encode_value, std__json__int__decode_value, std__json__str__encode_value, std__json__str__decode_value, std__json__bool__encode_value, std__json__bool__decode_value, std__json__dec__encode_value, std__json__dec__decode_value, std__json__parse_value, std__json__parse_step, std__json__parse_attach, std__json__parse_head, std__json__parse_literal, std__json__parse_unescape, std__json__parse_numcheck, std__json__parse_numcheck_from, std__json__parse_contains_key, std__json__parse_contains_key_from, std__json__parse_ws_skip, std__json__parse_ws_skip_from, std__json__parse_pop, std__json__parse_pop_from, Int__Value, Dec__Value, Str__Value, Bool__Value, Json__Text, Json__Field, Json__Doc, Json__Value, Json__Tag, Json__Frame, Json__Frames, Json__IntSchema, Json__StrSchema, Json__BoolSchema, Json__DecSchema, Json__PTag, Json__PFrame, Json__PFrames, Json__HeadTag, Json__Head, Json__LitOut]
+  provides [std__json__RENDER_FUEL, std__json__PARSE_FUEL, std__json__render_value, std__json__render_step, std__json__pop, std__json__pop_from, std__json__escape, std__json__escape_from, std__json__escape_hex, std__json__hexdigit, std__json__int__encode, std__json__int__decode, std__json__str__encode, std__json__str__decode, std__json__bool__encode, std__json__bool__decode, std__json__dec__encode, std__json__dec__decode, std__json__int__encode_apply, std__json__int__decode_apply, std__json__str__encode_apply, std__json__str__decode_apply, std__json__bool__encode_apply, std__json__bool__decode_apply, std__json__dec__encode_apply, std__json__dec__decode_apply, std__json__int__encode_value, std__json__int__decode_value, std__json__str__encode_value, std__json__str__decode_value, std__json__bool__encode_value, std__json__bool__decode_value, std__json__dec__encode_value, std__json__dec__decode_value, std__json__int__encode_text, std__json__int__decode_text, std__json__str__encode_text, std__json__str__decode_text, std__json__bool__encode_text, std__json__bool__decode_text, std__json__dec__encode_text, std__json__dec__decode_text, std__json__parse_value, std__json__parse_step, std__json__parse_attach, std__json__parse_head, std__json__parse_literal, std__json__parse_unescape, std__json__parse_numcheck, std__json__parse_numcheck_from, std__json__parse_contains_key, std__json__parse_contains_key_from, std__json__parse_ws_skip, std__json__parse_ws_skip_from, std__json__parse_pop, std__json__parse_pop_from, Int__Value, Dec__Value, Str__Value, Bool__Value, Json__Text, Json__Field, Json__Doc, Json__Value, Json__Tag, Json__Frame, Json__Frames, Json__IntSchema, Json__StrSchema, Json__BoolSchema, Json__DecSchema, Json__PTag, Json__PFrame, Json__PFrames, Json__HeadTag, Json__Head, Json__LitOut]
   uses [std__convert__int_to_str@1, std__convert__str_to_int@1, std__convert__dec_to_str@1, std__convert__str_to_dec@1]
   emits [json.schema_mismatch, json.numeric_out_of_range, json.invalid_syntax, json.duplicate_key]
 
@@ -289,6 +289,7 @@ fn std__json__int__decode(value: Json__Value) -> Int__Value rev 1
       given
         num => [exchange args (value = "42") outcome Ok(42)]
         bad => [exchange args (value = "12a") outcome convert.invalid_integer("12a")]
+        frac => [exchange args (value = "1.5") outcome convert.invalid_integer("1.5")]
       on Ok r => Ok(r.value)
       on convert.invalid_integer _ => json.numeric_out_of_range(t.text)
     on Json__Null _ => json.schema_mismatch("want int, got null")
@@ -371,6 +372,7 @@ fn std__json__dec__decode(value: Json__Value) -> Dec__Value rev 1
       given
         num => [exchange args (value = "1.5") outcome Ok(d"1.5")]
         bad => [exchange args (value = "1.2.3") outcome convert.invalid_decimal("1.2.3")]
+        exp => [exchange args (value = "1e2") outcome convert.invalid_decimal("1e2")]
       on Ok r => Ok(r.value)
       on convert.invalid_decimal _ => json.numeric_out_of_range(t.text)
     on Json__Null _ => json.schema_mismatch("want dec, got null")
@@ -540,6 +542,107 @@ fn std__json__dec__decode_value(value: Json__Value, schema: Json__DecSchema) -> 
     on Ok r => Ok(r.value)
     on json.schema_mismatch e => forward e
     on json.numeric_out_of_range e => forward e
+
+// Text drivers: each scalar's schema round-trips through the
+// value layer — encode renders the schema's Doc, decode parses
+// text then runs the schema's Doc decoder.
+fn std__json__int__encode_text(value: int, schema: Json__IntSchema) -> Json__Text rev 1
+  emits []
+  tests
+    zero(0, Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => Ok("0")
+    neg(-7, Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => Ok("-7")
+  match call std__json__int__encode_value(value, schema)
+    on Ok d => match call std__json__render_value(d.value)
+      on Ok t => Ok(t.value)
+
+fn std__json__int__decode_text(text: str, schema: Json__IntSchema) -> Int__Value rev 1
+  emits [json.invalid_syntax, json.duplicate_key, json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num("42", Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => Ok(42)
+    frac("1.5", Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => json.numeric_out_of_range("1.5")
+    mistype("true", Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => json.schema_mismatch("want int, got bool")
+    syntax("1 x", Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => json.invalid_syntax("unexpected char")
+    dup(e"{\"a\": 1, \"a\": 2}", Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => json.duplicate_key("a")
+  match call std__json__parse_value(text)
+    on Ok d => match call std__json__int__decode_value(d.value, schema)
+      on Ok r => Ok(r.value)
+      on json.schema_mismatch e => forward e
+      on json.numeric_out_of_range e => forward e
+    on json.invalid_syntax e => forward e
+    on json.duplicate_key e => forward e
+
+fn std__json__str__encode_text(value: str, schema: Json__StrSchema) -> Json__Text rev 1
+  emits []
+  tests
+    plain("a", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok(e"\"a\"")
+    empty("", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok(e"\"\"")
+  match call std__json__str__encode_value(value, schema)
+    on Ok d => match call std__json__render_value(d.value)
+      on Ok t => Ok(t.value)
+
+fn std__json__str__decode_text(text: str, schema: Json__StrSchema) -> Str__Value rev 1
+  emits [json.invalid_syntax, json.duplicate_key, json.schema_mismatch]
+  tests
+    str(e"\"a\"", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok("a")
+    empty(e"\"\"", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok("")
+    mistype("1", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => json.schema_mismatch("want str, got num")
+    syntax("1 x", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => json.invalid_syntax("unexpected char")
+    dup(e"{\"a\": 1, \"a\": 2}", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => json.duplicate_key("a")
+  match call std__json__parse_value(text)
+    on Ok d => match call std__json__str__decode_value(d.value, schema)
+      on Ok r => Ok(r.value)
+      on json.schema_mismatch e => forward e
+    on json.invalid_syntax e => forward e
+    on json.duplicate_key e => forward e
+
+fn std__json__bool__encode_text(value: bool, schema: Json__BoolSchema) -> Json__Text rev 1
+  emits []
+  tests
+    t(true, Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok("true")
+    f(false, Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok("false")
+  match call std__json__bool__encode_value(value, schema)
+    on Ok d => match call std__json__render_value(d.value)
+      on Ok t => Ok(t.value)
+
+fn std__json__bool__decode_text(text: str, schema: Json__BoolSchema) -> Bool__Value rev 1
+  emits [json.invalid_syntax, json.duplicate_key, json.schema_mismatch]
+  tests
+    t("true", Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok(true)
+    f("false", Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok(false)
+    mistype(e"\"a\"", Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => json.schema_mismatch("want bool, got str")
+    syntax("1 x", Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => json.invalid_syntax("unexpected char")
+    dup(e"{\"a\": 1, \"a\": 2}", Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => json.duplicate_key("a")
+  match call std__json__parse_value(text)
+    on Ok d => match call std__json__bool__decode_value(d.value, schema)
+      on Ok r => Ok(r.value)
+      on json.schema_mismatch e => forward e
+    on json.invalid_syntax e => forward e
+    on json.duplicate_key e => forward e
+
+fn std__json__dec__encode_text(value: dec, schema: Json__DecSchema) -> Json__Text rev 1
+  emits []
+  tests
+    frac(d"12.34", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => Ok("12.34")
+    neg(d"-0.5", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => Ok("-0.5")
+  match call std__json__dec__encode_value(value, schema)
+    on Ok d => match call std__json__render_value(d.value)
+      on Ok t => Ok(t.value)
+
+fn std__json__dec__decode_text(text: str, schema: Json__DecSchema) -> Dec__Value rev 1
+  emits [json.invalid_syntax, json.duplicate_key, json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num("1.5", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => Ok(d"1.5")
+    exp("1e2", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => json.numeric_out_of_range("1e2")
+    mistype("true", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => json.schema_mismatch("want dec, got bool")
+    syntax("1 x", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => json.invalid_syntax("unexpected char")
+    dup(e"{\"a\": 1, \"a\": 2}", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => json.duplicate_key("a")
+  match call std__json__parse_value(text)
+    on Ok d => match call std__json__dec__decode_value(d.value, schema)
+      on Ok r => Ok(r.value)
+      on json.schema_mismatch e => forward e
+      on json.numeric_out_of_range e => forward e
+    on json.invalid_syntax e => forward e
+    on json.duplicate_key e => forward e
 
 // Parse machine: text to Json__Doc in ONE self-recursive
 // function over an explicit PFrame stack (same mutual-recursion

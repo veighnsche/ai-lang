@@ -1002,6 +1002,230 @@ export function std__json__dec__decode_value(value: Json__Value, schema: Json__D
   }
   }
 }
+export function std__json__int__encode_text(value: bigint, schema: Json__IntSchema): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } = std__json__int__encode_value(value, schema);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } = std__json__render_value(d.value);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const t = $can_m2;
+      return { $can_kind: "ok", value: t.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__int__decode_text(text: string, schema: Json__IntSchema): { $can_kind: "ok"; value: bigint } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.numeric_out_of_range"; text: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_value(text);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: bigint } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.numeric_out_of_range"; text: string } = std__json__int__decode_value(d.value, schema);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const r = $can_m2;
+      return { $can_kind: "ok", value: r.value };
+    }
+    case "json.schema_mismatch": {
+      const e = $can_m2;
+      return { $can_kind: "json.schema_mismatch", detail: e.detail };
+    }
+    case "json.numeric_out_of_range": {
+      const e = $can_m2;
+      return { $can_kind: "json.numeric_out_of_range", text: e.text };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  case "json.invalid_syntax": {
+    const e = $can_m1;
+    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+  }
+  case "json.duplicate_key": {
+    const e = $can_m1;
+    return { $can_kind: "json.duplicate_key", key: e.key };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__str__encode_text(value: string, schema: Json__StrSchema): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } = std__json__str__encode_value(value, schema);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } = std__json__render_value(d.value);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const t = $can_m2;
+      return { $can_kind: "ok", value: t.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__str__decode_text(text: string, schema: Json__StrSchema): { $can_kind: "ok"; value: string } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } | { $can_kind: "json.schema_mismatch"; detail: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_value(text);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } = std__json__str__decode_value(d.value, schema);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const r = $can_m2;
+      return { $can_kind: "ok", value: r.value };
+    }
+    case "json.schema_mismatch": {
+      const e = $can_m2;
+      return { $can_kind: "json.schema_mismatch", detail: e.detail };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  case "json.invalid_syntax": {
+    const e = $can_m1;
+    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+  }
+  case "json.duplicate_key": {
+    const e = $can_m1;
+    return { $can_kind: "json.duplicate_key", key: e.key };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__bool__encode_text(value: boolean, schema: Json__BoolSchema): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } = std__json__bool__encode_value(value, schema);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } = std__json__render_value(d.value);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const t = $can_m2;
+      return { $can_kind: "ok", value: t.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__bool__decode_text(text: string, schema: Json__BoolSchema): { $can_kind: "ok"; value: boolean } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } | { $can_kind: "json.schema_mismatch"; detail: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_value(text);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: boolean } | { $can_kind: "json.schema_mismatch"; detail: string } = std__json__bool__decode_value(d.value, schema);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const r = $can_m2;
+      return { $can_kind: "ok", value: r.value };
+    }
+    case "json.schema_mismatch": {
+      const e = $can_m2;
+      return { $can_kind: "json.schema_mismatch", detail: e.detail };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  case "json.invalid_syntax": {
+    const e = $can_m1;
+    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+  }
+  case "json.duplicate_key": {
+    const e = $can_m1;
+    return { $can_kind: "json.duplicate_key", key: e.key };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__dec__encode_text(value: string, schema: Json__DecSchema): { $can_kind: "ok"; value: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } = std__json__dec__encode_value(value, schema);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } = std__json__render_value(d.value);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const t = $can_m2;
+      return { $can_kind: "ok", value: t.value };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__json__dec__decode_text(text: string, schema: Json__DecSchema): { $can_kind: "ok"; value: string } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.numeric_out_of_range"; text: string } {
+  const $can_m1: { $can_kind: "ok"; value: Json__Value } | { $can_kind: "json.invalid_syntax"; detail: string } | { $can_kind: "json.duplicate_key"; key: string } = std__json__parse_value(text);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const d = $can_m1;
+    const $can_m2: { $can_kind: "ok"; value: string } | { $can_kind: "json.schema_mismatch"; detail: string } | { $can_kind: "json.numeric_out_of_range"; text: string } = std__json__dec__decode_value(d.value, schema);
+    switch ($can_m2.$can_kind) {
+    case "ok": {
+      const r = $can_m2;
+      return { $can_kind: "ok", value: r.value };
+    }
+    case "json.schema_mismatch": {
+      const e = $can_m2;
+      return { $can_kind: "json.schema_mismatch", detail: e.detail };
+    }
+    case "json.numeric_out_of_range": {
+      const e = $can_m2;
+      return { $can_kind: "json.numeric_out_of_range", text: e.text };
+    }
+    default: {
+      throw new Error("unreachable");
+    }
+    }
+  }
+  case "json.invalid_syntax": {
+    const e = $can_m1;
+    return { $can_kind: "json.invalid_syntax", detail: e.detail };
+  }
+  case "json.duplicate_key": {
+    const e = $can_m1;
+    return { $can_kind: "json.duplicate_key", key: e.key };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
 export function std__json__parse_ws_skip(text: string, pos: bigint): { $can_kind: "ok"; value: bigint } {
   const $can_m1: { $can_kind: "ok"; value: bigint } = std__json__parse_ws_skip_from(text, pos, (BigInt([...text].length)), pos);
   switch ($can_m1.$can_kind) {

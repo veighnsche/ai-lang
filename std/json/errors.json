@@ -162,10 +162,26 @@
       "key"
     ],
     "raised_by": [
+      "json.std__json__bool__decode_text",
+      "json.std__json__dec__decode_text",
+      "json.std__json__int__decode_text",
       "json.std__json__parse_step",
-      "json.std__json__parse_value"
+      "json.std__json__parse_value",
+      "json.std__json__str__decode_text"
     ],
     "handled_by": [
+      {
+        "fn": "json.std__json__bool__decode_text",
+        "arm": "on json.duplicate_key e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__dec__decode_text",
+        "arm": "on json.duplicate_key e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__int__decode_text",
+        "arm": "on json.duplicate_key e =\u003e forward e"
+      },
       {
         "fn": "json.std__json__parse_step",
         "arm": "on Json__HeadBrace _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PObjFirst(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
@@ -249,11 +265,19 @@
       {
         "fn": "json.std__json__parse_value",
         "arm": "false =\u003e forward call std__json__parse_step(text, 0, std__json__PARSE_FUEL, Seq\u003cJson__PFrame\u003e[])"
+      },
+      {
+        "fn": "json.std__json__str__decode_text",
+        "arm": "on json.duplicate_key e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
+      "json.std__json__bool__decode_text/dup",
+      "json.std__json__dec__decode_text/dup",
+      "json.std__json__int__decode_text/dup",
       "json.std__json__parse_step/sk_dup",
-      "json.std__json__parse_value/dup"
+      "json.std__json__parse_value/dup",
+      "json.std__json__str__decode_text/dup"
     ]
   },
   {
@@ -262,13 +286,29 @@
       "detail"
     ],
     "raised_by": [
+      "json.std__json__bool__decode_text",
+      "json.std__json__dec__decode_text",
+      "json.std__json__int__decode_text",
       "json.std__json__parse_attach",
       "json.std__json__parse_literal",
       "json.std__json__parse_step",
       "json.std__json__parse_unescape",
-      "json.std__json__parse_value"
+      "json.std__json__parse_value",
+      "json.std__json__str__decode_text"
     ],
     "handled_by": [
+      {
+        "fn": "json.std__json__bool__decode_text",
+        "arm": "on json.invalid_syntax e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__dec__decode_text",
+        "arm": "on json.invalid_syntax e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__int__decode_text",
+        "arm": "on json.invalid_syntax e =\u003e forward e"
+      },
       {
         "fn": "json.std__json__parse_step",
         "arm": "on Json__HeadBrace _ =\u003e forward call std__json__parse_step(text, w.value + 1, fuel - 1, stack + Json__PFrame(Json__PObjFirst(), Seq\u003cJson__Doc\u003e[], Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[], \"\", \"\", Json__Null(), Seq\u003cJson__Field\u003e[], Seq\u003cstr\u003e[]))"
@@ -356,9 +396,16 @@
       {
         "fn": "json.std__json__parse_value",
         "arm": "false =\u003e forward call std__json__parse_step(text, 0, std__json__PARSE_FUEL, Seq\u003cJson__PFrame\u003e[])"
+      },
+      {
+        "fn": "json.std__json__str__decode_text",
+        "arm": "on json.invalid_syntax e =\u003e forward e"
       }
     ],
     "hit_by_tests": [
+      "json.std__json__bool__decode_text/syntax",
+      "json.std__json__dec__decode_text/syntax",
+      "json.std__json__int__decode_text/syntax",
       "json.std__json__parse_attach/wild",
       "json.std__json__parse_attach/wild_arrnext",
       "json.std__json__parse_attach/wild_numacc",
@@ -424,7 +471,8 @@
       "json.std__json__parse_value/trail_num",
       "json.std__json__parse_value/trail_obj",
       "json.std__json__parse_value/trail_obj2",
-      "json.std__json__parse_value/trail_str"
+      "json.std__json__parse_value/trail_str",
+      "json.std__json__str__decode_text/syntax"
     ]
   },
   {
@@ -435,14 +483,20 @@
     "raised_by": [
       "json.std__json__dec__decode",
       "json.std__json__dec__decode_apply",
+      "json.std__json__dec__decode_text",
       "json.std__json__dec__decode_value",
       "json.std__json__int__decode",
       "json.std__json__int__decode_apply",
+      "json.std__json__int__decode_text",
       "json.std__json__int__decode_value"
     ],
     "handled_by": [
       {
         "fn": "json.std__json__dec__decode_apply",
+        "arm": "on json.numeric_out_of_range e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__dec__decode_text",
         "arm": "on json.numeric_out_of_range e =\u003e forward e"
       },
       {
@@ -454,6 +508,10 @@
         "arm": "on json.numeric_out_of_range e =\u003e forward e"
       },
       {
+        "fn": "json.std__json__int__decode_text",
+        "arm": "on json.numeric_out_of_range e =\u003e forward e"
+      },
+      {
         "fn": "json.std__json__int__decode_value",
         "arm": "on json.numeric_out_of_range e =\u003e forward e"
       }
@@ -461,9 +519,11 @@
     "hit_by_tests": [
       "json.std__json__dec__decode/bad",
       "json.std__json__dec__decode_apply/bad",
+      "json.std__json__dec__decode_text/exp",
       "json.std__json__dec__decode_value/bad",
       "json.std__json__int__decode/bad",
       "json.std__json__int__decode_apply/bad",
+      "json.std__json__int__decode_text/frac",
       "json.std__json__int__decode_value/bad"
     ]
   },
@@ -475,20 +535,28 @@
     "raised_by": [
       "json.std__json__bool__decode",
       "json.std__json__bool__decode_apply",
+      "json.std__json__bool__decode_text",
       "json.std__json__bool__decode_value",
       "json.std__json__dec__decode",
       "json.std__json__dec__decode_apply",
+      "json.std__json__dec__decode_text",
       "json.std__json__dec__decode_value",
       "json.std__json__int__decode",
       "json.std__json__int__decode_apply",
+      "json.std__json__int__decode_text",
       "json.std__json__int__decode_value",
       "json.std__json__str__decode",
       "json.std__json__str__decode_apply",
+      "json.std__json__str__decode_text",
       "json.std__json__str__decode_value"
     ],
     "handled_by": [
       {
         "fn": "json.std__json__bool__decode_apply",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__bool__decode_text",
         "arm": "on json.schema_mismatch e =\u003e forward e"
       },
       {
@@ -500,6 +568,10 @@
         "arm": "on json.schema_mismatch e =\u003e forward e"
       },
       {
+        "fn": "json.std__json__dec__decode_text",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
         "fn": "json.std__json__dec__decode_value",
         "arm": "on json.schema_mismatch e =\u003e forward e"
       },
@@ -508,11 +580,19 @@
         "arm": "on json.schema_mismatch e =\u003e forward e"
       },
       {
+        "fn": "json.std__json__int__decode_text",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
         "fn": "json.std__json__int__decode_value",
         "arm": "on json.schema_mismatch e =\u003e forward e"
       },
       {
         "fn": "json.std__json__str__decode_apply",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__str__decode_text",
         "arm": "on json.schema_mismatch e =\u003e forward e"
       },
       {
@@ -527,6 +607,7 @@
       "json.std__json__bool__decode/is_obj",
       "json.std__json__bool__decode/is_str",
       "json.std__json__bool__decode_apply/mistype",
+      "json.std__json__bool__decode_text/mistype",
       "json.std__json__bool__decode_value/mistype",
       "json.std__json__dec__decode/is_arr",
       "json.std__json__dec__decode/is_bool",
@@ -534,6 +615,7 @@
       "json.std__json__dec__decode/is_obj",
       "json.std__json__dec__decode/is_str",
       "json.std__json__dec__decode_apply/mistype",
+      "json.std__json__dec__decode_text/mistype",
       "json.std__json__dec__decode_value/mistype",
       "json.std__json__int__decode/is_arr",
       "json.std__json__int__decode/is_bool",
@@ -541,6 +623,7 @@
       "json.std__json__int__decode/is_obj",
       "json.std__json__int__decode/is_str",
       "json.std__json__int__decode_apply/mistype",
+      "json.std__json__int__decode_text/mistype",
       "json.std__json__int__decode_value/mistype",
       "json.std__json__str__decode/is_arr",
       "json.std__json__str__decode/is_bool",
@@ -548,6 +631,7 @@
       "json.std__json__str__decode/is_num",
       "json.std__json__str__decode/is_obj",
       "json.std__json__str__decode_apply/mistype",
+      "json.std__json__str__decode_text/mistype",
       "json.std__json__str__decode_value/mistype"
     ]
   },
