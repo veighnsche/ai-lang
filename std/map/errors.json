@@ -34,41 +34,37 @@
   },
   {
     "kind": "map.key_absent",
-    "fields": [
-      "key"
-    ],
+    "fields": [],
     "raised_by": [
-      "map.std__map__get$T$int",
-      "map.std__map__get$T$str",
-      "map.std__map__remove$T$int",
-      "map.std__map__remove$T$str",
-      "map.std__map__replace$T$int",
-      "map.std__map__replace$T$str"
+      "map.std__map__get$T$int$T$str",
+      "map.std__map__get$T$str$T$int",
+      "map.std__map__remove$T$int$T$str",
+      "map.std__map__remove$T$str$T$int",
+      "map.std__map__replace$T$int$T$str",
+      "map.std__map__replace$T$str$T$int"
     ],
     "handled_by": [],
     "hit_by_tests": [
-      "map.std__map__get$T$int/empty",
-      "map.std__map__get$T$int/miss",
-      "map.std__map__get$T$str/str_miss",
-      "map.std__map__remove$T$int/absent",
-      "map.std__map__remove$T$str/str_absent",
-      "map.std__map__replace$T$int/absent",
-      "map.std__map__replace$T$str/str_absent"
+      "map.std__map__get$T$int$T$str/int_miss",
+      "map.std__map__get$T$str$T$int/empty",
+      "map.std__map__get$T$str$T$int/miss",
+      "map.std__map__remove$T$int$T$str/int_absent",
+      "map.std__map__remove$T$str$T$int/absent",
+      "map.std__map__replace$T$int$T$str/int_absent",
+      "map.std__map__replace$T$str$T$int/absent"
     ]
   },
   {
     "kind": "map.key_exists",
-    "fields": [
-      "key"
-    ],
+    "fields": [],
     "raised_by": [
-      "map.std__map__insert$T$int",
-      "map.std__map__insert$T$str"
+      "map.std__map__insert$T$int$T$str",
+      "map.std__map__insert$T$str$T$int"
     ],
     "handled_by": [],
     "hit_by_tests": [
-      "map.std__map__insert$T$int/exists",
-      "map.std__map__insert$T$str/str_exists"
+      "map.std__map__insert$T$int$T$str/int_exists",
+      "map.std__map__insert$T$str$T$int/exists"
     ]
   }
 ]
