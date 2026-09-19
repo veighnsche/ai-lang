@@ -40,6 +40,18 @@ func TestStdSeqCompiles(t *testing.T) {
 	}
 }
 
+// TestStdJsonCompiles pins the JSON value layer: the render frame
+// machine, scalar codecs, and the monomorphic schema family whose
+// callbacks invoke through apply wrappers, so a green compile
+// proves schema-carried Fn values end to end (including the
+// consumer-first linked-invoke order).
+func TestStdJsonCompiles(t *testing.T) {
+	out := t.TempDir()
+	if err := compile(out, []string{"../std/json/json.can", "../std/scalars/scalars.can"}); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+}
+
 // TestStdHostNodeSmoke executes the committed host implementations
 // under node: wall returns positive bigint millis, monotonic never
 // goes backwards, random returns exact-length bytes and rejects

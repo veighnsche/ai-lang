@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -109,5 +110,76 @@ func TestFnLinkedInheritsDepth(t *testing.T) {
 	err := runLinkedPure(t, files, []string{"m.can"}, "m__deep", 1, args, `Ok("q")`)
 	if err == nil || !strings.Contains(err.Error(), "local call depth exceeded") {
 		t.Fatalf("deep invoke must trip the inherited backstop, got %v", err)
+	}
+}
+
+// TestFnLinkedConsumerFirst pins the CLI mirror of
+// prepareProviders: checkSem checks and RUNS each module in
+// paths order, but an invoked callback executes its provider
+// body linked — including multi-arg constructors that only bind
+// after the provider's static phase. Consumer-first order must
+// still compile: the CLI prepares every module's statics before
+// any test row runs. (S9 found this via dec__encode_apply
+// invoking into scalars' two-field std__dec__parts; the minimal
+// trigger is a depth-two provider chain under the invoke.)
+func TestFnLinkedConsumerFirst(t *testing.T) {
+	lib := `mod probelib
+  provides [lib__pair2, lib__d2s, Pair__Value, Str__Value]
+  uses []
+  emits []
+
+type Str__Value rev 1 (
+  value: str
+)
+
+type Pair__Value rev 1 (
+  a: int
+  b: int
+)
+
+fn lib__pair2(x: dec) -> Pair__Value rev 1
+  emits []
+  tests
+    one(d"12.34") => Ok(1234, 2)
+  match call dec__parts(x)
+    on Ok p => Ok(p.coefficient, p.scale)
+
+fn lib__d2s(value: dec) -> Str__Value rev 1
+  emits []
+  tests
+    s2s_simple(d"12.34") => Ok("12.34")
+  match call lib__pair2(value)
+    on Ok p => Ok("12.34")
+`
+	use := `mod probeuse
+  provides [use__apply, use__target, Int__Value]
+  uses [lib__d2s@1]
+  emits []
+
+type Int__Value rev 1 (
+  value: int
+)
+
+fn use__target(x: dec) -> Int__Value rev 1
+  emits []
+  tests
+    one(d"12.34") => Ok(5)
+  match call lib__d2s(x)
+    given
+      one => [exchange args (value = d"12.34") outcome Ok("12.34")]
+    on Ok r => Ok(5)
+
+fn use__apply(x: dec, f: Fn<dec, Int__Value, []>) -> Int__Value rev 1
+  emits []
+  tests
+    one(d"12.34", fnref use__target()) => Ok(5)
+  match invoke f with x
+    on Ok r => Ok(r.value)
+`
+	dir := writeLSPDir(t, map[string]string{"use.can": use, "lib.can": lib})
+	out := t.TempDir()
+	// Consumer first: the order that executed raw bodies.
+	if err := compile(out, []string{filepath.Join(dir, "use.can"), filepath.Join(dir, "lib.can")}); err != nil {
+		t.Fatalf("consumer-first compile: %v", err)
 	}
 }

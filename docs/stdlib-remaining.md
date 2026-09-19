@@ -23,6 +23,7 @@ landed, unblocking the §1.8 callback rows. Slices 7+ below.
 | 6 | `a80e1f5` | NEW `std/map`, `std/set`; 95 rows |
 | 7 | `44b188b` | NEW `std/seq` map/filter/fold/all/any/find; 62 rows |
 | 8 | `02495f4` | NEW `std/seq` sort/unique; 40 rows |
+| 9 | TBD | NEW `std/json` value layer: AST + render frame machine + escape + 8 scalar codecs + monomorphic schema family with Fn dispatch; 125 rows |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
@@ -36,7 +37,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 | §1.8 seq sort/unique | SHIPPED (slice 8): `Seq__Order` value Asc/Desc over per-instance built-in order (insertion sort, stable by construction); unique keeps first occurrences via per-instance `==` | 40 rows; 147 pass on compile; lexicographic orders deferred. |
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
 | §1.8 normalize_nfc, casefold, graphemes | Unicode data kernel | No pinned data, no host path (see host shelf) |
-| §1.8 json encode/decode, `schema__migrate` | Functions (+ Schema surface) | Migrate takes `Migration<Old,New>` fn; no Fn values |
+| §1.8 json encode/decode, `schema__migrate` | PARTIAL (slice 9): value layer shipped — `Json__Value` AST, fuel-bounded render machine, escape, 8 scalar codecs, monomorphic `Json__*Schema` family with schema-carried Fn dispatch; bytes-level parse (`invalid_syntax`, `duplicate_key`) + `std__json__encode`/`decode` drivers + `schema__migrate` remain | 125 rows; 548 pass on compile; `TestStdJsonCompiles` gates. |
 | Host shelf (clock/random/hash/secret/log/env) | SHIPPED (slices H1–H5): `std/host` carries all 7 catalogue fns over pinned externs with real node-backed `host.externs.ts` impls; `TestStdHostNodeSmoke` executes every impl (incl. sha256 known vector); `sketches/host-clock` consumes both the wrapper and the shared extern directly | Millis instants (JEV 0.97); sealed profile/secret/env brands (JEV 0.98/1.0); denied + sub-millis documented v1 limits. |
 | §3 HTTP (all) | Async + Resources + Functions | No async surface exists |
 | §4 SQL (all) | Async + Resources | Same |
@@ -52,6 +53,11 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - `given` rows key on caller test names across module lines (slice 5).
 - Downstream sketch goldens embed provider catalogs; regen together (slice 5).
 - Row binds must name the declared param (`<V=>`, not `<T=>`, slice 6).
+- ~~CLI ran each module's tests before later modules' statics, so consumer-first invoke executed raw provider bodies (slice 9; `Ok takes 2 args for 1 fields`)~~ — FIXED in-slice (CLI mirror of `prepareProviders`; `TestFnLinkedConsumerFirst`).
+- Only direct self-recursion admitted (slice 9; mutual value/fields/array recursion refused) — worked around via single-fn frame machine + fuel.
+- Variant sequences not admitted; sequence concatenation not in v1; slice operator is str-only (slice 9) — worked around via tag-dispatched record frames, append-only back stack, copy-by-index `pop`.
+- `invoke` heads must be bare names (slice 9; field paths do not parse) — worked around via apply wrappers taking the Fn as a param.
+- `forward call` is arm-position-only, never a bare body (slice 9).
 
 ## JEV decision log (all via `jev-1.13.0`, Choice)
 
@@ -63,4 +69,5 @@ collections_probe (tie 0.49, choice field); slice5 validate_schema
 delete 0.53; b02 extern admission uses_pin 0.99, host_resolution
 declaring_stem 0.84; H1 instant_repr millis_int 0.97; H2
 hash_profile brand 0.98, secret_repr brand 1.0; slice8
-sort_surface order_value 0.97.
+sort_surface order_value 0.97; slice9 schema_shape
+monomorphic_family 0.74.

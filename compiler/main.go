@@ -486,6 +486,31 @@ func checkProgram(mods []*Module, texts map[string]string, collected []Diag, pas
 	invokeCycles := checkInvokeCycles(mods, texts, prog)
 	collected = append(collected, invokeCycles...)
 	gblocked := hasErrors(global) || hasErrors(recCycles) || hasErrors(invokeCycles)
+	// Linked-invoke barrier (CLI mirror of prepareProviders in
+	// lsp.go): the checkSem loop checks and RUNS each module in
+	// paths order, but cross-file invocation executes provider
+	// bodies linked — including multi-arg constructors that only
+	// bind after the provider's static phase. Run every module's
+	// function-static phase silently first, so no test row
+	// anywhere can execute a raw provider body. Diagnostics still
+	// surface from each module's own checkSem below; the static
+	// phase is idempotent, so the second run is a no-op.
+	for _, m := range mods {
+		localExtern := map[string]bool{}
+		for _, d := range m.Decls {
+			if ex, ok := d.(*ExternDecl); ok {
+				localExtern[ex.Name] = true
+			}
+		}
+		called := map[string]bool{}
+		for _, d := range m.Decls {
+			fn, ok := d.(*FnDecl)
+			if !ok {
+				continue
+			}
+			_ = checkFnStatic(fn, prog, m, texts[m.ID], localExtern, called)
+		}
+	}
 	for _, m := range mods {
 		text := texts[m.ID]
 		var hook func(fn, test string)

@@ -1,0 +1,534 @@
+// std/json/json.can — roadmap order 7: JSON text/value AST plus
+// scalar codecs. Json__Value is the parsed tree (Num carries the
+// wire text verbatim, never a lossy float); the render machine
+// prints it back, and the typed codecs bridge scalars to Json docs.
+// Rendering walks an explicit frame stack in ONE self-recursive
+// function: the language admits only direct self-recursion, so the
+// natural value/fields/array mutual recursion is inexpressible
+// (CAN local-cycle) and frames carry the pending work instead. Each
+// step burns one fuel; exhaustion raises the payloadless
+// json.render_budget_exhausted. Escape walks scalars with the
+// slice/index operators (the same pattern slice_scalars uses
+// internally), dispatching on scalar code: named escapes for
+// quote/backslash/TAB/LF/CR, \u00XX for other C0 controls via an
+// armless hex table, and verbatim copy above. Decodes reject
+// mistyped trees with json.schema_mismatch and bad numeric text
+// with json.numeric_out_of_range (translated from convert.* so the
+// module owns its taxonomy). Schemas are a monomorphic family
+// (JEV 0.74 over generic-uniform): each scalar's schema record
+// carries its exact encode/decode callbacks.
+
+mod json
+  provides [std__json__RENDER_FUEL, std__json__render_value, std__json__render_step, std__json__pop, std__json__pop_from, std__json__escape, std__json__escape_from, std__json__escape_hex, std__json__hexdigit, std__json__int__encode, std__json__int__decode, std__json__str__encode, std__json__str__decode, std__json__bool__encode, std__json__bool__decode, std__json__dec__encode, std__json__dec__decode, std__json__int__encode_apply, std__json__int__decode_apply, std__json__str__encode_apply, std__json__str__decode_apply, std__json__bool__encode_apply, std__json__bool__decode_apply, std__json__dec__encode_apply, std__json__dec__decode_apply, std__json__int__encode_value, std__json__int__decode_value, std__json__str__encode_value, std__json__str__decode_value, std__json__bool__encode_value, std__json__bool__decode_value, std__json__dec__encode_value, std__json__dec__decode_value, Int__Value, Dec__Value, Str__Value, Bool__Value, Json__Text, Json__Field, Json__Doc, Json__Value, Json__Frame, Json__Frames, Json__IntSchema, Json__StrSchema, Json__BoolSchema, Json__DecSchema]
+  uses [std__convert__int_to_str@1, std__convert__str_to_int@1, std__convert__dec_to_str@1, std__convert__str_to_dec@1]
+  emits [json.schema_mismatch, json.numeric_out_of_range, json.render_budget_exhausted]
+
+error json.schema_mismatch(detail: str)
+error json.numeric_out_of_range(text: str)
+error json.render_budget_exhausted()
+
+const std__json__RENDER_FUEL: int rev 1 = 1000000
+
+type Int__Value rev 1 (
+  value: int
+)
+
+type Dec__Value rev 1 (
+  value: dec
+)
+
+type Str__Value rev 1 (
+  value: str
+)
+
+type Bool__Value rev 1 (
+  value: bool
+)
+
+type Json__Text rev 1 (
+  value: str
+)
+
+type Json__Field rev 1 (
+  name: str
+  value: Json__Value
+)
+
+type Json__Doc rev 1 (
+  value: Json__Value
+)
+
+variant Json__Value rev 1 (
+  case Null()
+  case Bool(value: bool)
+  case Num(text: str)
+  case Str(value: str)
+  case Arr(items: Seq<Json__Doc>)
+  case Obj(fields: Seq<Json__Field>)
+)
+
+// Frames are tag-dispatched records, not a variant: variant
+// sequences are not admitted, so the stack is Seq<Json__Frame>
+// with tag 0 Emit / 1 Value / 2 Items / 3 Fields. Only the
+// tag's fields are read; the rest carry dummies.
+type Json__Frame rev 1 (
+  tag: int
+  text: str
+  val: Json__Value
+  items: Seq<Json__Doc>
+  ipos: int
+  fields: Seq<Json__Field>
+  fpos: int
+)
+
+type Json__Frames rev 1 (
+  frames: Seq<Json__Frame>
+)
+
+// The stack top is the BACK: sequence concatenation is not in
+// v1, so expansion frames append one by one in reverse (last
+// pushed is processed first) and pop copies all but the last.
+fn std__json__pop(frames: Seq<Json__Frame>) -> Json__Frames rev 1
+  emits []
+  tests
+    empty(Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
+    one(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)]) => Ok(Seq<Json__Frame>[])
+    two(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), Json__Frame(0, "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)]) => Ok(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)])
+  match call std__json__pop_from(frames, 0, #frames - 1, Seq<Json__Frame>[])
+    on Ok r => Ok(r.frames)
+
+fn std__json__pop_from(frames: Seq<Json__Frame>, pos: int, n: int, acc: Seq<Json__Frame>) -> Json__Frames rev 1
+  decreases n
+  emits []
+  tests
+    done(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 1, 0, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
+    over(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 5, 2, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[])
+    step(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), Json__Frame(0, "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], 1, 2, Seq<Json__Frame>[]) => Ok(Seq<Json__Frame>[Json__Frame(0, "y", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)])
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #frames
+      true => match call std__json__pop_from(frames, pos + 1, n - 1, acc + frames[pos])
+        on Ok r => Ok(r.frames)
+      false => Ok(acc)
+
+fn std__json__render_value(v: Json__Value) -> Json__Text rev 1
+  emits [json.schema_mismatch, json.render_budget_exhausted]
+  tests
+    null(Json__Null()) => Ok("null")
+    boolt(Json__Bool(true)) => Ok("true")
+    num(Json__Num("12")) => Ok("12")
+    str(Json__Str("a")) => Ok(e"\"a\"")
+    arr(Json__Arr(Seq<Json__Doc>[Json__Doc(Json__Num("1")), Json__Doc(Json__Arr(Seq<Json__Doc>[Json__Doc(Json__Num("2"))]))])) => Ok("[1, [2]]")
+    obj(Json__Obj(Seq<Json__Field>[Json__Field("a", Json__Obj(Seq<Json__Field>[Json__Field("b", Json__Bool(true))]))])) => Ok(e"{\"a\": {\"b\": true}}")
+  match v
+    on Json__Null _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Bool _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Num _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Str _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Arr _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+    on Json__Obj _ => forward call std__json__render_step(Seq<Json__Frame>[Json__Frame(1, "", v, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", std__json__RENDER_FUEL)
+
+fn std__json__render_step(frames: Seq<Json__Frame>, acc: str, fuel: int) -> Json__Text rev 1
+  decreases fuel
+  emits [json.schema_mismatch, json.render_budget_exhausted]
+  tests
+    exhaust(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "q", 0) => json.render_budget_exhausted()
+    empty(Seq<Json__Frame>[], "q", 5) => Ok("q")
+    emit(Seq<Json__Frame>[Json__Frame(0, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("x")
+    badtag(Seq<Json__Frame>[Json__Frame(9, "x", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => json.schema_mismatch("bad frame tag")
+    vnull(Seq<Json__Frame>[Json__Frame(1, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("null")
+    vboolt(Seq<Json__Frame>[Json__Frame(1, "", Json__Bool(true), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("true")
+    vboolf(Seq<Json__Frame>[Json__Frame(1, "", Json__Bool(false), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("false")
+    vnum(Seq<Json__Frame>[Json__Frame(1, "", Json__Num("12"), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 5) => Ok("12")
+    vstr(Seq<Json__Frame>[Json__Frame(1, "", Json__Str("a"), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok(e"\"a\"")
+    varr(Seq<Json__Frame>[Json__Frame(1, "", Json__Arr(Seq<Json__Doc>[]), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("[]")
+    vobj(Seq<Json__Frame>[Json__Frame(1, "", Json__Obj(Seq<Json__Field>[]), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("{}")
+    items0(Seq<Json__Frame>[Json__Frame(2, "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1"))], 0, Seq<Json__Field>[], 0)], "", 9) => Ok("1")
+    items1(Seq<Json__Frame>[Json__Frame(2, "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1")), Json__Doc(Json__Num("2"))], 1, Seq<Json__Field>[], 0)], "1", 9) => Ok("1, 2")
+    itemsend(Seq<Json__Frame>[Json__Frame(2, "", Json__Null(), Seq<Json__Doc>[Json__Doc(Json__Num("1"))], 1, Seq<Json__Field>[], 0)], "1", 9) => Ok("1")
+    fields0(Seq<Json__Frame>[Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1"))], 0)], "", 12) => Ok(e"\"a\": 1")
+    fields1(Seq<Json__Frame>[Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1")), Json__Field("b", Json__Num("2"))], 1)], e"\"a\": 1", 12) => Ok(e"\"a\": 1, \"b\": 2")
+    fieldsend(Seq<Json__Frame>[Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[Json__Field("a", Json__Num("1"))], 1)], e"\"a\": 1", 9) => Ok(e"\"a\": 1")
+  match fuel <= 0
+    true => json.render_budget_exhausted()
+    false => match #frames == 0
+      true => Ok(acc)
+      false => match call std__json__pop(frames)
+        on Ok pf => match frames[#frames - 1].tag
+          0 => forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)
+          1 => match frames[#frames - 1].val
+            on Json__Null _ => forward call std__json__render_step(pf.frames, acc + "null", fuel - 1)
+            on Json__Bool b => match b.value
+              true => forward call std__json__render_step(pf.frames, acc + "true", fuel - 1)
+              false => forward call std__json__render_step(pf.frames, acc + "false", fuel - 1)
+            on Json__Num n => forward call std__json__render_step(pf.frames, acc + n.text, fuel - 1)
+            on Json__Str s => match call std__json__escape(s.value)
+              on Ok e => forward call std__json__render_step(pf.frames, acc + e"\"" + e.value + e"\"", fuel - 1)
+            on Json__Arr a => forward call std__json__render_step((pf.frames + Json__Frame(0, "]", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(2, "", Json__Null(), a.items, 0, Seq<Json__Field>[], 0)) + Json__Frame(0, "[", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+            on Json__Obj o => forward call std__json__render_step((pf.frames + Json__Frame(0, "}", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, o.fields, 0)) + Json__Frame(0, "{", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+          2 => match frames[#frames - 1].ipos < #frames[#frames - 1].items
+            true => match frames[#frames - 1].ipos == 0
+              true => forward call std__json__render_step(pf.frames + Json__Frame(2, "", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq<Json__Field>[], 0) + Json__Frame(1, "", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+              false => forward call std__json__render_step((pf.frames + Json__Frame(2, "", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq<Json__Field>[], 0) + Json__Frame(1, "", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)) + Json__Frame(0, ", ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+            false => forward call std__json__render_step(pf.frames, acc, fuel - 1)
+          3 => match frames[#frames - 1].fpos < #frames[#frames - 1].fields
+            true => match call std__json__escape(frames[#frames - 1].fields[frames[#frames - 1].fpos].name)
+              on Ok k => match frames[#frames - 1].fpos == 0
+                true => forward call std__json__render_step((pf.frames + Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, "", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0) + Json__Frame(0, e"\"" + k.value + e"\": ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+                false => forward call std__json__render_step(((pf.frames + Json__Frame(3, "", Json__Null(), Seq<Json__Doc>[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, "", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0)) + Json__Frame(0, ", " + e"\"" + k.value + e"\": ", Json__Null(), Seq<Json__Doc>[], 0, Seq<Json__Field>[], 0), acc, fuel - 1)
+            false => forward call std__json__render_step(pf.frames, acc, fuel - 1)
+          _ => json.schema_mismatch("bad frame tag")
+
+fn std__json__escape(s: str) -> Json__Text rev 1
+  emits []
+  tests
+    empty("") => Ok("")
+    plain("ab") => Ok("ab")
+    quote(e"a\"b") => Ok(e"a\\\"b")
+  match call std__json__escape_from(s, 0, #s, "")
+    on Ok r => Ok(r.value)
+
+fn std__json__escape_from(value: str, pos: int, n: int, acc: str) -> Json__Text rev 1
+  decreases n
+  emits []
+  tests
+    done("ab", 2, 0, "q") => Ok("q")
+    over("a", 5, 2, "q") => Ok("q")
+    plain("ab", 0, 2, "") => Ok("ab")
+    quote(e"a\"b", 0, 3, "") => Ok(e"a\\\"b")
+    backslash(e"a\\b", 0, 3, "") => Ok(e"a\\\\b")
+    tab(e"a\tb", 0, 3, "") => Ok(e"a\\tb")
+    nl(e"a\nb", 0, 3, "") => Ok(e"a\\nb")
+    cr(e"a\rb", 0, 3, "") => Ok(e"a\\rb")
+    nul(e"\0a", 0, 2, "") => Ok(e"\\u0000a")
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #value
+      true => match value[pos]
+        34 => match call std__json__escape_from(value, pos + 1, n - 1, acc + e"\\\"")
+          on Ok r => Ok(r.value)
+        92 => match call std__json__escape_from(value, pos + 1, n - 1, acc + e"\\\\")
+          on Ok r => Ok(r.value)
+        9 => match call std__json__escape_from(value, pos + 1, n - 1, acc + e"\\t")
+          on Ok r => Ok(r.value)
+        10 => match call std__json__escape_from(value, pos + 1, n - 1, acc + e"\\n")
+          on Ok r => Ok(r.value)
+        13 => match call std__json__escape_from(value, pos + 1, n - 1, acc + e"\\r")
+          on Ok r => Ok(r.value)
+        _ => match value[pos] < 32
+          true => match call std__json__escape_hex(value[pos])
+            on Ok h => match call std__json__escape_from(value, pos + 1, n - 1, acc + e"\\u00" + h.value)
+              on Ok r => Ok(r.value)
+          false => match call std__json__escape_from(value, pos + 1, n - 1, acc + value[pos:pos + 1])
+            on Ok r => Ok(r.value)
+      false => Ok(acc)
+
+fn std__json__escape_hex(code: int) -> Json__Text rev 1
+  emits []
+  tests
+    zero(0) => Ok("00")
+    mid(31) => Ok("1f")
+  match call std__json__hexdigit(code / 16)
+    on Ok hi => match call std__json__hexdigit(code % 16)
+      on Ok lo => Ok(hi.value + lo.value)
+
+// Armless nibble table: the only caller (escape_hex) passes
+// code/16 and code%16, so d is always 0..15 by construction.
+fn std__json__hexdigit(d: int) -> Json__Text rev 1
+  emits []
+  tests
+    h0(0) => Ok("0")
+    h1(1) => Ok("1")
+    h2(2) => Ok("2")
+    h3(3) => Ok("3")
+    h4(4) => Ok("4")
+    h5(5) => Ok("5")
+    h6(6) => Ok("6")
+    h7(7) => Ok("7")
+    h8(8) => Ok("8")
+    h9(9) => Ok("9")
+    ha(10) => Ok("a")
+    hb(11) => Ok("b")
+    hc(12) => Ok("c")
+    hd(13) => Ok("d")
+    he(14) => Ok("e")
+    hf(15) => Ok("f")
+  Ok(Seq<str>["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"][d])
+
+fn std__json__int__encode(value: int) -> Json__Doc rev 1
+  emits []
+  tests
+    zero(0) => Ok(Json__Num("0"))
+    neg(-7) => Ok(Json__Num("-7"))
+  match call std__convert__int_to_str(value)
+    given
+      zero => [exchange args (value = 0) outcome Ok("0")]
+      neg => [exchange args (value = -7) outcome Ok("-7")]
+    on Ok r => Ok(Json__Num(r.value))
+
+fn std__json__int__decode(value: Json__Value) -> Int__Value rev 1
+  emits [json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num(Json__Num("42")) => Ok(42)
+    bad(Json__Num("12a")) => json.numeric_out_of_range("12a")
+    is_null(Json__Null()) => json.schema_mismatch("want int, got null")
+    is_bool(Json__Bool(true)) => json.schema_mismatch("want int, got bool")
+    is_str(Json__Str("a")) => json.schema_mismatch("want int, got str")
+    is_arr(Json__Arr(Seq<Json__Doc>[])) => json.schema_mismatch("want int, got arr")
+    is_obj(Json__Obj(Seq<Json__Field>[])) => json.schema_mismatch("want int, got obj")
+  match value
+    on Json__Num t => match call std__convert__str_to_int(t.text)
+      given
+        num => [exchange args (value = "42") outcome Ok(42)]
+        bad => [exchange args (value = "12a") outcome convert.invalid_integer("12a")]
+      on Ok r => Ok(r.value)
+      on convert.invalid_integer _ => json.numeric_out_of_range(t.text)
+    on Json__Null _ => json.schema_mismatch("want int, got null")
+    on Json__Bool _ => json.schema_mismatch("want int, got bool")
+    on Json__Str _ => json.schema_mismatch("want int, got str")
+    on Json__Arr _ => json.schema_mismatch("want int, got arr")
+    on Json__Obj _ => json.schema_mismatch("want int, got obj")
+
+fn std__json__str__encode(value: str) -> Json__Doc rev 1
+  emits []
+  tests
+    plain("a") => Ok(Json__Str("a"))
+    empty("") => Ok(Json__Str(""))
+  Ok(Json__Str(value))
+
+fn std__json__str__decode(value: Json__Value) -> Str__Value rev 1
+  emits [json.schema_mismatch]
+  tests
+    str(Json__Str("a")) => Ok("a")
+    is_null(Json__Null()) => json.schema_mismatch("want str, got null")
+    is_bool(Json__Bool(true)) => json.schema_mismatch("want str, got bool")
+    is_num(Json__Num("1")) => json.schema_mismatch("want str, got num")
+    is_arr(Json__Arr(Seq<Json__Doc>[])) => json.schema_mismatch("want str, got arr")
+    is_obj(Json__Obj(Seq<Json__Field>[])) => json.schema_mismatch("want str, got obj")
+  match value
+    on Json__Str s => Ok(s.value)
+    on Json__Null _ => json.schema_mismatch("want str, got null")
+    on Json__Bool _ => json.schema_mismatch("want str, got bool")
+    on Json__Num _ => json.schema_mismatch("want str, got num")
+    on Json__Arr _ => json.schema_mismatch("want str, got arr")
+    on Json__Obj _ => json.schema_mismatch("want str, got obj")
+
+fn std__json__bool__encode(value: bool) -> Json__Doc rev 1
+  emits []
+  tests
+    t(true) => Ok(Json__Bool(true))
+    f(false) => Ok(Json__Bool(false))
+  Ok(Json__Bool(value))
+
+fn std__json__bool__decode(value: Json__Value) -> Bool__Value rev 1
+  emits [json.schema_mismatch]
+  tests
+    b(Json__Bool(true)) => Ok(true)
+    is_null(Json__Null()) => json.schema_mismatch("want bool, got null")
+    is_num(Json__Num("1")) => json.schema_mismatch("want bool, got num")
+    is_str(Json__Str("a")) => json.schema_mismatch("want bool, got str")
+    is_arr(Json__Arr(Seq<Json__Doc>[])) => json.schema_mismatch("want bool, got arr")
+    is_obj(Json__Obj(Seq<Json__Field>[])) => json.schema_mismatch("want bool, got obj")
+  match value
+    on Json__Bool b => Ok(b.value)
+    on Json__Null _ => json.schema_mismatch("want bool, got null")
+    on Json__Num _ => json.schema_mismatch("want bool, got num")
+    on Json__Str _ => json.schema_mismatch("want bool, got str")
+    on Json__Arr _ => json.schema_mismatch("want bool, got arr")
+    on Json__Obj _ => json.schema_mismatch("want bool, got obj")
+
+fn std__json__dec__encode(value: dec) -> Json__Doc rev 1
+  emits []
+  tests
+    frac(d"12.34") => Ok(Json__Num("12.34"))
+    neg(d"-0.5") => Ok(Json__Num("-0.5"))
+  match call std__convert__dec_to_str(value)
+    given
+      frac => [exchange args (value = d"12.34") outcome Ok("12.34")]
+      neg => [exchange args (value = d"-0.5") outcome Ok("-0.5")]
+    on Ok r => Ok(Json__Num(r.value))
+
+fn std__json__dec__decode(value: Json__Value) -> Dec__Value rev 1
+  emits [json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num(Json__Num("1.5")) => Ok(d"1.5")
+    bad(Json__Num("1.2.3")) => json.numeric_out_of_range("1.2.3")
+    is_null(Json__Null()) => json.schema_mismatch("want dec, got null")
+    is_bool(Json__Bool(true)) => json.schema_mismatch("want dec, got bool")
+    is_str(Json__Str("a")) => json.schema_mismatch("want dec, got str")
+    is_arr(Json__Arr(Seq<Json__Doc>[])) => json.schema_mismatch("want dec, got arr")
+    is_obj(Json__Obj(Seq<Json__Field>[])) => json.schema_mismatch("want dec, got obj")
+  match value
+    on Json__Num t => match call std__convert__str_to_dec(t.text)
+      given
+        num => [exchange args (value = "1.5") outcome Ok(d"1.5")]
+        bad => [exchange args (value = "1.2.3") outcome convert.invalid_decimal("1.2.3")]
+      on Ok r => Ok(r.value)
+      on convert.invalid_decimal _ => json.numeric_out_of_range(t.text)
+    on Json__Null _ => json.schema_mismatch("want dec, got null")
+    on Json__Bool _ => json.schema_mismatch("want dec, got bool")
+    on Json__Str _ => json.schema_mismatch("want dec, got str")
+    on Json__Arr _ => json.schema_mismatch("want dec, got arr")
+    on Json__Obj _ => json.schema_mismatch("want dec, got obj")
+
+type Json__IntSchema rev 1 (
+  encode: Fn<int, Json__Doc, []>
+  decode: Fn<Json__Value, Int__Value, [json.numeric_out_of_range, json.schema_mismatch]>
+)
+
+type Json__StrSchema rev 1 (
+  encode: Fn<str, Json__Doc, []>
+  decode: Fn<Json__Value, Str__Value, [json.schema_mismatch]>
+)
+
+type Json__BoolSchema rev 1 (
+  encode: Fn<bool, Json__Doc, []>
+  decode: Fn<Json__Value, Bool__Value, [json.schema_mismatch]>
+)
+
+type Json__DecSchema rev 1 (
+  encode: Fn<dec, Json__Doc, []>
+  decode: Fn<Json__Value, Dec__Value, [json.numeric_out_of_range, json.schema_mismatch]>
+)
+
+// Invoke heads must be bare names, so each dispatch hands its
+// schema field to a same-file apply wrapper that invokes it.
+fn std__json__int__encode_apply(value: int, enc: Fn<int, Json__Doc, []>) -> Json__Doc rev 1
+  emits []
+  tests
+    zero(0, fnref std__json__int__encode()) => Ok(Json__Num("0"))
+  match invoke enc with value
+    on Ok d => Ok(d.value)
+
+fn std__json__int__decode_apply(value: Json__Value, dec: Fn<Json__Value, Int__Value, [json.numeric_out_of_range, json.schema_mismatch]>) -> Int__Value rev 1
+  emits [json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num(Json__Num("42"), fnref std__json__int__decode()) => Ok(42)
+    bad(Json__Num("12a"), fnref std__json__int__decode()) => json.numeric_out_of_range("12a")
+    mistype(Json__Bool(true), fnref std__json__int__decode()) => json.schema_mismatch("want int, got bool")
+  match invoke dec with value
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+    on json.numeric_out_of_range e => forward e
+
+fn std__json__str__encode_apply(value: str, enc: Fn<str, Json__Doc, []>) -> Json__Doc rev 1
+  emits []
+  tests
+    plain("a", fnref std__json__str__encode()) => Ok(Json__Str("a"))
+  match invoke enc with value
+    on Ok d => Ok(d.value)
+
+fn std__json__str__decode_apply(value: Json__Value, dec: Fn<Json__Value, Str__Value, [json.schema_mismatch]>) -> Str__Value rev 1
+  emits [json.schema_mismatch]
+  tests
+    str(Json__Str("a"), fnref std__json__str__decode()) => Ok("a")
+    mistype(Json__Num("1"), fnref std__json__str__decode()) => json.schema_mismatch("want str, got num")
+  match invoke dec with value
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+
+fn std__json__bool__encode_apply(value: bool, enc: Fn<bool, Json__Doc, []>) -> Json__Doc rev 1
+  emits []
+  tests
+    t(true, fnref std__json__bool__encode()) => Ok(Json__Bool(true))
+  match invoke enc with value
+    on Ok d => Ok(d.value)
+
+fn std__json__bool__decode_apply(value: Json__Value, dec: Fn<Json__Value, Bool__Value, [json.schema_mismatch]>) -> Bool__Value rev 1
+  emits [json.schema_mismatch]
+  tests
+    b(Json__Bool(true), fnref std__json__bool__decode()) => Ok(true)
+    mistype(Json__Str("a"), fnref std__json__bool__decode()) => json.schema_mismatch("want bool, got str")
+  match invoke dec with value
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+
+fn std__json__dec__encode_apply(value: dec, enc: Fn<dec, Json__Doc, []>) -> Json__Doc rev 1
+  emits []
+  tests
+    frac(d"12.34", fnref std__json__dec__encode()) => Ok(Json__Num("12.34"))
+  match invoke enc with value
+    on Ok d => Ok(d.value)
+
+fn std__json__dec__decode_apply(value: Json__Value, dec: Fn<Json__Value, Dec__Value, [json.numeric_out_of_range, json.schema_mismatch]>) -> Dec__Value rev 1
+  emits [json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num(Json__Num("1.5"), fnref std__json__dec__decode()) => Ok(d"1.5")
+    bad(Json__Num("1.2.3"), fnref std__json__dec__decode()) => json.numeric_out_of_range("1.2.3")
+    mistype(Json__Str("a"), fnref std__json__dec__decode()) => json.schema_mismatch("want dec, got str")
+  match invoke dec with value
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+    on json.numeric_out_of_range e => forward e
+
+fn std__json__int__encode_value(value: int, schema: Json__IntSchema) -> Json__Doc rev 1
+  emits []
+  tests
+    zero(0, Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => Ok(Json__Num("0"))
+    neg(-7, Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => Ok(Json__Num("-7"))
+  match call std__json__int__encode_apply(value, schema.encode)
+    on Ok d => Ok(d.value)
+
+fn std__json__int__decode_value(value: Json__Value, schema: Json__IntSchema) -> Int__Value rev 1
+  emits [json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num(Json__Num("42"), Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => Ok(42)
+    bad(Json__Num("12a"), Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => json.numeric_out_of_range("12a")
+    mistype(Json__Bool(true), Json__IntSchema(fnref std__json__int__encode(), fnref std__json__int__decode())) => json.schema_mismatch("want int, got bool")
+  match call std__json__int__decode_apply(value, schema.decode)
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+    on json.numeric_out_of_range e => forward e
+
+fn std__json__str__encode_value(value: str, schema: Json__StrSchema) -> Json__Doc rev 1
+  emits []
+  tests
+    plain("a", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok(Json__Str("a"))
+    empty("", Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok(Json__Str(""))
+  match call std__json__str__encode_apply(value, schema.encode)
+    on Ok d => Ok(d.value)
+
+fn std__json__str__decode_value(value: Json__Value, schema: Json__StrSchema) -> Str__Value rev 1
+  emits [json.schema_mismatch]
+  tests
+    str(Json__Str("a"), Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => Ok("a")
+    mistype(Json__Num("1"), Json__StrSchema(fnref std__json__str__encode(), fnref std__json__str__decode())) => json.schema_mismatch("want str, got num")
+  match call std__json__str__decode_apply(value, schema.decode)
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+
+fn std__json__bool__encode_value(value: bool, schema: Json__BoolSchema) -> Json__Doc rev 1
+  emits []
+  tests
+    t(true, Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok(Json__Bool(true))
+    f(false, Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok(Json__Bool(false))
+  match call std__json__bool__encode_apply(value, schema.encode)
+    on Ok d => Ok(d.value)
+
+fn std__json__bool__decode_value(value: Json__Value, schema: Json__BoolSchema) -> Bool__Value rev 1
+  emits [json.schema_mismatch]
+  tests
+    b(Json__Bool(true), Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => Ok(true)
+    mistype(Json__Str("a"), Json__BoolSchema(fnref std__json__bool__encode(), fnref std__json__bool__decode())) => json.schema_mismatch("want bool, got str")
+  match call std__json__bool__decode_apply(value, schema.decode)
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+
+fn std__json__dec__encode_value(value: dec, schema: Json__DecSchema) -> Json__Doc rev 1
+  emits []
+  tests
+    frac(d"12.34", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => Ok(Json__Num("12.34"))
+    neg(d"-0.5", Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => Ok(Json__Num("-0.5"))
+  match call std__json__dec__encode_apply(value, schema.encode)
+    on Ok d => Ok(d.value)
+
+fn std__json__dec__decode_value(value: Json__Value, schema: Json__DecSchema) -> Dec__Value rev 1
+  emits [json.schema_mismatch, json.numeric_out_of_range]
+  tests
+    num(Json__Num("1.5"), Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => Ok(d"1.5")
+    bad(Json__Num("1.2.3"), Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => json.numeric_out_of_range("1.2.3")
+    mistype(Json__Str("a"), Json__DecSchema(fnref std__json__dec__encode(), fnref std__json__dec__decode())) => json.schema_mismatch("want dec, got str")
+  match call std__json__dec__decode_apply(value, schema.decode)
+    on Ok r => Ok(r.value)
+    on json.schema_mismatch e => forward e
+    on json.numeric_out_of_range e => forward e

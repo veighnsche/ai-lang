@@ -1,0 +1,672 @@
+[
+  {
+    "kind": "convert.fractional_value",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__dec_to_int_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__convert__dec_to_int_exact/s2i_cents",
+      "scalars.std__convert__dec_to_int_exact/s2i_frac",
+      "scalars.std__convert__dec_to_int_exact/s2i_neg_frac"
+    ]
+  },
+  {
+    "kind": "convert.invalid_boolean",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__str_to_bool"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__convert__str_to_bool/s2b_bogus"
+    ]
+  },
+  {
+    "kind": "convert.invalid_boolean_encoding",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__int_to_bool"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__convert__int_to_bool/i2b_two"
+    ]
+  },
+  {
+    "kind": "convert.invalid_dec_encoding",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__dec_to_bool"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__convert__dec_to_bool/d2b_two"
+    ]
+  },
+  {
+    "kind": "convert.invalid_decimal",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__str_to_dec",
+      "scalars.std__convert__str_to_dec_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "json.std__json__dec__decode",
+        "arm": "on convert.invalid_decimal _ =\u003e json.numeric_out_of_range(t.text)"
+      },
+      {
+        "fn": "scalars.std__convert__str_to_dec",
+        "arm": "on convert.invalid_decimal e =\u003e forward e"
+      },
+      {
+        "fn": "scalars.std__convert__str_to_dec_from",
+        "arm": "on convert.invalid_decimal e =\u003e forward e"
+      }
+    ],
+    "hit_by_tests": [
+      "json.std__json__dec__decode/bad",
+      "scalars.std__convert__str_to_dec/s2d_bad",
+      "scalars.std__convert__str_to_dec/s2d_bare_minus",
+      "scalars.std__convert__str_to_dec/s2d_double_dot",
+      "scalars.std__convert__str_to_dec/s2d_empty",
+      "scalars.std__convert__str_to_dec/s2d_neg_bad",
+      "scalars.std__convert__str_to_dec/s2d_trailing_dot",
+      "scalars.std__convert__str_to_dec_from/std_bad_high",
+      "scalars.std__convert__str_to_dec_from/std_bad_low",
+      "scalars.std__convert__str_to_dec_from/std_double_dot",
+      "scalars.std__convert__str_to_dec_from/std_trailing_dot"
+    ]
+  },
+  {
+    "kind": "convert.invalid_integer",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__convert__str_to_int",
+      "scalars.std__convert__str_to_int_from"
+    ],
+    "handled_by": [
+      {
+        "fn": "json.std__json__int__decode",
+        "arm": "on convert.invalid_integer _ =\u003e json.numeric_out_of_range(t.text)"
+      },
+      {
+        "fn": "scalars.std__convert__str_to_int",
+        "arm": "on convert.invalid_integer e =\u003e forward e"
+      },
+      {
+        "fn": "scalars.std__convert__str_to_int_from",
+        "arm": "on convert.invalid_integer e =\u003e forward e"
+      }
+    ],
+    "hit_by_tests": [
+      "json.std__json__int__decode/bad",
+      "scalars.std__convert__str_to_int/s2i_bad",
+      "scalars.std__convert__str_to_int/s2i_bare_minus",
+      "scalars.std__convert__str_to_int/s2i_empty",
+      "scalars.std__convert__str_to_int/s2i_neg_bad",
+      "scalars.std__convert__str_to_int_from/sti_bad_high",
+      "scalars.std__convert__str_to_int_from/sti_bad_low"
+    ]
+  },
+  {
+    "kind": "encoding.invalid_base64",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "kernel.bytes__base64__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": []
+  },
+  {
+    "kind": "encoding.invalid_hex",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "kernel.bytes__hex__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": []
+  },
+  {
+    "kind": "encoding.invalid_utf8",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "kernel.bytes__utf8__decode"
+    ],
+    "handled_by": [],
+    "hit_by_tests": []
+  },
+  {
+    "kind": "json.numeric_out_of_range",
+    "fields": [
+      "text"
+    ],
+    "raised_by": [
+      "json.std__json__dec__decode",
+      "json.std__json__dec__decode_apply",
+      "json.std__json__dec__decode_value",
+      "json.std__json__int__decode",
+      "json.std__json__int__decode_apply",
+      "json.std__json__int__decode_value"
+    ],
+    "handled_by": [
+      {
+        "fn": "json.std__json__dec__decode_apply",
+        "arm": "on json.numeric_out_of_range e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__dec__decode_value",
+        "arm": "on json.numeric_out_of_range e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__int__decode_apply",
+        "arm": "on json.numeric_out_of_range e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__int__decode_value",
+        "arm": "on json.numeric_out_of_range e =\u003e forward e"
+      }
+    ],
+    "hit_by_tests": [
+      "json.std__json__dec__decode/bad",
+      "json.std__json__dec__decode_apply/bad",
+      "json.std__json__dec__decode_value/bad",
+      "json.std__json__int__decode/bad",
+      "json.std__json__int__decode_apply/bad",
+      "json.std__json__int__decode_value/bad"
+    ]
+  },
+  {
+    "kind": "json.render_budget_exhausted",
+    "fields": [],
+    "raised_by": [
+      "json.std__json__render_step",
+      "json.std__json__render_value"
+    ],
+    "handled_by": [
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "0 =\u003e forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step(((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \" + e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step((pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc + \"false\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Arr a =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"]\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(2, \"\", Json__Null(), a.items, 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \"[\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(pf.frames, acc + \"null\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Num n =\u003e forward call std__json__render_step(pf.frames, acc + n.text, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Obj o =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"}\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, o.fields, 0)) + Json__Frame(0, \"{\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Ok e =\u003e forward call std__json__render_step(pf.frames, acc + e\"\\\"\" + e.value + e\"\\\"\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "true =\u003e forward call std__json__render_step((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(0, e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "true =\u003e forward call std__json__render_step(pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "true =\u003e forward call std__json__render_step(pf.frames, acc + \"true\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Arr _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Bool _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Num _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Obj _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Str _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      }
+    ],
+    "hit_by_tests": [
+      "json.std__json__render_step/exhaust"
+    ]
+  },
+  {
+    "kind": "json.schema_mismatch",
+    "fields": [
+      "detail"
+    ],
+    "raised_by": [
+      "json.std__json__bool__decode",
+      "json.std__json__bool__decode_apply",
+      "json.std__json__bool__decode_value",
+      "json.std__json__dec__decode",
+      "json.std__json__dec__decode_apply",
+      "json.std__json__dec__decode_value",
+      "json.std__json__int__decode",
+      "json.std__json__int__decode_apply",
+      "json.std__json__int__decode_value",
+      "json.std__json__render_step",
+      "json.std__json__render_value",
+      "json.std__json__str__decode",
+      "json.std__json__str__decode_apply",
+      "json.std__json__str__decode_value"
+    ],
+    "handled_by": [
+      {
+        "fn": "json.std__json__bool__decode_apply",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__bool__decode_value",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__dec__decode_apply",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__dec__decode_value",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__int__decode_apply",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__int__decode_value",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "0 =\u003e forward call std__json__render_step(pf.frames, acc + frames[#frames - 1].text, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step(((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \" + e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step((pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \", \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc + \"false\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "false =\u003e forward call std__json__render_step(pf.frames, acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Arr a =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"]\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(2, \"\", Json__Null(), a.items, 0, Seq\u003cJson__Field\u003e[], 0)) + Json__Frame(0, \"[\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(pf.frames, acc + \"null\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Num n =\u003e forward call std__json__render_step(pf.frames, acc + n.text, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Json__Obj o =\u003e forward call std__json__render_step((pf.frames + Json__Frame(0, \"}\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, o.fields, 0)) + Json__Frame(0, \"{\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "on Ok e =\u003e forward call std__json__render_step(pf.frames, acc + e\"\\\"\" + e.value + e\"\\\"\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "true =\u003e forward call std__json__render_step((pf.frames + Json__Frame(3, \"\", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, frames[#frames - 1].fields, frames[#frames - 1].fpos + 1)) + Json__Frame(1, \"\", frames[#frames - 1].fields[frames[#frames - 1].fpos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(0, e\"\\\"\" + k.value + e\"\\\": \", Json__Null(), Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "true =\u003e forward call std__json__render_step(pf.frames + Json__Frame(2, \"\", Json__Null(), frames[#frames - 1].items, frames[#frames - 1].ipos + 1, Seq\u003cJson__Field\u003e[], 0) + Json__Frame(1, \"\", frames[#frames - 1].items[frames[#frames - 1].ipos].value, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0), acc, fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_step",
+        "arm": "true =\u003e forward call std__json__render_step(pf.frames, acc + \"true\", fuel - 1)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Arr _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Bool _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Null _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Num _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Obj _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__render_value",
+        "arm": "on Json__Str _ =\u003e forward call std__json__render_step(Seq\u003cJson__Frame\u003e[Json__Frame(1, \"\", v, Seq\u003cJson__Doc\u003e[], 0, Seq\u003cJson__Field\u003e[], 0)], \"\", std__json__RENDER_FUEL)"
+      },
+      {
+        "fn": "json.std__json__str__decode_apply",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      },
+      {
+        "fn": "json.std__json__str__decode_value",
+        "arm": "on json.schema_mismatch e =\u003e forward e"
+      }
+    ],
+    "hit_by_tests": [
+      "json.std__json__bool__decode/is_arr",
+      "json.std__json__bool__decode/is_null",
+      "json.std__json__bool__decode/is_num",
+      "json.std__json__bool__decode/is_obj",
+      "json.std__json__bool__decode/is_str",
+      "json.std__json__bool__decode_apply/mistype",
+      "json.std__json__bool__decode_value/mistype",
+      "json.std__json__dec__decode/is_arr",
+      "json.std__json__dec__decode/is_bool",
+      "json.std__json__dec__decode/is_null",
+      "json.std__json__dec__decode/is_obj",
+      "json.std__json__dec__decode/is_str",
+      "json.std__json__dec__decode_apply/mistype",
+      "json.std__json__dec__decode_value/mistype",
+      "json.std__json__int__decode/is_arr",
+      "json.std__json__int__decode/is_bool",
+      "json.std__json__int__decode/is_null",
+      "json.std__json__int__decode/is_obj",
+      "json.std__json__int__decode/is_str",
+      "json.std__json__int__decode_apply/mistype",
+      "json.std__json__int__decode_value/mistype",
+      "json.std__json__render_step/badtag",
+      "json.std__json__str__decode/is_arr",
+      "json.std__json__str__decode/is_bool",
+      "json.std__json__str__decode/is_null",
+      "json.std__json__str__decode/is_num",
+      "json.std__json__str__decode/is_obj",
+      "json.std__json__str__decode_apply/mistype",
+      "json.std__json__str__decode_value/mistype"
+    ]
+  },
+  {
+    "kind": "math.dec_invalid_bounds",
+    "fields": [
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.std__dec__clamp",
+      "scalars.std__dec__in_closed_range",
+      "scalars.std__dec__in_open_range"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__clamp/dec_clamp_bad",
+      "scalars.std__dec__in_closed_range/dec_closed_bad",
+      "scalars.std__dec__in_open_range/dec_open_bad"
+    ]
+  },
+  {
+    "kind": "math.dec_negative_input",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__dec__sqrt_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__sqrt_exact/sqrt_exact_neg"
+    ]
+  },
+  {
+    "kind": "math.dec_out_of_range",
+    "fields": [
+      "value",
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.std__dec__lerp"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__lerp/lerp_above",
+      "scalars.std__dec__lerp/lerp_below"
+    ]
+  },
+  {
+    "kind": "math.dec_zero_divisor",
+    "fields": [
+      "divisor"
+    ],
+    "raised_by": [
+      "scalars.std__dec__divide_exact",
+      "scalars.std__dec__divide_round_half_even"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__divide_exact/div_exact_zero_den",
+      "scalars.std__dec__divide_round_half_even/div_round_zero_den",
+      "scalars.std__dec__divide_round_half_even/div_round_zero_neg_scale"
+    ]
+  },
+  {
+    "kind": "math.invalid_bounds",
+    "fields": [
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.std__int__add_bounded",
+      "scalars.std__int__clamp",
+      "scalars.std__int__in_closed_range",
+      "scalars.std__int__in_open_range",
+      "scalars.std__int__multiply_bounded",
+      "scalars.std__int__subtract_bounded"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__int__add_bounded/add_bad",
+      "scalars.std__int__clamp/clamp_bad",
+      "scalars.std__int__in_closed_range/closed_bad",
+      "scalars.std__int__in_open_range/open_bad",
+      "scalars.std__int__multiply_bounded/mul_bad",
+      "scalars.std__int__subtract_bounded/sub_bad"
+    ]
+  },
+  {
+    "kind": "math.invalid_count",
+    "fields": [
+      "n",
+      "k"
+    ],
+    "raised_by": [
+      "scalars.std__int__binomial"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__int__binomial/k_too_big",
+      "scalars.std__int__binomial/neg_k"
+    ]
+  },
+  {
+    "kind": "math.negative_exponent",
+    "fields": [
+      "exponent"
+    ],
+    "raised_by": [
+      "scalars.std__dec__pow",
+      "scalars.std__int__pow"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__pow/dec_pow_neg",
+      "scalars.std__int__pow/pow_neg"
+    ]
+  },
+  {
+    "kind": "math.negative_input",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__backoff__delay",
+      "scalars.std__int__factorial",
+      "scalars.std__int__sqrt_floor",
+      "scalars.std__int__sum_to"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__backoff__delay/backoff_negative_attempt",
+      "scalars.std__backoff__delay/backoff_negative_base",
+      "scalars.std__backoff__delay/backoff_negative_cap",
+      "scalars.std__int__factorial/fact_neg",
+      "scalars.std__int__sqrt_floor/sqrt_neg",
+      "scalars.std__int__sum_to/sum_neg"
+    ]
+  },
+  {
+    "kind": "math.negative_scale",
+    "fields": [
+      "scale"
+    ],
+    "raised_by": [
+      "scalars.std__dec__divide_round_half_even",
+      "scalars.std__dec__from_parts",
+      "scalars.std__dec__round_half_even"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__divide_round_half_even/div_round_neg_scale",
+      "scalars.std__dec__from_parts/parts_neg_scale",
+      "scalars.std__dec__round_half_even/round_neg_scale"
+    ]
+  },
+  {
+    "kind": "math.nonpositive_input",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__int__next_power_of_two"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__int__next_power_of_two/npot_negative",
+      "scalars.std__int__next_power_of_two/npot_zero"
+    ]
+  },
+  {
+    "kind": "math.nonrepresentable_result",
+    "fields": [
+      "value"
+    ],
+    "raised_by": [
+      "scalars.std__dec__sqrt_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__sqrt_exact/sqrt_exact_even_refuse",
+      "scalars.std__dec__sqrt_exact/sqrt_exact_odd_refuse"
+    ]
+  },
+  {
+    "kind": "math.nonterminating_decimal",
+    "fields": [
+      "dividend",
+      "divisor"
+    ],
+    "raised_by": [
+      "scalars.std__dec__divide_exact"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__dec__divide_exact/div_exact_seventh",
+      "scalars.std__dec__divide_exact/div_exact_sixth",
+      "scalars.std__dec__divide_exact/div_exact_third"
+    ]
+  },
+  {
+    "kind": "math.out_of_range",
+    "fields": [
+      "value",
+      "lower",
+      "upper"
+    ],
+    "raised_by": [
+      "scalars.std__int__add_bounded",
+      "scalars.std__int__multiply_bounded",
+      "scalars.std__int__subtract_bounded"
+    ],
+    "handled_by": [],
+    "hit_by_tests": [
+      "scalars.std__int__add_bounded/add_high",
+      "scalars.std__int__add_bounded/add_low",
+      "scalars.std__int__multiply_bounded/mul_high",
+      "scalars.std__int__multiply_bounded/mul_low",
+      "scalars.std__int__subtract_bounded/sub_high",
+      "scalars.std__int__subtract_bounded/sub_low"
+    ]
+  }
+]
