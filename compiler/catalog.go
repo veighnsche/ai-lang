@@ -87,7 +87,10 @@ func buildCatalog(mods []*Module, prog *Program, texts map[string]string) []cata
 			rows := strings.Split(texts[m.ID], "\n")
 			calls := []*Node{}
 			for _, n := range matchNodes(fn.Body) {
-				if n.Kind != MatchCall {
+				// Invoke arms handle errors exactly like call
+				// arms; their Given is always nil (rejected
+				// statically), so stub collection stays safe.
+				if n.Kind != MatchCall && n.Kind != MatchInvoke {
 					continue
 				}
 				calls = append(calls, n)

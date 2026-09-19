@@ -15,7 +15,7 @@ import (
 var tsBase = map[string]string{"str": "string", "int": "bigint", "bool": "boolean", "dec": "string", "Bytes": "Uint8Array"}
 
 func tsType(t string) (string, error) {
-	return tsTypeB(t, nil, nil, nil)
+	return tsTypeB(t, nil, nil, nil, nil)
 }
 
 // recordShapes indexes declared record fields by type name, first
@@ -79,7 +79,10 @@ func errorShapes(mods []*Module) map[string][][2]string {
 // Declared record names map to their emitted TS type of the same name.
 // Declared variant parents (a74) map to their emitted union type of
 // the same name, so variant-typed fields and params reference it.
-func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
+// Callable heads map to unary closure types over the same
+// record/error union builders as named functions; errs carries the
+// error shapes for the union members (nil fails a head closed).
+func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
 	if out, ok := tsBase[t]; ok {
 		return out, nil
 	}
@@ -87,11 +90,14 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, va
 	// type. Brands erase through the same rule as scalars, so
 	// Seq<M__B> is string[] without hard-coding brand names here.
 	if elem, ok := seqElemName(t); ok {
-		inner, err := tsTypeB(elem, brands, recs, variants)
+		inner, err := tsTypeB(elem, brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
 		return inner + "[]", nil
+	}
+	if a, r, e, ok := fnTypeShape(t); ok {
+		return tsFnType(a, r, e, brands, recs, variants, errs)
 	}
 	if u, ok := brands[t]; ok {
 		if out, ok := tsBase[u]; ok {
@@ -105,6 +111,53 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, va
 		return t, nil
 	}
 	return "", fmt.Errorf("cannot map can type to TS: %s", t)
+}
+
+// tsFnType renders one callable head as a unary closure type: the
+// mapped input, then the flattened Ok/error union the thunk
+// returns, built by the same member builders as named functions.
+// Ok fields sort exactly like fnResultUnion so a temporary
+// annotated from either side renders identically.
+func tsFnType(a, r, e string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
+	in, err := tsTypeB(a, brands, recs, variants, errs)
+	if err != nil {
+		return "", err
+	}
+	fields, ok := recs[r]
+	if !ok {
+		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a record", r)
+	}
+	type kv struct{ k, v string }
+	var kvs []kv
+	for _, f := range fields {
+		t, err := tsTypeB(f[1], brands, recs, variants, errs)
+		if err != nil {
+			return "", err
+		}
+		kvs = append(kvs, kv{f[0], t})
+	}
+	sort.Slice(kvs, func(i, j int) bool { return kvs[i].k < kvs[j].k })
+	fs := ""
+	for _, p := range kvs {
+		fs += "; " + p.k + ": " + p.v
+	}
+	union := okMember(fs)
+	raw := strings.TrimSpace(e[1 : len(e)-1])
+	if raw != "" {
+		for _, k := range strings.Split(raw, ",") {
+			kind := strings.TrimSpace(k)
+			efs, ok := errs[kind]
+			if !ok {
+				return "", fmt.Errorf("cannot map can type to TS: Fn error %s is not declared", kind)
+			}
+			mem, err := tsErrFieldsMember(kind, efs, brands, recs, variants, errs)
+			if err != nil {
+				return "", err
+			}
+			union += " | " + mem
+		}
+	}
+	return fmt.Sprintf("(input: %s) => %s", in, union), nil
 }
 
 // tsTag is the outcome discriminator key in emitted TypeScript. It is
@@ -126,16 +179,23 @@ func tsField(name, value string) string {
 }
 
 // tsErrMember renders one error kind as a TS union member.
-func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
+func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
+	return tsErrFieldsMember(ed.Name, ed.Fields, brands, recs, variants, errs)
+}
+
+// tsErrFieldsMember renders one error kind from looked-up fields,
+// so callable unions (which resolve kinds through the error shape
+// map, not declarations) share the member byte-for-byte.
+func tsErrFieldsMember(name string, fields [][2]string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
 	fs := ""
-	for _, f := range ed.Fields {
-		t, err := tsTypeB(f[1], brands, recs, variants)
+	for _, f := range fields {
+		t, err := tsTypeB(f[1], brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
 		fs += "; " + f[0] + ": " + t
 	}
-	return fmt.Sprintf("{ %s: \"%s\"%s }", tsTag, ed.Name, fs), nil
+	return fmt.Sprintf("{ %s: \"%s\"%s }", tsTag, name, fs), nil
 }
 
 // tsVariantMember renders one variant case as a TS union member
@@ -143,11 +203,11 @@ func tsErrMember(ed *ErrorDecl, brands map[string]string, recs map[string][][2]s
 // fields map through their declared types. Nullary cases carry the
 // tag only. The shape mirrors tsErrMember; the checker guarantees
 // exact fields, so emit trusts the declaration.
-func tsVariantMember(parent string, vc VariantCase, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
+func tsVariantMember(parent string, vc VariantCase, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
 	tag := qualifyCase(parent, vc.Short)
 	fs := ""
 	for _, f := range vc.Fields {
-		t, err := tsTypeB(f[1], brands, recs, variants)
+		t, err := tsTypeB(f[1], brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
@@ -195,10 +255,10 @@ func okMember(fs string) string {
 // already-mapped types for the module-union dedup keys, so the
 // per-function union assembles its member from that map without
 // a second mapping pass.)
-func okFieldsMember(fields [][2]string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl) (string, error) {
+func okFieldsMember(fields [][2]string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
 	fs := ""
 	for _, f := range fields {
-		t, err := tsTypeB(f[1], brands, recs, variants)
+		t, err := tsTypeB(f[1], brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
@@ -209,12 +269,16 @@ func okFieldsMember(fields [][2]string, brands map[string]string, recs map[strin
 
 func resultUnion(ok string, emits []string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, lookupMods []*Module, emitsErr func(e string) error) (string, error) {
 	union := ok
+	var errs map[string][][2]string
+	if lookupMods != nil {
+		errs = errorShapes(lookupMods)
+	}
 	for _, e := range emits {
 		ed := builtinErrorLookup(e, lookupMods)
 		if ed == nil {
 			return "", emitsErr(e)
 		}
-		mem, err := tsErrMember(ed, brands, recs, variants)
+		mem, err := tsErrMember(ed, brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
@@ -245,7 +309,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 	}
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
-	ok, err := okFieldsMember(td.Fields, prog.Brands, recs, variants)
+	ok, err := okFieldsMember(td.Fields, prog.Brands, recs, variants, errorShapes(prog.Modules))
 	if err != nil {
 		return "", err
 	}
@@ -296,8 +360,9 @@ func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
 		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
 	shape := map[string]string{}
+	errs := errorShapes(prog.Modules)
 	for _, f := range fields {
-		t, err := tsTypeB(f[1], prog.Brands, recs, variants)
+		t, err := tsTypeB(f[1], prog.Brands, recs, variants, errs)
 		if err != nil {
 			return nil, err
 		}
@@ -374,6 +439,9 @@ func (e *emitter) emitEquality(op, ot, l, r string) (string, error) {
 		rr += ".value"
 		shape = strings.TrimPrefix(shape, "cell:")
 	}
+	if _, _, _, ok := fnTypeShape(shape); ok {
+		return "", fmt.Errorf("cannot emit comparison over %s: function values do not compare (%s)", shape, CodeBadCompare)
+	}
 	if shape == "Bytes" {
 		// a45 S1: direct byte operators are deferred. Nested byte
 		// comparison routes through the structural runtime below;
@@ -422,6 +490,9 @@ func (e *emitter) equalityFields(ot string) ([]string, error) {
 		return fs, nil
 	}
 	if fs, ok := e.recs[ot]; ok {
+		if e.shapeHasFn(ot, map[string]bool{}) {
+			return nil, fmt.Errorf("cannot emit comparison over %s: record contains a function value (%s)", ot, CodeBadCompare)
+		}
 		var names []string
 		for _, f := range fs {
 			names = append(names, f[0])
@@ -429,6 +500,36 @@ func (e *emitter) equalityFields(ot string) ([]string, error) {
 		return names, nil
 	}
 	return nil, fmt.Errorf("cannot emit comparison over %s (%s)", ot, CodeBadCompare)
+}
+
+// shapeHasFn reports whether a record transitively contains a
+// callable through its fields. The visited set keeps recursive
+// data graphs terminating; error and variant payloads refuse Fn
+// at their own positions, so they are leaves here.
+func (e *emitter) shapeHasFn(t string, seen map[string]bool) bool {
+	if _, _, _, ok := fnTypeShape(t); ok {
+		return true
+	}
+	if elem, ok := seqElemName(t); ok {
+		return e.shapeHasFn(elem, seen)
+	}
+	if strings.HasPrefix(t, "Seq<") && strings.HasSuffix(t, ">") {
+		return e.shapeHasFn(t[len("Seq<"):len(t)-1], seen)
+	}
+	fields, ok := e.recs[t]
+	if !ok {
+		return false
+	}
+	if seen[t] {
+		return false
+	}
+	seen[t] = true
+	for _, f := range fields {
+		if e.shapeHasFn(f[1], seen) {
+			return true
+		}
+	}
+	return false
 }
 
 // binopOperandType reports the static can type of a binop's operands
@@ -766,6 +867,8 @@ func (e *emitter) emitValue(node *Small) (string, error) {
 			return "", fmt.Errorf("cannot emit unknown constructor %s", node.Ctor)
 		}
 		return `{ ` + inner + ` }`, nil
+	case "fnref":
+		return e.emitFnref(node)
 	case "call":
 		// One binding rule (bindSlots): the call is invoked in the
 		// resolved parameter order, not source order, so a reordered
@@ -1438,13 +1541,107 @@ func indent(lines []string) []string {
 	return out
 }
 
+// emitFnref lowers one reference creation to a self-applying
+// thunk: each capture evaluates once into a fresh const, in
+// written order, and the returned closure applies the target
+// with parameters reconstructed in declaration order, the
+// missing input arriving as the closure's parameter. An
+// immediately invoked arrow keeps the whole creation an
+// expression (usable in call arguments and constructions) while
+// giving captures real temporaries instead of re-evaluated
+// inline expressions.
+func (e *emitter) emitFnref(node *Small) (string, error) {
+	params, ok := e.params[node.Fname]
+	if !ok {
+		return "", fmt.Errorf("no params for reference target %s", node.Fname)
+	}
+	slots, unbound, err := bindRefSlots(node.Fname, node.Args, params)
+	if err != nil {
+		return "", err
+	}
+	if len(unbound) != 1 {
+		return "", fmt.Errorf("reference to %s leaves %d parameters unbound", node.Fname, len(unbound))
+	}
+	var temps []string
+	capOf := map[int]string{}
+	for i, a := range node.Args {
+		v, err := e.emitValue(a.V)
+		if err != nil {
+			return "", err
+		}
+		t := e.fresh()
+		temps = append(temps, fmt.Sprintf("const %s = %s;", t, v))
+		capOf[slots[i]] = t
+	}
+	parts := make([]string, 0, len(params))
+	for i := range params {
+		if i == unbound[0] {
+			parts = append(parts, "input")
+			continue
+		}
+		t, ok := capOf[i]
+		if !ok {
+			return "", fmt.Errorf("reference to %s misses capture %s", node.Fname, params[i][0])
+		}
+		parts = append(parts, t)
+	}
+	body := strings.Join(temps, " ")
+	if body != "" {
+		body += " "
+	}
+	body += fmt.Sprintf("return (input) => %s(%s);", node.Fname, strings.Join(parts, ", "))
+	return fmt.Sprintf("(() => { %s })()", body), nil
+}
+
+// sigResultUnion renders one resolved invocation signature as its
+// flattened Ok/error union: the same sorted Ok fields and error
+// members as fnResultUnion, but over the signature's own success
+// record and head error list. Invoke temporaries annotate with
+// this so strict checkers narrow exactly like calls.
+func (e *emitter) sigResultUnion(sig *invokeSig) (string, error) {
+	fields, ok := e.recs[sig.ret]
+	if !ok {
+		return "", fmt.Errorf("invoke returns unknown type %s", sig.ret)
+	}
+	mapped := map[string]string{}
+	for _, f := range fields {
+		t, err := tsTypeB(f[1], e.brands, e.recs, e.variants, e.errTypes)
+		if err != nil {
+			return "", err
+		}
+		mapped[f[0]] = t
+	}
+	var names []string
+	for n := range mapped {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	fs := ""
+	for _, n := range names {
+		fs += "; " + n + ": " + mapped[n]
+	}
+	union := okMember(fs)
+	for _, kind := range sig.errs {
+		efs, ok := e.errTypes[kind]
+		if !ok {
+			return "", fmt.Errorf("invoke emits unknown error %s", kind)
+		}
+		mem, err := tsErrFieldsMember(kind, efs, e.brands, e.recs, e.variants, e.errTypes)
+		if err != nil {
+			return "", err
+		}
+		union += " | " + mem
+	}
+	return union, nil
+}
+
 func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 	if !elaborated(node) {
 		// Reaching codegen unelaborated is a compiler bug.
 		return fmt.Errorf("match chain reached emit unelaborated")
 	}
 	if node.Kind == MatchInvoke {
-		return fmt.Errorf("function invocation is deferred")
+		return e.stmtInvoke(node, out)
 	}
 	if node.Kind != MatchCall {
 		return e.emitValueMatch(node, out)
@@ -1479,6 +1676,43 @@ func (e *emitter) stmtMatch(node *Node, out *[]string) error {
 		return err
 	}
 	*out = append(*out, fmt.Sprintf("const %s: %s = %s;", tmp, union, call))
+	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
+	return e.emitCallArms(node, tmp, out)
+}
+
+// stmtInvoke lowers one invocation: the closure applies to the
+// emitted argument, and the outcome dispatches through the same
+// arm chains as calls. A missing static certificate fails the
+// build (never a guessed signature); a shadowed or non-callable
+// target fails it the same way.
+func (e *emitter) stmtInvoke(node *Node, out *[]string) error {
+	if node.invokeSig == nil {
+		return fmt.Errorf("invoke without a checked signature")
+	}
+	if len(node.Scruts) != 1 {
+		return fmt.Errorf("invoke without a target")
+	}
+	s := node.Scruts[0]
+	if s.Kind != "ref" || len(s.Ref) != 1 {
+		return fmt.Errorf("invoke target is not a name")
+	}
+	if node.InvokeArg == nil {
+		return fmt.Errorf("invoke without an argument")
+	}
+	union, err := e.sigResultUnion(node.invokeSig)
+	if err != nil {
+		return err
+	}
+	arg, err := e.emitValue(node.InvokeArg)
+	if err != nil {
+		return err
+	}
+	target, err := e.emitValue(s)
+	if err != nil {
+		return err
+	}
+	tmp := e.fresh()
+	*out = append(*out, fmt.Sprintf("const %s: %s = %s(%s);", tmp, union, target, arg))
 	*out = append(*out, fmt.Sprintf("switch (%s."+tsTag+") {", tmp))
 	return e.emitCallArms(node, tmp, out)
 }
@@ -1975,7 +2209,7 @@ func decodeResultUnion(kernel string, brands map[string]string, recs map[string]
 	if td == nil {
 		return "", fmt.Errorf("decode kernel %s returns unknown type %s", kernel, k.ret)
 	}
-	okm, err := okFieldsMember(td.Fields, brands, recs, variants)
+	okm, err := okFieldsMember(td.Fields, brands, recs, variants, nil)
 	if err != nil {
 		return "", err
 	}
@@ -2116,7 +2350,7 @@ func (e *emitter) fn(fn *FnDecl, union string) ([]string, error) {
 	e.tmp = 0
 	var params []string
 	for _, p := range fn.Params {
-		t, err := tsTypeB(p[1], e.brands, e.recs, e.variants)
+		t, err := tsTypeB(p[1], e.brands, e.recs, e.variants, e.errTypes)
 		if err != nil {
 			return nil, err
 		}
@@ -2149,22 +2383,31 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// resolve to their emitted union type the same way.
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
+	errs := errorShapes(prog.Modules)
 	need := map[string]map[string]bool{}
+	wantImport := func(fname string) {
+		// b02: shared externs import from the
+		// declaring stem's .externs stub below, never
+		// from the module itself.
+		if prog.Uses[fname] && prog.Externs[fname] == nil {
+			if need[stemOf[fname]] == nil {
+				need[stemOf[fname]] = map[string]bool{}
+			}
+			need[stemOf[fname]][fname] = true
+		}
+	}
 	for _, d := range mod.Decls {
 		fn, ok := d.(*FnDecl)
 		if !ok {
 			continue
 		}
 		for _, c := range walkCalls(fn.Body) {
-			// b02: shared externs import from the
-			// declaring stem's .externs stub below, never
-			// from the module itself.
-			if prog.Uses[c.Fname] && prog.Externs[c.Fname] == nil {
-				if need[stemOf[c.Fname]] == nil {
-					need[stemOf[c.Fname]] = map[string]bool{}
-				}
-				need[stemOf[c.Fname]][c.Fname] = true
-			}
+			wantImport(c.Fname)
+		}
+		// A thunk calls its target by name, so an address-taken
+		// foreign target imports exactly like a called one.
+		for _, r := range walkFnrefs(fn.Body) {
+			wantImport(r.Fname)
 		}
 	}
 	// Foreign type references (a74): a field, case payload,
@@ -2174,10 +2417,19 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// named type reference emitted unbound and failed strict tsc.
 	// Same-stem names, bases, brands, and sequences thereof need
 	// nothing: bases lower natively, brands erase, Seq unwraps.
-	typeRefs := func(t string) {
+	var typeRefs func(t string)
+	typeRefs = func(t string) {
 		base := t
 		if elem, ok := seqElemName(base); ok {
 			base = elem
+		}
+		// Callable heads are structural, but their input and
+		// success types may name foreign records: descend so
+		// the closure annotation imports them.
+		if a, r, _, ok := fnTypeShape(base); ok {
+			typeRefs(a)
+			typeRefs(r)
+			return
 		}
 		if _, ok := tsBase[base]; ok {
 			return
@@ -2257,6 +2509,11 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 				exCalled[c.Fname] = true
 			}
 		}
+		for _, r := range walkFnrefs(fn.Body) {
+			if prog.Externs[r.Fname] != nil {
+				exCalled[r.Fname] = true
+			}
+		}
 	}
 	// b02: called externs group by declaring stem — own externs
 	// keep the historical single line, shared ones import from
@@ -2286,7 +2543,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !ok {
 			continue
 		}
-		mem, err := tsErrMember(ed, prog.Brands, recs, variants)
+		mem, err := tsErrMember(ed, prog.Brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
@@ -2317,7 +2574,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !needed {
 			continue
 		}
-		mem, err := tsErrMember(b, prog.Brands, recs, variants)
+		mem, err := tsErrMember(b, prog.Brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
@@ -2383,7 +2640,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		var fs []string
 		for _, f := range td.Fields {
-			t, err := tsTypeB(f[1], prog.Brands, recs, variants)
+			t, err := tsTypeB(f[1], prog.Brands, recs, variants, errs)
 			if err != nil {
 				return "", err
 			}
@@ -2406,7 +2663,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		var members []string
 		for _, vc := range vd.Cases {
-			mem, err := tsVariantMember(vd.Name, vc, prog.Brands, recs, variants)
+			mem, err := tsVariantMember(vd.Name, vc, prog.Brands, recs, variants, errs)
 			if err != nil {
 				return "", err
 			}
@@ -2431,7 +2688,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		if !ok {
 			continue
 		}
-		t, err := tsTypeB(sd.Type, prog.Brands, recs, variants)
+		t, err := tsTypeB(sd.Type, prog.Brands, recs, variants, errs)
 		if err != nil {
 			return "", err
 		}
@@ -2535,7 +2792,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		}
 		var fs []string
 		for _, f := range b.Fields {
-			t, err := tsTypeB(f[1], em.brands, recs, em.variants)
+			t, err := tsTypeB(f[1], em.brands, recs, em.variants, em.errTypes)
 			if err != nil {
 				return "", err
 			}

@@ -369,8 +369,12 @@ func TestCheckFnrefNegatives(t *testing.T) {
 			CodeFnResidualArity, "binds every parameter"},
 		{"call capture is computed", `g(fnref m__t(divisor = call m__h(3))) => Ok("q")`,
 			CodeFnComputedCapture, "is computed (call)"},
+		{"arithmetic capture is computed", `g(fnref m__t(divisor = 1 + 2)) => Ok("q")`,
+			CodeFnComputedCapture, "is computed (binop)"},
 		{"captures follow declaration order", `g(fnref m__t(dividend = 4, divisor = 3)) => Ok("q")`,
 			CodeBadBinding, "out of order"},
+		{"capture value shares unbound-name rule", `g(fnref m__t(divisor = nope)) => Ok("q")`,
+			CodeTypeMismatch, "unbound name nope in m__go"},
 		{"unknown target", `g(fnref m__nope(divisor = 3)) => Ok("q")`,
 			CodeUnknownCall, "references unknown function"},
 	}

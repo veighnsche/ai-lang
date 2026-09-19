@@ -9,6 +9,7 @@ package main
 // untouched: this path never runs outside tests.
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -154,6 +155,20 @@ func runLinkedPure(t *testing.T, files map[string]string, order []string, root s
 		if err != nil {
 			return err
 		}
+		if valueHasFn(got) || valueHasFn(exp) {
+			eq, detail, err := expectEq(exp, got)
+			if err != nil {
+				return err
+			}
+			if !eq {
+				msg := fmt.Sprintf("linked %s: Ok payload mismatch: got %s, want %s", root, describe(got), describe(exp))
+				if detail != "" {
+					msg += ": " + detail
+				}
+				return errors.New(msg)
+			}
+			return nil
+		}
 		eq, err := vEq(got, exp)
 		if err != nil || !eq {
 			return fmt.Errorf("linked %s: Ok payload mismatch: got %s, want %s", root, describe(got), describe(exp))
@@ -167,6 +182,20 @@ func runLinkedPure(t *testing.T, files map[string]string, order []string, root s
 		exp, err := evSmall(want, env, ctx, fn.Name)
 		if err != nil {
 			return err
+		}
+		if valueHasFn(got) || valueHasFn(exp) {
+			eq, detail, err := expectEq(exp, got)
+			if err != nil {
+				return err
+			}
+			if !eq {
+				msg := fmt.Sprintf("linked %s: error payload mismatch: got %s, want %s", root, describe(got), describe(exp))
+				if detail != "" {
+					msg += ": " + detail
+				}
+				return errors.New(msg)
+			}
+			return nil
 		}
 		eq, err := vEq(got, exp)
 		if err != nil || !eq {

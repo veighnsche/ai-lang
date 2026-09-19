@@ -564,11 +564,9 @@ func (c *tycker) knownType(t string) bool {
 		return true
 	}
 	if _, _, _, ok := fnTypeShape(t); ok {
-		// B00 stage 1: the head shape admits the annotation so
-		// deferred-creation reports CAN6018 instead of drowning
-		// in unknown-type noise. Deep validation (known input,
-		// record success, known/distinct/ordered kinds) lands
-		// with expansion.
+		// The head shape admits the annotation so the callable
+		// validators report precise codes (slots, arity, error
+		// kinds) instead of drowning in unknown-type noise.
 		return true
 	}
 	if elem, ok := seqElemName(t); ok {
@@ -1183,6 +1181,14 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 			// refusal covers them too.
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("cannot compare %s with %s: variant equality is not in v1", l, r), s.Op, CodeTypeMismatch))
+		} else if c.typeHasFn(l) {
+			// b00: function values do not compare, directly or
+			// through a bearing record. Factory receipt equality
+			// stays in the test evaluator (expectEq); the
+			// language surface refuses here so no operand sails
+			// through to object identity at emit.
+			c.out = append(c.out, spanDiag(c.text, line, "error",
+				fmt.Sprintf("cannot compare %s with %s: function values do not compare", l, r), s.Op, CodeTypeMismatch))
 		} else if isOrdering(s.Op) && l != "int" && l != "str" && l != "dec" && !c.brands[l] {
 			// Ordering needs an ordered domain: records,
 			// bools, cells, and payloads compare for

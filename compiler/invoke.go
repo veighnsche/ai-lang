@@ -107,10 +107,34 @@ func admissibleRefSig(ck *tycker, prog *Program, s *Small) (string, bool) {
 	return t, true
 }
 
+// walkFnrefs collects every reference creation in executable
+// positions: arm bodies and plain bodies, call scrutinee
+// arguments, and invoke arguments. Creation never executes, so
+// references stay out of walkCalls (and the linked-execution
+// graph) while import and cycle collection still see the address
+// dependency.
+func walkFnrefs(body *Node) []*Small {
+	var out []*Small
+	bodySmalls(body, func(s *Small, line int) {
+		if s.Kind == "fnref" {
+			out = append(out, s)
+		}
+	})
+	for _, m := range matchNodes(body) {
+		for _, s := range m.Scruts {
+			walkSmallTrees(s, func(x *Small) {
+				if x.Kind == "fnref" {
+					out = append(out, x)
+				}
+			})
+		}
+	}
+	return out
+}
+
 // eachFnref visits every reference creation in executable and
-// fixture positions: bodies and invoke arguments (bodySmalls),
-// call scrutinee arguments, and test rows (args and
-// expectations). Given tables are mocks, not addresses.
+// fixture positions: bodies (walkFnrefs) plus test rows (args
+// and expectations). Given tables are mocks, not addresses.
 func eachFnref(fn *FnDecl, f func(*Small)) {
 	see := func(s *Small) {
 		walkSmallTrees(s, func(x *Small) {
@@ -119,15 +143,8 @@ func eachFnref(fn *FnDecl, f func(*Small)) {
 			}
 		})
 	}
-	bodySmalls(fn.Body, func(s *Small, line int) {
-		if s.Kind == "fnref" {
-			f(s)
-		}
-	})
-	for _, m := range matchNodes(fn.Body) {
-		for _, s := range m.Scruts {
-			see(s)
-		}
+	for _, s := range walkFnrefs(fn.Body) {
+		f(s)
 	}
 	for _, t := range fn.Tests {
 		for _, a := range t.Args {

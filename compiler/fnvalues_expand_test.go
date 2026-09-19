@@ -15,11 +15,11 @@ func typeNames(tds map[string]*TypeDecl) []string {
 	return out
 }
 
-// B00 stage 1c expansion: fnref type arguments demand stamps like
-// calls, Fn heads descend for instance collection, and every
-// walker covers the new positions. Full-pipeline fixtures: the
-// CAN6018 deferrals fire alongside, so assertions target stamps
-// and slot strings, never a clean bill.
+// B00 expansion: fnref type arguments demand stamps like calls,
+// Fn heads descend for instance collection, and every walker
+// covers the new positions. Full-pipeline fixtures: assertions
+// target stamps and slot strings, plus the expansion refusals
+// (bare generics, monomorphic arguments, chain-else).
 
 const fnvaluesExpandLib = `mod m
   provides [m__id, m__go, M__Box, M__O]
@@ -97,6 +97,35 @@ fn m__go(n: int) -> M__Box<int> rev 1
 `
 	_, _, collected := genericProgram(t, map[string]string{"m.can": src})
 	wantGenericDiag(t, collected, CodeGenericExpand, "needs explicit type arguments")
+}
+
+func TestExpandFnrefChainElseGate(t *testing.T) {
+	src := `mod m
+  provides [m__id, m__go, M__Box]
+  uses []
+  emits []
+
+type M__Box<T> rev 1 (
+  item: T
+)
+
+fn m__id<T>(x: T) -> M__Box<T> rev 1
+  emits []
+  tests
+    i<T=int>(1) => Ok(1)
+  Ok(x)
+
+fn m__go(n: int) -> M__Box<int> rev 1
+  emits []
+  tests
+    g(1) => Ok(1)
+  match chain
+    call m__id<int>(1) as a
+    then a
+    else Ok(fnref m__id<int>(x = n))
+`
+	_, _, collected := genericProgram(t, map[string]string{"m.can": src})
+	wantGenericDiag(t, collected, CodeGenericExpand, "chain else")
 }
 
 func TestExpandFnrefMonomorphicArgs(t *testing.T) {
