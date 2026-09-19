@@ -162,9 +162,9 @@ var explainDocs = map[string]explainEntry{
 		fix:     "Define it or drop it from provides. No forward declarations, no aspirational exports.",
 	},
 	CodeUnknownCall: {
-		rule:    "Every callee resolves: same-file helper, uses-pinned can function, own-module extern, or state intrinsic. Unknown callees and other modules' externs are rejected.",
-		violate: `call db__get_user(...) with no such function, or calling another module's extern directly.`,
-		fix:     "Fix the name, add the uses pin, or declare your own extern — externs are module-local and never shared.",
+		rule:    "Every callee resolves: same-file helper, uses-pinned can function, own-module extern, or state intrinsic. Unknown callees are rejected.",
+		violate: `call db__get_user(...) with no such function anywhere.`,
+		fix:     "Fix the name or add the uses pin. Another module's extern admits exactly like a foreign function: pinned in uses.",
 	},
 	CodeCallNotInUses: {
 		rule:    "A function touching the outside world says so in uses: cross-file callees need a pinned entry (R6).",

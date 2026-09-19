@@ -723,11 +723,11 @@ func checkTestShapes(fn *FnDecl, text string) []Diag {
 // checkCalls mirrors the evaluator's call rules statically. Foreign
 // scrutinees must name a known function in uses; same-file helpers
 // need no pin (locality is visible, and a same-file uses entry
-// resolves nowhere). Module-local externs are the exception: a
-// foreign import is declared where it is called and needs no uses
-// pin, but an extern from another module is unknown here (declare
-// your own). Calls outside a match scrutinee are outside the v0
-// subset entirely.
+// resolves nowhere). Same-module externs are the exception: a
+// foreign import declared where it is called needs no pin, but an
+// extern from another module (b02) admits exactly like a foreign
+// function — pinned in uses, or not in uses. Calls outside a match
+// scrutinee are outside the v0 subset entirely.
 func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text string) []Diag {
 	var out []Diag
 	scrut := map[*Small]bool{}
@@ -745,8 +745,16 @@ func checkCalls(fn *FnDecl, prog *Program, localExtern map[string]bool, text str
 					continue
 				}
 				if prog.Externs[fname] != nil {
+					// b02: a shared extern admits like a
+					// foreign function — pinned in uses,
+					// exact rev enforced at pin
+					// resolution — and reports the same
+					// missing pin without one.
+					if prog.Uses[fname] {
+						continue
+					}
 					out = append(out, spanDiag(text, m.Line, "error",
-						fmt.Sprintf("%s calls extern %s from another module: declare your own extern", fn.Name, fname), fname, CodeUnknownCall))
+						fmt.Sprintf("%s calls %s which is not in uses: add name@rev to uses", fn.Name, fname), fname, CodeCallNotInUses))
 					continue
 				}
 				out = append(out, spanDiag(text, m.Line, "error",

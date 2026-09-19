@@ -1551,8 +1551,10 @@ func evCallMatch(node *Node, env map[string]*Value, ctx *Ctx, owner string) (*Va
 			}
 			v = val
 		default:
-			// Externs are module-local foreign imports: no uses pin, but
-			// still scripted through given tables like can calls.
+			// Same-module externs need no uses pin; shared
+			// externs (b02) arrive pinned like foreign
+			// functions. Both script through given tables
+			// like can calls.
 			if calleeUnknown(ctx.Prog, fname) {
 				return nil, &UnknownCallError{Owner: owner, Fname: fname}
 			}

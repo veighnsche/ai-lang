@@ -1218,8 +1218,63 @@ func TestDiagnoseForeignExtern(t *testing.T) {
 	files := map[string]string{"m.can": typeExtern, "o.can": typeForeign}
 	dir := writeLSPDir(t, files)
 	diags := diagnose(dir, "o.can", typeForeign)
-	if !hasDiag(diags, "error", "declare your own extern") {
-		t.Fatalf("expected foreign-extern error, got %v", diags)
+	if !hasDiag(diags, "error", "o__go calls m__use which is not in uses") {
+		t.Fatalf("expected foreign-extern missing-pin error, got %v", diags)
+	}
+}
+
+// b02: a uses-pinned foreign extern admits exactly like a foreign
+// function — pinned rev, scripted call, executed outcome — with no
+// diagnostic at all.
+const typeSharedProvider = `mod p
+  provides [p__echo, P__Out]
+  uses []
+  emits []
+
+type P__Out rev 1 (
+  echo: str
+)
+
+extern p__echo(s: str) -> P__Out rev 1
+  emits []
+`
+
+const typeSharedCaller = `mod o
+  provides [o__go, O__Out]
+  uses [p__echo@1]
+  emits []
+
+type O__Out rev 1 (
+  id: str
+)
+
+fn o__go(id: str) -> O__Out rev 1
+  emits []
+  tests
+    t("u") => Ok("u")
+  match call p__echo(id)
+    given
+      t => [exchange args (s = "u") outcome Ok("u")]
+    on Ok v => Ok(id)
+`
+
+func TestDiagnoseSharedExternPinned(t *testing.T) {
+	files := map[string]string{"p.can": typeSharedProvider, "o.can": typeSharedCaller}
+	dir := writeLSPDir(t, files)
+	if diags := diagnose(dir, "o.can", typeSharedCaller); len(diags) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", diags)
+	}
+}
+
+// b02: the pin carries the exact-rev discipline — a stale rev fails
+// at resolution, before any call check runs.
+func TestDiagnoseSharedExternStaleRev(t *testing.T) {
+	stale := strings.Replace(typeForeign, "uses []", "uses [m__use@2]", 1)
+	files := map[string]string{"m.can": typeExtern, "o.can": stale}
+	dir := writeLSPDir(t, files)
+	diags := diagnose(dir, "o.can", stale)
+	if !hasDiag(diags, "error", "uses m__use@2 pins rev 2, but m__use declares rev 1") {
+		t.Fatalf("expected stale-rev error, got %v", diags)
 	}
 }
 
