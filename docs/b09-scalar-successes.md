@@ -95,9 +95,11 @@ linked execution, LSP, and Node parity are tested. Node holds independent
 captures alive and exercises bigints, false booleans, empty/Unicode strings,
 and decimal fractions.
 
-Bare brand, Bytes, sequence, and Fn returns remain unsupported. Externs
-still return records (`TestScalarSuccessExternsStillRefused`); unsupported
-Fn successes are pinned by `TestFnUnsupportedSuccessesStillRefused`.
+B09 left bare brand, Bytes, sequence, and Fn returns unsupported, with
+record-only externs. [B10](b10-bare-and-extern-returns.md) subsequently
+completes those source returns and data-only extern successes. Callable
+invocation successes and extern signatures still cannot carry functions;
+`TestBareReturnContainment` pins that boundary.
 Generic `forward call` text remains the separate B08-recorded gap; explicit
 `match call f<T>(...)` plus `forward r` works. No first-class Outcome,
 generic error algebra, record Ok splat, nested user-generic arguments, or

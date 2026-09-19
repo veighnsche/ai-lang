@@ -202,11 +202,11 @@ fn m__go(value: bool) -> bool rev 1
 	}
 }
 
-func TestScalarSuccessExternsStillRefused(t *testing.T) {
+func TestScalarSuccessExternsAdmitted(t *testing.T) {
 	for _, typ := range []string{"int", "str", "bool", "dec"} {
 		src := "mod m\n  provides [m__host]\n  uses []\n  emits []\n\nextern m__host(value: int) -> " + typ + " rev 1\n  emits []\n"
 		_, _, ds := genericProgram(t, map[string]string{"m.can": src})
-		if !hasDiag(ds, "error", "externs return a record type") {
+		if len(genericErrs(ds)) != 0 {
 			t.Fatal(ds)
 		}
 	}

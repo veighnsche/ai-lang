@@ -467,7 +467,7 @@ func TestSeqT7BareList(t *testing.T) {
 		CodeSeqLiteral, "Seq<T>")
 }
 
-// T8: a bare-Seq return is unsupported, like a bare-brand return.
+// B10 admits bare-Seq successes using Ok(value).
 func TestSeqT8BareReturn(t *testing.T) {
 	body := `mod m
   provides [m__go]
@@ -480,8 +480,10 @@ fn m__go() -> Seq<str> rev 1
     go() => Ok(Seq<str>[])
   Ok(Seq<str>[])
 `
-	seqCode(t, map[string]string{"m.can": body}, "m.can",
-		CodeTypeMismatch, "bare-Seq")
+	_, _, ds := genericProgram(t, map[string]string{"m.can": body})
+	if len(genericErrs(ds)) != 0 {
+		t.Fatal(ds)
+	}
 }
 
 // Unknown element types fail at the annotation, not downstream: the

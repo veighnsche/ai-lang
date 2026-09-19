@@ -1,5 +1,9 @@
 # b02 — shared externs design
 
+Follow-up: [B10](b10-bare-and-extern-returns.md) broadens extern successes
+from records to all supported data-only return types, retaining the sharing,
+pins, declaring-stem host resolution, and trust model below.
+
 ## Problem
 
 Externs are module-local by enforcement, not by necessity: a

@@ -295,10 +295,10 @@ fn m__bad(which: str) -> M__B rev 1
   Ok(seal M__B("x"))
 `
 
-func TestFnBrandReturnRejected(t *testing.T) {
+func TestFnBrandReturnAdmitted(t *testing.T) {
 	dir := writeLSPDir(t, map[string]string{"m.can": sealBrandReturn})
 	diags := diagnose(dir, "m.can", sealBrandReturn)
-	if !hasDiag(diags, "error", "bare-brand returns are unsupported") {
-		t.Fatalf("expected brand-return rejection, got %v", diags)
+	if len(genericErrs(diags)) != 0 {
+		t.Fatalf("expected brand-return admission, got %v", diags)
 	}
 }

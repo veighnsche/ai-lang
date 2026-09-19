@@ -1190,8 +1190,8 @@ func TestDiagnoseExternBoolRet(t *testing.T) {
 	bad := strings.Replace(typeExtern, "extern m__use(pw: M__Pw) -> M__Verdict rev 1", "extern m__use(pw: M__Pw) -> bool rev 1", 1)
 	dir := writeLSPDir(t, map[string]string{"m.can": bad})
 	diags := diagnose(dir, "m.can", bad)
-	if !hasDiag(diags, "error", "extern m__use returns bool") {
-		t.Fatalf("expected extern record-return error, got %v", diags)
+	if !hasDiag(diags, "error", "Ok is missing field value") {
+		t.Fatalf("expected the old empty-Ok script to fail the bool payload contract, got %v", diags)
 	}
 }
 

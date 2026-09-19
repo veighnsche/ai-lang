@@ -7,7 +7,7 @@ import (
 
 // B00 invocation slice I1: well-formed reference creation checks
 // clean. The factory returns a record holding the callable
-// (bare-Fn returns stay refused); the row then fails evaluation
+// (bare-Fn returns stayed refused until B10); the row then fails evaluation
 // (CAN4200) until the I3 runtime constructs values, which the
 // assertions below admit explicitly.
 const fnvaluesCheckBody = `mod m
@@ -221,8 +221,8 @@ func TestCheckFnHeadParams(t *testing.T) {
 		sub  string
 	}{
 		{"unknown input", `Fn<Nope, M__O, [m.err]>`, CodeUnknownType, "unknown type Nope in Fn input of param cb"},
-		{"Bytes success", `Fn<int, Bytes, [m.err]>`, CodeFnHeadInvalid, "Fn success Bytes of param cb is not a record"},
-		{"kind success", `Fn<int, m.err, [m.err]>`, CodeFnHeadInvalid, "Fn success m.err of param cb is not a record"},
+		{"unknown success", `Fn<int, Missing, [m.err]>`, CodeFnHeadInvalid, "Fn success Missing of param cb"},
+		{"kind success", `Fn<int, m.err, [m.err]>`, CodeFnHeadInvalid, "Fn success m.err of param cb is not a supported success type"},
 		{"unknown kind", `Fn<int, M__O, [m.nope]>`, CodeUnknownKind, "unknown error kind m.nope in Fn list of param cb"},
 		{"duplicate kind", `Fn<int, M__O, [m.err, m.err]>`, CodeFnHeadInvalid, "duplicate error kind m.err in Fn list of param cb"},
 		{"unordered kinds", `Fn<int, M__O, [m.odd, m.err]>`, CodeFnHeadInvalid, "not canonically ordered: want [m.err, m.odd]"},
@@ -249,19 +249,18 @@ func TestCheckFnHeadContainment(t *testing.T) {
 	wantFnHeadDiag(t, out, CodeFnContainment, "Fn success M__H of param cb contains a function value")
 }
 
-// Bare-Fn returns are unsupported like bare-Seq returns: results
-// name a record. An invalid head in return position still reports
-// its own head diagnostic.
+// B10 admits bare-Fn factory results, but the payload and head must
+// still match the declaration. Unknown successes remain invalid.
 func TestCheckFnHeadReturns(t *testing.T) {
 	bare := strings.Replace(fnHeadBase, "cb: HEAD", "n: int", 1)
 	bare = strings.Replace(bare, "fn m__go(n: int) -> M__O rev 1",
 		"fn m__go(n: int) -> Fn<int, M__O, [m.err]> rev 1", 1)
 	bare = strings.Replace(bare, "g(fnref m__t(divisor = 3))", "g(3)", 1)
-	wantFnHeadDiag(t, bare, CodeTypeMismatch, "bare-Fn returns are unsupported, return a record")
+	wantFnHeadDiag(t, bare, CodeTypeMismatch, "got str, want Fn<int, M__O, [m.err]>")
 
 	bad := strings.Replace(bare,
-		"-> Fn<int, M__O, [m.err]> rev 1", "-> Fn<int, Bytes, [m.err]> rev 1", 1)
-	wantFnHeadDiag(t, bad, CodeFnHeadInvalid, "Fn success Bytes of returns is not a record")
+		"-> Fn<int, M__O, [m.err]> rev 1", "-> Fn<int, Missing, [m.err]> rev 1", 1)
+	wantFnHeadDiag(t, bad, CodeFnHeadInvalid, "Fn success Missing of returns")
 }
 
 // Record fields carry callables, so field heads are deep-checked
@@ -276,7 +275,7 @@ func TestCheckFnHeadField(t *testing.T) {
 }
 
 // Extern signatures are deep-checked too; an extern returning a
-// bare Fn trips the existing record-return rule.
+// bare Fn still trips the data-only boundary.
 func TestCheckFnHeadExtern(t *testing.T) {
 	body := `mod m
   provides [m__go, m__t, M__O, M__Verdict, m__use]
@@ -314,7 +313,7 @@ fn m__go(cb: Fn<int, M__O, [m.err]>) -> M__O rev 1
 	ret := strings.Replace(body,
 		"extern m__use(cb: Fn<int, M__O, [m.nope]>) -> M__Verdict rev 1",
 		"extern m__use(n: int) -> Fn<int, M__O, [m.err]> rev 1", 1)
-	wantFnHeadDiag(t, ret, CodeTypeMismatch, "externs return a record type")
+	wantFnHeadDiag(t, ret, CodeFnContainment, "extern signatures are data-only")
 }
 
 // A valid multi-kind head with an empty-list field reports no head

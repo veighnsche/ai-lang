@@ -182,9 +182,9 @@ func TestFnUnsupportedSuccessesStillRefused(t *testing.T) {
 		t.Fatal(errs)
 	}
 	ck := newTycker(prog, "", "use__apply$T$int")
-	for _, r := range []string{"Bytes", "Seq<int>", "Fn<int,Choice__Value$T$int,[]>"} {
+	for _, r := range []string{"Fn<int,Choice__Value$T$int,[]>"} {
 		head := "Fn<int," + r + ",[]>"
-		if ds := ck.fnHeadDiags(head, "test", 1, "Fn"); !hasDiag(ds, "error", "is not a record, variant, or primitive scalar") {
+		if ds := ck.fnHeadDiags(head, "test", 1, "Fn"); !hasDiag(ds, "error", "contains a function value") {
 			t.Fatalf("admitted %s: %v", head, ds)
 		}
 		if _, err := tsTypeB(head, prog.Brands, recordShapes(prog.Modules), variantShapes(prog.Modules), errorShapes(prog.Modules)); err == nil {

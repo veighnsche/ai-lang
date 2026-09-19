@@ -167,15 +167,15 @@ func TestVariantReturnNominalParent(t *testing.T) {
 	}
 }
 
-// B08 admits variant Fn successes, but the host ABI is still separate.
-func TestVariantReturnExternStillRefused(t *testing.T) {
+// B10 extends the same value envelope to data-only externs.
+func TestVariantReturnExternAdmitted(t *testing.T) {
 	src := monoVariantReturn + `
 extern host__choose(full: bool) -> M__State rev 1
   emits []
 `
 	src = strings.Replace(src, "provides [", "provides [host__choose, ", 1)
 	_, _, ds := genericProgram(t, map[string]string{"m.can": src})
-	if !hasDiag(ds, "error", "externs return a record type") {
+	if len(genericErrs(ds)) != 0 {
 		t.Fatal(ds)
 	}
 }

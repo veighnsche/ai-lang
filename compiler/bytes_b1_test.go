@@ -466,7 +466,7 @@ fn m__go() -> M__Flag rev 1
 	}
 }
 
-// T4: bare-Bytes returns need wrapper records; Bytes state stays out.
+// B10 admits bare-Bytes successes; Bytes state stays out.
 func TestBytesT4BareReturn(t *testing.T) {
 	body := `mod m
   provides [m__go]
@@ -479,8 +479,10 @@ fn m__go() -> Bytes rev 1
     go() => Ok(Bytes(Seq<int>[]))
   Ok(Bytes(Seq<int>[]))
 `
-	seqCode(t, map[string]string{"m.can": body}, "m.can",
-		CodeTypeMismatch, "bare-Bytes")
+	_, _, ds := genericProgram(t, map[string]string{"m.can": body})
+	if len(genericErrs(ds)) != 0 {
+		t.Fatal(ds)
+	}
 }
 
 func TestBytesT4NoBytesState(t *testing.T) {

@@ -13,7 +13,8 @@ landed, unblocking the §1.8 callback rows. Slices 7+ below.
 B06 subsequently lands explicit generic variants; B07 admits bare variant
 returns through the existing Ok(value) protocol; B08 carries that success
 contract through Fn references and invocation; B09 completes primitive
-scalar successes across source returns, calls, and Fn. These language
+scalar successes across source returns, calls, and Fn. B10 adds the other
+supported bare source returns and data-only extern successes. These language
 slices do not claim the catalogue's option/outcome combinators.
 
 ## Shipped (main, all gates green per commit)
@@ -36,6 +37,7 @@ slices do not claim the catalogue's option/outcome combinators.
 | B07 | `cb457c1` | Language unblocker: bare variant returns via checked `Ok(value)`, ordinary call binders expose `.value`, same-nominal forwarding, declared TS success shapes/imports; `sketches/variant-return` has 27 rows, TS/catalogue goldens, and Node parity. Fn successes and extern returns were still record-only at B07. |
 | B08 | `147260a` | Language unblocker: Fn successes admit records or variants, including generic stamps; reference admission/signature discovery, invocation binders/forwarding, and TS types agree on the B07 envelope. `sketches/fn-variant` has 26 rows, TS/catalogue goldens, linked/LSP/Node checks, and purity/cycle/coverage regressions. Externs and scalar successes are unchanged. |
 | B09 | `85c63a8` | Language unblocker: int/str/bool/dec successes through strict `Ok(value)` checking, generic source returns, calls, Fn references/invocation, exact-type forwarding, and TS emission. `sketches/fn-scalar` has 40 rows, goldens, linked/LSP/Node parity, and int/bool contract proof tests. Fixes test-only generic-reference pins and false error-projection raises; HTML catalogue corrected, emitted HTML unchanged. |
+| B10 | TBD | Language unblocker: brands/Bytes/allowed Seq successes, bare source Fn factories through ordinary calls, and data-only extern successes for all supported data types. Shared Ok(value) shapes, exact forwarding, containment and seal authority preserved. `sketches/bare-returns` has 40 rows, three-module goldens, a real host implementation, linked/LSP/Node parity, and negative boundary tests. Existing goldens unchanged. |
 
 Pre-existing (§1.1–1.3, §1.6, §1.8 text/codecs, §2 elements/render/
 assets, quota, schema, ascii) was verified present, not rebuilt.
@@ -44,7 +46,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 
 | Roadmap item | Missing feature | Evidence |
 |--------------|-----------------|----------|
-| §1.7 outcome/option combinators | First-class outcomes + generic error algebra; generic record-success reconstruction | PARTIAL UNBLOCK (B06–B09): user-declared optional variants support construction, matching, source returns, calls/forwarding, and Fn successes/invocation. B09 also closes primitive scalar source/callback successes, including the generic identity emission probe. No stdlib combinators claimed. Outcome probe remains `unknown type Outcome`; b00 excludes generic error-set algebra and generic outcome values, and the no-Ok-splat limitation below remains for arbitrary record successes. `TestFnUnsupportedSuccessesStillRefused` pins other bare Fn restrictions; `TestScalarSuccessExternsStillRefused` and `TestVariantReturnExternStillRefused` pin record-only extern returns. Re-probe exact optional APIs individually before a stdlib slice; no monomorphic fallback is being substituted. |
+| §1.7 outcome/option combinators | First-class outcomes + generic error algebra; generic record-success reconstruction | PARTIAL UNBLOCK (B06–B10): user-declared optional variants support construction, matching, source returns, calls/forwarding, and Fn successes/invocation. B09 closes primitive scalar source/callback successes; B10 adds other supported data successes, ordinary-call Fn factories, and data-only extern returns. No stdlib combinators claimed. Outcome probe remains `unknown type Outcome`; b00 excludes generic error-set algebra and generic outcome values, and the no-Ok-splat limitation below remains for arbitrary record successes. `TestBareReturnContainment` pins data-only extern/invocation boundaries; first-class outcomes and generic error algebra are not supplied by widening success types. Re-probe exact optional APIs individually before a stdlib slice; no monomorphic fallback is being substituted. |
 | §1.8 seq map/filter/fold/find/all/any | SHIPPED (slice 7): generic workers invoke total callbacks; find reports `sequence.not_found()` (B06–B07 remove the original generic-variant/return blockers; optional-return API migration has not been attempted); predicates return per-module `Bool__Value` (std/set precedent) | 62 rows; 107 pass on compile; `TestStdSeqCompiles` gates. `find` is unchanged. |
 | §1.8 seq sort/unique | SHIPPED (slice 8): `Seq__Order` value Asc/Desc over per-instance built-in order (insertion sort, stable by construction); unique keeps first occurrences via per-instance `==` | 40 rows; 147 pass on compile; lexicographic orders deferred. |
 | §1.8 `Map<K,V>` fully generic | SHIPPED (slice M1): `Map<K,V>` over `Seq<Map__Pair<K,V>>` with catalogue names; str-keyed `Map__Entries<V>` migrated away (no downstream users); errors payloadless (payloads cannot be generic) | 45 rows across `<str,int>` + `<int,str>`; goldens regen via documented flow; `TestStdMapCompiles` gates. |
@@ -59,7 +61,7 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 
 - ~~No `seq[i].field` projection (slice 2; worked around via `_push`)~~ — LANDED as b03 (`proj` node; chains nest, `$canSeqAt(m, i).f` emit).
 - ~~`substNode` skipped `InvokeArg` (slice 7; generic invoke args stamped verbatim)~~ — FIXED in-slice (one line; `TestExpandInvokeArgSubstituted`).
-- Bare `Seq<T>` returns rejected (slice 4; wrapper records required).
+- ~~Bare `Seq<T>` returns rejected~~ — B10 admits allowed data-element sequences through `Ok(value)`, calls, Fn successes, and externs. Existing stdlib wrappers have not been migrated.
 - Per-instance arm coverage for generics (slice 4; row cost is real).
 - Explicit `<T>` required on recursive generic calls (slice 4).
 - `given` rows key on caller test names across module lines (slice 5).
@@ -74,8 +76,9 @@ assets, quota, schema, ascii) was verified present, not rebuilt.
 - No `Outcome<T,E>` / `Option<T>` builtins; no generic error-set algebra (slice 10). B06 now admits user-declared generic variants such as `Option__Value<T>`; exact §1.7 APIs are not yet claimed.
 - ~~Generic variants fail with `bad variant decl`~~ — B06 re-probed that exact error before implementation; declarations, explicit case constructors/patterns, and record-carried optional results now work. See `docs/b06-generic-variants.md`.
 - ~~Bare variant returns remain unsupported after B06 (`bare-variant returns are unsupported, return a record`)~~ — B07 re-probed and removed this restriction for source functions and ordinary calls/forwarding. Success is exactly `Ok(value)` and callers select the variant with `r.value`; no first-class outcome value was added. See `docs/b07-variant-returns.md`.
-- ~~Fn successes/reference targets remain record-only~~ — B08 admits declared record or variant successes end-to-end; B09 adds primitive scalar successes. Exact type/error-set matching remains. Extern returns remain record-only. Nested instantiation as a type argument and variant sequences remain deferred.
-- ~~Generic scalar return emission is incomplete~~ — B09 re-probed the four-type identity (four passing rows, then `probe__identity$T$bool returns unknown type bool`) and closed emission plus Fn/invocation/forwarding for int/str/bool/dec. The earlier B07 int-only blocker is closed. Other bare successes remain refused (`TestFnUnsupportedSuccessesStillRefused`). See `docs/b09-scalar-successes.md`.
+- ~~Fn successes/reference targets remain record-only~~ — B08 admits declared record or variant successes end-to-end; B09 adds primitive scalar successes. B10 adds brands/Bytes/allowed Seq successes while keeping invocation data-only. Exact type/error-set matching remains. Nested instantiation as a type argument and variant sequences remain deferred.
+- ~~Generic scalar return emission is incomplete~~ — B09 re-probed the four-type identity (four passing rows, then `probe__identity$T$bool returns unknown type bool`) and closed emission plus Fn/invocation/forwarding for int/str/bool/dec. The earlier B07 int-only blocker is closed. B10 subsequently completes the other supported bare source successes. See `docs/b09-scalar-successes.md` and `docs/b10-bare-and-extern-returns.md`.
+- ~~Externs require record returns; brands/Bytes/Seq/Fn require source result wrappers~~ — B10 applies the same `Ok(value)` protocol to supported bare source types and all data-only extern successes. Ordinary source calls can return Fn; Fn invocation successes and host signatures still cannot carry functions (`TestBareReturnContainment`). No new sealing or host authority is granted.
 - ~~Test-only foreign generic references lose uses pins~~ — B09 fixes header rewriting to include reference sites in tests; no authority rule is relaxed. Missing/wrong pins still fail.
 - ~~Error payload reads count as raises~~ — B09 fixes `eachRaise`: `e.value` is data, not an error outcome. Identity relays still count. HTML's catalogue loses one falsely attributed raise; emitted code is unchanged.
 - Generic `forward call` sugar is late-parsed source text, not rewritten by expansion: `forward call use__apply<int>(...)` fails with `forward call cannot resolve callee use__apply` (`TestFnVariantGenericForwardCallStillRefused`). Explicit `match call ...<int>` plus `forward r` works. B08 fixes the relay linter's unsafe suggestion of that sugar; the language gap itself remains.
@@ -133,4 +136,13 @@ alternatives 0.00). Complete int/str/bool/dec through strict `Ok(value)`
 checking, source/call emission, Fn, invocation, and exact-type forwarding;
 keep `r.value` binders. Close the legacy unchecked named-field path, rather
 than preserve an unsound exception. Brands/Bytes/sequences/Fn bare successes
-and extern ABI widening remain out of scope.
+and extern ABI widening remained out of B09 scope.
+
+B10 return/extern scope (`jev-1.13.0`, Choice): `all_safe_returns`
+(probability 0.46, confidence 0.27; externs-first 0.41, data-only-first 0.13,
+unrestricted/higher-order host 0.00). Narrow win, recorded as a low-confidence
+scope choice. Support brands/Bytes/allowed Seq end-to-end, source Fn factories
+through ordinary calls, and data-only extern returns. Keep callback input/
+success/captures and extern signatures data-only, preserve brand sealing,
+sequence restrictions, purity, pins, and witnesses. Existing record ABI and
+specialized bridge certificates remain unchanged.

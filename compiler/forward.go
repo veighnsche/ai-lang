@@ -140,6 +140,12 @@ func forwardOkRet(prog *Program, fn *FnDecl, who, calleeRet, binder string) (*Sm
 		}
 		return forwardCtor("Ok", []string{"value"}, binder), nil
 	}
+	if valueSuccess(calleeRet, prog.Brands[calleeRet] != "") || valueSuccess(fn.Ret, prog.Brands[fn.Ret] != "") {
+		if !sameType(calleeRet, fn.Ret) {
+			return nil, fmt.Errorf("forward needs the same value return type: %s -> %s, %s -> %s", who, calleeRet, fn.Name, fn.Ret)
+		}
+		return forwardCtor("Ok", []string{"value"}, binder), nil
+	}
 	src := recordDecl(prog, calleeRet)
 	dst := recordDecl(prog, fn.Ret)
 	if src == nil || dst == nil {

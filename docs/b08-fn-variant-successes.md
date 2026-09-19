@@ -61,7 +61,9 @@ therefore covers admission **and** invocation/emission in one green slice.
 
 These describe B08's scope. [B09](b09-scalar-successes.md) subsequently
 completes int/str/bool/dec successes across source returns, calls, Fn,
-invocation, and emission. Other bare types and externs remain separate.
+invocation, and emission. [B10](b10-bare-and-extern-returns.md) completes
+other supported bare source returns and data-only extern successes; callback
+successes and extern signatures remain function-free.
 
 Primitive scalar, brand, Bytes, sequence, and Fn success types are not
 newly admitted. Scalar source-return emission is still a separate gap.

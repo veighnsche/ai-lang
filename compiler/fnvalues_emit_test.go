@@ -136,12 +136,12 @@ func TestEmitCallableRefusals(t *testing.T) {
 		!strings.Contains(err.Error(), "no params for reference target") {
 		t.Fatalf("unknown fnref target must fail closed, got %v", err)
 	}
-	// Bare-Fn return: check reports CAN6003 demanding a record;
-	// the Ok-shape lookup finds no record and fails the build.
+	// B10 admits bare-Fn factory results, but an unknown success
+	// inside that head still fails closed.
 	fn := &FnDecl{Name: "m__mk", Ret: "Fn<int, M__O, []>"}
 	if _, err := declaredOkShape(fn, &Program{}); err == nil ||
-		!strings.Contains(err.Error(), "returns unknown type") {
-		t.Fatalf("bare-Fn return must fail closed, got %v", err)
+		!strings.Contains(err.Error(), "Fn success M__O") {
+		t.Fatalf("unknown Fn success must fail closed, got %v", err)
 	}
 }
 

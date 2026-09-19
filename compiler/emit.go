@@ -90,6 +90,9 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, va
 	// type. Brands erase through the same rule as scalars, so
 	// Seq<M__B> is string[] without hard-coding brand names here.
 	if elem, ok := seqElemName(t); ok {
+		if variants[elem] != nil || typeContainsFn(elem, recs) {
+			return "", fmt.Errorf("cannot map can type to TS: unsupported sequence element %s", elem)
+		}
 		inner, err := tsTypeB(elem, brands, recs, variants, errs)
 		if err != nil {
 			return "", err
@@ -119,13 +122,16 @@ func tsTypeB(t string, brands map[string]string, recs map[string][][2]string, va
 // Ok fields sort exactly like fnResultUnion so a temporary
 // annotated from either side renders identically.
 func tsFnType(a, r, e string, brands map[string]string, recs map[string][][2]string, variants map[string]*VariantDecl, errs map[string][][2]string) (string, error) {
+	if typeContainsFn(a, recs) || typeContainsFn(r, recs) {
+		return "", fmt.Errorf("cannot map can type to TS: Fn input and success must be data-only")
+	}
 	in, err := tsTypeB(a, brands, recs, variants, errs)
 	if err != nil {
 		return "", err
 	}
-	fields, ok := successFields(r, recs, variants[r] != nil)
+	fields, ok := successFields(r, recs, variants[r] != nil || brands[r] != "")
 	if !ok {
-		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a record, variant, or primitive scalar", r)
+		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a supported success type", r)
 	}
 	type kv struct{ k, v string }
 	var kvs []kv
@@ -288,28 +294,24 @@ func resultUnion(ok string, emits []string, brands map[string]string, recs map[s
 }
 
 // externUnion is the TS Result type of a foreign call: ok carrying the
-// Ret record plus one member per declared emits kind. The host owns the
-// implementation; this is the contract canlc proves against.
+// declared success shape plus one member per emits kind. The host owns
+// the implementation; scripts check this interface, not the host's behavior.
 func externUnion(ex *ExternDecl, prog *Program) (string, error) {
-	var td *TypeDecl
-	for _, b := range builtinTypeDecls() {
-		if b.Name == ex.Ret {
-			td = b
-		}
-	}
-	for _, m := range prog.Modules {
-		for _, d := range m.Decls {
-			if t, ok := d.(*TypeDecl); ok && t.Name == ex.Ret {
-				td = t
-			}
-		}
-	}
-	if td == nil {
-		return "", fmt.Errorf("extern %s returns unknown type %s", ex.Name, ex.Ret)
-	}
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
-	ok, err := okFieldsMember(td.Fields, prog.Brands, recs, variants, errorShapes(prog.Modules))
+	if typeContainsFn(ex.Ret, recs) {
+		return "", fmt.Errorf("extern %s: signatures are data-only", ex.Name)
+	}
+	for _, p := range ex.Params {
+		if typeContainsFn(p[1], recs) {
+			return "", fmt.Errorf("extern %s: signatures are data-only", ex.Name)
+		}
+	}
+	fields, found := successFields(ex.Ret, recs, variants[ex.Ret] != nil || prog.Brands[ex.Ret] != "")
+	if !found {
+		return "", fmt.Errorf("extern %s returns unknown type %s", ex.Name, ex.Ret)
+	}
+	ok, err := okFieldsMember(fields, prog.Brands, recs, variants, errorShapes(prog.Modules))
 	if err != nil {
 		return "", err
 	}
@@ -318,7 +320,7 @@ func externUnion(ex *ExternDecl, prog *Program) (string, error) {
 }
 
 // fnResultUnion is the TS Result type of one local function: ok
-// carrying its declared Ret record plus one member per declared emits
+// carrying its declared success shape plus one member per declared emits
 // kind, in emits order. Call temporaries and return annotations use
 // this instead of the module-wide union so a strict checker narrows
 // each handled outcome to its exact payload shape (a14: emit
@@ -355,7 +357,7 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
-	fields, ok := successFields(fn.Ret, recs, variants[fn.Ret] != nil)
+	fields, ok := successFields(fn.Ret, recs, variants[fn.Ret] != nil || prog.Brands[fn.Ret] != "")
 	if !ok {
 		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
@@ -1599,7 +1601,10 @@ func (e *emitter) emitFnref(node *Small) (string, error) {
 // type and head error list. Invoke temporaries annotate with
 // this so strict checkers narrow exactly like calls.
 func (e *emitter) sigResultUnion(sig *invokeSig) (string, error) {
-	fields, ok := successFields(sig.ret, e.recs, e.variants[sig.ret] != nil)
+	if typeContainsFn(sig.in, e.recs) || typeContainsFn(sig.ret, e.recs) {
+		return "", fmt.Errorf("invoke input and success must be data-only")
+	}
+	fields, ok := successFields(sig.ret, e.recs, e.variants[sig.ret] != nil || e.brands[sig.ret] != "")
 	if !ok {
 		return "", fmt.Errorf("invoke returns unknown type %s", sig.ret)
 	}
@@ -2417,8 +2422,13 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 	// named type reference emitted unbound and failed strict tsc.
 	// Same-stem names, bases, brands, and sequences thereof need
 	// nothing: bases lower natively, brands erase, Seq unwraps.
+	seenTypeRefs := map[string]bool{}
 	var typeRefs func(t string)
 	typeRefs = func(t string) {
+		if seenTypeRefs[t] {
+			return
+		}
+		seenTypeRefs[t] = true
 		base := t
 		if elem, ok := seqElemName(base); ok {
 			base = elem
@@ -2426,9 +2436,19 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		// Callable heads are structural, but their input and
 		// success types may name foreign records: descend so
 		// the closure annotation imports them.
-		if a, r, _, ok := fnTypeShape(base); ok {
+		if a, r, kinds, ok := fnTypeShape(base); ok {
 			typeRefs(a)
 			typeRefs(r)
+			// Fn results inline record fields and error payloads. Import
+			// their named field types too, not only the parent record.
+			for _, f := range recs[r] {
+				typeRefs(f[1])
+			}
+			for _, kind := range strings.Split(kinds[1:len(kinds)-1], ",") {
+				for _, f := range errs[strings.TrimSpace(kind)] {
+					typeRefs(f[1])
+				}
+			}
 			return
 		}
 		if _, ok := tsBase[base]; ok {
@@ -2463,7 +2483,7 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 			for _, p := range d.Params {
 				typeRefs(p[1])
 			}
-			if variants[d.Ret] != nil {
+			if valueSuccess(d.Ret, variants[d.Ret] != nil) && prog.Brands[d.Ret] == "" {
 				typeRefs(d.Ret)
 			}
 			if fs, ok := recs[d.Ret]; ok {
@@ -2474,6 +2494,9 @@ func emitModule(mod *Module, prog *Program, stemOf, resultOfStem map[string]stri
 		case *ExternDecl:
 			for _, p := range d.Params {
 				typeRefs(p[1])
+			}
+			if valueSuccess(d.Ret, variants[d.Ret] != nil) && prog.Brands[d.Ret] == "" {
+				typeRefs(d.Ret)
 			}
 			if fs, ok := recs[d.Ret]; ok {
 				for _, f := range fs {

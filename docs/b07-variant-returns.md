@@ -68,7 +68,8 @@ exchange outcomes, including recovery bodies under error arms. Nested
 
 These describe B07's scope. [B08](b08-fn-variant-successes.md) subsequently
 admits record/variant Fn successes and reference targets through invocation
-and emission; extern returns remain record-only.
+and emission. [B10](b10-bare-and-extern-returns.md) later broadens extern
+successes to supported data-only types.
 
 JEV (`jev-1.13.0`, Choice) selected:
 
@@ -78,8 +79,9 @@ JEV (`jev-1.13.0`, Choice) selected:
   0.25, all channels including externs 0.00).
 
 Accordingly, **Fn success types/reference targets and extern returns stayed
-record-only in B07**. B08 supplies the Fn follow-up; the retained host
-boundary is pinned by `TestVariantReturnExternStillRefused`.
+record-only in B07**. B08 supplies the Fn follow-up; B10 supplies data-only
+extern returns (`TestVariantReturnExternAdmitted`), while
+`TestBareReturnContainment` retains the host's function-free boundary.
 
 Bare scalar return emission is not generalized: the re-probe
 `fn probe__identity<T>(value: T) -> T` at `T=int`, with an `Ok(value)`

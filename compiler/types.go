@@ -114,14 +114,6 @@ func newTycker(prog *Program, text, fn string) *tycker {
 			}
 		}
 	}
-	// Call/invoke binders carry the Ok payload, not the returned value.
-	// These private checker-only record shapes cannot be named in source.
-	for name := range c.variants {
-		c.recs[valueOkType(name)] = valueOkFields(name)
-	}
-	for _, name := range []string{"int", "str", "bool", "dec"} {
-		c.recs[valueOkType(name)] = valueOkFields(name)
-	}
 	// Asset bridge grants introduce the named foreign brands into scope
 	// so a sink module compiles standalone: params and error fields may
 	// name them, but bodies can never seal them (the claimed owner is
@@ -222,7 +214,7 @@ func fnTypeShape(t string) (string, string, string, bool) {
 // never re-spaced); Fn heads compare structurally — input,
 // success, and error multiset — so one signature written tight
 // and one written loose still match. The input recurses (heads
-// nest); success is a declared record/variant or primitive scalar.
+// nest); success is a declared data type.
 func sameType(a, b string) bool {
 	if a == b {
 		return true
@@ -262,6 +254,10 @@ func sameFnErrs(a, b string) bool {
 // at their own positions, so containment never needs to look
 // inside them — a violating declaration fails there regardless.
 func (c *tycker) typeHasFn(t string) bool {
+	return typeContainsFn(t, c.recs)
+}
+
+func typeContainsFn(t string, records map[string][][2]string) bool {
 	seen := map[string]bool{}
 	var has func(x string) bool
 	has = func(x string) bool {
@@ -294,7 +290,7 @@ func (c *tycker) typeHasFn(t string) bool {
 			}
 			return false
 		}
-		fields, ok := c.recs[x]
+		fields, ok := records[x]
 		if !ok {
 			return false
 		}
@@ -417,13 +413,13 @@ func (c *tycker) checkFnref(s *Small, line int, env map[string]string, where str
 }
 
 // checkFnrefTarget enforces target admission: the return names a
-// record, variant, or primitive scalar, the reachable graph is pure under the linked
-// criterion, and no reachable function needs a precondition.
+// supported success type, the reachable graph is linked-pure, and no
+// reachable function needs a precondition. Containment is checked separately.
 // Captures never discharge any of these.
 func (c *tycker) checkFnrefTarget(s *Small, tgt *FnDecl, show string, line int) {
-	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret]); !ok {
+	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret] || c.brands[tgt.Ret]); !ok || !c.knownType(tgt.Ret) {
 		c.out = append(c.out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("reference to %s refused: success %s is not a record, variant, or primitive scalar", show, tgt.Ret), "fnref", CodeFnTargetRefused))
+			fmt.Sprintf("reference to %s refused: success %s is not a supported success type", show, tgt.Ret), "fnref", CodeFnTargetRefused))
 	}
 	if err := checkLinkedGraph(c.prog, s.Fname); err != nil {
 		detail := strings.TrimPrefix(err.Error(), "linked execution refused: ")
@@ -479,6 +475,17 @@ func (c *tycker) fnSeqDiags(t, where string, line int, token string) []Diag {
 	return nil
 }
 
+// successSeqDiags keeps existing sequence element restrictions when the
+// sequence is the success itself, not a declared record field.
+func (c *tycker) successSeqDiags(ret string, line int) []Diag {
+	out := c.fnSeqDiags(ret, "returns", line, ret)
+	if elem, ok := seqElemName(ret); ok && c.variants[elem] {
+		out = append(out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("Seq<%s> is deferred: variant sequences are not admitted", elem), ret, CodeUnknownType))
+	}
+	return out
+}
+
 // refFnType computes the callable type a reference denotes: the
 // unbound parameter becomes A, the target return becomes R, and
 // the target emits become the canonically ordered error list.
@@ -493,7 +500,7 @@ func (c *tycker) refFnType(s *Small) (string, bool) {
 	if err != nil || len(unbound) != 1 {
 		return "", false
 	}
-	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret]); !ok {
+	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret] || c.brands[tgt.Ret]); !ok || !c.knownType(tgt.Ret) || len(c.successSeqDiags(tgt.Ret, tgt.Line)) != 0 {
 		return "", false
 	}
 	errs := slices.Clone(tgt.Emits)
@@ -503,7 +510,7 @@ func (c *tycker) refFnType(s *Small) (string, bool) {
 
 // fnHeadDiags enforces b00 deep validity on one Fn annotation that
 // shape-accepted: the input names a known type, the success names a
-// record, variant, or primitive scalar, every kind names a declared error, and the kinds are
+// supported data type, every kind names a declared error, and the kinds are
 // distinct and canonically (lexicographically) ordered. Unknown
 // input reuses CAN6002 and unknown kinds reuse CAN4002; head-invalid
 // shapes (unsupported success, duplicate or unordered kinds) are
@@ -522,10 +529,15 @@ func (c *tycker) fnHeadDiags(t, where string, line int, token string) []Diag {
 		out = append(out, spanDiag(c.text, line, "error",
 			fmt.Sprintf("unknown type %s in Fn input of %s", a, where), token, CodeUnknownType))
 	}
-	if _, ok := successFields(r, c.recs, c.variants[r]); !ok {
+	if _, ok := successFields(r, c.recs, c.variants[r] || c.brands[r]); !ok {
 		out = append(out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("Fn success %s of %s is not a record, variant, or primitive scalar: name a supported success type", r, where), token, CodeFnHeadInvalid))
+			fmt.Sprintf("Fn success %s of %s is not a supported success type", r, where), token, CodeFnHeadInvalid))
 	}
+	if _, ok := seqElemName(r); ok && !c.knownType(r) {
+		out = append(out, spanDiag(c.text, line, "error",
+			fmt.Sprintf("unknown type %s in Fn success of %s", r, where), token, CodeUnknownType))
+	}
+	out = append(out, c.successSeqDiags(r, line)...)
 	// Invocation inputs and success carriers are data-only (b00
 	// Q1d): a bearing head would smuggle callbacks through the
 	// invocation boundary. The reference side enforces the same
@@ -1381,9 +1393,15 @@ func (c *tycker) value(s *Small, want string, line int, env map[string]string, w
 				c.value(it, "", line, env, where)
 				continue
 			}
+			before := len(c.out)
 			c.value(it, "", line, env, where)
 			if got, ok := c.typeOf(it, env); ok && !sameType(got, s.Elem) {
 				c.mismatch(line, where, got, s.Elem, tokenOf(it))
+			} else if !ok && len(c.out) == before {
+				// Outcome constructors are not element data, even if the
+				// literal's declared Seq type matches the success annotation.
+				c.out = append(c.out, spanDiag(c.text, line, "error",
+					fmt.Sprintf("Seq literal needs a value of type %s", s.Elem), tokenOf(it), CodeTypeMismatch))
 			}
 		}
 		if want != "" && want != st {
@@ -1533,7 +1551,7 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 			}
 			return
 		}
-		rec, ok := successFields(want, c.recs, c.variants[want])
+		rec, ok := successFields(want, c.recs, c.variants[want] || c.brands[want])
 		if !ok {
 			// Unsupported/unknown return types have their own diagnostics.
 			return
@@ -1693,11 +1711,14 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 					tok = tokenOf(a.V)
 				}
 				c.mismatch(line, flabel, got, ft, tok)
-			} else if !ok && name == "Ok" && (c.variants[want] || scalarSuccess(want)) {
+			} else if !ok && name == "Ok" && c.valueSuccess(want) {
 				// Outcome constructors have no data type. They must not
 				// sneak into a value payload merely
 				// because legacy want-free positions leave them untyped.
-				kind := "scalar"
+				kind := "type"
+				if scalarSuccess(want) {
+					kind = "scalar"
+				}
 				if c.variants[want] {
 					kind = "variant"
 				}
@@ -1730,13 +1751,16 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 		return
 	}
 	if !n.IsMatch {
-		// Scalars/variants are data, not outcomes. Bare values must not
+		// Non-record values are not outcomes. Bare values must not
 		// bypass the Ok envelope just because their type fits.
-		if f := c.prog.Fns[c.fn]; f != nil && (c.variants[f.Ret] || scalarSuccess(f.Ret)) {
+		if f := c.prog.Fns[c.fn]; f != nil && c.valueSuccess(f.Ret) {
 			if s := n.Small; s != nil {
 				_, isError := c.errs[s.Ctor]
 				if !(s.Kind == "ctor" && (s.Ctor == "Ok" || isError)) {
-					kind := "scalar"
+					kind := "value"
+					if scalarSuccess(f.Ret) {
+						kind = "scalar"
+					}
 					if c.variants[f.Ret] {
 						kind = "variant"
 					}
@@ -1754,7 +1778,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 			// Ok, so no comparison is added: anything else
 			// keeps want-free checking.
 			if f, ok := c.prog.Fns[c.fn]; ok {
-				if _, ok := successFields(f.Ret, c.recs, c.variants[f.Ret]); ok {
+				if _, ok := successFields(f.Ret, c.recs, c.variants[f.Ret] || c.brands[f.Ret]); ok {
 					w = f.Ret
 				}
 			}
@@ -2061,38 +2085,7 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 			fmt.Sprintf("unknown type %s in returns", fn.Ret), fn.Ret, CodeUnknownType))
 	}
 	c.out = append(c.out, c.fnHeadDiags(fn.Ret, "returns", fn.Line, fn.Ret)...)
-	// a26: bare-brand returns are unsupported. checkCtor skips Ok
-	// payloads when the return is not a record, so a brand return
-	// would sail through static checking and die only at emit.
-	// Reject at the source instead; entries return wrapper records.
-	if c.brands[fn.Ret] {
-		c.out = append(c.out, spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s returns brand %s: bare-brand returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
-	}
-	// a36 S1: bare-Seq returns are unsupported, like bare-brand
-	// returns. Expectations must be Ok(...) or an error kind, so a
-	// function returning a bare sequence could never be tested;
-	// entries return wrapper records. A future customer slice may
-	// amend this explicitly if it carries its own return convention.
-	if _, ok := seqElemName(fn.Ret); ok {
-		c.out = append(c.out, spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s returns %s: bare-Seq returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
-	}
-	// a45 S1: bare-Bytes returns are unsupported, like bare-brand and
-	// bare-Seq returns. Entries return wrapper records; codecs and
-	// Render name theirs explicitly (B2+).
-	if fn.Ret == "Bytes" {
-		c.out = append(c.out, spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s returns Bytes: bare-Bytes returns are unsupported, return a record", fn.Name), fn.Ret, CodeTypeMismatch))
-	}
-	// B07 admits variant returns via a checked Ok(value) envelope.
-	// b00: bare-Fn returns are unsupported, like bare-brand,
-	// bare-Seq and bare-Bytes returns. Callables
-	// travel as params and record fields; results name a record.
-	if _, _, _, ok := fnTypeShape(fn.Ret); ok {
-		c.out = append(c.out, spanDiag(text, fn.Line, "error",
-			fmt.Sprintf("%s returns %s: bare-Fn returns are unsupported, return a record", fn.Name, fn.Ret), fn.Ret, CodeTypeMismatch))
-	}
+	c.out = append(c.out, c.successSeqDiags(fn.Ret, fn.Line)...)
 	env := map[string]string{}
 	for _, p := range fn.Params {
 		env[p[0]] = p[1]
@@ -2165,8 +2158,8 @@ func checkTypes(fn *FnDecl, prog *Program, text string) []Diag {
 }
 
 // checkExternSig validates a foreign import's contract: params and ret
-// name known types, and ret is a record (foreign outcomes script as
-// Ok/errors only; bool-returning calls are unscriptable in v0).
+// name known types and remain data-only. Non-record successes use the
+// same one-value envelope as source calls; host execution is still trusted.
 func checkExternSig(ex *ExternDecl, prog *Program, text string) []Diag {
 	c := newTycker(prog, text, ex.Name)
 	for _, p := range ex.Params {
@@ -2188,12 +2181,8 @@ func checkExternSig(ex *ExternDecl, prog *Program, text string) []Diag {
 	if !c.knownType(ex.Ret) {
 		c.out = append(c.out, spanDiag(text, ex.Line, "error",
 			fmt.Sprintf("unknown type %s in returns", ex.Ret), ex.Ret, CodeUnknownType))
-	} else if _, ok := c.recs[ex.Ret]; !ok {
-		// Comma-ok, not nil: an empty record (Verdict) is declared
-		// and legal; only non-records are rejected.
-		c.out = append(c.out, spanDiag(text, ex.Line, "error",
-			fmt.Sprintf("extern %s returns %s: externs return a record type, Ok/errors script the outcome", ex.Name, ex.Ret), ex.Ret, CodeTypeMismatch))
 	}
+	c.out = append(c.out, c.successSeqDiags(ex.Ret, ex.Line)...)
 	// a12: extern manifests are upper bounds like function emits —
 	// every entry must name a declared error.
 	for _, e := range ex.Emits {
@@ -2227,7 +2216,7 @@ func checkDeclFields(name string, fields [][2]string, line int, prog *Program, t
 		out = append(out, c.fnHeadDiags(f[1], "field "+f[0], line, f[0])...)
 		if !allowFn && c.typeHasFn(f[1]) {
 			out = append(out, spanDiag(text, line, "error",
-				fmt.Sprintf("field %s of %s contains a function value: only record fields and params carry callables", f[0], name), f[0], CodeFnContainment))
+				fmt.Sprintf("field %s of %s contains a function value: this field position is data-only", f[0], name), f[0], CodeFnContainment))
 		} else if allowFn {
 			out = append(out, c.fnSeqDiags(f[1], "field "+f[0], line, f[0])...)
 		}

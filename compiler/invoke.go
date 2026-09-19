@@ -9,7 +9,7 @@ import (
 
 // invokeSig is the checked monomorphic callable signature behind
 // one `match invoke cb with n`: the input type A, the success
-// type R (record, variant, or primitive scalar), and the declared error kinds in written order. It is
+// type R (data-only), and the declared error kinds in written order. It is
 // the static half of the invocation certificate: resolution
 // stashes it on the node, and check, proof, forward elaboration,
 // run, and emit all consume the stash, failing closed when it is
