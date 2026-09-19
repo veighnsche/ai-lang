@@ -30,6 +30,16 @@ func TestStdHostCompiles(t *testing.T) {
 	}
 }
 
+// TestStdSeqCompiles pins the higher-order seq extension: generic
+// consumers invoke total callbacks through map/filter/fold/all/
+// any/find, so a green compile proves generic invoke end to end.
+func TestStdSeqCompiles(t *testing.T) {
+	out := t.TempDir()
+	if err := compile(out, []string{"../std/seq/seq.can"}); err != nil {
+		t.Fatalf("compile: %v", err)
+	}
+}
+
 // TestStdHostNodeSmoke executes the committed host implementations
 // under node: wall returns positive bigint millis, monotonic never
 // goes backwards, random returns exact-length bytes and rejects

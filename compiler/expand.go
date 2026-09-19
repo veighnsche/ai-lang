@@ -898,6 +898,10 @@ func substNode(n *Node, sub map[string]string) {
 	for _, sc := range n.Scruts {
 		substSmall(sc, sub)
 	}
+	// Invoke arguments substitute like scrutinees: a generic
+	// consumer invoking with a constructed generic argument
+	// stamps closed args, never the template's parameters.
+	substSmall(n.InvokeArg, sub)
 	for _, a := range n.Arms {
 		substNode(a.Rhs, sub)
 	}

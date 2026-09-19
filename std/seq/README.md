@@ -6,11 +6,17 @@
   element type with int + str decision tables. Bare-Seq returns are
   rejected by the language, so sequences travel in `Seq__Values<T>`
   and elements in `Seq__Item<T>`. Slice is half-open, same rule as
-  text slicing; invalid bounds never clamp.
+  text slicing; invalid bounds never clamp. Higher-order traversal
+  (`std__seq__map`, `std__seq__filter`, `std__seq__fold`,
+  `std__seq__all`, `std__seq__any`, `std__seq__find`) takes total
+  callbacks over data-only heads; workers visit left to right, and
+  `all`/`any`/`find` stop at the first decisive element. `find`
+  reports absence as `sequence.not_found()` (no `Option<T>`:
+  generic variants do not exist, so the text.find error shape is
+  used instead). Sort/unique follow with ordering/equality
+  contracts.
 - `seq.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out std/seq
   std/seq/seq.can`; verify: `go test ./...`.
 
 Rules: `/REQUIREMENTS.md`. Program: `docs/ASTRA_STDLIB.md` §1.8.
-Callback transforms (map/filter/fold/find/all/any/sort/unique) wait
-on function values; maps and sets wait on collection types.

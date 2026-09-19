@@ -69,5 +69,41 @@
       "seq.std__seq__slice$T$str/str_past",
       "seq.std__seq__slice$T$str/str_rev"
     ]
+  },
+  {
+    "kind": "sequence.not_found",
+    "fields": [],
+    "raised_by": [
+      "seq.std__seq__find$T$int",
+      "seq.std__seq__find$T$str",
+      "seq.std__seq__find_from$T$int",
+      "seq.std__seq__find_from$T$str"
+    ],
+    "handled_by": [
+      {
+        "fn": "seq.std__seq__find$T$int",
+        "arm": "on sequence.not_found _ =\u003e sequence.not_found()"
+      },
+      {
+        "fn": "seq.std__seq__find$T$str",
+        "arm": "on sequence.not_found _ =\u003e sequence.not_found()"
+      },
+      {
+        "fn": "seq.std__seq__find_from$T$int",
+        "arm": "on sequence.not_found _ =\u003e sequence.not_found()"
+      },
+      {
+        "fn": "seq.std__seq__find_from$T$str",
+        "arm": "on sequence.not_found _ =\u003e sequence.not_found()"
+      }
+    ],
+    "hit_by_tests": [
+      "seq.std__seq__find$T$int/miss",
+      "seq.std__seq__find_from$T$int/done",
+      "seq.std__seq__find_from$T$int/miss",
+      "seq.std__seq__find_from$T$int/over",
+      "seq.std__seq__find_from$T$str/str_miss",
+      "seq.std__seq__find_from$T$str/str_over"
+    ]
   }
 ]

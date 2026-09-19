@@ -316,3 +316,60 @@ func TestExpandInvokeArgCloned(t *testing.T) {
 		t.Fatal("stamps alias the template InvokeArg")
 	}
 }
+
+// Invoke arguments substitute like scrutinees: a generic
+// consumer invoking with a constructed generic argument stamps
+// closed, rewritten construction sites per instance.
+func TestExpandInvokeArgSubstituted(t *testing.T) {
+	src := `mod m
+  provides [m__go, m__t, m__u, M__O, M__Step]
+  uses []
+  emits []
+
+type M__O rev 1 (
+  value: str
+)
+
+type M__Step<A, T> rev 1 (
+  acc: A
+  elem: T
+)
+
+fn m__t(step: M__Step<int, int>) -> M__O rev 1
+  emits []
+  tests
+    t(M__Step<int, int>(1, 2)) => Ok("q")
+  Ok("q")
+
+fn m__u(step: M__Step<int, str>) -> M__O rev 1
+  emits []
+  tests
+    u(M__Step<int, str>(1, "b")) => Ok("q")
+  Ok("q")
+
+fn m__go<T>(cb: Fn<M__Step<int, T>, M__O, []>, n: T) -> M__O rev 1
+  emits []
+  tests
+    i<T=int>(fnref m__t(), 2) => Ok("q")
+    s<T=str>(fnref m__u(), "b") => Ok("q")
+  match invoke cb with M__Step<int, T>(1, n)
+    on Ok _ => Ok("q")
+`
+	prog, _, _ := genericProgram(t, map[string]string{"m.can": src})
+	if prog == nil {
+		t.Fatal("expected program")
+	}
+	for stamp, want := range map[string]string{
+		"m__go$T$int": "M__Step$T$int$T$int",
+		"m__go$T$str": "M__Step$T$int$T$str",
+	} {
+		fn, ok := prog.Fns[stamp]
+		if !ok {
+			t.Fatalf("stamp %s missing; fns: %v", stamp, fnNames(prog))
+		}
+		arg := fn.Body.InvokeArg
+		if arg == nil || arg.Kind != "ctor" || arg.Ctor != want || len(arg.TypeArgs) != 0 {
+			t.Fatalf("%s InvokeArg = %+v, want rewritten %s", stamp, arg, want)
+		}
+	}
+}
