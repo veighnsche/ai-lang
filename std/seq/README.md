@@ -13,8 +13,12 @@
   `all`/`any`/`find` stop at the first decisive element. `find`
   reports absence as `sequence.not_found()` (no `Option<T>`:
   generic variants do not exist, so the text.find error shape is
-  used instead). Sort/unique follow with ordering/equality
-  contracts.
+  used instead). `std__seq__sort` takes an explicit `Seq__Order`
+  value (`Asc`/`Desc`; lexicographic deferred) over the
+  per-instance built-in order — insertion sort, stable by
+  construction since equals never reorder. `std__seq__unique`
+  keeps first occurrences via per-instance `==`, the same
+  contract maps and sets share.
 - `seq.ts` + `errors.json` — committed golden TS prod emit
   (tests stripped). Regenerate: `go run ./compiler --out std/seq
   std/seq/seq.can`; verify: `go test ./...`.

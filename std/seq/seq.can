@@ -10,7 +10,7 @@
 // unique follow with ordering/equality contracts.
 
 mod seq
-  provides [std__seq__empty, std__seq__singleton, std__seq__length, std__seq__get, std__seq__append, std__seq__concat_from, std__seq__concat, std__seq__slice_from, std__seq__slice, std__seq__test_double, std__seq__test_length, std__seq__test_is_even, std__seq__test_nonempty, std__seq__test_add, std__seq__test_concat, std__seq__map_from, std__seq__map, std__seq__filter_from, std__seq__filter, std__seq__fold_from, std__seq__fold, std__seq__all_from, std__seq__all, std__seq__any_from, std__seq__any, std__seq__find_from, std__seq__find, Int__Value, Seq__Values, Seq__Item, Bool__Value, Seq__FoldStep]
+  provides [std__seq__empty, std__seq__singleton, std__seq__length, std__seq__get, std__seq__append, std__seq__concat_from, std__seq__concat, std__seq__slice_from, std__seq__slice, std__seq__test_double, std__seq__test_length, std__seq__test_is_even, std__seq__test_nonempty, std__seq__test_add, std__seq__test_concat, std__seq__map_from, std__seq__map, std__seq__filter_from, std__seq__filter, std__seq__fold_from, std__seq__fold, std__seq__all_from, std__seq__all, std__seq__any_from, std__seq__any, std__seq__find_from, std__seq__find, std__seq__precedes, std__seq__insert_from, std__seq__sort_from, std__seq__sort, std__seq__unique_has, std__seq__unique_from, std__seq__unique, Int__Value, Seq__Values, Seq__Item, Bool__Value, Seq__FoldStep, Seq__Order]
   uses []
   emits [sequence.index_out_of_range, sequence.invalid_slice, sequence.not_found]
 
@@ -37,6 +37,11 @@ type Bool__Value rev 1 (
 type Seq__FoldStep<A, T> rev 1 (
   acc: A
   elem: T
+)
+
+variant Seq__Order rev 1 (
+  case Asc()
+  case Desc()
 )
 
 fn std__seq__empty<T>() -> Seq__Values<T> rev 1
@@ -360,3 +365,117 @@ fn std__seq__find<T>(values: Seq<T>, p: Fn<T, Bool__Value, []>) -> Seq__Item<T> 
   match call std__seq__find_from<T>(values, p, 0, #values)
     on Ok r => Ok(r.item)
     on sequence.not_found _ => sequence.not_found()
+
+fn std__seq__precedes<T>(x: T, e: T, order: Seq__Order) -> Bool__Value rev 1
+  emits []
+  tests
+    asc_true<T=int>(1, 2, Seq__Asc()) => Ok(true)
+    asc_false<T=int>(2, 1, Seq__Asc()) => Ok(false)
+    desc_true<T=int>(2, 1, Seq__Desc()) => Ok(true)
+    desc_false<T=int>(1, 2, Seq__Desc()) => Ok(false)
+    str_asc<T=str>("a", "b", Seq__Asc()) => Ok(true)
+    str_desc<T=str>("b", "a", Seq__Desc()) => Ok(true)
+  match order
+    on Seq__Asc _ => Ok(x < e)
+    on Seq__Desc _ => Ok(x > e)
+
+fn std__seq__insert_from<T>(sorted: Seq<T>, order: Seq__Order, x: T, pos: int, n: int, acc: Seq<T>) -> Seq__Values<T> rev 1
+  decreases n
+  emits []
+  tests
+    done<T=int>(Seq<int>[1], Seq__Asc(), 9, 1, 0, Seq<int>[1]) => Ok(Seq<int>[1, 9])
+    over<T=int>(Seq<int>[1], Seq__Asc(), 9, 5, 2, Seq<int>[1]) => Ok(Seq<int>[1, 9])
+    before<T=int>(Seq<int>[2], Seq__Asc(), 1, 0, 1, Seq<int>[]) => Ok(Seq<int>[1, 2])
+    skip<T=int>(Seq<int>[1], Seq__Asc(), 9, 0, 1, Seq<int>[]) => Ok(Seq<int>[1, 9])
+    str_before<T=str>(Seq<str>["b"], Seq__Asc(), "a", 0, 1, Seq<str>[]) => Ok(Seq<str>["a", "b"])
+    str_skip<T=str>(Seq<str>["a"], Seq__Asc(), "b", 0, 1, Seq<str>[]) => Ok(Seq<str>["a", "b"])
+    str_over<T=str>(Seq<str>["a"], Seq__Asc(), "b", 5, 1, Seq<str>["a"]) => Ok(Seq<str>["a", "b"])
+  match n <= 0
+    true => Ok(acc + x)
+    false => match pos < #sorted
+      true => match call std__seq__precedes<T>(x, sorted[pos], order)
+        on Ok r => match r.value
+          true => match call std__seq__concat_from<T>(acc + x, sorted, pos, #sorted - pos, acc + x)
+            on Ok s => Ok(s.values)
+          false => match call std__seq__insert_from<T>(sorted, order, x, pos + 1, n - 1, acc + sorted[pos])
+            on Ok s => Ok(s.values)
+      false => Ok(acc + x)
+
+fn std__seq__sort_from<T>(values: Seq<T>, order: Seq__Order, pos: int, n: int, acc: Seq<T>) -> Seq__Values<T> rev 1
+  decreases n
+  emits []
+  tests
+    done<T=int>(Seq<int>[3], Seq__Asc(), 1, 0, Seq<int>[1]) => Ok(Seq<int>[1])
+    over<T=int>(Seq<int>[3], Seq__Asc(), 5, 2, Seq<int>[1]) => Ok(Seq<int>[1])
+    step<T=int>(Seq<int>[2, 1], Seq__Asc(), 0, 2, Seq<int>[]) => Ok(Seq<int>[1, 2])
+    str_step<T=str>(Seq<str>["b", "a"], Seq__Asc(), 0, 2, Seq<str>[]) => Ok(Seq<str>["a", "b"])
+    str_over<T=str>(Seq<str>["b"], Seq__Asc(), 5, 1, Seq<str>["a"]) => Ok(Seq<str>["a"])
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #values
+      true => match call std__seq__insert_from<T>(acc, order, values[pos], 0, #acc, Seq<T>[])
+        on Ok r => match call std__seq__sort_from<T>(values, order, pos + 1, n - 1, r.values)
+          on Ok s => Ok(s.values)
+      false => Ok(acc)
+
+fn std__seq__sort<T>(values: Seq<T>, order: Seq__Order) -> Seq__Values<T> rev 1
+  emits []
+  tests
+    empty<T=int>(Seq<int>[], Seq__Asc()) => Ok(Seq<int>[])
+    rev<T=int>(Seq<int>[3, 1, 2], Seq__Asc()) => Ok(Seq<int>[1, 2, 3])
+    desc<T=int>(Seq<int>[1, 3, 2], Seq__Desc()) => Ok(Seq<int>[3, 2, 1])
+    dups<T=int>(Seq<int>[2, 1, 2], Seq__Asc()) => Ok(Seq<int>[1, 2, 2])
+    words<T=str>(Seq<str>["b", "a"], Seq__Asc()) => Ok(Seq<str>["a", "b"])
+  match call std__seq__sort_from<T>(values, order, 0, #values, Seq<T>[])
+    on Ok r => Ok(r.values)
+
+fn std__seq__unique_has<T>(members: Seq<T>, value: T, pos: int, n: int) -> Bool__Value rev 1
+  decreases n
+  emits []
+  tests
+    done<T=int>(Seq<int>[1], 9, 1, 0) => Ok(false)
+    over<T=int>(Seq<int>[1], 9, 5, 2) => Ok(false)
+    hit<T=int>(Seq<int>[1, 9], 9, 0, 2) => Ok(true)
+    miss<T=int>(Seq<int>[1, 3], 9, 0, 2) => Ok(false)
+    str_hit<T=str>(Seq<str>["a", "z"], "z", 0, 2) => Ok(true)
+    str_miss<T=str>(Seq<str>["a"], "z", 0, 1) => Ok(false)
+    str_over<T=str>(Seq<str>["a"], "z", 5, 1) => Ok(false)
+  match n <= 0
+    true => Ok(false)
+    false => match pos < #members
+      true => match members[pos] == value
+        true => Ok(true)
+        false => match call std__seq__unique_has<T>(members, value, pos + 1, n - 1)
+          on Ok r => Ok(r.value)
+      false => Ok(false)
+
+fn std__seq__unique_from<T>(values: Seq<T>, pos: int, n: int, acc: Seq<T>) -> Seq__Values<T> rev 1
+  decreases n
+  emits []
+  tests
+    done<T=int>(Seq<int>[1], 1, 0, Seq<int>[2]) => Ok(Seq<int>[2])
+    over<T=int>(Seq<int>[1], 5, 2, Seq<int>[2]) => Ok(Seq<int>[2])
+    keep<T=int>(Seq<int>[2], 0, 1, Seq<int>[1]) => Ok(Seq<int>[1, 2])
+    skip<T=int>(Seq<int>[1], 0, 1, Seq<int>[1]) => Ok(Seq<int>[1])
+    str_keep<T=str>(Seq<str>["b"], 0, 1, Seq<str>["a"]) => Ok(Seq<str>["a", "b"])
+    str_skip<T=str>(Seq<str>["a"], 0, 1, Seq<str>["a"]) => Ok(Seq<str>["a"])
+    str_over<T=str>(Seq<str>["a"], 5, 1, Seq<str>["a"]) => Ok(Seq<str>["a"])
+  match n <= 0
+    true => Ok(acc)
+    false => match pos < #values
+      true => match call std__seq__unique_has<T>(acc, values[pos], 0, #acc)
+        on Ok r => match r.value
+          true => match call std__seq__unique_from<T>(values, pos + 1, n - 1, acc)
+            on Ok s => Ok(s.values)
+          false => match call std__seq__unique_from<T>(values, pos + 1, n - 1, acc + values[pos])
+            on Ok s => Ok(s.values)
+      false => Ok(acc)
+
+fn std__seq__unique<T>(values: Seq<T>) -> Seq__Values<T> rev 1
+  emits []
+  tests
+    empty<T=int>(Seq<int>[]) => Ok(Seq<int>[])
+    dupes<T=int>(Seq<int>[1, 2, 1]) => Ok(Seq<int>[1, 2])
+    words<T=str>(Seq<str>["b", "a", "b"]) => Ok(Seq<str>["b", "a"])
+  match call std__seq__unique_from<T>(values, 0, #values, Seq<T>[])
+    on Ok r => Ok(r.values)

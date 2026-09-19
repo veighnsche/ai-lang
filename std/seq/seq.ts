@@ -9,6 +9,28 @@ export type Seq__Item$T$str = { item: string };
 export type Bool__Value = { value: boolean };
 export type Seq__FoldStep$T$int$T$int = { acc: bigint; elem: bigint };
 export type Seq__FoldStep$T$str$T$str = { acc: string; elem: string };
+export type Seq__Order = { $can_kind: "Seq__Asc" } | { $can_kind: "Seq__Desc" };
+// Byte-order string comparison: UTF-8 bytes, matching Go.
+function $canStrCmp(a: string, b: string): number {
+  const A = new TextEncoder().encode(a);
+  const B = new TextEncoder().encode(b);
+  const n = Math.min(A.length, B.length);
+  for (let i = 0; i < n; i++) {
+    if (A[i] !== B[i]) {
+      return A[i] < B[i] ? -1 : 1;
+    }
+  }
+  if (A.length === B.length) {
+    return 0;
+  }
+  return A.length < B.length ? -1 : 1;
+}
+function $canStrGt(a: string, b: string): boolean {
+  return $canStrCmp(a, b) > 0;
+}
+function $canStrLt(a: string, b: string): boolean {
+  return $canStrCmp(a, b) < 0;
+}
 // Sequence indexing (a38 S3): bounds throw, matching Go.
 function $canSeqAt<T>(a: T[], i: bigint): T {
   if (i < 0n || i > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("seq index out of range");
@@ -823,6 +845,382 @@ export function std__seq__find$T$str(values: string[], p: (input: string) => { $
   case "sequence.not_found": {
     const _ = $can_m1;
     return { $can_kind: "sequence.not_found" };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__seq__precedes$T$int(x: bigint, e: bigint, order: Seq__Order): { $can_kind: "ok"; value: boolean } {
+  const $can_m1 = order;
+  switch ($can_m1.$can_kind) {
+  case "Seq__Asc": {
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: (x < e) };
+  }
+  case "Seq__Desc": {
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: (x > e) };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__seq__precedes$T$str(x: string, e: string, order: Seq__Order): { $can_kind: "ok"; value: boolean } {
+  const $can_m1 = order;
+  switch ($can_m1.$can_kind) {
+  case "Seq__Asc": {
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: $canStrLt(x, e) };
+  }
+  case "Seq__Desc": {
+    const _ = $can_m1;
+    return { $can_kind: "ok", value: $canStrGt(x, e) };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__seq__insert_from$T$int(sorted: bigint[], order: Seq__Order, x: bigint, pos: bigint, n: bigint, acc: bigint[]): { $can_kind: "ok"; values: bigint[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", values: [...acc, x] };
+  }
+  else {
+    if ((pos < (BigInt([...sorted].length)))) {
+      const $can_m1: { $can_kind: "ok"; value: boolean } = std__seq__precedes$T$int(x, $canSeqAt(sorted, pos), order);
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        if (r.value) {
+          const $can_m2: { $can_kind: "ok"; values: bigint[] } = std__seq__concat_from$T$int([...acc, x], sorted, pos, ((BigInt([...sorted].length)) - pos), [...acc, x]);
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const s = $can_m2;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $can_m3: { $can_kind: "ok"; values: bigint[] } = std__seq__insert_from$T$int(sorted, order, x, (pos + 1n), (n - 1n), [...acc, $canSeqAt(sorted, pos)]);
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const s = $can_m3;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", values: [...acc, x] };
+    }
+  }
+}
+export function std__seq__insert_from$T$str(sorted: string[], order: Seq__Order, x: string, pos: bigint, n: bigint, acc: string[]): { $can_kind: "ok"; values: string[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", values: [...acc, x] };
+  }
+  else {
+    if ((pos < (BigInt([...sorted].length)))) {
+      const $can_m1: { $can_kind: "ok"; value: boolean } = std__seq__precedes$T$str(x, $canSeqAt(sorted, pos), order);
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        if (r.value) {
+          const $can_m2: { $can_kind: "ok"; values: string[] } = std__seq__concat_from$T$str([...acc, x], sorted, pos, ((BigInt([...sorted].length)) - pos), [...acc, x]);
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const s = $can_m2;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $can_m3: { $can_kind: "ok"; values: string[] } = std__seq__insert_from$T$str(sorted, order, x, (pos + 1n), (n - 1n), [...acc, $canSeqAt(sorted, pos)]);
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const s = $can_m3;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", values: [...acc, x] };
+    }
+  }
+}
+export function std__seq__sort_from$T$int(values: bigint[], order: Seq__Order, pos: bigint, n: bigint, acc: bigint[]): { $can_kind: "ok"; values: bigint[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", values: acc };
+  }
+  else {
+    if ((pos < (BigInt([...values].length)))) {
+      const $can_m1: { $can_kind: "ok"; values: bigint[] } = std__seq__insert_from$T$int(acc, order, $canSeqAt(values, pos), 0n, (BigInt([...acc].length)), []);
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        const $can_m2: { $can_kind: "ok"; values: bigint[] } = std__seq__sort_from$T$int(values, order, (pos + 1n), (n - 1n), r.values);
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const s = $can_m2;
+          return { $can_kind: "ok", values: s.values };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", values: acc };
+    }
+  }
+}
+export function std__seq__sort_from$T$str(values: string[], order: Seq__Order, pos: bigint, n: bigint, acc: string[]): { $can_kind: "ok"; values: string[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", values: acc };
+  }
+  else {
+    if ((pos < (BigInt([...values].length)))) {
+      const $can_m1: { $can_kind: "ok"; values: string[] } = std__seq__insert_from$T$str(acc, order, $canSeqAt(values, pos), 0n, (BigInt([...acc].length)), []);
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        const $can_m2: { $can_kind: "ok"; values: string[] } = std__seq__sort_from$T$str(values, order, (pos + 1n), (n - 1n), r.values);
+        switch ($can_m2.$can_kind) {
+        case "ok": {
+          const s = $can_m2;
+          return { $can_kind: "ok", values: s.values };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", values: acc };
+    }
+  }
+}
+export function std__seq__sort$T$int(values: bigint[], order: Seq__Order): { $can_kind: "ok"; values: bigint[] } {
+  const $can_m1: { $can_kind: "ok"; values: bigint[] } = std__seq__sort_from$T$int(values, order, 0n, (BigInt([...values].length)), []);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", values: r.values };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__seq__sort$T$str(values: string[], order: Seq__Order): { $can_kind: "ok"; values: string[] } {
+  const $can_m1: { $can_kind: "ok"; values: string[] } = std__seq__sort_from$T$str(values, order, 0n, (BigInt([...values].length)), []);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", values: r.values };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__seq__unique_has$T$int(members: bigint[], value: bigint, pos: bigint, n: bigint): { $can_kind: "ok"; value: boolean } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: false };
+  }
+  else {
+    if ((pos < (BigInt([...members].length)))) {
+      if (($canSeqAt(members, pos) === value)) {
+        return { $can_kind: "ok", value: true };
+      }
+      else {
+        const $can_m1: { $can_kind: "ok"; value: boolean } = std__seq__unique_has$T$int(members, value, (pos + 1n), (n - 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: false };
+    }
+  }
+}
+export function std__seq__unique_has$T$str(members: string[], value: string, pos: bigint, n: bigint): { $can_kind: "ok"; value: boolean } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", value: false };
+  }
+  else {
+    if ((pos < (BigInt([...members].length)))) {
+      if (($canSeqAt(members, pos) === value)) {
+        return { $can_kind: "ok", value: true };
+      }
+      else {
+        const $can_m1: { $can_kind: "ok"; value: boolean } = std__seq__unique_has$T$str(members, value, (pos + 1n), (n - 1n));
+        switch ($can_m1.$can_kind) {
+        case "ok": {
+          const r = $can_m1;
+          return { $can_kind: "ok", value: r.value };
+        }
+        default: {
+          throw new Error("unreachable");
+        }
+        }
+      }
+    }
+    else {
+      return { $can_kind: "ok", value: false };
+    }
+  }
+}
+export function std__seq__unique_from$T$int(values: bigint[], pos: bigint, n: bigint, acc: bigint[]): { $can_kind: "ok"; values: bigint[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", values: acc };
+  }
+  else {
+    if ((pos < (BigInt([...values].length)))) {
+      const $can_m1: { $can_kind: "ok"; value: boolean } = std__seq__unique_has$T$int(acc, $canSeqAt(values, pos), 0n, (BigInt([...acc].length)));
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        if (r.value) {
+          const $can_m2: { $can_kind: "ok"; values: bigint[] } = std__seq__unique_from$T$int(values, (pos + 1n), (n - 1n), acc);
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const s = $can_m2;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $can_m3: { $can_kind: "ok"; values: bigint[] } = std__seq__unique_from$T$int(values, (pos + 1n), (n - 1n), [...acc, $canSeqAt(values, pos)]);
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const s = $can_m3;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", values: acc };
+    }
+  }
+}
+export function std__seq__unique_from$T$str(values: string[], pos: bigint, n: bigint, acc: string[]): { $can_kind: "ok"; values: string[] } {
+  if ((n <= 0n)) {
+    return { $can_kind: "ok", values: acc };
+  }
+  else {
+    if ((pos < (BigInt([...values].length)))) {
+      const $can_m1: { $can_kind: "ok"; value: boolean } = std__seq__unique_has$T$str(acc, $canSeqAt(values, pos), 0n, (BigInt([...acc].length)));
+      switch ($can_m1.$can_kind) {
+      case "ok": {
+        const r = $can_m1;
+        if (r.value) {
+          const $can_m2: { $can_kind: "ok"; values: string[] } = std__seq__unique_from$T$str(values, (pos + 1n), (n - 1n), acc);
+          switch ($can_m2.$can_kind) {
+          case "ok": {
+            const s = $can_m2;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+        else {
+          const $can_m3: { $can_kind: "ok"; values: string[] } = std__seq__unique_from$T$str(values, (pos + 1n), (n - 1n), [...acc, $canSeqAt(values, pos)]);
+          switch ($can_m3.$can_kind) {
+          case "ok": {
+            const s = $can_m3;
+            return { $can_kind: "ok", values: s.values };
+          }
+          default: {
+            throw new Error("unreachable");
+          }
+          }
+        }
+      }
+      default: {
+        throw new Error("unreachable");
+      }
+      }
+    }
+    else {
+      return { $can_kind: "ok", values: acc };
+    }
+  }
+}
+export function std__seq__unique$T$int(values: bigint[]): { $can_kind: "ok"; values: bigint[] } {
+  const $can_m1: { $can_kind: "ok"; values: bigint[] } = std__seq__unique_from$T$int(values, 0n, (BigInt([...values].length)), []);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", values: r.values };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__seq__unique$T$str(values: string[]): { $can_kind: "ok"; values: string[] } {
+  const $can_m1: { $can_kind: "ok"; values: string[] } = std__seq__unique_from$T$str(values, 0n, (BigInt([...values].length)), []);
+  switch ($can_m1.$can_kind) {
+  case "ok": {
+    const r = $can_m1;
+    return { $can_kind: "ok", values: r.values };
   }
   default: {
     throw new Error("unreachable");
