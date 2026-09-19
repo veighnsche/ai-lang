@@ -57,6 +57,40 @@
     "hit_by_tests": []
   },
   {
+    "kind": "environment.absent",
+    "fields": [],
+    "raised_by": [
+      "host.host__env_read",
+      "host.std__env__read"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__env__read",
+        "arm": "on environment.absent _ =\u003e environment.absent()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__env__read/absent"
+    ]
+  },
+  {
+    "kind": "environment.denied",
+    "fields": [],
+    "raised_by": [
+      "host.host__env_read",
+      "host.std__env__read"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__env__read",
+        "arm": "on environment.denied _ =\u003e environment.denied()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__env__read/denied"
+    ]
+  },
+  {
     "kind": "hash.unavailable",
     "fields": [],
     "raised_by": [
@@ -123,6 +157,23 @@
     ],
     "hit_by_tests": [
       "host.std__random__bytes/down"
+    ]
+  },
+  {
+    "kind": "secret.provider_failure",
+    "fields": [],
+    "raised_by": [
+      "host.host__secret_equal",
+      "host.std__secret__equal"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__secret__equal",
+        "arm": "on secret.provider_failure _ =\u003e secret.provider_failure()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__secret__equal/down"
     ]
   }
 ]

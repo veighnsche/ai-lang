@@ -9,15 +9,18 @@
 // obligation, executed by TestStdHostNodeSmoke.
 
 mod host
-  provides [std__clock__wall_now, std__clock__monotonic_now, std__random__bytes, std__hash__digest, Clock__Instant, Clock__MonotonicTick, Random__Bytes, Hash__Digest, Hash__Profile, host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest]
+  provides [std__clock__wall_now, std__clock__monotonic_now, std__random__bytes, std__hash__digest, std__secret__equal, std__env__read, Clock__Instant, Clock__MonotonicTick, Random__Bytes, Hash__Digest, Hash__Profile, Secret__Value, Secret__Equal, Env__Name, Env__Value, host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest, host__secret_equal, host__env_read]
   uses []
-  emits [clock.unavailable, random.invalid_count, random.unavailable, hash.unsupported_profile, hash.unavailable]
+  emits [clock.unavailable, random.invalid_count, random.unavailable, hash.unsupported_profile, hash.unavailable, secret.provider_failure, environment.absent, environment.denied]
 
 error clock.unavailable()
 error random.invalid_count()
 error random.unavailable()
 error hash.unsupported_profile()
 error hash.unavailable()
+error secret.provider_failure()
+error environment.absent()
+error environment.denied()
 
 type Clock__Instant rev 1 (
   millis: int
@@ -37,6 +40,18 @@ type Hash__Digest rev 1 (
   bytes: Bytes
 )
 
+brand Secret__Value is str rev 1
+
+type Secret__Equal rev 1 (
+  equal: bool
+)
+
+brand Env__Name is str rev 1
+
+type Env__Value rev 1 (
+  value: str
+)
+
 extern host__wall_now() -> Clock__Instant rev 1
   emits [clock.unavailable]
 
@@ -48,6 +63,12 @@ extern host__rand_bytes(count: int) -> Random__Bytes rev 1
 
 extern host__hash_digest(data: Bytes, profile: Hash__Profile) -> Hash__Digest rev 1
   emits [hash.unsupported_profile, hash.unavailable]
+
+extern host__secret_equal(left: Secret__Value, right: Secret__Value) -> Secret__Equal rev 1
+  emits [secret.provider_failure]
+
+extern host__env_read(name: Env__Name) -> Env__Value rev 1
+  emits [environment.absent, environment.denied]
 
 fn std__clock__wall_now() -> Clock__Instant rev 1
   emits [clock.unavailable]
@@ -108,3 +129,37 @@ fn std__hash__digest(data: Bytes, profile: Hash__Profile) -> Hash__Digest rev 1
     on hash.unsupported_profile _ => hash.unsupported_profile()
     on hash.unavailable _ => hash.unavailable()
     on Ok d => Ok(d.bytes)
+
+// Secrets compare only behind the host contract: no Can code paths
+// a Secret__Value into ==, and none needs to.
+fn std__secret__equal(left: Secret__Value, right: Secret__Value) -> Secret__Equal rev 1
+  emits [secret.provider_failure]
+  tests
+    same(seal Secret__Value("s3cr3t"), seal Secret__Value("s3cr3t")) => Ok(true)
+    diff(seal Secret__Value("s3cr3t"), seal Secret__Value("other")) => Ok(false)
+    down(seal Secret__Value("s3cr3t"), seal Secret__Value("s3cr3t")) => secret.provider_failure()
+  match call host__secret_equal(left, right)
+    given
+      same => [exchange args (left = seal Secret__Value("s3cr3t"), right = seal Secret__Value("s3cr3t")) outcome Ok(true)]
+      diff => [exchange args (left = seal Secret__Value("s3cr3t"), right = seal Secret__Value("other")) outcome Ok(false)]
+      down => [exchange args (left = seal Secret__Value("s3cr3t"), right = seal Secret__Value("s3cr3t")) outcome secret.provider_failure()]
+    on secret.provider_failure _ => secret.provider_failure()
+    on Ok r => Ok(r.equal)
+
+// Denial is a declared upper bound: v1 hosts no policy engine, so
+// denied is scripted but never produced; absent fires on missing
+// names. Both arms stay reachable in the tables either way.
+fn std__env__read(name: Env__Name) -> Env__Value rev 1
+  emits [environment.absent, environment.denied]
+  tests
+    found(seal Env__Name("HOME")) => Ok("/home/can")
+    absent(seal Env__Name("NO_SUCH_VAR")) => environment.absent()
+    denied(seal Env__Name("SEALED_VAR")) => environment.denied()
+  match call host__env_read(name)
+    given
+      found => [exchange args (name = seal Env__Name("HOME")) outcome Ok("/home/can")]
+      absent => [exchange args (name = seal Env__Name("NO_SUCH_VAR")) outcome environment.absent()]
+      denied => [exchange args (name = seal Env__Name("SEALED_VAR")) outcome environment.denied()]
+    on environment.absent _ => environment.absent()
+    on environment.denied _ => environment.denied()
+    on Ok v => Ok(v.value)

@@ -17,7 +17,7 @@ declare const performance: { now(): number };
 // never Math.random — and hashing is always the platform digest,
 // never a vendored reimplementation. Both are synchronous,
 // matching extern calls.
-import { randomBytes, createHash } from "node:crypto";
+import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 
 // Upper bound for one random_bytes call: past it the host reports
 // invalid_count (the negative half rejects deterministically in
@@ -54,6 +54,44 @@ export function host__rand_bytes(count: bigint):
     };
   } catch {
     return { $can_kind: "random.unavailable" };
+  }
+}
+
+const __utf8 = new TextEncoder();
+
+export function host__secret_equal(
+  left: string,
+  right: string,
+):
+  | { $can_kind: "ok"; equal: boolean }
+  | { $can_kind: "secret.provider_failure" } {
+  try {
+    const a = __utf8.encode(left);
+    const b = __utf8.encode(right);
+    if (a.length !== b.length) {
+      return { $can_kind: "ok", equal: false };
+    }
+    return { $can_kind: "ok", equal: timingSafeEqual(a, b) };
+  } catch {
+    return { $can_kind: "secret.provider_failure" };
+  }
+}
+
+export function host__env_read(name: string):
+  | { $can_kind: "ok"; value: string }
+  | { $can_kind: "environment.absent" }
+  | { $can_kind: "environment.denied" } {
+  try {
+    const v = process.env[name];
+    if (v === undefined) {
+      return { $can_kind: "environment.absent" };
+    }
+    return { $can_kind: "ok", value: v };
+  } catch {
+    // v1 hosts no denial policy: denied stays a declared upper
+    // bound (scripted, never produced); only a platform failure
+    // lands here, and absent is the honest bucket for "no value".
+    return { $can_kind: "environment.absent" };
   }
 }
 

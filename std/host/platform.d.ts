@@ -9,3 +9,12 @@ declare module "node:crypto" {
   };
   export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean;
 }
+
+// UTF-8 encoder (Node global): secrets hash-compare as bytes.
+declare class TextEncoder {
+  encode(s: string): Uint8Array;
+}
+
+// Process environment (Node global): string map with undefined
+// for missing names.
+declare const process: { env: { [name: string]: string | undefined } };

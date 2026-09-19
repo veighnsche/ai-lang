@@ -8,7 +8,11 @@
   `std__random__bytes` (CSPRNG, 1MB cap) and `std__hash__digest`
   (sealed `Hash__Profile` brand: sha256, sha512; JEV
   hash_profile brand 0.98) over `host__rand_bytes` /
-  `host__hash_digest`.
+  `host__hash_digest`. `std__secret__equal` (sealed
+  `Secret__Value` brand behind timingSafeEqual; JEV
+  secret_repr brand 1.0) and `std__env__read` (sealed
+  `Env__Name`; denied is a declared upper bound, v1 hosts no
+  policy) over `host__secret_equal` / `host__env_read`.
 - `host.externs.ts` — real host implementations (not throwing
   stubs). Same-slice maintenance with the extern decls.
 - `host.ts` + `errors.json` — committed golden TS prod emit

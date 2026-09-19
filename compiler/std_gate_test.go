@@ -34,8 +34,10 @@ func TestStdHostCompiles(t *testing.T) {
 // under node: wall returns positive bigint millis, monotonic never
 // goes backwards, random returns exact-length bytes and rejects
 // negative counts, sha256 matches the abc known vector and md5 is
-// refused. Node is required, never skipped (parity precedent): an
-// unexecuted host obligation is a gap, not a pass.
+// refused, secrets compare equal/unequal/length-mismatch, and env
+// reads a set var and reports a missing one absent. Node is
+// required, never skipped (parity precedent): an unexecuted host
+// obligation is a gap, not a pass.
 func TestStdHostNodeSmoke(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Fatalf("node missing: host smoke refuses to skip: %v", err)
@@ -48,7 +50,7 @@ func TestStdHostNodeSmoke(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "host.externs.ts"), raw, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	harness := `import { host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest } from "./host.externs.ts";
+	harness := `import { host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest, host__secret_equal, host__env_read } from "./host.externs.ts";
 const w = host__wall_now();
 if (w.$can_kind !== "ok" || typeof w.millis !== "bigint" || w.millis <= 0n) {
   console.error("wall clock bad: " + JSON.stringify(w, (_, v) => typeof v === "bigint" ? v.toString() : v));
@@ -87,6 +89,32 @@ if (h.$can_kind !== "ok" || hex !== "ba7816bf8f01cfea414140de5dae2223b00361a3961
 const md5 = host__hash_digest(abc, "md5");
 if (md5.$can_kind !== "hash.unsupported_profile") {
   console.error("md5 not rejected");
+  process.exit(1);
+}
+const eq = host__secret_equal("s3cr3t", "s3cr3t");
+const ne = host__secret_equal("s3cr3t", "other!");
+const len = host__secret_equal("short", "much longer value");
+if (eq.$can_kind !== "ok" || eq.equal !== true) {
+  console.error("secret same not equal");
+  process.exit(1);
+}
+if (ne.$can_kind !== "ok" || ne.equal !== false) {
+  console.error("secret diff not unequal");
+  process.exit(1);
+}
+if (len.$can_kind !== "ok" || len.equal !== false) {
+  console.error("secret length mismatch not unequal");
+  process.exit(1);
+}
+process.env.NODE_SMOKE_HOST_TEST = "smoke-ok";
+const found = host__env_read("NODE_SMOKE_HOST_TEST");
+const missing = host__env_read("NODE_SMOKE_HOST_ABSENT_XYZ");
+if (found.$can_kind !== "ok" || found.value !== "smoke-ok") {
+  console.error("env read bad");
+  process.exit(1);
+}
+if (missing.$can_kind !== "environment.absent") {
+  console.error("env absent bad");
   process.exit(1);
 }
 console.log("HOST_SMOKE_OK");
