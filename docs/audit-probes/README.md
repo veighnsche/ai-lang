@@ -1,5 +1,8 @@
 # Audit evidence at 8312d85
 
+Start with the **[master TODO checklist](TODO.md)** for priorities, dependencies,
+completion criteria, and coverage of every audit section.
+
 These probes substantiate `../can-language-audit.md`. They are not normal
 regression gates: the Go probe currently expects the documented defects to be
 present. After a fix, a failed hypothesis is a reason to update the audit status,
@@ -87,8 +90,15 @@ from wrong types in a complete freshly emitted bundle.
 
 ## JEV records
 
-`jev-decisions.json` and `jev-surface-decisions.json` contain the complete
-nonsecret request states/alternatives and returned distributions. Model:
-`jev-1.13.0`, Choice. These are recorded design preferences, not factual tests,
-proofs, benchmark results, or user ratification. Host-boundary choice was almost
-a tie (0.50 vs 0.49); several syntax choices had modest confidence.
+**Withdrawn as decision support: insufficient Can context was supplied.** JEV
+cannot research the repository, inspect linked files, or supply missing context.
+The compressed summaries did not adequately support an independent design review.
+
+`jev-decisions.json` and `jev-surface-decisions.json` retain the original
+nonsecret requests and returned distributions (`jev-1.13.0`, Choice) for audit
+history only. Do not use their scores to justify recommendations or approval.
+The compiler reproductions above remain independent evidence; redesign
+recommendations remain the audit author's proposals pending proper review.
+
+See [TODO section A](TODO.md#a-redo-the-jev-review-correctly) for rebuilding the
+complete self-contained context and repeating the review.

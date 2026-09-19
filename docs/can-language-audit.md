@@ -881,6 +881,9 @@ Important properties, independent of keyword taste:
 
 ## 11. Migration plan and acceptance criteria
 
+The **[master TODO checklist](audit-probes/TODO.md)** tracks all audit sections,
+priorities, dependencies, acceptance criteria, and the replacement JEV review.
+
 | Stage | Deliverable | Must not regress |
 |---|---|---|
 | 0 | Repair F01/F02/F04/F05; version canonical evidence; add whole-library and fresh-output TS gates | Accepted evidence ownership, identity uniqueness, deterministic resolution, valid target output |
@@ -914,6 +917,14 @@ syntax is a hypothesis; measure successful edits and diagnostic recovery rather
 than assuming token reduction alone makes agents more reliable.
 
 ## 12. JEV review record
+
+**Correction: these reviews are withdrawn as decision support.** The supplied
+Can context was insufficient. JEV cannot inspect the repository or research
+missing facts; we must supply the complete context ourselves. The scores below
+are historical records only, not support for this audit's recommendations.
+Those recommendations remain the author's proposals. Reproducible compiler
+findings remain valid independently of these calls. The replacement review is
+tracked in [TODO section A](audit-probes/TODO.md#a-redo-the-jev-review-correctly).
 
 `jev-1.13.0`, Choice; live HTTP/Choice documentation consulted. Full requests,
 alternatives, distributions, and responses are in `audit-probes/jev-*.json`.

@@ -1,0 +1,1 @@
+There are zero external users. Implementing with backwards compatibility immediately results in technical debt. Maintaining syntax, ABI, old source spellings, generated TSlayouts, or old goldens is not a product requirement.
