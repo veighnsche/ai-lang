@@ -34,10 +34,11 @@ func TestStdHostCompiles(t *testing.T) {
 // under node: wall returns positive bigint millis, monotonic never
 // goes backwards, random returns exact-length bytes and rejects
 // negative counts, sha256 matches the abc known vector and md5 is
-// refused, secrets compare equal/unequal/length-mismatch, and env
-// reads a set var and reports a missing one absent. Node is
-// required, never skipped (parity precedent): an unexecuted host
-// obligation is a gap, not a pass.
+// refused, secrets compare equal/unequal/length-mismatch, env reads
+// a set var and reports a missing one absent, and log emits one
+// exact JSON line on stderr. Node is required, never skipped
+// (parity precedent): an unexecuted host obligation is a gap, not
+// a pass.
 func TestStdHostNodeSmoke(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Fatalf("node missing: host smoke refuses to skip: %v", err)
@@ -50,7 +51,7 @@ func TestStdHostNodeSmoke(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "host.externs.ts"), raw, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	harness := `import { host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest, host__secret_equal, host__env_read } from "./host.externs.ts";
+	harness := `import { host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest, host__secret_equal, host__env_read, host__log_write } from "./host.externs.ts";
 const w = host__wall_now();
 if (w.$can_kind !== "ok" || typeof w.millis !== "bigint" || w.millis <= 0n) {
   console.error("wall clock bad: " + JSON.stringify(w, (_, v) => typeof v === "bigint" ? v.toString() : v));
@@ -115,6 +116,19 @@ if (found.$can_kind !== "ok" || found.value !== "smoke-ok") {
 }
 if (missing.$can_kind !== "environment.absent") {
   console.error("env absent bad");
+  process.exit(1);
+}
+const lines = [];
+const origError = console.error;
+console.error = (s) => { lines.push(String(s)); };
+const logged = host__log_write({ level: 1n, message: "hello-smoke" });
+console.error = origError;
+if (logged.$can_kind !== "ok") {
+  console.error("log write bad");
+  process.exit(1);
+}
+if (lines.length !== 1 || lines[0] !== '{"level":"1","message":"hello-smoke"}') {
+  console.error("log line bad: " + JSON.stringify(lines));
   process.exit(1);
 }
 console.log("HOST_SMOKE_OK");

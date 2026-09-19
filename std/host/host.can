@@ -9,9 +9,9 @@
 // obligation, executed by TestStdHostNodeSmoke.
 
 mod host
-  provides [std__clock__wall_now, std__clock__monotonic_now, std__random__bytes, std__hash__digest, std__secret__equal, std__env__read, Clock__Instant, Clock__MonotonicTick, Random__Bytes, Hash__Digest, Hash__Profile, Secret__Value, Secret__Equal, Env__Name, Env__Value, host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest, host__secret_equal, host__env_read]
+  provides [std__clock__wall_now, std__clock__monotonic_now, std__random__bytes, std__hash__digest, std__secret__equal, std__env__read, std__log__write, Clock__Instant, Clock__MonotonicTick, Random__Bytes, Hash__Digest, Hash__Profile, Secret__Value, Secret__Equal, Env__Name, Env__Value, Log__Event, Log__Pass, host__wall_now, host__mono_now, host__rand_bytes, host__hash_digest, host__secret_equal, host__env_read, host__log_write]
   uses []
-  emits [clock.unavailable, random.invalid_count, random.unavailable, hash.unsupported_profile, hash.unavailable, secret.provider_failure, environment.absent, environment.denied]
+  emits [clock.unavailable, random.invalid_count, random.unavailable, hash.unsupported_profile, hash.unavailable, secret.provider_failure, environment.absent, environment.denied, log.unavailable]
 
 error clock.unavailable()
 error random.invalid_count()
@@ -21,6 +21,18 @@ error hash.unavailable()
 error secret.provider_failure()
 error environment.absent()
 error environment.denied()
+error log.unavailable()
+
+// V1 log schema: level ints 0=debug, 1=info, 2=warn, 3=error.
+// The host passes other ints through unchanged: no clamping, no
+// rejection, no invention. Disclosure is one JSON line on stderr.
+type Log__Event rev 1 (
+  level: int
+  message: str
+)
+
+type Log__Pass rev 1 (
+)
 
 type Clock__Instant rev 1 (
   millis: int
@@ -69,6 +81,9 @@ extern host__secret_equal(left: Secret__Value, right: Secret__Value) -> Secret__
 
 extern host__env_read(name: Env__Name) -> Env__Value rev 1
   emits [environment.absent, environment.denied]
+
+extern host__log_write(event: Log__Event) -> Log__Pass rev 1
+  emits [log.unavailable]
 
 fn std__clock__wall_now() -> Clock__Instant rev 1
   emits [clock.unavailable]
@@ -163,3 +178,17 @@ fn std__env__read(name: Env__Name) -> Env__Value rev 1
     on environment.absent _ => environment.absent()
     on environment.denied _ => environment.denied()
     on Ok v => Ok(v.value)
+
+fn std__log__write(event: Log__Event) -> Log__Pass rev 1
+  emits [log.unavailable]
+  tests
+    info(Log__Event(1, "started")) => Ok()
+    debug(Log__Event(0, "tick")) => Ok()
+    down(Log__Event(3, "boom")) => log.unavailable()
+  match call host__log_write(event)
+    given
+      info => [exchange args (event = Log__Event(1, "started")) outcome Ok()]
+      debug => [exchange args (event = Log__Event(0, "tick")) outcome Ok()]
+      down => [exchange args (event = Log__Event(3, "boom")) outcome log.unavailable()]
+    on log.unavailable _ => log.unavailable()
+    on Ok _ => Ok()

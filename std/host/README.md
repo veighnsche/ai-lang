@@ -13,6 +13,10 @@
   secret_repr brand 1.0) and `std__env__read` (sealed
   `Env__Name`; denied is a declared upper bound, v1 hosts no
   policy) over `host__secret_equal` / `host__env_read`.
+  `std__log__write` (`Log__Event` level+message; one JSON line on
+  stderr, bigint levels as decimal strings) over
+  `host__log_write`. `platform.d.ts` carries the tsc ambient
+  surface (node:crypto, TextEncoder, process, console).
 - `host.externs.ts` — real host implementations (not throwing
   stubs). Same-slice maintenance with the extern decls.
 - `host.ts` + `errors.json` — committed golden TS prod emit

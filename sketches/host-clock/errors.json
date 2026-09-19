@@ -131,6 +131,23 @@
     ]
   },
   {
+    "kind": "log.unavailable",
+    "fields": [],
+    "raised_by": [
+      "host.host__log_write",
+      "host.std__log__write"
+    ],
+    "handled_by": [
+      {
+        "fn": "host.std__log__write",
+        "arm": "on log.unavailable _ =\u003e log.unavailable()"
+      }
+    ],
+    "hit_by_tests": [
+      "host.std__log__write/down"
+    ]
+  },
+  {
     "kind": "random.invalid_count",
     "fields": [],
     "raised_by": [

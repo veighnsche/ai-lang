@@ -1,7 +1,9 @@
 // GENERATED from host.can by canlc v0.0.0. DO NOT EDIT.
 // Prod emit: tests + given stripped.
-import { host__env_read, host__hash_digest, host__mono_now, host__rand_bytes, host__secret_equal, host__wall_now } from "./host.externs";
-export type HostResult = { $can_kind: "ok"; bytes: Uint8Array } | { $can_kind: "ok"; equal: boolean } | { $can_kind: "ok"; millis: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "clock.unavailable" } | { $can_kind: "random.invalid_count" } | { $can_kind: "random.unavailable" } | { $can_kind: "hash.unsupported_profile" } | { $can_kind: "hash.unavailable" } | { $can_kind: "secret.provider_failure" } | { $can_kind: "environment.absent" } | { $can_kind: "environment.denied" };
+import { host__env_read, host__hash_digest, host__log_write, host__mono_now, host__rand_bytes, host__secret_equal, host__wall_now } from "./host.externs";
+export type HostResult = { $can_kind: "ok" } | { $can_kind: "ok"; bytes: Uint8Array } | { $can_kind: "ok"; equal: boolean } | { $can_kind: "ok"; millis: bigint } | { $can_kind: "ok"; value: string } | { $can_kind: "clock.unavailable" } | { $can_kind: "random.invalid_count" } | { $can_kind: "random.unavailable" } | { $can_kind: "hash.unsupported_profile" } | { $can_kind: "hash.unavailable" } | { $can_kind: "secret.provider_failure" } | { $can_kind: "environment.absent" } | { $can_kind: "environment.denied" } | { $can_kind: "log.unavailable" };
+export type Log__Event = { level: bigint; message: string };
+export type Log__Pass = {};
 export type Clock__Instant = { millis: bigint };
 export type Clock__MonotonicTick = { millis: bigint };
 export type Random__Bytes = { bytes: Uint8Array };
@@ -115,6 +117,22 @@ export function std__env__read(name: string): { $can_kind: "ok"; value: string }
   case "ok": {
     const v = $can_m1;
     return { $can_kind: "ok", value: v.value };
+  }
+  default: {
+    throw new Error("unreachable");
+  }
+  }
+}
+export function std__log__write(event: Log__Event): { $can_kind: "ok" } | { $can_kind: "log.unavailable" } {
+  const $can_m1: { $can_kind: "ok" } | { $can_kind: "log.unavailable" } = host__log_write(event);
+  switch ($can_m1.$can_kind) {
+  case "log.unavailable": {
+    const _ = $can_m1;
+    return { $can_kind: "log.unavailable" };
+  }
+  case "ok": {
+    const _ = $can_m1;
+    return { $can_kind: "ok" };
   }
   default: {
     throw new Error("unreachable");

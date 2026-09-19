@@ -18,3 +18,6 @@ declare class TextEncoder {
 // Process environment (Node global): string map with undefined
 // for missing names.
 declare const process: { env: { [name: string]: string | undefined } };
+
+// Console sink (Node global): the v1 log disclosure channel.
+declare const console: { error(s: string): void; log(s: string): void };

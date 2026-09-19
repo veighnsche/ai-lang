@@ -95,6 +95,17 @@ export function host__env_read(name: string):
   }
 }
 
+export function host__log_write(event: { level: bigint; message: string }):
+  | { $can_kind: "ok" }
+  | { $can_kind: "log.unavailable" } {
+  try {
+    console.error(JSON.stringify({ level: event.level.toString(), message: event.message }));
+    return { $can_kind: "ok" };
+  } catch {
+    return { $can_kind: "log.unavailable" };
+  }
+}
+
 export function host__hash_digest(
   data: Uint8Array,
   profile: string,
