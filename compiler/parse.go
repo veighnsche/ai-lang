@@ -1578,8 +1578,13 @@ func genericHeadLen(s string) int {
 
 // genericHeadLT reports whether the `<` at s[i] opens a generic
 // head: word characters immediately before, a balanced `<>`
-// span, and `(` immediately after. The backward twin of
-// genericHeadLen for scanners positioned at the bracket.
+// span, and `(` immediately after — or `[` after a head that
+// itself nests angles, which is a Seq literal over an
+// instantiated element type (Seq<M__Pair<K,V>>[...]). The
+// backward twin of genericHeadLen for scanners positioned at
+// the bracket. The nesting requirement keeps plain Seq<str>[
+// heads and <= comparisons exactly as unprotected as before:
+// only a comma-bearing head can need the protection.
 func genericHeadLT(s string, i int) bool {
 	j := i - 1
 	for j >= 0 && (isWordChar(s[j]) || s[j] == '.') {
@@ -1593,7 +1598,21 @@ func genericHeadLT(s string, i int) bool {
 		return false
 	}
 	end := angleEnd(s, i)
-	return end >= 0 && end+1 < len(s) && s[end+1] == '('
+	if end < 0 || end+1 >= len(s) {
+		return false
+	}
+	if s[end+1] == '(' {
+		return true
+	}
+	if s[end+1] != '[' {
+		return false
+	}
+	for k := i + 1; k < end; k++ {
+		if s[k] == '<' {
+			return true
+		}
+	}
+	return false
 }
 
 // parseGenericCtor parses one generic construction `Base<args>(...)`
