@@ -1,0 +1,155 @@
+// std/map/map.can — roadmap order 6: insertion-ordered string-keyed
+// maps with generic values. Fully generic Map<K,V> is unbuildable
+// today (the Seq-elem rule rejects Seq<Map__Entry<K,V>>), so keys
+// are str and values generic: configs, JSON objects, headers.
+// A map IS its ordered entries: keys and values stay parallel,
+// entries returns the pair. Replace keeps position; remove
+// closes ranks. Presence is always explicit: insert never
+// overwrites, replace/remove never invent.
+
+mod map
+  provides [std__map__get, std__map__index_from, std__map__insert, std__map__replace_from, std__map__replace, std__map__remove_from, std__map__remove, std__map__entries, Int__Value, Map__Entries, Map__Item]
+  uses []
+  emits [map.key_absent, map.key_exists]
+
+error map.key_absent(key: str)
+error map.key_exists(key: str)
+
+type Int__Value rev 1 (
+  value: int
+)
+
+type Map__Entries<V> rev 1 (
+  keys: Seq<str>
+  values: Seq<V>
+)
+
+type Map__Item<V> rev 1 (
+  item: V
+)
+
+fn std__map__index_from<V>(map: Map__Entries<V>, key: str, pos: int, n: int) -> Int__Value rev 1
+  decreases n
+  emits []
+  tests
+    done<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "z", 1, 0) => Ok(-1)
+    over<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "z", 5, 2) => Ok(-1)
+    hit_first<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "a", 0, 2) => Ok(0)
+    hit_later<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "b", 0, 2) => Ok(1)
+    miss<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "z", 0, 1) => Ok(-1)
+    str_hit<V=str>(Map__Entries<str>(Seq<str>["a"], Seq<str>["x"]), "a", 0, 1) => Ok(0)
+    str_miss<V=str>(Map__Entries<str>(Seq<str>["a"], Seq<str>["x"]), "z", 0, 1) => Ok(-1)
+    str_over<V=str>(Map__Entries<str>(Seq<str>["a"], Seq<str>["x"]), "z", 5, 1) => Ok(-1)
+  match n <= 0
+    true => Ok(-1)
+    false => match pos < #map.keys
+      true => match map.keys[pos] == key
+        true => Ok(pos)
+        false => match call std__map__index_from<V>(map, key, pos + 1, n - 1)
+          on Ok r => Ok(r.value)
+      false => Ok(-1)
+
+fn std__map__get<V>(map: Map__Entries<V>, key: str) -> Map__Item<V> rev 1
+  emits [map.key_absent]
+  tests
+    hit_first<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "a") => Ok(1)
+    hit_last<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "b") => Ok(2)
+    miss<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "z") => map.key_absent("z")
+    empty<V=int>(Map__Entries<int>(Seq<str>[], Seq<int>[]), "a") => map.key_absent("a")
+    str_hit<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k") => Ok("v")
+    str_miss<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "z") => map.key_absent("z")
+  match call std__map__index_from<V>(map, key, 0, #map.keys)
+    on Ok i => match i.value < 0
+      true => map.key_absent(key)
+      false => Ok(map.values[i.value])
+
+fn std__map__insert<V>(map: Map__Entries<V>, key: str, value: V) -> Map__Entries<V> rev 1
+  emits [map.key_exists]
+  tests
+    into_empty<V=int>(Map__Entries<int>(Seq<str>[], Seq<int>[]), "a", 1) => Ok(Seq<str>["a"], Seq<int>[1])
+    append_new<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "b", 2) => Ok(Seq<str>["a", "b"], Seq<int>[1, 2])
+    exists<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "a", 9) => map.key_exists("a")
+    str_new<V=str>(Map__Entries<str>(Seq<str>[], Seq<str>[]), "k", "v") => Ok(Seq<str>["k"], Seq<str>["v"])
+    str_exists<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k", "w") => map.key_exists("k")
+  match call std__map__index_from<V>(map, key, 0, #map.keys)
+    on Ok i => match i.value < 0
+      true => Ok(map.keys + key, map.values + value)
+      false => map.key_exists(key)
+
+fn std__map__replace_from<V>(map: Map__Entries<V>, key: str, value: V, pos: int, n: int, acc_keys: Seq<str>, acc_values: Seq<V>) -> Map__Entries<V> rev 1
+  decreases n
+  emits []
+  tests
+    done<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "a", 9, 1, 0, Seq<str>["a"], Seq<int>[9]) => Ok(Seq<str>["a"], Seq<int>[9])
+    over<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "a", 9, 5, 2, Seq<str>[], Seq<int>[]) => Ok(Seq<str>[], Seq<int>[])
+    swap_first<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "a", 9, 0, 2, Seq<str>[], Seq<int>[]) => Ok(Seq<str>["a", "b"], Seq<int>[9, 2])
+    swap_later<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "b", 9, 0, 2, Seq<str>[], Seq<int>[]) => Ok(Seq<str>["a", "b"], Seq<int>[1, 9])
+    str_swap<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k", "w", 0, 1, Seq<str>[], Seq<str>[]) => Ok(Seq<str>["k"], Seq<str>["w"])
+    str_skip_swap<V=str>(Map__Entries<str>(Seq<str>["j", "k"], Seq<str>["u", "v"]), "k", "w", 0, 2, Seq<str>[], Seq<str>[]) => Ok(Seq<str>["j", "k"], Seq<str>["u", "w"])
+    str_over<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k", "w", 5, 1, Seq<str>[], Seq<str>[]) => Ok(Seq<str>[], Seq<str>[])
+  match n <= 0
+    true => Ok(acc_keys, acc_values)
+    false => match pos < #map.keys
+      true => match map.keys[pos] == key
+        true => match call std__map__replace_from<V>(map, key, value, pos + 1, n - 1, acc_keys + map.keys[pos], acc_values + value)
+          on Ok r => Ok(r.keys, r.values)
+        false => match call std__map__replace_from<V>(map, key, value, pos + 1, n - 1, acc_keys + map.keys[pos], acc_values + map.values[pos])
+          on Ok r => Ok(r.keys, r.values)
+      false => Ok(acc_keys, acc_values)
+
+fn std__map__replace<V>(map: Map__Entries<V>, key: str, value: V) -> Map__Entries<V> rev 1
+  emits [map.key_absent]
+  tests
+    ok_first<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "a", 9) => Ok(Seq<str>["a", "b"], Seq<int>[9, 2])
+    ok_last<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "b", 9) => Ok(Seq<str>["a", "b"], Seq<int>[1, 9])
+    absent<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "z", 9) => map.key_absent("z")
+    str_ok<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k", "w") => Ok(Seq<str>["k"], Seq<str>["w"])
+    str_absent<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "z", "w") => map.key_absent("z")
+  match call std__map__index_from<V>(map, key, 0, #map.keys)
+    on Ok i => match i.value < 0
+      true => map.key_absent(key)
+      false => match call std__map__replace_from<V>(map, key, value, 0, #map.keys, Seq<str>[], Seq<V>[])
+        on Ok r => Ok(r.keys, r.values)
+
+fn std__map__remove_from<V>(map: Map__Entries<V>, key: str, pos: int, n: int, acc_keys: Seq<str>, acc_values: Seq<V>) -> Map__Entries<V> rev 1
+  decreases n
+  emits []
+  tests
+    done<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "a", 1, 0, Seq<str>[], Seq<int>[]) => Ok(Seq<str>[], Seq<int>[])
+    over<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "a", 5, 2, Seq<str>[], Seq<int>[]) => Ok(Seq<str>[], Seq<int>[])
+    drop_first<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "a", 0, 2, Seq<str>[], Seq<int>[]) => Ok(Seq<str>["b"], Seq<int>[2])
+    drop_later<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "b", 0, 2, Seq<str>[], Seq<int>[]) => Ok(Seq<str>["a"], Seq<int>[1])
+    str_drop<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k", 0, 1, Seq<str>[], Seq<str>[]) => Ok(Seq<str>[], Seq<str>[])
+    str_skip_drop<V=str>(Map__Entries<str>(Seq<str>["j", "k"], Seq<str>["u", "v"]), "k", 0, 2, Seq<str>[], Seq<str>[]) => Ok(Seq<str>["j"], Seq<str>["u"])
+    str_over<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "k", 5, 1, Seq<str>[], Seq<str>[]) => Ok(Seq<str>[], Seq<str>[])
+  match n <= 0
+    true => Ok(acc_keys, acc_values)
+    false => match pos < #map.keys
+      true => match map.keys[pos] == key
+        true => match call std__map__remove_from<V>(map, key, pos + 1, n - 1, acc_keys, acc_values)
+          on Ok r => Ok(r.keys, r.values)
+        false => match call std__map__remove_from<V>(map, key, pos + 1, n - 1, acc_keys + map.keys[pos], acc_values + map.values[pos])
+          on Ok r => Ok(r.keys, r.values)
+      false => Ok(acc_keys, acc_values)
+
+fn std__map__remove<V>(map: Map__Entries<V>, key: str) -> Map__Entries<V> rev 1
+  emits [map.key_absent]
+  tests
+    ok_first<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "a") => Ok(Seq<str>["b"], Seq<int>[2])
+    ok_last<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2]), "b") => Ok(Seq<str>["a"], Seq<int>[1])
+    absent<V=int>(Map__Entries<int>(Seq<str>["a"], Seq<int>[1]), "z") => map.key_absent("z")
+    str_ok<V=str>(Map__Entries<str>(Seq<str>["j", "k"], Seq<str>["u", "v"]), "j") => Ok(Seq<str>["k"], Seq<str>["v"])
+    str_absent<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"]), "z") => map.key_absent("z")
+  match call std__map__index_from<V>(map, key, 0, #map.keys)
+    on Ok i => match i.value < 0
+      true => map.key_absent(key)
+      false => match call std__map__remove_from<V>(map, key, 0, #map.keys, Seq<str>[], Seq<V>[])
+        on Ok r => Ok(r.keys, r.values)
+
+fn std__map__entries<V>(map: Map__Entries<V>) -> Map__Entries<V> rev 1
+  emits []
+  tests
+    empty<V=int>(Map__Entries<int>(Seq<str>[], Seq<int>[])) => Ok(Seq<str>[], Seq<int>[])
+    two<V=int>(Map__Entries<int>(Seq<str>["a", "b"], Seq<int>[1, 2])) => Ok(Seq<str>["a", "b"], Seq<int>[1, 2])
+    one<V=str>(Map__Entries<str>(Seq<str>["k"], Seq<str>["v"])) => Ok(Seq<str>["k"], Seq<str>["v"])
+  Ok(map.keys, map.values)
