@@ -167,24 +167,16 @@ func TestVariantReturnNominalParent(t *testing.T) {
 	}
 }
 
-func TestVariantReturnFnAndExternStillRefused(t *testing.T) {
+// B08 admits variant Fn successes, but the host ABI is still separate.
+func TestVariantReturnExternStillRefused(t *testing.T) {
 	src := monoVariantReturn + `
 extern host__choose(full: bool) -> M__State rev 1
   emits []
-
-fn m__invoke(cb: Fn<bool, M__State, []>, full: bool) -> M__State rev 1
-  emits []
-  tests
-    full(fnref m__choose(), true) => Ok(M__Full(7))
-  match invoke cb with full
-    on Ok r => Ok(r.value)
 `
-	src = strings.Replace(src, "provides [", "provides [host__choose, m__invoke, ", 1)
+	src = strings.Replace(src, "provides [", "provides [host__choose, ", 1)
 	_, _, ds := genericProgram(t, map[string]string{"m.can": src})
-	for _, want := range []string{"externs return a record type", "Fn success M__State", "success M__State is not a record"} {
-		if !hasDiag(ds, "error", want) {
-			t.Fatalf("want %s: %v", want, ds)
-		}
+	if !hasDiag(ds, "error", "externs return a record type") {
+		t.Fatal(ds)
 	}
 }
 

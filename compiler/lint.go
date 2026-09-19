@@ -2276,6 +2276,12 @@ func lintRelayCallable(lm lintModule) []lintFinding {
 			if len(m.Scruts) != 1 || m.Scruts[0] == nil || m.Scruts[0].Kind != "call" {
 				continue
 			}
+			// Generic forward-call text is parsed after expansion and
+			// cannot resolve the stamped target yet. Never recommend
+			// an equivalent-looking rewrite that the compiler rejects.
+			if len(m.Scruts[0].TypeArgs) > 0 {
+				continue
+			}
 			fname := m.Scruts[0].Fname
 			if !locals[fname] || pinned[fname] || externs[fname] {
 				continue

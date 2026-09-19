@@ -7,6 +7,11 @@ Evidence revision: `veighnsche/can-lang@de2bafd3a7a4c858e3a8cf3fee53f650f77876c6
 Required inputs: a93, a98, a99, and the Functions / outcome-combinator portions of `ASTRA_STDLIB.md`.
 Verification status: **source-body inspection and static counterexample review only. No compiler gates were run.** The prompt's green-suite statement is not an independently established result here.
 
+Implementation follow-up: [B08](b08-fn-variant-successes.md) extends the
+historical record-only success rule below to declared records **or variants**,
+using B07's `Ok(value)` envelope for variants. Other B00 constraints remain;
+`stdlib-remaining.md` records the shipped implementation and current gaps.
+
 ## 0. Evidence boundary and corrected premises
 
 The supplied `veighnsche/ai-lang` repository resolves to `veighnsche/can-lang`. The revision above was selected once and used for the source reads in this document. Direct `git clone` failed because the shell could not resolve GitHub. Repository contents were subsequently read through the connected GitHub reader, not a local checkout. This document is delivered at the requested repository-relative path with a single-file patch; neither a successful clone nor a remote commit is claimed.

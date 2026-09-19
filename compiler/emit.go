@@ -123,9 +123,9 @@ func tsFnType(a, r, e string, brands map[string]string, recs map[string][][2]str
 	if err != nil {
 		return "", err
 	}
-	fields, ok := recs[r]
+	fields, ok := successFields(r, recs, variants[r] != nil)
 	if !ok {
-		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a record", r)
+		return "", fmt.Errorf("cannot map can type to TS: Fn success %s is not a record or variant", r)
 	}
 	type kv struct{ k, v string }
 	var kvs []kv
@@ -355,10 +355,7 @@ func fnResultUnion(fn *FnDecl, prog *Program) (string, error) {
 func declaredOkShape(fn *FnDecl, prog *Program) (map[string]string, error) {
 	recs := recordShapes(prog.Modules)
 	variants := variantShapes(prog.Modules)
-	fields, ok := recs[fn.Ret]
-	if variants[fn.Ret] != nil {
-		fields, ok = variantOkFields(fn.Ret), true
-	}
+	fields, ok := successFields(fn.Ret, recs, variants[fn.Ret] != nil)
 	if !ok {
 		return nil, fmt.Errorf("%s returns unknown type %s", fn.Name, fn.Ret)
 	}
@@ -1599,10 +1596,10 @@ func (e *emitter) emitFnref(node *Small) (string, error) {
 // sigResultUnion renders one resolved invocation signature as its
 // flattened Ok/error union: the same sorted Ok fields and error
 // members as fnResultUnion, but over the signature's own success
-// record and head error list. Invoke temporaries annotate with
+// type and head error list. Invoke temporaries annotate with
 // this so strict checkers narrow exactly like calls.
 func (e *emitter) sigResultUnion(sig *invokeSig) (string, error) {
-	fields, ok := e.recs[sig.ret]
+	fields, ok := successFields(sig.ret, e.recs, e.variants[sig.ret] != nil)
 	if !ok {
 		return "", fmt.Errorf("invoke returns unknown type %s", sig.ret)
 	}

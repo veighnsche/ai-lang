@@ -9,7 +9,7 @@ import (
 
 // invokeSig is the checked monomorphic callable signature behind
 // one `match invoke cb with n`: the input type A, the success
-// record R, and the declared error kinds in written order. It is
+// type R (record or variant), and the declared error kinds in written order. It is
 // the static half of the invocation certificate: resolution
 // stashes it on the node, and check, proof, forward elaboration,
 // run, and emit all consume the stash, failing closed when it is
@@ -83,7 +83,7 @@ func sigKey(a, r string, errs []string) string {
 
 // admissibleRefSig reports the denoted signature key when s is an
 // admissible address-taken reference: the target resolves with
-// exactly one parameter unbound and a record success (refFnType),
+// exactly one parameter unbound and a record/variant success (refFnType),
 // the denoted input and success are data-only, the reachable
 // graph is linked-pure, and no reachable function needs a
 // precondition. It mirrors checkFnrefTarget without diagnostics;

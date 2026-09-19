@@ -122,7 +122,7 @@ func forwardOk(prog *Program, fn *FnDecl, callee, binder string) (*Small, error)
 
 // forwardOkRet rebuilds an Ok payload from a known success type.
 // Calls resolve it through the callee; invoke matches read it from the
-// callable signature (currently record-only). Variant envelopes retain
+// callable signature. Variant envelopes retain
 // nominal identity; records retain field-shape compatibility.
 func forwardOkRet(prog *Program, fn *FnDecl, who, calleeRet, binder string) (*Small, error) {
 	if prog.Variants[calleeRet] != nil || prog.Variants[fn.Ret] != nil {

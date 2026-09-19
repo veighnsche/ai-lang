@@ -173,7 +173,7 @@ func seqElemName(t string) (string, bool) {
 }
 
 // fnTypeShape splits a function-value annotation Fn<A, R, [kinds]>
-// into its input type, success record, and error-list text.
+// into its input type, success type, and error-list text.
 // ok=false for anything else, including a non-list third slot.
 // Shape only: member validation belongs to expansion.
 func fnTypeShape(t string) (string, string, string, bool) {
@@ -403,7 +403,7 @@ func (c *tycker) checkFnref(s *Small, line int, env map[string]string, where str
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("input %s of reference to %s contains a function value: inputs are data-only", a, show), "fnref", CodeFnContainment))
 		}
-		if _, ok := c.recs[tgt.Ret]; ok && c.typeHasFn(tgt.Ret) {
+		if c.typeHasFn(tgt.Ret) {
 			c.out = append(c.out, spanDiag(c.text, line, "error",
 				fmt.Sprintf("success %s of reference to %s contains a function value: success carriers are data-only", tgt.Ret, show), "fnref", CodeFnContainment))
 		}
@@ -414,13 +414,13 @@ func (c *tycker) checkFnref(s *Small, line int, env map[string]string, where str
 }
 
 // checkFnrefTarget enforces target admission: the return names a
-// record, the whole reachable graph is pure under the linked
+// record or variant, the whole reachable graph is pure under the linked
 // criterion, and no reachable function needs a precondition.
 // Captures never discharge any of these.
 func (c *tycker) checkFnrefTarget(s *Small, tgt *FnDecl, show string, line int) {
-	if _, ok := c.recs[tgt.Ret]; !ok {
+	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret]); !ok {
 		c.out = append(c.out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("reference to %s refused: success %s is not a record", show, tgt.Ret), "fnref", CodeFnTargetRefused))
+			fmt.Sprintf("reference to %s refused: success %s is not a record or variant", show, tgt.Ret), "fnref", CodeFnTargetRefused))
 	}
 	if err := checkLinkedGraph(c.prog, s.Fname); err != nil {
 		detail := strings.TrimPrefix(err.Error(), "linked execution refused: ")
@@ -490,7 +490,7 @@ func (c *tycker) refFnType(s *Small) (string, bool) {
 	if err != nil || len(unbound) != 1 {
 		return "", false
 	}
-	if _, ok := c.recs[tgt.Ret]; !ok {
+	if _, ok := successFields(tgt.Ret, c.recs, c.variants[tgt.Ret]); !ok {
 		return "", false
 	}
 	errs := slices.Clone(tgt.Emits)
@@ -500,10 +500,10 @@ func (c *tycker) refFnType(s *Small) (string, bool) {
 
 // fnHeadDiags enforces b00 deep validity on one Fn annotation that
 // shape-accepted: the input names a known type, the success names a
-// record, every kind names a declared error, and the kinds are
+// record or variant, every kind names a declared error, and the kinds are
 // distinct and canonically (lexicographically) ordered. Unknown
 // input reuses CAN6002 and unknown kinds reuse CAN4002; head-invalid
-// shapes (non-record success, duplicate or unordered kinds) are
+// shapes (non-record/variant success, duplicate or unordered kinds) are
 // CAN6019. Non-Fn annotations are a silent no-op, so call sites
 // need no shape gate. This cut validates the head everywhere it
 // is written; transitive containment (Fn inside A or R through
@@ -519,9 +519,9 @@ func (c *tycker) fnHeadDiags(t, where string, line int, token string) []Diag {
 		out = append(out, spanDiag(c.text, line, "error",
 			fmt.Sprintf("unknown type %s in Fn input of %s", a, where), token, CodeUnknownType))
 	}
-	if _, ok := c.recs[r]; !ok {
+	if _, ok := successFields(r, c.recs, c.variants[r]); !ok {
 		out = append(out, spanDiag(c.text, line, "error",
-			fmt.Sprintf("Fn success %s of %s is not a record: name the Ok payload record", r, where), token, CodeFnHeadInvalid))
+			fmt.Sprintf("Fn success %s of %s is not a record or variant: name a declared success type", r, where), token, CodeFnHeadInvalid))
 	}
 	// Invocation inputs and success carriers are data-only (b00
 	// Q1d): a bearing head would smuggle callbacks through the
@@ -1530,10 +1530,7 @@ func (c *tycker) checkCtor(s *Small, want string, line int, env map[string]strin
 			}
 			return
 		}
-		rec, ok := c.recs[want]
-		if c.variants[want] {
-			rec, ok = variantOkFields(want), true
-		}
+		rec, ok := successFields(want, c.recs, c.variants[want])
 		if !ok {
 			// a92: scalar Ok takes exactly the conventional
 			// `value`: bind a lone positional, fault the
@@ -1838,10 +1835,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 			if p.Kind == "variant" && p.Var != "" {
 				if p.Name == "Ok" {
 					if sig != nil && c.knownType(sig.ret) {
-						env2[p.Var] = sig.ret
-						if c.variants[sig.ret] {
-							env2[p.Var] = variantOkType(sig.ret)
-						}
+						env2[p.Var] = c.successBinderType(sig.ret)
 					} else {
 						env2[p.Var] = ""
 					}
@@ -1909,7 +1903,7 @@ func (c *tycker) node(n *Node, env map[string]string, want string) {
 // checkInvoke checks one `match invoke cb with n` against the
 // resolved callable signature: the target names an Fn-typed value
 // in scope, the argument matches the input type, and arm binders
-// thread the success record and error kinds exactly like a call
+// thread the success payload and error kinds exactly like a call
 // match. Unbound names report through the scrutinee check, while
 // known non-callables (including shadowed binders) reuse the
 // mismatch code (JEV Q1). Exhaustiveness belongs to the proof.
@@ -1958,7 +1952,7 @@ func (c *tycker) checkInvoke(n *Node, env map[string]string, want string) {
 		if p.Kind == "variant" && p.Var != "" {
 			if p.Name == "Ok" {
 				if sig != nil && c.knownType(sig.ret) {
-					env2[p.Var] = sig.ret
+					env2[p.Var] = c.successBinderType(sig.ret)
 				} else {
 					env2[p.Var] = ""
 				}

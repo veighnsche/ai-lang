@@ -66,6 +66,10 @@ exchange outcomes, including recovery bodies under error arms. Nested
 
 ## Deliberate boundaries
 
+These describe B07's scope. [B08](b08-fn-variant-successes.md) subsequently
+admits record/variant Fn successes and reference targets through invocation
+and emission; extern returns remain record-only.
+
 JEV (`jev-1.13.0`, Choice) selected:
 
 - `ok_value`: probability 0.99, confidence 0.98 (unwrap binder 0.01,
@@ -73,9 +77,9 @@ JEV (`jev-1.13.0`, Choice) selected:
 - `calls_only`: probability 0.75, confidence 0.63 (calls plus Fn successes
   0.25, all channels including externs 0.00).
 
-Accordingly, **Fn success types/reference targets and extern returns stay
-record-only**. Their admission and invocation/host ABI are separate
-follow-ups, pinned by `TestVariantReturnFnAndExternStillRefused`.
+Accordingly, **Fn success types/reference targets and extern returns stayed
+record-only in B07**. B08 supplies the Fn follow-up; the retained host
+boundary is pinned by `TestVariantReturnExternStillRefused`.
 
 Bare scalar return emission is not generalized: the re-probe
 `fn probe__identity<T>(value: T) -> T` at `T=int`, with an `Ok(value)`
